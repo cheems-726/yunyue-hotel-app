@@ -48,6 +48,22 @@ const DECISION_NAMES = {
 }
 const DECISION_IDS = Object.keys(DECISION_NAMES)
 
+// 事件参数集中配置（调平衡只改这里，不动逻辑）
+export const EVENT_CONFIG = {
+  fullLoadSlow:    { prob: 0.6 },                       // 满负荷·响应慢（另需 occupancy>=0.85 且 排班精简）
+  hygieneSlack:    { prob: 0.3, minWeek: 4 },           // 卫生敷衍（另需未做深清洁）
+  valueMismatch:   { prob: 0.4, minPrice: 320, maxGoodRate: 0.8 }, // 性价比失衡
+  rivalOpen:       { prob: 0.35, occCut: 0.9, minCompetition: 4 }, // 竞店开业
+  influencerVisit: { prob: 0.25, minGoodRate: 0.85, goodRateUp: 0.02 }, // 网红探店
+  memberRepurchase:{ prob: 0.3 },                       // 会员复购潮（另需会员转化=强调品质）
+  reviewFerment:   { prob: 0.4, minPending: 2, goodRateDown: 0.03 }, // 危机·差评发酵
+  renovationPraise:{ prob: 0.5, minResolved: 2, goodRateUp: 0.02 }, // 整改获认可
+  fireInspection:  { prob: 0.25, minWeek: 6, fine: 1500 }, // 消防检查（另需未做深清洁）
+  waterOutage:     { prob: 0.12, occCut: 0.95 },        // 市政停水半日
+  expoSeason:      { prob: 0.3, minFlow: 4, occUp: 0.05 }, // 会展旺季（另需客流>=minFlow）
+  otaGoldBadge:    { prob: 0.3, minGoodRate: 0.8, goodRateUp: 0.01 }, // OTA金牌商家（另需投放OTA）
+}
+
 // 结算主函数
 // 输入：site（选址属性1-5档）、brand（品牌）、decisions（决策结果）、week（经营周数）、
 //       pendingNegatives（口碑页未处理差评数）、prevGoodRate（上周好评率，跨周延续）
@@ -146,63 +162,65 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
 const events = []
 function addEvent(e) { events.push(e) }
 let negativeCount = 0
+let eventFine = 0
 
 // ① 满负荷·响应慢：出租率过高 + 排班精简 → 服务跟不上
-if (occupancy >= 0.85 && decisions.shifts === '精简省成本' && rand() < 0.6) {
+if (occupancy >= 0.85 && decisions.shifts === '精简省成本' && rand() < EVENT_CONFIG.fullLoadSlow.prob) {
   negativeCount += 2
   addEvent({ type: 'bad', icon: '🐢', name: '满负荷·响应慢', text: `出租率 ${Math.round(occupancy * 100)}% 却只留了精简人手，客人投诉入住/退房排队，新增 2 条差评`, tip: '旺季保服务：高出租率时该满编排班' })
 }
 // ② 卫生敷衍：连续经营未做深清洁
-if (decisions.hygiene !== '停房深清洁' && week >= 4 && rand() < 0.3) {
+if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.hygieneSlack.minWeek && rand() < EVENT_CONFIG.hygieneSlack.prob) {
   negativeCount += 1
   addEvent({ type: 'bad', icon: '🧹', name: '卫生敷衍', text: '连续多周未做深度清洁，客人发现布草污渍，新增 1 条差评', tip: '卫生是口碑底线，定期停房深清洁' })
 }
 // ③ 性价比失衡：高房价 + 口碑平平 → 客人觉得不值
-if (price >= 320 && goodRate < 0.8 && rand() < 0.4) {
+if (price >= EVENT_CONFIG.valueMismatch.minPrice && goodRate < EVENT_CONFIG.valueMismatch.maxGoodRate && rand() < EVENT_CONFIG.valueMismatch.prob) {
   negativeCount += 1
   addEvent({ type: 'bad', icon: '💸', name: '性价比失衡', text: `房价 ${Math.round(price)} 元但口碑平平（好评率 ${Math.round(goodRate * 100)}%），客人吐槽"不值这个价"`, tip: '价格要和品质匹配，否则招差评' })
 }
 // ④ 竞店开业：选址竞争激烈时被分流
-if ((s.竞争 || 3) >= 4 && rand() < 0.35) {
-  occupancy = Math.max(occupancy * 0.9, 0.3)
+if ((s.竞争 || 3) >= EVENT_CONFIG.rivalOpen.minCompetition && rand() < EVENT_CONFIG.rivalOpen.prob) {
+  occupancy = Math.max(occupancy * EVENT_CONFIG.rivalOpen.occCut, 0.3)
   addEvent({ type: 'bad', icon: '🏪', name: '竞店开业', text: '附近新开一家同类酒店分走客流，本周出租率 -10%', tip: '竞争激烈地段要靠口碑和会员留客' })
 }
 // ⑤ 网红探店（正面）：口碑好被推荐
-if (goodRate >= 0.85 && rand() < 0.25) {
+if (goodRate >= EVENT_CONFIG.influencerVisit.minGoodRate && rand() < EVENT_CONFIG.influencerVisit.prob) {
   addEvent({ type: 'good', icon: '📸', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', tip: '好口碑会带来免费流量' })
-  goodRate = Math.min(goodRate + 0.02, 0.95)
+  goodRate = Math.min(goodRate + EVENT_CONFIG.influencerVisit.goodRateUp, 0.95)
 }
 // ⑥ 会员复购（正面）：强调品质转化带来回头客
-if (decisions['member-convert'] === '强调品质' && rand() < 0.3) {
+if (decisions['member-convert'] === '强调品质' && rand() < EVENT_CONFIG.memberRepurchase.prob) {
   addEvent({ type: 'good', icon: '🔁', name: '会员复购潮', text: '高品质转化的会员带朋友复购，本周散客口碑提升', tip: '强调品质的会员忠诚度更高' })
 }
 // ⑦ 危机·差评发酵：欠了2条以上差评没处理，被顶上平台热榜
-if (pendingNegatives >= 2 && rand() < 0.4) {
-  goodRate = Math.max(goodRate - 0.03, 0.3)
+if (pendingNegatives >= EVENT_CONFIG.reviewFerment.minPending && rand() < EVENT_CONFIG.reviewFerment.prob) {
+  goodRate = Math.max(goodRate - EVENT_CONFIG.reviewFerment.goodRateDown, 0.3)
   addEvent({ type: 'crisis', icon: '🔥', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
 }
 // ⑧ 整改获认可（正面）：认真整改差评，客人追加好评（设计文档§三闭环的奖励侧）
-if (resolvedCount >= 2 && rand() < 0.5) {
-  goodRate = Math.min(goodRate + 0.02, 0.95)
+if (resolvedCount >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVENT_CONFIG.renovationPraise.prob) {
+  goodRate = Math.min(goodRate + EVENT_CONFIG.renovationPraise.goodRateUp, 0.95)
   addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位，客人主动修改评价并追加好评，口碑 +2%`, tip: '整改不是白干——认真处理差评会带来口碑回报' })
 }
 // ⑨ 消防检查：长期不深清洁/不维护的店容易被查出发隐患
-if (decisions.hygiene !== '停房深清洁' && week >= 6 && rand() < 0.25) {
-  addEvent({ type: 'bad', icon: '🧯', name: '消防检查', text: '消防突击检查发现疏散通道堆物，限期整改并罚款 1500 元', tip: '合规是底线成本，别抱侥幸心理' })
+if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.fireInspection.minWeek && rand() < EVENT_CONFIG.fireInspection.prob) {
+  eventFine = EVENT_CONFIG.fireInspection.fine
+  addEvent({ type: 'bad', icon: '🧯', name: '消防检查', text: '消防突击检查发现疏散通道堆物，限期整改并罚款 ' + eventFine + ' 元（已计入本周成本）', tip: '合规是底线成本，别抱侥幸心理' })
 }
 // ⑩ 市政停水半日：任何店都可能碰上（小概率，全班同周同命中）
-if (rand() < 0.12) {
-  occupancy = Math.max(occupancy * 0.95, 0.3)
+if (rand() < EVENT_CONFIG.waterOutage.prob) {
+  occupancy = Math.max(occupancy * EVENT_CONFIG.waterOutage.occCut, 0.3)
   addEvent({ type: 'bad', icon: '🚱', name: '市政停水半日', text: '片区管网检修停水半天，部分客人提前退房，出租率 -5%', tip: '不可抗力谁都会遇到，别慌，下周就恢复' })
 }
 // ⑪ 会展旺季（正面）：客流充沛地段吃到红利
-if ((s.客流 || 3) >= 4 && rand() < 0.3) {
-  occupancy = Math.min(occupancy + 0.05, 0.98)
+if ((s.客流 || 3) >= EVENT_CONFIG.expoSeason.minFlow && rand() < EVENT_CONFIG.expoSeason.prob) {
+  occupancy = Math.min(occupancy + EVENT_CONFIG.expoSeason.occUp, 0.98)
   addEvent({ type: 'good', icon: '🎪', name: '会展旺季', text: '片区大型会展开幕，周边酒店全线满房，本周出租率 +5%', tip: '选址选客流，红利期才接得住' })
 }
 // ⑫ OTA金牌商家（正面）：投放OTA且口碑达标
-if (decisions.ota && goodRate >= 0.8 && rand() < 0.3) {
-  goodRate = Math.min(goodRate + 0.01, 0.95)
+if (decisions.ota && goodRate >= EVENT_CONFIG.otaGoldBadge.minGoodRate && rand() < EVENT_CONFIG.otaGoldBadge.prob) {
+  goodRate = Math.min(goodRate + EVENT_CONFIG.otaGoldBadge.goodRateUp, 0.95)
   addEvent({ type: 'good', icon: '🏅', name: 'OTA金牌商家', text: '平台授予金牌商家标识，线上转化率提升，口碑小幅上涨', tip: '线上渠道的流量倾斜跟着口碑走' })
 }
 
@@ -239,7 +257,7 @@ if (decisions.ota && goodRate >= 0.8 && rand() < 0.3) {
     const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
-  const totalCost = fixedCost + variableCost + marketingCost + otaCommission + overbookCompensation + renovationCost
+  const totalCost = fixedCost + variableCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
 
   // 10. 利润
   const profit = revenue - totalCost
