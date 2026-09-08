@@ -225,10 +225,12 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
       <div className="card">
         <div className="card-title">📤 分享本周成绩</div>
         <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => {
+          const evText = result.events && result.events.length ? `
+经历事件：${result.events.map(e => e.name).join('、')}` : ''
           const text = `🏨 云悦酒店·第${result.week}周成绩单
 出租率 ${result.occupancy}% | 营收 ${(result.revenue/10000).toFixed(1)}万 | 利润 ${result.profit >= 0 ? '+' : ''}${result.profit}元
 好评率 ${result.finalGoodRate}% | 差评 ${result.negativeCount}条
-${after.icon} 当前称号：${after.title}
+${after.icon} 当前称号：${after.title}${evText}
 ——来自云悦酒店经营模拟`
           navigator.clipboard.writeText(text).then(() => setCopied(true)).catch(() => setCopied(false))
         }}>📋 一键复制成绩单（发群里）</button>

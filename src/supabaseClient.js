@@ -95,7 +95,7 @@ export async function fetchAllGameStates() {
 export async function fetchAllProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, role, display_name, group_no, class_name')
+    .select('user_id, role, display_name, group_no, class_name, student_no')
   if (error) throw error
   return data || []
 }
