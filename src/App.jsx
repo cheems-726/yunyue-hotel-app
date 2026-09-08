@@ -768,6 +768,11 @@ function HelpPage({ onBack }) {
     { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
     { icon: '💾', title: '数据安全', body: '进度自动存云端+本机。「我的」页可导出备份文件；换设备登录同一学号自动恢复。重开经营需二次确认且会覆盖云端，慎重。' },
   ]
+  const faqs = [
+    { q: '网页打不开怎么办？', a: '优先用安卓App；正式版会更换为国内直连域名，以老师通知的网址为准。' },
+    { q: '之前做的进度还在吗？', a: '在。进度自动存云端，用同一学号登录自动恢复；也可在「我的」页导出备份文件双重保险。' },
+    { q: '本周结算按钮是灰的/被拦了？', a: '老师设置了全班统一周，你的进度已超前——等老师推进后即可结算。' },
+  ]
   return (
     <div className="content">
       <div className="header">
@@ -782,6 +787,15 @@ function HelpPage({ onBack }) {
           <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>{s.body}</div>
         </div>
       ))}
+      <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+        <div className="card-title">💬 常见问题</div>
+        {faqs.map(f => (
+          <div key={f.q} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Q：{f.q}</div>
+            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>A：{f.a}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
