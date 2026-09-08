@@ -258,9 +258,6 @@ if (decisions.ota && goodRate >= EVENT_CONFIG.otaGoldBadge.minGoodRate && rand()
   // 9. 成本（真实酒店成本结构）
   // 固定成本 = 可售房 × 单房固定（含租金、折旧、基础人工分摊），单房成本由选址"租金"属性决定
   let fixedCost = rooms * rentCost
-  // 排班决策影响人工成本：满编多招人，精简省人工
-  if (decisions.shifts === '满编保服务') fixedCost = Math.round(fixedCost * 1.3)
-  if (decisions.shifts === '精简省成本') fixedCost = Math.round(fixedCost * 0.8)
   // 报表诊断选"成本相关" → 压降固定成本
   if (decisions['report-diagnosis'] === '解决成本相关') fixedCost = Math.round(fixedCost * 0.95)
   // 人力优化：裁员立即降本，培训成本不变
@@ -270,6 +267,9 @@ if (decisions.ota && goodRate >= EVENT_CONFIG.otaGoldBadge.minGoodRate && rand()
   let perRoomVariable = 60
   if (decisions.linen === '自洗') perRoomVariable = 52
   if (decisions.linen === '外包') perRoomVariable = 66
+  // 排班人力跟入住量走（满编多派人手服务到位，精简省人力但服务质量风险由事件体现）
+  if (decisions.shifts === '满编保服务') perRoomVariable += 18
+  else if (decisions.shifts === '精简省成本') perRoomVariable -= 12
   // 能耗管控：温度设低省电、设高耗电
   if (energy != null) perRoomVariable += (energy - 23) * 2
   let variableCost = occupiedRooms * perRoomVariable
