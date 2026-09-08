@@ -293,3 +293,16 @@ body {
   animation: shimmer 1.2s ease-in-out infinite;
   border-radius: 8px;
 }
+
+/* 星级变化 pop 弹跳 */
+@keyframes starPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.stars-pop { animation: starPop 0.6s cubic-bezier(0.22,1,0.36,1); }
+
+/* 数字等宽（表格/指标不再跳动） */
+.tabular-nums, .metric .value, .card td, .card b {
+  font-variant-numeric: tabular-nums;
+}

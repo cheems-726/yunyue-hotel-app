@@ -279,7 +279,20 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         </button>
       </div>
 
-          {/* 决策筛选 */}
+          {/* 今日关键未完成提醒 */}
+      {(() => {
+        const undoneKeys = KEY_DECISIONS.filter(id => doneDecisions[id] === undefined)
+        if (undoneKeys.length === 0 || report) return null
+        const names = undoneKeys.map(id => decisions.find(d => d.id === id)?.name).filter(Boolean)
+        return (
+          <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: '#FEF0EF', border: '1px solid #FECACA', borderRadius: 10, fontSize: 12, color: '#991B1B', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flexShrink: 0 }}>🔔</span>
+            <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周结算</span>
+          </div>
+        )
+      })()}
+
+      {/* 决策筛选 */}
       <div className="city-row" style={{ marginTop: 2 }}>
         {[['all', '全部'], ['undone', '待决策'], ['done', '已决策'], ['key', '每日关键']].map(([k, label]) => (
           <button key={k} className={`city-tab ${filter === k ? 'active' : ''}`} style={{ padding: '8px 0', fontSize: 12 }} onClick={() => setFilter(k)}>{label}</button>
