@@ -40,7 +40,15 @@ function summarize(gs, profile) {
   }
 }
 
-// 组详情下钻：展开看该组逐周经营明细（课堂复盘用）
+// 周决策答案转可读文本
+function fmtAnswer(v) {
+  if (v == null) return '—'
+  if (Array.isArray(v)) return v.slice(0, 5).join('＞')
+  if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}:${val}`).join('、')
+  return String(v)
+}
+
+// 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
 function GroupDetail({ uid, rawStates, name }) {
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
@@ -53,33 +61,28 @@ function GroupDetail({ uid, rawStates, name }) {
         {s.brand?.name || '—'}品牌 · 本周已做决策 {weekDecisions}/18 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
       </div>
       {hist.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>还没有结算过，看不到逐周数据</div>}
-      {hist.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-            <thead>
-              <tr style={{ color: '#9CA3AF' }}>
-                {['周', '出租率', '房价', '营收', '利润', '差评', '好评率'].map(h => (
-                  <th key={h} style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 500 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {hist.map(h => (
-                <tr key={h.week} style={{ borderTop: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600 }}>第{h.week}周</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.occupancy}%</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.price}元</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{(h.revenue / 10000).toFixed(2)}万</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right', color: h.profit >= 0 ? '#10B981' : '#EF4444', fontWeight: 600 }}>{h.profit >= 0 ? '+' : ''}{(h.profit / 10000).toFixed(2)}万</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.negativeCount}</td>
-                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.finalGoodRate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
+      {hist.map(h => {
+        const dec = h.decisions || {}
+        const entries = Object.entries(dec)
+        return (
+          <div key={h.week} style={{ marginBottom: 10, background: '#fff', borderRadius: 8, padding: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              第{h.week}周 <span style={{ fontWeight: 400, color: '#6B7280' }}>出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
+            </div>
+            {entries.length === 0 ? (
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>决策明细未记录（旧版本结算的一周）</div>
+            ) : entries.map(([id, val]) => {
+              const d = decisions.find(x => x.id === id)
+              return (
+                <div key={id} style={{ fontSize: 11, color: '#374151', padding: '2px 0' }}>
+                  · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtAnswer(val)}</b>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
+      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
     </div>
   )
 }

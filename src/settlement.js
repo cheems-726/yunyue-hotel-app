@@ -294,6 +294,7 @@ for (let i = 0; i < reviewCount; i++) {
     marketWave: Math.round(marketWave * 100) / 100,
     insights,
     events,
+    decisions: { ...decisions },
     generatedReviews,
   }
 }
