@@ -45,6 +45,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
+  const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
 
   const loadAll = async () => {
     try {
@@ -54,6 +55,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student'))
+      setRawStates(states)
       setCloudOk(true)
     } catch (e) {
       setGroups(demoGroups); setCloudOk(false)
@@ -72,6 +74,42 @@ export default function TeacherDashboard({ user, onLogout }) {
   async function saveProfile(p, fields) {
     setProfiles(prev => prev.map(x => x.user_id === p.user_id ? { ...x, ...fields } : x))
     await updateProfileByTeacher(p.user_id, fields)
+  }
+
+  // 导出全班周报 CSV（汇总 + 每周明细，带 BOM 防 Excel 中文乱码）
+  function exportWeeklyCSV() {
+    const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const lines = []
+    lines.push('【全班汇总】')
+    lines.push('班级,组名,酒店,城市,周次,状态,出租率%,营收(万),利润(万),口碑(5分),综合评分')
+    for (const g of groups) {
+      const p = pMap[g.uid] || {}
+      lines.push([
+        p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
+        g.finished ? '已结业' : '经营中', g.occ, g.revenue, g.profit, g.rating, g.score,
+      ].join(','))
+    }
+    lines.push('')
+    lines.push('【每周明细】')
+    lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),利润(元),评价数,差评数,好评率%')
+    for (const gs of rawStates) {
+      const p = pMap[gs.user_id] || {}
+      const gname = p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8))
+      const hist = (gs.state && gs.state.history) || []
+      for (const h of hist) {
+        lines.push([
+          p.class_name || '', gname, h.week, h.occupancy, h.price, h.revenue, h.totalCost, h.profit,
+          h.reviewCount ?? '', h.negativeCount ?? '', h.finalGoodRate ?? '',
+        ].join(','))
+      }
+    }
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `云悦酒店-全班周报-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
   }
 
   // 按分数排序
@@ -117,7 +155,14 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'overview' && groups !== null && (
         <div>
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>全班经营总览</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览</div>
+              {groups.length > 0 && (
+                <button onClick={exportWeeklyCSV} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  📥 导出全班周报 CSV
+                </button>
+              )}
+            </div>
             {groups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
             {groups.map(g => (
               <div key={g.uid} style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: 8 }}>
