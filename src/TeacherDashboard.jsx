@@ -357,8 +357,20 @@ export default function TeacherDashboard({ user, onLogout }) {
               已注册学生 {profiles.length} 人 · 直接输入组号和班级即可保存（云端的进度数据不受影响）
             </div>
             {profiles.some(p => !p.group_no) && (
-              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF0EF', borderRadius: 8, padding: '8px 12px', marginBottom: 10 }}>
-                ⚠ 有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号，排名里不会显示组名——课前记得分配
+              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF0EF', borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span>⚠ 有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号</span>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('按注册顺序每 6 人一组自动填充未分组学生的组号？')) return
+                    const ungrouped = profiles.filter(p => !p.group_no)
+                    for (let i = 0; i < ungrouped.length; i++) {
+                      await saveProfile(ungrouped[i], { group_no: Math.floor(i / 6) + 1 })
+                    }
+                  }}
+                  style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 10px', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                >
+                  🤖 一键分组（每6人）
+                </button>
               </div>
             )}
             {profiles.length === 0 && (

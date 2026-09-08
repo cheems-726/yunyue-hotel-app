@@ -155,7 +155,7 @@ export default function Reputation({ report, history }) {
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>✓已解决</span></div>
+                  <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>✓已解决</span>{r.replyScore != null && <span style={{fontSize:10,background:'#ECFDF5',color:'#065F46',borderRadius:5,padding:'1px 6px',marginLeft:5}}>回复得分 {r.replyScore}</span>}</div>
                   <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
                 </div>
               </div>
