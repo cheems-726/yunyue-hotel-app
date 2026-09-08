@@ -81,9 +81,18 @@ export const EVENT_CONFIG = {
 }
 
 // 结算主函数
+// 结算管线（每周结算按此顺序执行）：
+//   [1-2]  选址客流/租金/竞争 → 价格竞争力（调价/收益管理/协议/改造）
+//   [3-4]  口碑（跨周延续+决策修正+欠差评惩罚） → 营销加成
+//   [5-7]  市场波动(固定种子) → 客源强度 → 出租率(含超售)
+//   [7.5]  条件触发事件（12种，改参数只动 EVENT_CONFIG）
+//   [8-10] 营收 → 成本(固定/变动/营销/OTA佣金/超售赔偿/改造分摊/事件罚款) → 利润
+//   [11-13] 评价生成(差评回流口碑页) → 差评处理减半 → 最终好评率
+//   [14-15] 决策复盘insights → 生成本周评价(回流传入口碑页)
 // 输入：site（选址属性1-5档）、brand（品牌）、decisions（决策结果）、week（经营周数）、
 //       pendingNegatives（口碑页未处理差评数）、prevGoodRate（上周好评率，跨周延续）
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
+//       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
 export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0 }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
