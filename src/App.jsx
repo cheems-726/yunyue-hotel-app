@@ -276,6 +276,11 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             完成决策后点击结算，查看本周经营结果
           </div>
         )}
+        {report && report.events && report.events.length > 0 && (
+          <div style={{ margin: '10px 0 0', padding: '7px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 11, color: '#6B7280' }}>
+            ⚡ 上周事件 {report.events.length} 起：{report.events.map(e => `${e.icon}${e.name}`).join('、')}
+          </div>
+        )}
         {(() => {
           const last = history.length ? history[history.length - 1] : null
           if (!last) return null
