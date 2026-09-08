@@ -41,8 +41,9 @@ const guestNames = ['王先生 · 商务出差', '李女士 · 家庭出游', '�
 // 结算主函数
 // 输入：site（选址属性1-5档）、brand（品牌）、decisions（决策结果）、week（经营周数）、
 //       pendingNegatives（口碑页未处理差评数）、prevGoodRate（上周好评率，跨周延续）
+//       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
   const s = site || {}
 
@@ -91,6 +92,11 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   if (decisions['report-diagnosis'] === '解决口碑相关') goodRate += 0.015
   if (decisions.reputation === '道歉+赔偿') goodRate += 0.02
   if (decisions.reputation === '模板回复') goodRate -= 0.03
+  // 上周危机应对（限时选择）对本周口碑的影响
+  let crisisInsight = null
+  if (crisisResponse === '立即公开整改+补偿') { goodRate += 0.02; crisisInsight = { good: true, text: '上周危机应对果断（公开整改+补偿），口碑修复中' } }
+  else if (crisisResponse === '逐条真诚回复') { goodRate += 0.01; crisisInsight = { good: true, text: '上周危机逐条真诚回复，口碑小幅修复' } }
+  else if (crisisResponse === '不理会') { goodRate -= 0.02; crisisInsight = { good: false, text: '上周危机选择了不理会，口碑持续受损——危机不应对就是最差应对' } }
   if (decisions['hr-optimize'] === '裁员1人') goodRate -= 0.02
   // 能耗管控走极端 → 舒适度差招差评
   const energy = decisions.energy
@@ -237,6 +243,7 @@ for (let i = 0; i < reviewCount; i++) {
   if (decisions.renovation === '投150万改造') insights.push({ good: week >= 2, text: '改造投资拉高房价带，品质与口碑长期受益，但注意回收期' })
   if (decisions.ota) insights.push({ good: true, text: 'OTA 投放带来线上客流，但佣金成本已计入（本周佣金 ' + otaCommission + ' 元）' })
   if (decisions.corporate === '让利签约') insights.push({ good: true, text: '协议客户让利签约，商务客流稳定，出租率更稳' })
+  if (crisisInsight) insights.push(crisisInsight)
 
   // 15. 生成本周评价（差评回流口碑页）
   const generatedReviews = []

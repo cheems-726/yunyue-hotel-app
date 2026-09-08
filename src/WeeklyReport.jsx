@@ -1,4 +1,51 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+
+// 危机事件限时应对卡：30秒内选方案，选择存档影响下周结算（超时=自动"不理会"，危机不应对就是最差应对）
+function CrisisCard({ event, week }) {
+  const CHOICES = [
+    { label: '立即公开整改+补偿', effect: '下周口碑 +2%（最佳应对）' },
+    { label: '逐条真诚回复', effect: '下周口碑 +1%（稳妥应对）' },
+    { label: '不理会', effect: '下周口碑 -2%，可能再发酵（最差应对）' },
+  ]
+  const [timeLeft, setTimeLeft] = useState(30)
+  const [choice, setChoice] = useState(null)
+  useEffect(() => {
+    if (choice) return
+    if (timeLeft <= 0) { pick('不理会'); return }
+    const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
+    return () => clearTimeout(t)
+  }, [timeLeft, choice])
+  function pick(label) {
+    if (choice) return
+    setChoice(label)
+    try { localStorage.setItem('hotel-sim-crisis-response', JSON.stringify({ week, choice: label })) } catch (e) {}
+  }
+  return (
+    <div style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>
+          {event.icon} {event.name}<span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>危机</span>
+        </div>
+        {!choice && <span style={{ fontSize: 18, fontWeight: 700, color: timeLeft <= 10 ? '#EF4444' : '#A96407' }}>{timeLeft}s</span>}
+      </div>
+      <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{event.text}</div>
+      {!choice ? (
+        <div style={{ marginTop: 8 }}>
+          {CHOICES.map(c => (
+            <div key={c.label} onClick={() => pick(c.label)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid #F3F4F6' }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{c.label}</span>
+              <span style={{ fontSize: 10, color: '#A96407' }}>{c.effect}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 10, color: '#9CA3AF' }}>⏱ {timeLeft}s 内不选将自动按"不理会"处理</div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>✅ 你的应对：{choice}——结果将在下周结算体现</div>
+      )}
+    </div>
+  )
+}
 
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose }) {
@@ -67,13 +114,13 @@ export default function WeeklyReport({ result, onClose }) {
         <div className="card">
           <div className="card-title">⚡ 本周经营事件</div>
           {result.events.map((e, i) => (
-            <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : e.type === 'crisis' ? '#FFF4E0' : '#FEF0EF', border: e.type === 'crisis' ? '1px solid #FBE3B3' : 'none' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#A96407' : '#991B1B' }}>
-                {e.icon} {e.name}{e.type === 'crisis' && <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>危机</span>}
-              </div>
-              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
-              <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
-            </div>
+            e.type === 'crisis'
+              ? <CrisisCard key={i} event={e} week={result.week} />
+              : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>{e.icon} {e.name}</div>
+                  <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+                  <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
+                </div>
           ))}
           <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
             💡 事件不是纯随机：是你把某个属性推到极端（如高出租率+少人手）才会触发。经营的平衡点由你把握。

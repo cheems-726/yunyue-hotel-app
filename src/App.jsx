@@ -740,9 +740,15 @@ export default function App() {
       reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       pendingNegatives = reviews.filter(r => r.status === 'pending' || r.status === 'ignored').length
     } catch (e) {}
-    // 好评率跨周延续：用上一周的好评率做基准
+    // 好评率跨周延续：用上一周的好评率做基准；上周危机应对选择影响本周
+    let crisisResponse = null
+    try {
+      const saved = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
+      if (saved && saved.week === week - 1) crisisResponse = saved.choice
+    } catch (e) {}
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate })
+    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse })
+    try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
       const kept = reviews.filter(r => r.week == null && !String(r.id).startsWith('w'))
