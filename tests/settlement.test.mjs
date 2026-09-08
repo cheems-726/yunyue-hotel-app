@@ -1,12 +1,15 @@
 // 结算引擎回归测试：node tests/settlement.test.mjs
 // 夜间自动化改引擎后必跑，任何断言失败 => 阻止推送
-import { settle } from '../src/settlement.js'
+import { settle, EVENT_CONFIG } from '../src/settlement.js'
 
 let pass = 0, fail = 0
 function ok(cond, name) {
   if (cond) { pass++; console.log('  ✓', name) }
   else { fail++; console.error('  ✗ FAIL:', name) }
 }
+
+console.log('[0] 事件配置合法性')
+ok(Object.entries(EVENT_CONFIG).every(([k, c]) => c.prob > 0 && c.prob < 1), `全部事件概率在(0,1)内（${Object.keys(EVENT_CONFIG).length}个事件）`)
 
 const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
 const BRAND = { name: '汉庭', price: '180-280元', standard: '客房70间起', level: '经济型 · 国民' }
