@@ -62,6 +62,9 @@ export const EVENT_INFO = [
   { icon: '🙏', name: '整改获认可·追加好评', type: 'good', trigger: '整改2条以上差评', tip: '整改不是白干' },
   { icon: '🎪', name: '会展旺季', type: 'good', trigger: '选址客流≥4档', tip: '选对选址才接得住红利' },
   { icon: '🏅', name: 'OTA金牌商家', type: 'good', trigger: '投放OTA 且好评率≥80%', tip: '流量倾斜跟着口碑走' },
+  { icon: '🎂', name: '员工关怀日', type: 'good', trigger: '第3周起满编保服务', tip: '对员工好=对客人好' },
+  { icon: '🌙', name: '深夜噪音投诉', type: 'bad', trigger: '小概率随机', tip: '夜班主动巡场防患未然' },
+  { icon: '🏆', name: '片区评选获奖', type: 'good', trigger: '上周好评率≥85%', tip: '长期主义会被看见' },
 ]
 
 // 事件参数集中配置（调平衡只改这里，不动逻辑）
@@ -78,6 +81,9 @@ export const EVENT_CONFIG = {
   waterOutage:     { prob: 0.12, occCut: 0.95 },        // 市政停水半日
   expoSeason:      { prob: 0.3, minFlow: 4, occUp: 0.05 }, // 会展旺季（另需客流>=minFlow）
   otaGoldBadge:    { prob: 0.3, minGoodRate: 0.8, goodRateUp: 0.01 }, // OTA金牌商家（另需投放OTA）
+  staffCareDay:    { prob: 0.35, minWeek: 3, goodRateUp: 0.01 }, // 员工关怀日（另需满编保服务）
+  noiseComplaint:  { prob: 0.2 },                       // 深夜噪音投诉
+  districtAward:   { prob: 0.3, minPrevGoodRate: 85, goodRateUp: 0.015 }, // 片区评选获奖（另需上周好评率≥85）
 }
 
 // 结算主函数
@@ -158,6 +164,9 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   if (threshold != null && threshold >= 4 && threshold <= 6) goodRate += 0.01
   // 未处理的差评降低好评率（口碑处理联动）
   goodRate -= pendingNegatives * 0.03
+  // 经营投入不足的系统性代价（决策少于一半：服务/维护/营销全面松懈，客人先感知）
+  const doneCount = Object.keys(decisions).length
+  if (doneCount < 9) goodRate -= 0.02
   goodRate = Math.max(goodRate, 0.3) // 下限 30%
   goodRate = Math.min(goodRate, 0.95) // 上限 95%
   let reputationFactor = goodRate >= 0.85 ? 1.2 : (goodRate >= 0.7 ? 1.0 : (goodRate >= 0.5 ? 0.8 : 0.5))
@@ -249,6 +258,21 @@ if (decisions.ota && goodRate >= EVENT_CONFIG.otaGoldBadge.minGoodRate && rand()
   goodRate = Math.min(goodRate + EVENT_CONFIG.otaGoldBadge.goodRateUp, 0.95)
   addEvent({ type: 'good', icon: '🏅', name: 'OTA金牌商家', text: '平台授予金牌商家标识，线上转化率提升，口碑小幅上涨', impact: '口碑 +1%', tip: '线上渠道的流量倾斜跟着口碑走' })
 }
+// ⑬ 员工关怀日（正面）：满编经营的店，员工状态好带动服务
+if (decisions.shifts === '满编保服务' && week >= EVENT_CONFIG.staffCareDay.minWeek && rand() < EVENT_CONFIG.staffCareDay.prob) {
+  goodRate = Math.min(goodRate + EVENT_CONFIG.staffCareDay.goodRateUp, 0.95)
+  addEvent({ type: 'good', icon: '🎂', name: '员工关怀日', text: '为一线员工办生日会，服务热情度上升，客人感知更好', impact: '口碑 +1%', tip: '对员工好，员工才会对客人好' })
+}
+// ⑭ 深夜噪音投诉：任何店都可能碰到
+if (rand() < EVENT_CONFIG.noiseComplaint.prob) {
+  negativeCount += 1
+  addEvent({ type: 'bad', icon: '🌙', name: '深夜噪音投诉', text: '深夜隔壁房间聚会喧哗，投诉处理不及时招来差评', impact: '差评 +1', tip: '前台夜班要主动巡场，防患于未然' })
+}
+// ⑮ 片区评选获奖（正面）：口碑持续优秀被行业协会认可
+if (prevGoodRate != null && prevGoodRate >= EVENT_CONFIG.districtAward.minPrevGoodRate && rand() < EVENT_CONFIG.districtAward.prob) {
+  goodRate = Math.min(goodRate + EVENT_CONFIG.districtAward.goodRateUp, 0.95)
+  addEvent({ type: 'good', icon: '🏆', name: '片区评选获奖', text: '酒店行业协会年度评选中获奖，品牌曝光度提升', impact: '口碑 +1.5%', tip: '长期主义会被看见' })
+}
 
 // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
@@ -308,11 +332,11 @@ for (let i = 0; i < reviewCount; i++) {
   // 14. 决策复盘（对关键决策给出评价）
   const insights = []
   // 未完成决策提醒（教学：不作为也是一种决策）
-  const doneCount = Object.keys(decisions).length
   if (doneCount < 18) {
     const undone = DECISION_IDS.filter(id => !(id in decisions))
     insights.push({ good: false, text: `本周只完成 ${doneCount}/18 项决策，${undone.length} 项未处理（含：${undone.slice(0, 4).map(id => DECISION_NAMES[id] || id).join('、')}${undone.length > 4 ? '等' : ''}）——未决策的部分按"维持现状"生效` })
   }
+
   if (pricing === '跟降 10%') insights.push({ good: occupancy >= 65, text: occupancy >= 65 ? '调价跟降 10% 拉住了客流，出租率达标' : '跟降 10% 客流仍不足，可能需要更大力度降价或提升口碑' })
   if (pricing === '不跟降') insights.push({ good: profit >= 0, text: profit >= 0 ? '不跟降保住了单间利润，本周盈利' : '不跟降保住了单价但客流流失严重，导致亏损' })
   if (pricing === '降价 20% 抢客') insights.push({ good: profit >= 0, text: profit >= 0 ? '降价抢客拉高了出租率，薄利多销有效' : '降价 20% 客流涨了但利润被压垮，得不偿失' })
