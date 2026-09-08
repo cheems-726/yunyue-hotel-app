@@ -588,6 +588,8 @@ function fmtDecision(v) {
 }
 function OperationRecords({ history, onBack }) {
   const weeks = history.slice().reverse()
+  // 折叠：默认只展开最近一周，点标题切换
+  const [openWeek, setOpenWeek] = useState(weeks.length ? weeks[0].week : null)
   return (
     <div className="content">
       <div className="header">
@@ -606,14 +608,19 @@ function OperationRecords({ history, onBack }) {
       {weeks.map(h => {
         const dec = h.decisions || {}
         const entries = Object.entries(dec)
+        const isOpen = openWeek === h.week
         return (
-        <div className="card" key={h.week}>
-          <div className="card-title">
-            第 {h.week} 周
-            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 8 }}>
-              出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条
+        <div className="card" key={h.week} style={{ padding: isOpen ? 18 : 14 }}>
+          <div className="card-title" style={{ cursor: 'pointer', marginBottom: isOpen ? 8 : 0 }} onClick={() => setOpenWeek(isOpen ? null : h.week)}>
+            <span style={{ flex: 1 }}>
+              第 {h.week} 周
+              <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 8 }}>
+                出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条
+              </span>
             </span>
+            <span style={{ fontSize: 12, color: '#9CA3AF' }}>{isOpen ? '▲ 收起' : '▼ 展开'}</span>
           </div>
+          {isOpen && (<>
           {entries.length > 0 && (
             <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
               {entries.map(([id, val]) => {
@@ -634,6 +641,7 @@ function OperationRecords({ history, onBack }) {
           )) : (
             <div style={{ fontSize: 12, color: '#9CA3AF' }}>该周无关键决策复盘</div>
           )}
+          </>)}
         </div>
         )
       })}
