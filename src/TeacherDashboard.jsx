@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -46,6 +46,9 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [cloudOk, setCloudOk] = useState(true)
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
+  const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
+  const [weekInput, setWeekInput] = useState('')
+  const [weekSaved, setWeekSaved] = useState(false)
 
   const loadAll = async () => {
     try {
@@ -56,6 +59,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student'))
       setRawStates(states)
+      fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
       setCloudOk(true)
     } catch (e) {
       setGroups(demoGroups); setCloudOk(false)
@@ -74,6 +78,17 @@ export default function TeacherDashboard({ user, onLogout }) {
   async function saveProfile(p, fields) {
     setProfiles(prev => prev.map(x => x.user_id === p.user_id ? { ...x, ...fields } : x))
     await updateProfileByTeacher(p.user_id, fields)
+  }
+
+  // 教师设置全班统一周
+  async function saveClassWeek() {
+    const w = Math.max(0, Math.min(12, Number(weekInput) || 0))
+    if (await setClassWeek(w)) {
+      setClassWeekState(w)
+      setWeekInput(String(w))
+      setWeekSaved(true)
+      setTimeout(() => setWeekSaved(false), 2000)
+    }
   }
 
   // 导出全班周报 CSV（汇总 + 每周明细，带 BOM 防 Excel 中文乱码）
@@ -154,6 +169,29 @@ export default function TeacherDashboard({ user, onLogout }) {
       {/* 总览 */}
       {view === 'overview' && groups !== null && (
         <div>
+          {/* 教学进度控制：全班统一周 */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>⏱️ 教学进度控制（全班统一周）</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>当前设定</span>
+              <input
+                type="number"
+                min="0"
+                max="12"
+                value={weekInput}
+                onChange={e => setWeekInput(e.target.value)}
+                style={{ width: 64, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+              />
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>周（0 = 不限制，各组自选节奏）</span>
+              <button onClick={saveClassWeek} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                保存
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: weekSaved ? '#16A34A' : '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>
+              {weekSaved ? '✅ 已保存，全班即时生效' : classWeek > 0 ? `学生只能结算到第 ${classWeek} 周——保证全班同一周看到同一个市场和事件（公平）` : '未限制：各组按自己节奏推进'}
+            </div>
+          </div>
+
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览</div>

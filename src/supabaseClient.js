@@ -75,3 +75,22 @@ export async function updateProfileByTeacher(userId, fields) {
     .eq('user_id', userId)
   return !error
 }
+
+// 全班教学周同步（0 = 不限制，各组自选节奏；>0 = 全班统一当前周）
+export async function fetchClassWeek() {
+  const { data, error } = await supabase
+    .from('class_state')
+    .select('current_week')
+    .eq('id', 1)
+    .maybeSingle()
+  if (error || !data) return 0
+  return data.current_week || 0
+}
+
+export async function setClassWeek(week) {
+  const { error } = await supabase
+    .from('class_state')
+    .update({ current_week: week, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  return !error
+}

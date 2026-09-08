@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek } from './supabaseClient.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -718,6 +718,20 @@ export default function App() {
       const go = window.confirm('本周还没有做任何决策（0/18），未决策将按默认情况结算。确定直接结算吗？')
       if (!go) return
     }
+    // 全班周同步：老师限制了当前周时，学生不能结算超出
+    if (user?.cloud) {
+      fetchClassWeek().then(classWeek => {
+        if (classWeek > 0 && week > classWeek) {
+          window.alert(`⏱️ 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
+        } else {
+          doSettle()
+        }
+      }).catch(() => doSettle()) // 云端异常不拦结算
+    } else {
+      doSettle()
+    }
+  }
+  function doSettle() {
     const site = location?.attrs || { 客流: 3 }
     // 读取口碑页未处理差评数，影响本周结算的好评率
     let pendingNegatives = 0
