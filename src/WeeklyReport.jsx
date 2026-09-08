@@ -146,7 +146,16 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
             e.type === 'crisis'
               ? <CrisisCard key={i} event={e} week={result.week} />
               : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>{e.icon} {e.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>
+                <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{e.icon} {e.name}</span>
+                  {e.impact && e.impact !== '—' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fff', borderRadius: 6, padding: '2px 7px', border: `1px solid ${e.type === 'good' ? '#A7F3D0' : '#FECACA'}`, color: e.impact.includes('-') ? '#DC2626' : '#10B981' }}>
+                      {e.impact}
+                    </span>
+                  )}
+                </span>
+              </div>
                   <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
                   <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
                 </div>
