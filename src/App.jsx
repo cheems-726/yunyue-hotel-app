@@ -572,6 +572,12 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 }
 
 // ===== 经营操作记录页（逐周决策复盘回看） =====
+function fmtDecision(v) {
+  if (v == null) return '—'
+  if (Array.isArray(v)) return v.slice(0, 5).join('＞')
+  if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}:${val}`).join('、')
+  return String(v)
+}
 function OperationRecords({ history, onBack }) {
   const weeks = history.slice().reverse()
   return (
@@ -580,7 +586,7 @@ function OperationRecords({ history, onBack }) {
         <div className="row1">
           <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
         </div>
-        <div className="sub">每周决策的系统复盘记录</div>
+        <div className="sub">每周决策与系统复盘记录</div>
       </div>
 
       {weeks.length === 0 && (
@@ -589,7 +595,10 @@ function OperationRecords({ history, onBack }) {
         </div>
       )}
 
-      {weeks.map(h => (
+      {weeks.map(h => {
+        const dec = h.decisions || {}
+        const entries = Object.entries(dec)
+        return (
         <div className="card" key={h.week}>
           <div className="card-title">
             第 {h.week} 周
@@ -597,6 +606,18 @@ function OperationRecords({ history, onBack }) {
               出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条
             </span>
           </div>
+          {entries.length > 0 && (
+            <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+              {entries.map(([id, val]) => {
+                const d = decisions.find(x => x.id === id)
+                return (
+                  <div key={id} style={{ fontSize: 11, color: '#374151', padding: '2px 0' }}>
+                    · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtDecision(val)}</b>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {(h.insights && h.insights.length > 0) ? h.insights.map((ins, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < h.insights.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
               <span style={{ fontSize: 14, flexShrink: 0 }}>{ins.good ? '✅' : '⚠️'}</span>
@@ -606,7 +627,8 @@ function OperationRecords({ history, onBack }) {
             <div style={{ fontSize: 12, color: '#9CA3AF' }}>该周无关键决策复盘</div>
           )}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
