@@ -75,6 +75,7 @@ function CrisisCard({ event, week }) {
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose, history = [], brand = {} }) {
   const isProfit = result.profit >= 0
+  const [copied, setCopied] = useState(false)
   // 称号变化检测：结算前 vs 结算后（晋升时刻/降级警示）
   const qualityOf = (lv) => lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
   const quality = qualityOf(brand?.level || '')
@@ -219,6 +220,19 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           ))}
         </div>
       )}
+
+      {/* 分享本周成绩 */}
+      <div className="card">
+        <div className="card-title">📤 分享本周成绩</div>
+        <button className="btn btn-ghost" style={{ width: '100%' }} onClick={() => {
+          const text = `🏨 云悦酒店·第${result.week}周成绩单
+出租率 ${result.occupancy}% | 营收 ${(result.revenue/10000).toFixed(1)}万 | 利润 ${result.profit >= 0 ? '+' : ''}${result.profit}元
+好评率 ${result.finalGoodRate}% | 差评 ${result.negativeCount}条
+——来自云悦酒店经营模拟`
+          navigator.clipboard.writeText(text).then(() => setCopied(true)).catch(() => setCopied(false))
+        }}>📋 一键复制成绩单（发群里）</button>
+        {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>✅ 已复制，去微信粘贴吧</div>}
+      </div>
 
       {/* 复盘建议 */}
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
