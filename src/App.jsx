@@ -13,6 +13,7 @@ import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers } from './supabaseClient.js'
+import { getTitle } from './hotelTitle.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -408,7 +409,7 @@ function Report({ report, week, history }) {
 }
 
 // ===== 我的页 =====
-function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week }) {
+function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report }) {
   const menus = [
     { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
@@ -482,6 +483,17 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       <div className="card">
         <div className="card-title">🏨 我的酒店档案</div>
         <div style={{ fontSize: 13, color: '#374151', lineHeight: 2 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#9CA3AF' }}>酒店称号</span>
+            <span style={{ fontWeight: 600, color: '#A96407' }}>{(() => {
+              const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
+              const gr = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
+              const lv = brand?.level || ''
+              const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+              const t = getTitle(occ, gr, q)
+              return `${t.icon} ${t.title}`
+            })()}</span>
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#9CA3AF' }}>酒店</span>
             <span style={{ fontWeight: 600 }}>{property?.name || '未认领'}</span>
@@ -930,12 +942,13 @@ export default function App() {
   }
   function doSettle() {
     const site = location?.attrs || { 客流: 3 }
-    // 读取口碑页未处理差评数，影响本周结算的好评率
+    // 读取口碑页差评状态：未处理数压口碑，已整改数给奖励
     let pendingNegatives = 0
-    let reviews = []
+    let resolvedCount = 0
     try {
-      reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+      const reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       pendingNegatives = reviews.filter(r => r.status === 'pending' || r.status === 'ignored').length
+      resolvedCount = reviews.filter(r => r.status === 'resolved').length
     } catch (e) {}
     // 好评率跨周延续：用上一周的好评率做基准；上周危机应对选择影响本周
     let crisisResponse = null
@@ -944,7 +957,7 @@ export default function App() {
       if (saved && saved.week === week - 1) crisisResponse = saved.choice
     } catch (e) {}
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse })
+    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount })
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
@@ -1148,7 +1161,7 @@ export default function App() {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
-      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} />,
+      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} />,
     }
     mainPage = pages[tab]
   }

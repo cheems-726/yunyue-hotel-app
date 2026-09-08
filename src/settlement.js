@@ -43,7 +43,7 @@ const guestNames = ['王先生 · 商务出差', '李女士 · 家庭出游', '�
 //       pendingNegatives（口碑页未处理差评数）、prevGoodRate（上周好评率，跨周延续）
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0 }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
   const s = site || {}
 
@@ -170,6 +170,11 @@ if (decisions['member-convert'] === '强调品质' && rand() < 0.3) {
 if (pendingNegatives >= 2 && rand() < 0.4) {
   goodRate = Math.max(goodRate - 0.03, 0.3)
   addEvent({ type: 'crisis', icon: '🔥', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
+}
+// ⑧ 整改获认可（正面）：认真整改差评，客人追加好评（设计文档§三闭环的奖励侧）
+if (resolvedCount >= 2 && rand() < 0.5) {
+  goodRate = Math.min(goodRate + 0.02, 0.95)
+  addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位，客人主动修改评价并追加好评，口碑 +2%`, tip: '整改不是白干——认真处理差评会带来口碑回报' })
 }
 
 // 8. 营收（房量 × 出租率 × 房价）

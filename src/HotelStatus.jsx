@@ -1,4 +1,5 @@
 import React from 'react'
+import { getTitle } from './hotelTitle.js'
 
 // 酒店状态面板：RPG 属性面板，展示酒店的核心经营属性
 // 属性：口碑分、好评率、满意度、出租率、品质分、利润
@@ -24,6 +25,10 @@ export default function HotelStatus({ report, brand, property, week, history }) 
     { icon: '💎', label: '品质分', value: quality, max: 100, display: quality + '' },
   ]
 
+  // RPG称号：综合属性确定性计算
+  const hasData = report || history.length > 0
+  const title = getTitle(occupancy, goodRate, quality)
+
   function barColor(v) {
     if (v >= 80) return '#16A34A'
     if (v >= 60) return '#E8940F'
@@ -32,7 +37,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
 
   return (
     <div className="card" style={{ background: '#FFF9F0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div className="card-title" style={{ marginBottom: 0 }}>
           <span style={{ fontSize: 18 }}>🏨</span> 酒店状态
         </div>
@@ -40,6 +45,22 @@ export default function HotelStatus({ report, brand, property, week, history }) 
           累计利润 {profit >= 0 ? '+' : ''}{(profit / 10000).toFixed(2)}万
         </span>
       </div>
+
+      {/* RPG称号条：当前称号 + 升级进度 */}
+      {hasData && (
+        <div style={{ background: 'linear-gradient(90deg,#FFF4E0,#FFFFFF)', border: '1px solid #FBE3B3', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#A96407' }}>{title.icon} {title.title}</span>
+            <span style={{ fontSize: 10, color: '#9CA3AF' }}>综合 {title.composite}</span>
+          </div>
+          <div style={{ height: 5, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: title.progress + '%', background: '#E8940F', borderRadius: 3, transition: 'width 0.5s' }}></div>
+          </div>
+          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+            {title.next ? `再提升经营指标即可晋升「${title.next}」` : '已是最高称号'}
+          </div>
+        </div>
+      )}
 
       {attrs.map(a => (
         <div key={a.label} style={{ marginBottom: 10 }}>

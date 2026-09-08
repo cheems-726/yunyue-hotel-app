@@ -101,6 +101,16 @@ export default function Reputation({ report, history }) {
         </div>
       </div>
 
+      {/* 差评处理率进度条（评分权重15%的可视化） */}
+      <div style={{ padding: '0 20px 12px' }}>
+        <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? '#16A34A' : handleRate >= 50 ? '#E8940F' : '#DC2626', borderRadius: 3, transition: 'width 0.5s' }}></div>
+        </div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+          处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
+        </div>
+      </div>
+
       <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',textAlign:'center',padding:18}}>
         <div style={{fontSize:40,fontWeight:700,color:'#A96407'}}>
           {goodRatePct != null ? (goodRatePct / 20).toFixed(1) : '—'}
