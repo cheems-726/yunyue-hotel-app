@@ -223,6 +223,20 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
       {/* 复盘建议 */}
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
         <div className="card-title">💡 复盘建议</div>
+        {(() => {
+          // 下周提示生成器：按本周最弱维度给一条优先建议
+          const tips = []
+          if (result.profit < 0) tips.push('控制成本是第一优先——检查人力/营销花费，先止损再谈增长')
+          if (result.occupancy < 55) tips.push('出租率是当前短板——考虑调价让利或加大OTA/活动投放拉客')
+          if (result.negativeCount > 2) tips.push('差评积压是口碑杀手——先去口碑页把待处理清零再谈其他')
+          if (result.finalGoodRate < 80) tips.push('口碑修复需要时间——卫生深清洁+真诚回复差评，坚持两周见效')
+          if (tips.length === 0) tips.push('各项指标健康！下周可尝试提价或减少促销，验证利润上限')
+          return (
+            <div style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', marginBottom: 10, fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>
+              📌 下周优先：{tips[0]}
+            </div>
+          )
+        })()}
         <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7 }}>
           {result.occupancy < 55 && '⚠ 出租率偏低，考虑降价促销或提升口碑拉客流。'}
           {result.occupancy >= 55 && result.occupancy < 75 && '✅ 出租率适中，可优化房价策略提升 RevPAR。'}
