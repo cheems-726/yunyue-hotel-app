@@ -37,6 +37,17 @@ export async function fetchGroupMembers(className, groupNo) {
   return data || []
 }
 
+// 同组队友的经营概况（只读，RLS 限同班同组）
+export async function fetchGroupStates(uids) {
+  if (!uids.length) return []
+  const { data, error } = await supabase
+    .from('game_states')
+    .select('user_id, state, week, finished, updated_at')
+    .in('user_id', uids)
+  if (error) throw error
+  return data || []
+}
+
 // 拉取我的游戏状态
 export async function fetchGameState(userId) {
   const { data, error } = await supabase

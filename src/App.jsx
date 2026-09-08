@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -636,12 +636,33 @@ function OperationRecords({ history, onBack }) {
 // ===== 小组成员页（云端同班同组队友名单） =====
 function GroupMembersPage({ user, onBack }) {
   const [members, setMembers] = useState(null)
+  const [memberStates, setMemberStates] = useState({}) // uid → 经营概况
   const hasGroup = !!(user?.groupNo && user?.className)
   useEffect(() => {
     if (!hasGroup) return
     let cancelled = false
-    fetchGroupMembers(user.className, user.groupNo).then(list => {
-      if (!cancelled) setMembers(list.filter(m => m.user_id !== user.uid))
+    fetchGroupMembers(user.className, user.groupNo).then(async list => {
+      if (cancelled) return
+      const others = list.filter(m => m.user_id !== user.uid)
+      setMembers(others)
+      // 拉组员经营概况（RLS 限同班同组只读）
+      try {
+        const states = await fetchGroupStates(others.map(m => m.user_id))
+        if (!cancelled) {
+          const map = {}
+          states.forEach(gs => {
+            const h = (gs.state && gs.state.history) || []
+            map[gs.user_id] = {
+              hotel: gs.state?.brand?.name && gs.state?.property?.name ? `${gs.state.brand.name}·${gs.state.property.name}` : (gs.state?.brand?.name || '未开业'),
+              week: gs.week || 1,
+              finished: gs.finished,
+              occ: h.length ? Math.round(h.reduce((a, x) => a + x.occupancy, 0) / h.length) : 0,
+              profit: h.reduce((a, x) => a + (x.profit || 0), 0),
+            }
+          })
+          setMemberStates(map)
+        }
+      } catch (e) {}
     }).catch(() => { if (!cancelled) setMembers([]) })
     return () => { cancelled = true }
   }, [hasGroup])
@@ -675,15 +696,28 @@ function GroupMembersPage({ user, onBack }) {
               <div style={{ fontSize: 11, color: '#9CA3AF' }}>学号 {user.id}</div>
             </div>
           </div>
-          {members.map(m => (
-            <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧑</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{m.display_name}</div>
-                <div style={{ fontSize: 11, color: '#9CA3AF' }}>同组成员</div>
+          {members.map(m => {
+            const st = memberStates[m.user_id]
+            return (
+              <div key={m.user_id} style={{ padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧑</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{m.display_name}</div>
+                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                      {st ? `${st.finished ? '已结业' : `第${st.week}周`} · ${st.hotel}` : '查看经营概况…'}
+                    </div>
+                  </div>
+                </div>
+                {st && st.occ > 0 && (
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: '#6B7280', marginTop: 6, paddingLeft: 52 }}>
+                    <span>平均出租率 <b style={{ color: '#111827' }}>{st.occ}%</b></span>
+                    <span>累计利润 <b style={{ color: st.profit >= 0 ? '#10B981' : '#EF4444' }}>{st.profit >= 0 ? '+' : ''}{(st.profit / 10000).toFixed(2)}万</b></span>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
           {members.length === 0 && (
             <div style={{ fontSize: 12, color: '#9CA3AF', padding: '8px 0', lineHeight: 1.8 }}>
               组里目前只有你一个人。<br />老师把其他同学的班级组号设成一样的，他们就会出现在这里。
