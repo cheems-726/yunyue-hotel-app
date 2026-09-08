@@ -180,11 +180,11 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         </div>
       </div>
 
-      {/* 本周事件（条件触发：你的经营状态招来的好事/坏事） */}
+      {/* 本周事件（条件触发：你的经营状态招来的好事/坏事；按 危机→负面→正面 排序） */}
       {result.events && result.events.length > 0 && (
         <div className="card">
           <div className="card-title">⚡ 本周经营事件</div>
-          {result.events.map((e, i) => (
+          {[...result.events].sort((a, b) => ({ crisis: 0, bad: 1, good: 2 }[a.type] ?? 3) - ({ crisis: 0, bad: 1, good: 2 }[b.type] ?? 3)).map((e, i) => (
             e.type === 'crisis'
               ? <CrisisCard key={i} event={e} week={result.week} />
               : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
