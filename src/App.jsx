@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers } from './supabaseClient.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -104,6 +104,8 @@ function LoginPage({ onLogin }) {
       uid: authUser.id,
       email: authUser.email,
       cloud: true,
+      groupNo: profile?.group_no || null,
+      className: profile?.class_name || null,
     })
   }
 
@@ -410,7 +412,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   const menus = [
     { icon: '📋', bg: 'blue', name: '经营操作记录' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
-    { icon: '👥', bg: 'blue', name: '小组成员' },
+    { icon: '👥', bg: 'blue', name: '小组成员', key: 'members' },
   ]
   const orgDesc = user?.role === 'teacher'
     ? '教师'
@@ -558,6 +560,68 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   )
 }
 
+// ===== 小组成员页（云端同班同组队友名单） =====
+function GroupMembersPage({ user, onBack }) {
+  const [members, setMembers] = useState(null)
+  const hasGroup = !!(user?.groupNo && user?.className)
+  useEffect(() => {
+    if (!hasGroup) return
+    let cancelled = false
+    fetchGroupMembers(user.className, user.groupNo).then(list => {
+      if (!cancelled) setMembers(list.filter(m => m.user_id !== user.uid))
+    }).catch(() => { if (!cancelled) setMembers([]) })
+    return () => { cancelled = true }
+  }, [hasGroup])
+  return (
+    <div className="content">
+      <div className="header">
+        <div className="row1">
+          <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
+        </div>
+        <div className="sub">{hasGroup ? `${user.className} · 第 ${user.groupNo} 组` : '还未分组'}</div>
+      </div>
+
+      {!hasGroup && (
+        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
+          👥 老师还没给你分配组号和班级<br />
+          分配后这里会自动显示你的组员
+        </div>
+      )}
+
+      {hasGroup && members === null && (
+        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: 32 }}>正在加载组员名单…</div>
+      )}
+
+      {hasGroup && members !== null && (
+        <div className="card">
+          <div className="card-title">👥 我的组员（{members.length + 1} 人）</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>😊</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name} <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>（我）</span></div>
+              <div style={{ fontSize: 11, color: '#9CA3AF' }}>学号 {user.id}</div>
+            </div>
+          </div>
+          {members.map(m => (
+            <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧑</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{m.display_name}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF' }}>同组成员</div>
+              </div>
+            </div>
+          ))}
+          {members.length === 0 && (
+            <div style={{ fontSize: 12, color: '#9CA3AF', padding: '8px 0', lineHeight: 1.8 }}>
+              组里目前只有你一个人。<br />老师把其他同学的班级组号设成一样的，他们就会出现在这里。
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ===== 积分与评分明细页（四维逐周得分 + 加权总分实时预测） =====
 function ScoreDetail({ history, onBack }) {
   // 与 FinalResult 同口径的四维打分
@@ -695,6 +759,8 @@ export default function App() {
             uid: session.user.id,
             email: session.user.email,
             cloud: true,
+            groupNo: profile.group_no || null,
+            className: profile.class_name || null,
           })
         }
       } catch (e) {} finally {
@@ -1032,7 +1098,9 @@ export default function App() {
   if (openPage) {
     mainPage = openPage.key === 'scores'
       ? <ScoreDetail history={history} onBack={close} />
-      : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
+      : openPage.key === 'members'
+        ? <GroupMembersPage user={user} onBack={close} />
+        : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,

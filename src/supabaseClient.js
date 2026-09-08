@@ -13,15 +13,28 @@ export function emailFor(id) {
   return `${String(id).trim().toLowerCase()}@yunyue.study`
 }
 
-// 拉取当前用户档案（角色/显示名）
+// 拉取当前用户档案（角色/显示名/组号/班级）
 export async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, display_name, group_no')
+    .select('role, display_name, group_no, class_name')
     .eq('user_id', userId)
     .single()
   if (error) return null
   return data
+}
+
+// 同组队友：班级+组号都相同的其他学生（教师已在分组页设置）
+export async function fetchGroupMembers(className, groupNo) {
+  let q = supabase
+    .from('profiles')
+    .select('user_id, display_name, group_no, class_name')
+    .eq('role', 'student')
+  if (className) q = q.eq('class_name', className)
+  if (groupNo) q = q.eq('group_no', groupNo)
+  const { data, error } = await q
+  if (error) throw error
+  return data || []
 }
 
 // 拉取我的游戏状态
