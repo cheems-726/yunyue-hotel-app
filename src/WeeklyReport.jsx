@@ -59,6 +59,21 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
   const after = getTitle(result.occupancy, result.finalGoodRate, quality)
   const promoted = !last ? null : (after.composite > before.composite && after.title !== before.title)
   const demoted = !last ? null : (after.composite < before.composite && after.title !== before.title)
+  // 环比：本周 vs 上周
+  const delta = (cur, prev, unit = '', goodUp = true) => {
+    if (prev == null) return null
+    const diff = +(cur - prev).toFixed(1)
+    if (diff === 0) return null
+    const up = diff > 0
+    const good = goodUp ? up : !up
+    return { text: `${up ? '↑' : '↓'} ${Math.abs(diff)}${unit}`, color: good ? '#10B981' : '#EF4444' }
+  }
+  const dOcc = delta(result.occupancy, last ? last.occupancy : null, 'pt')
+  const dRev = delta(+(result.revenue / 10000).toFixed(1), last ? +(last.revenue / 10000).toFixed(1) : null, '万')
+  const dProfit = delta(result.profit, last ? last.profit : null, '元')
+  const chip = (d) => d ? (
+    <span style={{ fontSize: 10, fontWeight: 700, color: d.color, background: d.color === '#10B981' ? '#ECFDF5' : '#FEF0EF', borderRadius: 6, padding: '2px 6px', marginLeft: 6 }}>{d.text}</span>
+  ) : null
   return (
     <div className="content">
       <div className="header">
@@ -92,15 +107,15 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         <div className="card-title">本周经营数据</div>
         <div className="settle-grid">
           <div className="metric">
-            <div className="label">出租率</div>
+            <div className="label">出租率{chip(dOcc)}</div>
             <div className="value">{result.occupancy}<span className="unit">%</span></div>
           </div>
           <div className="metric">
-            <div className="label">营收</div>
+            <div className="label">营收{chip(dRev)}</div>
             <div className="value">{(result.revenue/10000).toFixed(1)}<span className="unit">万</span></div>
           </div>
           <div className="metric">
-            <div className="label">利润</div>
+            <div className="label">利润{chip(dProfit)}</div>
             <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}{result.profit}<span className="unit">元</span></div>
           </div>
         </div>

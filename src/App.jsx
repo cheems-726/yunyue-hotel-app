@@ -343,6 +343,19 @@ function TrendChart({ history }) {
 }
 
 // ===== 报表页 =====
+// KPI 环比小箭头（本周 vs 上周）
+function KpiDelta({ cur, prev, goodUp = true, unit = '' }) {
+  if (prev == null) return null
+  const diff = +(cur - prev).toFixed(1)
+  if (diff === 0) return null
+  const up = diff > 0
+  const good = goodUp ? up : !up
+  return (
+    <span style={{ fontSize: 9, fontWeight: 700, color: good ? '#10B981' : '#EF4444', marginLeft: 3 }}>
+      {up ? '↑' : '↓'}{Math.abs(diff)}{unit}
+    </span>
+  )
+}
 function Report({ report, week, history }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
@@ -364,35 +377,42 @@ function Report({ report, week, history }) {
 
       {report ? (
         <>
-          {/* 真实 KPI */}
+          {/* 真实 KPI（带上周环比箭头） */}
+          {(() => {
+            const prev = history.length ? history[history.length - 1] : null
+            const rev = Math.round(report.revenue / report.rooms)
+            const prevRev = prev ? Math.round(prev.revenue / prev.rooms) : null
+            return (<>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>出租率</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.occupancy}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>%</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{report.occupancy}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>%</span><KpiDelta cur={report.occupancy} prev={prev?.occupancy ?? null} unit="pt" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>ADR</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.price}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{report.price}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={report.price} prev={prev?.price ?? null} unit="元" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>RevPAR</div>
-              <div style={{fontSize:16,fontWeight:700}}>{Math.round(report.revenue / report.rooms)}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{rev}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={rev} prev={prevRev} unit="元" /></div>
             </div>
           </div>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>利润</div>
-              <div style={{fontSize:16,fontWeight:700,color:report.profit>=0?'#16A34A':'#DC2626'}}>{report.profit>=0?'+':''}{report.profit}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span></div>
+              <div style={{fontSize:16,fontWeight:700,color:report.profit>=0?'#16A34A':'#DC2626'}}>{report.profit>=0?'+':''}{report.profit}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={report.profit} prev={prev?.profit ?? null} unit="元" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>口碑分</div>
-              <div style={{fontSize:16,fontWeight:700}}>{(report.finalGoodRate/20).toFixed(1)}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>/5</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{(report.finalGoodRate/20).toFixed(1)}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>/5</span><KpiDelta cur={report.finalGoodRate} prev={prev?.finalGoodRate ?? null} unit="pt" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>差评</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.negativeCount}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>条</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{report.negativeCount}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>条</span><KpiDelta cur={report.negativeCount} prev={prev?.negativeCount ?? null} unit="条" goodUp={false} /></div>
             </div>
           </div>
+            </>)
+          })()}
 
           {/* 智能诊断 */}
           <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
