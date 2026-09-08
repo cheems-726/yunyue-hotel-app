@@ -170,6 +170,11 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
               已注册学生 {profiles.length} 人 · 直接输入组号和班级即可保存（云端的进度数据不受影响）
             </div>
+            {profiles.some(p => !p.group_no) && (
+              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF0EF', borderRadius: 8, padding: '8px 12px', marginBottom: 10 }}>
+                ⚠ 有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号，排名里不会显示组名——课前记得分配
+              </div>
+            )}
             {profiles.length === 0 && (
               <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>
                 还没有学生注册。学生用学号注册后会自动出现在这里。

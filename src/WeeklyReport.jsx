@@ -62,6 +62,23 @@ export default function WeeklyReport({ result, onClose }) {
         </div>
       </div>
 
+      {/* 本周事件（条件触发：你的经营状态招来的好事/坏事） */}
+      {result.events && result.events.length > 0 && (
+        <div className="card">
+          <div className="card-title">⚡ 本周经营事件</div>
+          {result.events.map((e, i) => (
+            <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>{e.icon} {e.name}</div>
+              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+              <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
+            💡 事件不是纯随机：是你把某个属性推到极端（如高出租率+少人手）才会触发。经营的平衡点由你把握。
+          </div>
+        </div>
+      )}
+
       {/* 决策复盘 */}
       {result.insights && result.insights.length > 0 && (
         <div className="card">

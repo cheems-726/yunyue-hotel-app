@@ -125,7 +125,43 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   if (overbook > 0) occupancy = Math.min(occupancy + overbook * 0.015, 1.0)
   occupancy = Math.max(occupancy, 0.3) // 下限 30%
 
-  // 8. 营收（房量 × 出租率 × 房价）
+  // 7.5 条件触发事件系统（按设计文档：属性条件 + 固定种子概率，非纯随机）
+// 负向压力机制：属性推到极端会招来事件，教学生权衡而非刷满
+const events = []
+function addEvent(e) { events.push(e) }
+let negativeCount = 0
+
+// ① 满负荷·响应慢：出租率过高 + 排班精简 → 服务跟不上
+if (occupancy >= 0.85 && decisions.shifts === '精简省成本' && rand() < 0.6) {
+  negativeCount += 2
+  addEvent({ type: 'bad', icon: '🐢', name: '满负荷·响应慢', text: `出租率 ${Math.round(occupancy * 100)}% 却只留了精简人手，客人投诉入住/退房排队，新增 2 条差评`, tip: '旺季保服务：高出租率时该满编排班' })
+}
+// ② 卫生敷衍：连续经营未做深清洁
+if (decisions.hygiene !== '停房深清洁' && week >= 4 && rand() < 0.3) {
+  negativeCount += 1
+  addEvent({ type: 'bad', icon: '🧹', name: '卫生敷衍', text: '连续多周未做深度清洁，客人发现布草污渍，新增 1 条差评', tip: '卫生是口碑底线，定期停房深清洁' })
+}
+// ③ 性价比失衡：高房价 + 口碑平平 → 客人觉得不值
+if (price >= 320 && goodRate < 0.8 && rand() < 0.4) {
+  negativeCount += 1
+  addEvent({ type: 'bad', icon: '💸', name: '性价比失衡', text: `房价 ${Math.round(price)} 元但口碑平平（好评率 ${Math.round(goodRate * 100)}%），客人吐槽"不值这个价"`, tip: '价格要和品质匹配，否则招差评' })
+}
+// ④ 竞店开业：选址竞争激烈时被分流
+if ((s.竞争 || 3) >= 4 && rand() < 0.35) {
+  occupancy = Math.max(occupancy * 0.9, 0.3)
+  addEvent({ type: 'bad', icon: '🏪', name: '竞店开业', text: '附近新开一家同类酒店分走客流，本周出租率 -10%', tip: '竞争激烈地段要靠口碑和会员留客' })
+}
+// ⑤ 网红探店（正面）：口碑好被推荐
+if (goodRate >= 0.85 && rand() < 0.25) {
+  addEvent({ type: 'good', icon: '📸', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', tip: '好口碑会带来免费流量' })
+  goodRate = Math.min(goodRate + 0.02, 0.95)
+}
+// ⑥ 会员复购（正面）：强调品质转化带来回头客
+if (decisions['member-convert'] === '强调品质' && rand() < 0.3) {
+  addEvent({ type: 'good', icon: '🔁', name: '会员复购潮', text: '高品质转化的会员带朋友复购，本周散客口碑提升', tip: '强调品质的会员忠诚度更高' })
+}
+
+// 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
   let occupiedRooms = Math.round(rooms * occupancy)
   const revenue = Math.round(occupiedRooms * price)
@@ -163,12 +199,11 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   // 10. 利润
   const profit = revenue - totalCost
 
-  // 11. 评价生成
-  const reviewCount = Math.round(occupiedRooms * 0.08)
-  let negativeCount = 0
-  for (let i = 0; i < reviewCount; i++) {
-    if (rand() >= goodRate) negativeCount++
-  }
+// 11. 评价生成
+const reviewCount = Math.round(occupiedRooms * 0.08)
+for (let i = 0; i < reviewCount; i++) {
+  if (rand() >= goodRate) negativeCount++
+}
   // 超售到店无房必招差评
   if (overbookCompensation > 0) negativeCount += 1
 
@@ -241,6 +276,7 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
     demandStrength: Math.round(demandStrength * 100) / 100,
     marketWave: Math.round(marketWave * 100) / 100,
     insights,
+    events,
     generatedReviews,
   }
 }
