@@ -78,7 +78,11 @@ export default function FinalResult({ history, onRestart }) {
       </div>
 
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" onClick={onRestart}>重新开始经营</button>
+        <button className="btn-confirm" onClick={() => {
+          if (window.confirm('确定重新开始 12 周经营吗？\n当前成绩将清空，云端存档也会被新进度覆盖，此操作不可恢复！')) {
+            onRestart()
+          }
+        }}>重新开始经营</button>
       </div>
     </div>
   )

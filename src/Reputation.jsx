@@ -180,6 +180,27 @@ export default function Reputation({ report, history }) {
         </div>
       ))}
 
+      {/* 已忽略的差评（不处理的历史，提醒学生代价） */}
+      {reviews.filter(r => r.status === 'ignored').length > 0 && (
+        <>
+          <div className="section-title"><span className="left">已忽略（不处理的代价）</span></div>
+          {reviews.filter(r => r.status === 'ignored').map(r => (
+            <div className="card" style={{opacity:0.5}} key={r.id}>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <div style={{width:36,height:36,borderRadius:'50%',background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#EF4444'}}>✗已忽略</span></div>
+                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
+                </div>
+                <div style={{fontSize:13,color:'#9CA3AF'}}>{starStr(r.stars)}</div>
+              </div>
+              <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              <div style={{fontSize:11,color:'#EF4444',marginTop:6}}>这条差评的负面影响全额生效且持续发酵</div>
+            </div>
+          ))}
+        </>
+      )}
+
       {/* 回复策略弹窗 */}
       {replying && (
         <div
