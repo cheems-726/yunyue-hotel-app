@@ -38,6 +38,16 @@ const positiveTexts = [
 ]
 const guestNames = ['王先生 · 商务出差', '李女士 · 家庭出游', '张先生 · 旅行', '刘女士 · 亲子', '陈先生 · 商务出差', '赵女士 · 度假', '周先生 · 旅行']
 
+// 18 项决策的 id → 中文名（未完成决策提醒用，避免循环依赖从 decisions.js 引入组件数据）
+const DECISION_NAMES = {
+  pricing: '动态调价', shifts: '前台排班', overbook: '超额预订', 'member-convert': '会员转化',
+  'quality-check': '客房质检', linen: '布草管理', hygiene: '卫生计划', ota: 'OTA优化',
+  campaign: '活动策划', corporate: '协议客户', reputation: '口碑管理', 'member-threshold': '会员门槛',
+  'report-diagnosis': '月度报表诊断', 'revenue-mgmt': '收益管理', 'hr-optimize': '人力优化',
+  energy: '能耗管控', renovation: '改造投资', emergency: '应急预案',
+}
+const DECISION_IDS = Object.keys(DECISION_NAMES)
+
 // 结算主函数
 // 输入：site（选址属性1-5档）、brand（品牌）、decisions（决策结果）、week（经营周数）、
 //       pendingNegatives（口碑页未处理差评数）、prevGoodRate（上周好评率，跨周延续）
@@ -253,6 +263,12 @@ for (let i = 0; i < reviewCount; i++) {
 
   // 14. 决策复盘（对关键决策给出评价）
   const insights = []
+  // 未完成决策提醒（教学：不作为也是一种决策）
+  const doneCount = Object.keys(decisions).length
+  if (doneCount < 18) {
+    const undone = DECISION_IDS.filter(id => !(id in decisions))
+    insights.push({ good: false, text: `本周只完成 ${doneCount}/18 项决策，${undone.length} 项未处理（含：${undone.slice(0, 4).map(id => DECISION_NAMES[id] || id).join('、')}${undone.length > 4 ? '等' : ''}）——未决策的部分按"维持现状"生效` })
+  }
   if (pricing === '跟降 10%') insights.push({ good: occupancy >= 65, text: occupancy >= 65 ? '调价跟降 10% 拉住了客流，出租率达标' : '跟降 10% 客流仍不足，可能需要更大力度降价或提升口碑' })
   if (pricing === '不跟降') insights.push({ good: profit >= 0, text: profit >= 0 ? '不跟降保住了单间利润，本周盈利' : '不跟降保住了单价但客流流失严重，导致亏损' })
   if (pricing === '降价 20% 抢客') insights.push({ good: profit >= 0, text: profit >= 0 ? '降价抢客拉高了出租率，薄利多销有效' : '降价 20% 客流涨了但利润被压垮，得不偿失' })
