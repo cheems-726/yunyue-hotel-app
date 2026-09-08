@@ -276,6 +276,22 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             完成决策后点击结算，查看本周经营结果
           </div>
         )}
+        {(() => {
+          const last = history.length ? history[history.length - 1] : null
+          if (!last) return null
+          const lv = brand?.level || ''
+          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const tNow = getTitle(last.occupancy, last.finalGoodRate, q)
+          const prevH = history.length > 1 ? history[history.length - 2] : null
+          const tPrev = prevH ? getTitle(prevH.occupancy, prevH.finalGoodRate, q) : null
+          const promoted = tPrev && tNow.title !== tPrev.title && tNow.composite > tPrev.composite
+          const demoted = tPrev && tNow.title !== tPrev.title && tNow.composite < tPrev.composite
+          return (
+            <div style={{ marginTop: 10, padding: '7px 12px', background: promoted ? '#ECFDF5' : demoted ? '#FEF0EF' : '#FFF4E0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: promoted ? '#065F46' : demoted ? '#991B1B' : '#A96407', textAlign: 'center' }}>
+              {promoted ? `🎉 恭喜晋升：${tPrev.title} → ${tNow.title}` : demoted ? `⚠ 降级：${tPrev.title} → ${tNow.title}，下周稳住` : `${tNow.icon} 当前称号：${tNow.title}`}
+            </div>
+          )
+        })()}
         <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14, opacity: settling ? 0.5 : 1 }} disabled={settling}
           onClick={() => { setSettling(true); setTimeout(() => { setSettling(false); onSettle() }, 350) }}>
           {settling ? '⏳ 结算中…' : '🔄 本周结算（查看经营结果）'}
