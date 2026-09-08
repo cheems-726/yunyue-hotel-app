@@ -268,6 +268,28 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </button>
               )}
             </div>
+            {/* 班级整体统计条 */}
+            {visibleGroups.length > 0 && (() => {
+              const withData = visibleGroups.filter(g => g.historyCount > 0)
+              const avg = (fn) => withData.length ? Math.round(withData.reduce((a, g) => a + fn(g), 0) / withData.length) : 0
+              const avgOcc = avg(g => g.occ)
+              const avgRating = avg(g => g.rating)
+              const lossCount = withData.filter(g => g.profit < 0).length
+              return (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  {[
+                    { l: '平均出租率', v: avgOcc + '%' },
+                    { l: '平均口碑', v: avgRating ? (avgRating / 20).toFixed(1) : '—' },
+                    { l: '亏损组', v: lossCount + '组' },
+                  ].map(s => (
+                    <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#A96407' }}>{s.v}</div>
+                      <div style={{ fontSize: 10, color: '#9CA3AF' }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
             {visibleGroups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
             {visibleGroups.map(g => {
               const expanded = expandedUid === g.uid
