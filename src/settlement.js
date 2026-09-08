@@ -176,6 +176,25 @@ if (resolvedCount >= 2 && rand() < 0.5) {
   goodRate = Math.min(goodRate + 0.02, 0.95)
   addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位，客人主动修改评价并追加好评，口碑 +2%`, tip: '整改不是白干——认真处理差评会带来口碑回报' })
 }
+// ⑨ 消防检查：长期不深清洁/不维护的店容易被查出发隐患
+if (decisions.hygiene !== '停房深清洁' && week >= 6 && rand() < 0.25) {
+  addEvent({ type: 'bad', icon: '🧯', name: '消防检查', text: '消防突击检查发现疏散通道堆物，限期整改并罚款 1500 元', tip: '合规是底线成本，别抱侥幸心理' })
+}
+// ⑩ 市政停水半日：任何店都可能碰上（小概率，全班同周同命中）
+if (rand() < 0.12) {
+  occupancy = Math.max(occupancy * 0.95, 0.3)
+  addEvent({ type: 'bad', icon: '🚱', name: '市政停水半日', text: '片区管网检修停水半天，部分客人提前退房，出租率 -5%', tip: '不可抗力谁都会遇到，别慌，下周就恢复' })
+}
+// ⑪ 会展旺季（正面）：客流充沛地段吃到红利
+if ((s.客流 || 3) >= 4 && rand() < 0.3) {
+  occupancy = Math.min(occupancy + 0.05, 0.98)
+  addEvent({ type: 'good', icon: '🎪', name: '会展旺季', text: '片区大型会展开幕，周边酒店全线满房，本周出租率 +5%', tip: '选址选客流，红利期才接得住' })
+}
+// ⑫ OTA金牌商家（正面）：投放OTA且口碑达标
+if (decisions.ota && goodRate >= 0.8 && rand() < 0.3) {
+  goodRate = Math.min(goodRate + 0.01, 0.95)
+  addEvent({ type: 'good', icon: '🏅', name: 'OTA金牌商家', text: '平台授予金牌商家标识，线上转化率提升，口碑小幅上涨', tip: '线上渠道的流量倾斜跟着口碑走' })
+}
 
 // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
