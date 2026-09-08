@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { getTitle } from './hotelTitle.js'
 
 // 危机事件限时应对卡：30秒内选方案，选择存档影响下周结算（超时=自动"不理会"，危机不应对就是最差应对）
 function CrisisCard({ event, week }) {
@@ -48,8 +49,16 @@ function CrisisCard({ event, week }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose }) {
+export default function WeeklyReport({ result, onClose, history = [], brand = {} }) {
   const isProfit = result.profit >= 0
+  // 称号变化检测：结算前 vs 结算后（晋升时刻/降级警示）
+  const qualityOf = (lv) => lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+  const quality = qualityOf(brand?.level || '')
+  const last = history.length ? history[history.length - 1] : null
+  const before = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, quality)
+  const after = getTitle(result.occupancy, result.finalGoodRate, quality)
+  const promoted = !last ? null : (after.composite > before.composite && after.title !== before.title)
+  const demoted = !last ? null : (after.composite < before.composite && after.title !== before.title)
   return (
     <div className="content">
       <div className="header">
@@ -57,6 +66,26 @@ export default function WeeklyReport({ result, onClose }) {
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>第 {result.week} 周经营结果</h1>
         <div className="sub">决策 → 结果 → 复盘</div>
       </div>
+
+      {/* 称号变化横幅 */}
+      {promoted && (
+        <div className="card" style={{ background: 'linear-gradient(90deg,#ECFDF5,#FFFFFF)', border: '1px solid #A7F3D0', textAlign: 'center', padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#065F46' }}>🎉 酒店晋升！{before.icon} {before.title} → {after.icon} {after.title}</div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>{after.desc}</div>
+        </div>
+      )}
+      {demoted && (
+        <div className="card" style={{ background: '#FEF0EF', border: '1px solid #FECACA', textAlign: 'center', padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>⚠ 酒店降级：{before.icon} {before.title} → {after.icon} {after.title}</div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>出租率/口碑下滑拖累评级，下周稳住</div>
+        </div>
+      )}
+      {!last && (
+        <div className="card" style={{ background: 'linear-gradient(90deg,#FFF4E0,#FFFFFF)', border: '1px solid #FBE3B3', textAlign: 'center', padding: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>{after.icon} 首周评级：{after.title}</div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>提升出租率与口碑可晋升更高称号</div>
+        </div>
+      )}
 
       {/* 核心指标 */}
       <div className="card">

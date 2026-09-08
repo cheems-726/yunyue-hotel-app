@@ -270,30 +270,29 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         </button>
       </div>
 
-      {/* 18项能力点，按模块分组 */}
-      {modules.map(mod => (
-        <div key={mod}>
-          <div className="section-title">
-            <span className="left">{mod}</span>
-            <span className="hint">{decisions.filter(d => d.module === mod).length} 项决策</span>
-          </div>
-          <div className="task-list">
-            {decisions.filter(d => d.module === mod).map(d => {
-              const isDone = doneDecisions[d.id] !== undefined
-              return (
-                <div className="task-card" key={d.id} onClick={() => onDecision(d)}>
-                  <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
-                  <div className="task-body">
-                    <div className="name">{d.name} {isDone && '✓'}</div>
-                    <div className="desc">{d.desc.slice(0, 25)}…</div>
-                  </div>
+          {/* 18项能力点，按模块分组（未决策的排前面） */}
+          {modules.map(mod => (
+            <div key={mod}>
+              <div className="section-title">
+                <span className="left">{mod}</span>
+                <span className="hint">{decisions.filter(d => d.module === mod).length} 项决策</span>
+              </div>
+              <div className="task-list">
+                {decisions.filter(d => d.module === mod).map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
+                  .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
+                  .map(({ d, isDone }) => (
+                  <div className="task-card" key={d.id} onClick={() => onDecision(d)}>
+                    <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
+                    <div className="task-body">
+                      <div className="name">{d.name} {isDone && '✓'}</div>
+                      <div className="desc">{d.desc.slice(0, 25)}…</div>
+                    </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
     </div>
   )
 }
@@ -914,7 +913,11 @@ export default function App() {
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
   }
   async function handleLogout() {
-    if (user?.cloud) { try { await supabase.auth.signOut() } catch (e) {} }
+    if (user?.cloud) {
+      const go = window.confirm('确定退出登录吗？\n进度已存云端，换设备登录不丢失。')
+      if (!go) return
+      try { await supabase.auth.signOut() } catch (e) {}
+    }
     setUser(null)
     resetProgress()
     setTab('business')
@@ -1121,7 +1124,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <WeeklyReport result={report} onClose={handleNextWeek} />
+        <WeeklyReport result={report} onClose={handleNextWeek} history={history} brand={brand} />
       </div>
     )
   }
