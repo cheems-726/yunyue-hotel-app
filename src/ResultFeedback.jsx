@@ -1,7 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
-// 通用结果反馈卡片：展示"你的选择会带来什么结果"
+// 通用结果反馈卡片：展示"你的选择会带来什么结果"（6秒自动收起，点击立即关）
 export default function ResultFeedback({ result, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 6000)
+    return () => clearTimeout(t)
+  }, [])
   // result: { title, changes: [{label, value, dir}], note }
   return (
     <div
@@ -18,8 +22,13 @@ export default function ResultFeedback({ result, onClose }) {
         style={{
           background: '#fff', borderRadius: 20, padding: 24, width: '100%',
           animation: 'pageIn 0.2s ease-out', maxHeight: '80vh', overflowY: 'auto',
+          position: 'relative',
         }}
       >
+        {/* 自动收起进度条 */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#F3F4F6', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: '#E8940F', animation: 'shrinkBar 6s linear forwards' }} />
+        </div>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 40 }}>📊</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 8 }}>你的选择会带来</div>

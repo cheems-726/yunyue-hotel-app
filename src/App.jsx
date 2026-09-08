@@ -212,6 +212,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 }
 
 // ===== 经营页（首页） =====
+const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
 function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
@@ -290,9 +291,14 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                   .map(({ d, isDone }) => (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
-                    <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
+                    <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
+                      <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
+                      {!isDone && KEY_DECISIONS.includes(d.id) && (
+                        <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff' }} />
+                      )}
+                    </div>
                     <div className="task-body">
-                      <div className="name">{d.name} {isDone && '✓'}</div>
+                      <div className="name">{d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}</div>
                       <div className="desc">{d.desc.slice(0, 25)}…</div>
                     </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
@@ -859,6 +865,14 @@ export default function App() {
   const [history, setHistory] = useState(saved.history || []) // 历史周报
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
+  const [toasts, setToasts] = useState([]) // 轻提示栈
+
+  // 轻提示：顶部滑入，2秒自动消失
+  function toast(msg) {
+    const id = Date.now() + Math.random()
+    setToasts(t => [...t, { id, msg }])
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 2000)
+  }
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
@@ -1219,6 +1233,7 @@ export default function App() {
           onDone={(id, answer) => {
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             setCurrentDecision(null)
+            toast(`✓ ${decisions.find(d => d.id === id)?.name || '决策'} 已保存`)
           }}
         />
       </div>
@@ -1251,6 +1266,14 @@ export default function App() {
         <span className="icons">📶 🔋</span>
       </div>
       {mainPage}
+      {/* 轻提示栈（顶部滑入） */}
+      <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{ background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '9px 16px', borderRadius: 999, marginBottom: 6, boxShadow: 'var(--shadow-lg)', animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)', textAlign: 'center' }}>
+            {t.msg}
+          </div>
+        ))}
+      </div>
       <div className="tabbar">
         {tabs.map(t => (
           <button className={`tab ${tab === t.key && !openPage ? 'active' : ''}`} key={t.key} onClick={() => { setTab(t.key); close() }}>

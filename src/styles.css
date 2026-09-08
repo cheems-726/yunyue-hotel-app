@@ -271,3 +271,9 @@ body {
   animation-delay: var(--delay, 0.4s);
   opacity: 0;
 }
+
+/* 反馈弹窗自动收起倒计时条 */
+@keyframes shrinkBar {
+  from { width: 100%; }
+  to { width: 0%; }
+}
