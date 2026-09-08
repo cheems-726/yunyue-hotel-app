@@ -29,6 +29,24 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   const hasData = report || history.length > 0
   const title = getTitle(occupancy, goodRate, quality)
 
+  // 未首次结算：显示引导而非全0红条
+  if (!hasData) {
+    return (
+      <div className="card" style={{ background: '#FFF9F0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>
+            <span style={{ fontSize: 18 }}>🏨</span> 酒店状态
+          </div>
+          <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>{brand?.name} · {property?.name}</span>
+        </div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '18px 0 8px', lineHeight: 1.8 }}>
+          属性面板将在首次周结算后解锁<br />
+          届时可实时查看：口碑分 / 好评率 / 满意度 / 出租率 / 品质分
+        </div>
+      </div>
+    )
+  }
+
   function barColor(v) {
     if (v >= 80) return '#16A34A'
     if (v >= 60) return '#E8940F'

@@ -427,6 +427,21 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'teaching' && (
         <div>
           <div className="card">
+            <div className="card-title">🧮 四维评分规则（与学生端最终成绩同口径）</div>
+            {[
+              { label: '利润', weight: 40, rule: '累计利润 ≥5万=100分 / ≥3万=85 / ≥1万=70 / ≥0=55 / 亏损=40' },
+              { label: '口碑', weight: 25, rule: '平均好评率 ≥90%=95分 / ≥85%=85 / ≥75%=70 / ≥60%=55 / <60%=40' },
+              { label: '出租率', weight: 20, rule: '平均出租率 ≥75%=95分 / ≥65%=80 / ≥55%=65 / ≥45%=50 / <45%=40' },
+              { label: '差评处理', weight: 15, rule: '0条差评=100分 / ≤5条=80 / ≤10条=65 / >10条=50' },
+            ].map(d => (
+              <div key={d.label} style={{ padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{d.label} <span style={{ color: '#E8940F' }}>权重{d.weight}%</span></div>
+                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{d.rule}</div>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>加权总分 = 各维度得分 × 权重之和；S≥90 / A≥80 / B≥70 / C≥60 / D&lt;60</div>
+          </div>
+          <div className="card">
             <div className="card-title">⚡ 事件一览（12种，条件触发非纯随机）</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>
               讲事件课时对照：每个事件的触发条件都是学生的某个经营状态——"事件是你们自己招来的"
