@@ -339,11 +339,15 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                         <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff' }} />
                       )}
                     </div>
-                    <div className="task-body" onClick={e => { if (!isDone) { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) } }}>
+                    <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">{d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}</div>
                       <div className="desc" style={{ whiteSpace: expandedDesc[d.id] ? 'normal' : 'nowrap' }}>
-                        {expandedDesc[d.id] ? d.desc : (d.desc.slice(0, 25) + (d.desc.length > 25 ? '…' : ''))}
-                        {!isDone && d.desc.length > 25 && <span style={{ color: '#E8940F', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : '全文'}</span>}
+                        {isDone
+                          ? (expandedDesc[d.id]
+                              ? `当前答案：${fmtDecision(doneDecisions[d.id])}`
+                              : `当前：${String(fmtDecision(doneDecisions[d.id])).slice(0, 20)}…`)
+                          : (expandedDesc[d.id] ? d.desc : d.desc.slice(0, 25) + (d.desc.length > 25 ? '…' : ''))}
+                        <span style={{ color: '#E8940F', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : (isDone ? '展开答案' : (d.desc.length > 25 ? '全文' : ''))}</span>
                       </div>
                     </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
