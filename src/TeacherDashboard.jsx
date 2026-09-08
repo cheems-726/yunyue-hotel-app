@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
-import { fetchAllGameStates, fetchAllProfiles } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -27,7 +27,9 @@ function summarize(gs, profile) {
   const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
   return {
     uid: gs.user_id,
-    name: profile?.group_no ? `第${profile.group_no}组` : (profile?.display_name || gs.user_id.slice(0, 8)),
+    name: profile?.group_no
+      ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组`
+      : (profile?.display_name || gs.user_id.slice(0, 8)),
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
@@ -42,25 +44,35 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('overview') // overview | ranking | groups | teaching
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
+  const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
+
+  const loadAll = async () => {
+    try {
+      const [states, profiles] = await Promise.all([fetchAllGameStates(), fetchAllProfiles()])
+      const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
+      const list = states.map(gs => summarize(gs, pMap[gs.user_id]))
+      list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
+      setGroups(list)
+      setProfiles(profiles.filter(p => p.role === 'student'))
+      setCloudOk(true)
+    } catch (e) {
+      setGroups(demoGroups); setCloudOk(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      try {
-        const [states, profiles] = await Promise.all([fetchAllGameStates(), fetchAllProfiles()])
-        if (cancelled) return
-        const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
-        // 只统计学生组（有进度的排前面）
-        const list = states.map(gs => summarize(gs, pMap[gs.user_id])).filter(g => !g.uid.startsWith?.('demo'))
-        list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
-        setGroups(list)
-        setCloudOk(true)
-      } catch (e) {
-        if (!cancelled) { setGroups(demoGroups); setCloudOk(false) }
-      }
+      if (!cancelled) await loadAll()
     })()
     return () => { cancelled = true }
   }, [])
+
+  // 教师改组号/班级（本地即时更新 + 云端写入）
+  async function saveProfile(p, fields) {
+    setProfiles(prev => prev.map(x => x.user_id === p.user_id ? { ...x, ...fields } : x))
+    await updateProfileByTeacher(p.user_id, fields)
+  }
 
   // 按分数排序
   const ranked = [...(groups || [])].sort((a, b) => b.score - a.score)
@@ -150,22 +162,53 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* 分组 */}
+      {/* 分组管理 */}
       {view === 'groups' && groups !== null && (
         <div>
           <div className="card">
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>学生分组（已注册开档 {groups.length} 组）</div>
-            {groups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无学生数据</div>}
-            {groups.map(g => (
-              <div key={g.uid} style={{ padding: '12px', background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{g.name} · {g.hotel}</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
-                  {g.city} · {g.finished ? '12周经营完成' : `经营第${g.week || 1}周 · 已结算${g.historyCount}周`}
-                </div>
+            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 4 }}>👥 分组与班级管理</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+              已注册学生 {profiles.length} 人 · 直接输入组号和班级即可保存（云端的进度数据不受影响）
+            </div>
+            {profiles.length === 0 && (
+              <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>
+                还没有学生注册。学生用学号注册后会自动出现在这里。
               </div>
-            ))}
+            )}
+            {profiles.map(p => {
+              // 关联该学生的经营进度
+              const g = groups.find(x => x.uid === p.user_id)
+              return (
+                <div key={p.user_id} style={{ padding: 12, background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{p.display_name || p.user_id.slice(0, 8)}</span>
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                      {g ? `${g.hotel} · ${g.finished ? '已结业' : `第${g.week || 1}周`}` : '未开始经营'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>组号</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={p.group_no || ''}
+                      placeholder="如 1"
+                      onChange={e => saveProfile(p, { group_no: e.target.value ? Number(e.target.value) : null })}
+                      style={{ width: 60, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+                    />
+                    <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>班级</label>
+                    <input
+                      value={p.class_name || ''}
+                      placeholder="如 酒管2401"
+                      onChange={e => saveProfile(p, { class_name: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>
-              💡 学生用学号在 App 注册后自动出现在这里；换设备登录进度不丢（云端存档）
+              💡 设置组号后，排名和总览会显示「第N组」；班级用于多班教学区分。修改即时生效。
             </div>
           </div>
         </div>

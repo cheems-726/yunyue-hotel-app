@@ -54,3 +54,9 @@ create policy "game_states_self" on public.game_states for all
 -- 教师可读全部（排名/总览）
 create policy "game_states_teacher_read" on public.game_states for select
   using (public.is_teacher(auth.uid()));
+
+-- v0.31 增量：班级管理（教师可设置学生组号/班级）
+alter table public.profiles add column if not exists class_name text;
+-- 教师可更新学生档案（分组/班级管理）
+create policy "profiles_teacher_update" on public.profiles for update
+  using (public.is_teacher(auth.uid()));

@@ -416,6 +416,45 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   const orgDesc = user?.role === 'teacher'
     ? '教师'
     : `${property?.name || '云悦酒店'} · ${brand?.name || ''} · 组长 · 第 3 组${location ? ' · ' + location.district : ''}`
+
+  // ===== 本地备份：导出 / 导入 =====
+  const [backupMsg, setBackupMsg] = useState('')
+  function exportBackup() {
+    try {
+      const data = {
+        app: 'yunyue-hotel',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        state: localStorage.getItem(STORAGE_KEY),
+        reviews: localStorage.getItem('hotel-sim-reviews'),
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `云悦酒店备份-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(a.href)
+      setBackupMsg('✅ 备份文件已下载，建议发到微信/邮箱保存')
+    } catch (e) {
+      setBackupMsg('❌ 导出失败：' + e.message)
+    }
+  }
+  function importBackup(file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result)
+        if (data.app !== 'yunyue-hotel') { setBackupMsg('❌ 不是云悦酒店的备份文件'); return }
+        if (data.state) localStorage.setItem(STORAGE_KEY, data.state)
+        if (data.reviews) localStorage.setItem('hotel-sim-reviews', data.reviews)
+        setBackupMsg('✅ 恢复成功，正在刷新…')
+        setTimeout(() => window.location.reload(), 800)
+      } catch (e) {
+        setBackupMsg('❌ 备份文件损坏：' + e.message)
+      }
+    }
+    reader.readAsText(file)
+  }
   return (
     <div className="content">
       <div className="header">
@@ -484,6 +523,22 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             本周还未做决策，去「经营」页开始吧
           </div>
         )}
+      </div>
+
+      {/* 本地备份 */}
+      <div className="card">
+        <div className="card-title">💾 数据备份</div>
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10, lineHeight: 1.6 }}>
+          进度已自动存云端+本机。导出备份文件可防误删账号/清浏览器数据，双保险。
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={exportBackup}>⬇️ 导出备份</button>
+          <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+            ⬆️ 导入恢复
+            <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files[0] && importBackup(e.target.files[0])} />
+          </label>
+        </div>
+        {backupMsg && <div style={{ fontSize: 11, color: '#A96407', marginTop: 8 }}>{backupMsg}</div>}
       </div>
 
       <div className="card" style={{padding:'4px 0'}}>

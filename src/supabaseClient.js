@@ -58,11 +58,20 @@ export async function fetchAllGameStates() {
   return data || []
 }
 
-// 教师端：读全部档案（拿显示名/组号）
+// 教师端：读全部档案（拿显示名/组号/班级）
 export async function fetchAllProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, role, display_name, group_no')
+    .select('user_id, role, display_name, group_no, class_name')
   if (error) throw error
   return data || []
+}
+
+// 教师端：更新学生档案（组号/班级）
+export async function updateProfileByTeacher(userId, fields) {
+  const { error } = await supabase
+    .from('profiles')
+    .update(fields)
+    .eq('user_id', userId)
+  return !error
 }
