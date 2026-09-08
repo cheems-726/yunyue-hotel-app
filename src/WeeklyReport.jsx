@@ -67,8 +67,10 @@ export default function WeeklyReport({ result, onClose }) {
         <div className="card">
           <div className="card-title">⚡ 本周经营事件</div>
           {result.events.map((e, i) => (
-            <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>{e.icon} {e.name}</div>
+            <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : e.type === 'crisis' ? '#FFF4E0' : '#FEF0EF', border: e.type === 'crisis' ? '1px solid #FBE3B3' : 'none' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#A96407' : '#991B1B' }}>
+                {e.icon} {e.name}{e.type === 'crisis' && <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>危机</span>}
+              </div>
               <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
               <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
             </div>

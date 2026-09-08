@@ -160,6 +160,11 @@ if (goodRate >= 0.85 && rand() < 0.25) {
 if (decisions['member-convert'] === '强调品质' && rand() < 0.3) {
   addEvent({ type: 'good', icon: '🔁', name: '会员复购潮', text: '高品质转化的会员带朋友复购，本周散客口碑提升', tip: '强调品质的会员忠诚度更高' })
 }
+// ⑦ 危机·差评发酵：欠了2条以上差评没处理，被顶上平台热榜
+if (pendingNegatives >= 2 && rand() < 0.4) {
+  goodRate = Math.max(goodRate - 0.03, 0.3)
+  addEvent({ type: 'crisis', icon: '🔥', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
+}
 
 // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
