@@ -147,14 +147,18 @@ export default function TeacherDashboard({ user, onLogout }) {
     }
   }
 
-  // 导出全班周报 CSV（汇总 + 每周明细，带 BOM 防 Excel 中文乱码）
+  // 导出全班周报 CSV（汇总 + 每周明细，带 BOM 防 Excel 中文乱码；跟随当前班级筛选）
   function exportWeeklyCSV() {
     const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
+    const visible = filterClass
+      ? groups.filter(g => classByUid[g.uid] === filterClass)
+      : groups
+    const visibleUids = new Set(visible.map(g => g.uid))
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
     const lines = []
-    lines.push('【全班汇总】')
+    lines.push(filterClass ? `【${filterClass} 汇总】` : '【全班汇总】')
     lines.push('班级,组名,酒店,城市,周次,状态,称号,出租率%,营收(万),利润(万),口碑(5分),综合评分')
-    for (const g of groups) {
+    for (const g of visible) {
       const p = pMap[g.uid] || {}
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
@@ -164,7 +168,7 @@ export default function TeacherDashboard({ user, onLogout }) {
     lines.push('')
     lines.push('【每周明细】')
     lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),利润(元),评价数,差评数,好评率%')
-    for (const gs of rawStates) {
+    for (const gs of rawStates.filter(x => visibleUids.has(x.user_id))) {
       const p = pMap[gs.user_id] || {}
       const gname = p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8))
       const hist = (gs.state && gs.state.history) || []
