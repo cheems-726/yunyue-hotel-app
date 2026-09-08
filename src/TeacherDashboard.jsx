@@ -65,6 +65,21 @@ function GroupDetail({ uid, rawStates, name }) {
       <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
         {s.brand?.name || '—'}品牌 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
       </div>
+      {/* 称号进度 */}
+      {(() => {
+        const hist = s.history || []
+        if (!hist.length) return null
+        const avgOcc = Math.round(hist.reduce((a, h) => a + h.occupancy, 0) / hist.length)
+        const avgGood = Math.round(hist.reduce((a, h) => a + h.finalGoodRate, 0) / hist.length)
+        const lv = s.brand?.level || ''
+        const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+        const ti = getTitle(avgOcc, avgGood, q)
+        return (
+          <div style={{ fontSize: 11, color: '#A96407', marginBottom: 8 }}>
+            {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
+          </div>
+        )
+      })()}
       {/* 本周 18 项决策完成度 */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 3 }}>
