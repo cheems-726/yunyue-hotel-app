@@ -216,6 +216,7 @@ const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调�
 function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
+  const [expandedDesc, setExpandedDesc] = useState({})
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
@@ -322,9 +323,12 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                         <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff' }} />
                       )}
                     </div>
-                    <div className="task-body">
+                    <div className="task-body" onClick={e => { if (!isDone) { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) } }}>
                       <div className="name">{d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}</div>
-                      <div className="desc">{d.desc.slice(0, 25)}…</div>
+                      <div className="desc" style={{ whiteSpace: expandedDesc[d.id] ? 'normal' : 'nowrap' }}>
+                        {expandedDesc[d.id] ? d.desc : (d.desc.slice(0, 25) + (d.desc.length > 25 ? '…' : ''))}
+                        {!isDone && d.desc.length > 25 && <span style={{ color: '#E8940F', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : '全文'}</span>}
+                      </div>
                     </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
                   </div>
