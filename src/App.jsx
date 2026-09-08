@@ -215,6 +215,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
 function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history }) {
   const modules = ['部门运营', '会员推广', '门店经营']
+  const [filter, setFilter] = useState('all') // all | undone | done | key
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
   const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : null)
@@ -278,7 +279,14 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         </button>
       </div>
 
-          {/* 18项能力点，按模块分组（未决策的排前面） */}
+          {/* 决策筛选 */}
+      <div className="city-row" style={{ marginTop: 2 }}>
+        {[['all', '全部'], ['undone', '待决策'], ['done', '已决策'], ['key', '每日关键']].map(([k, label]) => (
+          <button key={k} className={`city-tab ${filter === k ? 'active' : ''}`} style={{ padding: '8px 0', fontSize: 12 }} onClick={() => setFilter(k)}>{label}</button>
+        ))}
+      </div>
+
+      {/* 18项能力点，按模块分组（未决策的排前面） */}
           {modules.map(mod => (
             <div key={mod}>
               <div className="section-title">
@@ -286,7 +294,9 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                 <span className="hint">{decisions.filter(d => d.module === mod).length} 项决策</span>
               </div>
               <div className="task-list">
-                {decisions.filter(d => d.module === mod).map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
+                {decisions.filter(d => d.module === mod)
+                  .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
+                  .map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
                   .map(({ d, isDone }) => (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
@@ -467,6 +477,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
     { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
     { icon: '👥', bg: 'blue', name: '小组成员', key: 'members' },
+    { icon: '❓', bg: 'amber', name: '玩法说明', key: 'help' },
   ]
   const orgDesc = user?.role === 'teacher'
     ? '教师'
@@ -692,6 +703,34 @@ function OperationRecords({ history, onBack }) {
         </div>
         )
       })}
+    </div>
+  )
+}
+
+// ===== 玩法说明页（学生自助答疑） =====
+function HelpPage({ onBack }) {
+  const sections = [
+    { icon: '🎯', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
+    { icon: '📅', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 点「本周结算」看结果 → 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
+    { icon: '⚡', title: '事件系统', body: '共 15 种事件，全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
+    { icon: '🏆', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
+    { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
+    { icon: '💾', title: '数据安全', body: '进度自动存云端+本机。「我的」页可导出备份文件；换设备登录同一学号自动恢复。重开经营需二次确认且会覆盖云端，慎重。' },
+  ]
+  return (
+    <div className="content">
+      <div className="header">
+        <div className="row1">
+          <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
+        </div>
+        <div className="sub">遇到问题先看这里</div>
+      </div>
+      {sections.map(s => (
+        <div className="card" key={s.title}>
+          <div className="card-title">{s.icon} {s.title}</div>
+          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>{s.body}</div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -1310,7 +1349,9 @@ export default function App() {
         ? <GroupMembersPage user={user} onBack={close} />
         : openPage.key === 'records'
           ? <OperationRecords history={history} onBack={close} />
-          : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
+          : openPage.key === 'help'
+            ? <HelpPage onBack={close} />
+            : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,
