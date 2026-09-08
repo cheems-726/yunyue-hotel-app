@@ -91,6 +91,8 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
+  const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
+  const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
@@ -104,6 +106,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student'))
       setRawStates(states)
+      setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
       setCloudOk(true)
     } catch (e) {
@@ -174,6 +177,12 @@ export default function TeacherDashboard({ user, onLogout }) {
 
   // 按分数排序
   const ranked = [...(groups || [])].sort((a, b) => b.score - a.score)
+  // 班级筛选（多班教学时只看某个班）
+  const classList = Array.from(new Set(Object.values(classByUid).filter(Boolean)))
+  const visibleGroups = filterClass
+    ? (groups || []).filter(g => classByUid[g.uid] === filterClass)
+    : (groups || [])
+  const visibleRanked = [...visibleGroups].sort((a, b) => b.score - a.score)
 
   function scoreBar(score) {
     if (score >= 90) return '#10B981'
@@ -237,17 +246,27 @@ export default function TeacherDashboard({ user, onLogout }) {
             </div>
           </div>
 
+          {/* 班级筛选（多班时出现） */}
+          {classList.length > 1 && (
+            <div className="city-row" style={{ marginBottom: 12 }}>
+              <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
+              {classList.map(c => (
+                <button key={c} className={`city-tab ${filterClass === c ? 'active' : ''}`} onClick={() => setFilterClass(c)}>{c}</button>
+              ))}
+            </div>
+          )}
+
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览</div>
+              <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览{filterClass ? ` · ${filterClass}` : ''}</div>
               {groups.length > 0 && (
                 <button onClick={exportWeeklyCSV} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
                   📥 导出全班周报 CSV
                 </button>
               )}
             </div>
-            {groups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
-            {groups.map(g => {
+            {visibleGroups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
+            {visibleGroups.map(g => {
               const expanded = expandedUid === g.uid
               return (
               <div key={g.uid}>
@@ -280,8 +299,8 @@ export default function TeacherDashboard({ user, onLogout }) {
         <div>
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
-            {ranked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
-            {ranked.map((g, i) => (
+            {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
+            {visibleRanked.map((g, i) => (
               <div key={g.uid} style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#FBE3B3' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: i === 0 ? '#A96407' : '#6B7280', flexShrink: 0 }}>
                   {i + 1}
