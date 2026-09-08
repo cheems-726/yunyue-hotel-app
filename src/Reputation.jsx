@@ -29,6 +29,7 @@ const replyStrategies = [
 export default function Reputation({ report, history }) {
   const [reviews, setReviews] = useState(loadReviews)
   const [replying, setReplying] = useState(null) // 正在回复的差评
+  const [showIgnored, setShowIgnored] = useState(false) // 忽略区折叠
   const [feedback, setFeedback] = useState(null)
 
   // 持久化差评处理状态
@@ -180,11 +181,13 @@ export default function Reputation({ report, history }) {
         </div>
       ))}
 
-      {/* 已忽略的差评（不处理的历史，提醒学生代价） */}
+      {/* 已忽略的差评（默认折叠只显示计数，点击展开看代价） */}
       {reviews.filter(r => r.status === 'ignored').length > 0 && (
         <>
-          <div className="section-title"><span className="left">已忽略（不处理的代价）</span></div>
-          {reviews.filter(r => r.status === 'ignored').map(r => (
+          <div className="section-title" style={{ cursor: 'pointer' }} onClick={() => setShowIgnored(!showIgnored)}>
+            <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
+          </div>
+          {showIgnored && reviews.filter(r => r.status === 'ignored').map(r => (
             <div className="card" style={{opacity:0.5}} key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
