@@ -416,7 +416,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   ]
   const orgDesc = user?.role === 'teacher'
     ? '教师'
-    : `${property?.name || '云悦酒店'} · ${brand?.name || ''} · 组长 · 第 3 组${location ? ' · ' + location.district : ''}`
+    : `${property?.name || '云悦酒店'} · ${brand?.name || ''}${user?.className ? ` · ${user.className}` : ''}${user?.groupNo ? ` · 第 ${user.groupNo} 组` : ' · 未分组'}${location ? ` · ${location.district}` : ''}`
 
   // ===== 本地备份：导出 / 导入 =====
   const [backupMsg, setBackupMsg] = useState('')
