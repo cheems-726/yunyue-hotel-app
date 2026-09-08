@@ -278,7 +278,11 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         )}
         {report && report.events && report.events.length > 0 && (
           <div style={{ margin: '10px 0 0', padding: '7px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 11, color: '#6B7280' }}>
-            ⚡ 上周事件 {report.events.length} 起：{report.events.map(e => `${e.icon}${e.name}`).join('、')}
+            ⚡ 上周事件 {report.events.length} 起：{report.events.map((e, i) => (
+              <span key={i} style={{ color: e.type === 'crisis' ? '#DC2626' : e.type === 'good' ? '#10B981' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
+                {e.icon}{e.name}{i < report.events.length - 1 ? '、' : ''}
+              </span>
+            ))}
           </div>
         )}
         {(() => {
@@ -971,6 +975,14 @@ function ScoreDetail({ history, onBack }) {
             { icon: '🚀', name: '出租率破80', got: history.some(h => h.occupancy >= 80) },
             { icon: '⭐', name: '口碑4.5+', got: history.some(h => h.finalGoodRate >= 90) },
             { icon: '🛡️', name: '零差评周', got: history.some(h => h.negativeCount === 0 && h.reviewCount > 0) },
+            (() => {
+              let owed = null
+              try {
+                const revs = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+                owed = revs.filter(r => r.status === 'pending' || r.status === 'ignored').length
+              } catch (e) {}
+              return { icon: '🧹', name: '零欠差评', got: owed !== null && owed === 0 }
+            })(),
             { icon: '🏆', name: '跻身A级', got: cum.total >= 80 },
             { icon: '🎓', name: '完赛', got: history.length >= 12 },
           ].map(b => (
