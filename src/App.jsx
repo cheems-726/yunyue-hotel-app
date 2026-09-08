@@ -543,7 +543,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       </div>
 
       <div style={{display:'flex',alignItems:'center',gap:14,margin:'0 20px 16px'}}>
-        <div style={{width:56,height:56,borderRadius:'50%',background:'#FFF4E0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>😊</div>
+        <div style={{width:56,height:56,borderRadius:'50%',background:(() => {
+          const last = history.length ? history[history.length - 1] : null
+          const lv = brand?.level || ''
+          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const name = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q).title
+          return { '标杆酒店': '#FDE68A', '人气名店': '#EDE9FE', '精品酒店': '#DBEAFE', '舒适旅店': '#D1FAE5' }[name] || '#FFF4E0'
+        })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}>😊</div>
         <div>
           <div style={{fontSize:18,fontWeight:700}}>{user?.name || '陈小明'}</div>
           <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>{orgDesc}</div>
