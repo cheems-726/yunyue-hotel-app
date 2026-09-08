@@ -410,7 +410,7 @@ function Report({ report, week, history }) {
 // ===== 我的页 =====
 function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week }) {
   const menus = [
-    { icon: '📋', bg: 'blue', name: '经营操作记录' },
+    { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
     { icon: '👥', bg: 'blue', name: '小组成员', key: 'members' },
   ]
@@ -556,6 +556,46 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           <div style={{color:'#D1D5DB'}}>›</div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ===== 经营操作记录页（逐周决策复盘回看） =====
+function OperationRecords({ history, onBack }) {
+  const weeks = history.slice().reverse()
+  return (
+    <div className="content">
+      <div className="header">
+        <div className="row1">
+          <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
+        </div>
+        <div className="sub">每周决策的系统复盘记录</div>
+      </div>
+
+      {weeks.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
+          📋 还没有结算记录<br />完成第一周结算后，这里会记录你的每个决策评价
+        </div>
+      )}
+
+      {weeks.map(h => (
+        <div className="card" key={h.week}>
+          <div className="card-title">
+            第 {h.week} 周
+            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 8 }}>
+              出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条
+            </span>
+          </div>
+          {(h.insights && h.insights.length > 0) ? h.insights.map((ins, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < h.insights.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>{ins.good ? '✅' : '⚠️'}</span>
+              <span style={{ fontSize: 12, color: ins.good ? '#065F46' : '#991B1B', lineHeight: 1.6 }}>{ins.text}</span>
+            </div>
+          )) : (
+            <div style={{ fontSize: 12, color: '#9CA3AF' }}>该周无关键决策复盘</div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
@@ -1100,7 +1140,9 @@ export default function App() {
       ? <ScoreDetail history={history} onBack={close} />
       : openPage.key === 'members'
         ? <GroupMembersPage user={user} onBack={close} />
-        : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
+        : openPage.key === 'records'
+          ? <OperationRecords history={history} onBack={close} />
+          : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,
