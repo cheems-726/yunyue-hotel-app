@@ -239,8 +239,14 @@ export default function TeacherDashboard({ user, onLogout }) {
       </div>
 
       {groups === null && (
-        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: 40 }}>
-          正在从云端拉取全班经营数据…
+        <div className="card">
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ padding: 12, background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
+              <div className="skeleton" style={{ height: 14, width: '55%', marginBottom: 8 }} />
+              <div className="skeleton" style={{ height: 11, width: '85%' }} />
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center' }}>正在从云端拉取全班经营数据…</div>
         </div>
       )}
 

@@ -746,7 +746,17 @@ function GroupMembersPage({ user, onBack }) {
       )}
 
       {hasGroup && members === null && (
-        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: 32 }}>正在加载组员名单…</div>
+        <div className="card">
+          {[0, 1].map(i => (
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <div className="skeleton" style={{ width: 40, height: 40, borderRadius: '50%' }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton" style={{ height: 12, width: '40%', marginBottom: 6 }} />
+                <div className="skeleton" style={{ height: 10, width: '70%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {hasGroup && members !== null && (
