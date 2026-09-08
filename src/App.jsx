@@ -408,9 +408,8 @@ function Report({ report, week, history }) {
 // ===== 我的页 =====
 function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week }) {
   const menus = [
-    { icon: '🏨', bg: 'amber', name: '我的酒店信息' },
     { icon: '📋', bg: 'blue', name: '经营操作记录' },
-    { icon: '🏆', bg: 'green', name: '积分与评分明细' },
+    { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
     { icon: '👥', bg: 'blue', name: '小组成员' },
   ]
   const orgDesc = user?.role === 'teacher'
@@ -542,8 +541,8 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       </div>
 
       <div className="card" style={{padding:'4px 0'}}>
-        {menus.filter(m => m.name !== '我的酒店信息').map(m => (
-          <div key={m.name} onClick={() => onOpen(m.name, m.icon)} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',borderBottom:'1px solid #F9FAFB',cursor:'pointer'}}>
+        {menus.map(m => (
+          <div key={m.name} onClick={() => onOpen(m.name, m.icon, m.key)} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',borderBottom:'1px solid #F9FAFB',cursor:'pointer'}}>
             <div style={{width:40,height:40,borderRadius:'50%',background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{m.icon}</div>
             <div style={{flex:1,fontSize:14,fontWeight:500}}>{m.name}</div>
             <div style={{color:'#D1D5DB'}}>›</div>
@@ -553,6 +552,91 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           <div style={{width:40,height:40,borderRadius:'50%',background:'#FFF4E0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>⚙️</div>
           <div style={{flex:1,fontSize:14,fontWeight:500,color:'#EF4444'}}>退出登录</div>
           <div style={{color:'#D1D5DB'}}>›</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===== 积分与评分明细页（四维逐周得分 + 加权总分实时预测） =====
+function ScoreDetail({ history, onBack }) {
+  // 与 FinalResult 同口径的四维打分
+  const scoreOf = (arr) => {
+    const totalProfit = arr.reduce((s, h) => s + h.profit, 0)
+    const avgOcc = arr.length ? Math.round(arr.reduce((s, h) => s + h.occupancy, 0) / arr.length) : 0
+    const avgGood = arr.length ? Math.round(arr.reduce((s, h) => s + h.finalGoodRate, 0) / arr.length) : 0
+    const totalNeg = arr.reduce((s, h) => s + h.negativeCount, 0)
+    const pS = totalProfit >= 50000 ? 100 : totalProfit >= 30000 ? 85 : totalProfit >= 10000 ? 70 : totalProfit >= 0 ? 55 : 40
+    const rS = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
+    const oS = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
+    const nS = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
+    return { pS, rS, oS, nS, total: Math.round(pS * 0.4 + rS * 0.25 + oS * 0.2 + nS * 0.15) }
+  }
+  const cum = scoreOf(history)
+  const dims = [
+    { label: '利润', weight: 0.4, score: cum.pS },
+    { label: '口碑', weight: 0.25, score: cum.rS },
+    { label: '出租率', weight: 0.2, score: cum.oS },
+    { label: '差评处理', weight: 0.15, score: cum.nS },
+  ]
+  const grade = cum.total >= 90 ? 'S' : cum.total >= 80 ? 'A' : cum.total >= 70 ? 'B' : cum.total >= 60 ? 'C' : 'D'
+  return (
+    <div className="content">
+      <div className="header">
+        <div className="row1">
+          <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
+        </div>
+        <div className="sub">四维评分与 FinalResult 完全同口径</div>
+      </div>
+
+      <div className="card" style={{ textAlign: 'center', padding: 20 }}>
+        <div style={{ fontSize: 40, fontWeight: 700, color: '#E8940F' }}>{cum.total}</div>
+        <div style={{ fontSize: 12, color: '#A96407', fontWeight: 600 }}>预测等级 {grade} · 按目前已结算的 {history.length} 周计算</div>
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{history.length < 12 ? '经营继续，此分数会随周数实时变化' : '12周已结算完毕'}</div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">当前累计四维得分</div>
+        {dims.map(d => (
+          <div key={d.label} style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{d.label} <span style={{ fontSize: 10, color: '#9CA3AF' }}>权重{Math.round(d.weight * 100)}%</span></span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#E8940F' }}>{d.score}分</span>
+            </div>
+            <div style={{ height: 7, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: d.score + '%', background: d.score >= 80 ? '#16A34A' : d.score >= 60 ? '#E8940F' : '#DC2626', borderRadius: 4 }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title">逐周累计走势</div>
+        {history.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
+        {history.map((_, i) => {
+          const upto = history.slice(0, i + 1)
+          const s = scoreOf(upto)
+          return (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>第 {upto.length} 周结算后</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 120, margin: '0 12px' }}>
+                <div style={{ flex: 1, height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: s.total + '%', background: '#E8940F', borderRadius: 3 }}></div>
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#E8940F' }}>{s.total}分</span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+        <div className="card-title">📖 怎么涨分</div>
+        <div style={{ fontSize: 12, color: '#1E40AF', lineHeight: 1.8 }}>
+          利润（40%）：收入减成本的差额，累计≥3万到85分档<br />
+          口碑（25%）：差评及时回复、卫生质检是关键<br />
+          出租率（20%）：调价和营销平衡，55%-75%是舒适区<br />
+          差评处理（15%）：差评总数越少分越高
         </div>
       </div>
     </div>
@@ -673,8 +757,8 @@ export default function App() {
     { key: 'profile', icon: '👤', label: '我的' },
   ]
 
-  function open(title, icon) {
-    setOpenPage({ title, icon })
+  function open(title, icon, key) {
+    setOpenPage({ title, icon, key })
   }
   function close() {
     setOpenPage(null)
@@ -946,7 +1030,9 @@ export default function App() {
 
   let mainPage
   if (openPage) {
-    mainPage = <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
+    mainPage = openPage.key === 'scores'
+      ? <ScoreDetail history={history} onBack={close} />
+      : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,
