@@ -99,8 +99,9 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   const competition = 1.15 - (s.竞争 || 3) * 0.05 // 竞争越大，客流越被分走
 
   // 2. 价格竞争力（本店房价 vs 全班均价，简化：用品牌房价带 + 调价决策）
+  // 教学规则：竞店降价场景下"不决策"= 没有任何反应，等同"不跟降"流失价格敏感客——不作为不是中立选项
   const basePrice = brand ? parsePrice(brand.price) : 300
-  const pricing = decisions.pricing
+  const pricing = decisions.pricing || '不跟降'
   let price = basePrice
   let priceCompetitive = 1.0
   if (pricing === '跟降 10%') { price = basePrice * 0.9; priceCompetitive = 1.2 }

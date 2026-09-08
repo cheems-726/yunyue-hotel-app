@@ -225,7 +225,13 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
           <span className="hotel-name">{property ? property.name : '云悦酒店'}</span>
           <span className="day-tag">📅 第 {week} 周</span>
         </div>
-        <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18</div>
+        <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
+          const last = history.length ? history[history.length - 1] : null
+          const lv = brand?.level || ''
+          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const t = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
+          return `${t.icon} ${t.title}`
+        })()}</div>
       </div>
 
       {/* 酒店状态面板（RPG属性） */}
