@@ -277,3 +277,7 @@ body {
   from { width: 100%; }
   to { width: 0%; }
 }
+
+/* 口碑星级hover微交互 */
+.stars-big { transition: transform .2s cubic-bezier(0.22,1,0.36,1); }
+.stars-big:hover { transform: scale(1.12); }

@@ -63,7 +63,17 @@ function GroupDetail({ uid, rawStates, name }) {
   return (
     <div style={{ padding: 12, background: '#F9FAFB', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
       <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
-        {s.brand?.name || '—'}品牌 · 本周已做决策 {weekDecisions}/18 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
+        {s.brand?.name || '—'}品牌 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
+      </div>
+      {/* 本周 18 项决策完成度 */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 3 }}>
+          <span>本周决策完成度</span>
+          <span style={{ fontWeight: 600, color: weekDecisions === 18 ? '#16A34A' : '#A96407' }}>{weekDecisions} / 18</span>
+        </div>
+        <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: (weekDecisions / 18 * 100) + '%', background: weekDecisions === 18 ? '#16A34A' : '#E8940F', borderRadius: 3 }} />
+        </div>
       </div>
       {hist.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>还没有结算过，看不到逐周数据</div>}
       {hist.map(h => {

@@ -106,16 +106,26 @@ export default function Establishment({ brand, property, onComplete }) {
         )}
       </div>
 
-      {/* 开业庆祝反馈 */}
+      {/* 开业庆祝反馈（含酒店出生参数总览） */}
       {opening && (
         <ResultFeedback
           result={{
             title: `🎉 ${brand?.name}品牌 · ${property?.name} 正式开业！`,
-            changes: [
-              { label: '酒店状态', value: '已开业', dir: 'up' },
-              { label: '品牌', value: brand?.name || '', dir: '' },
-              { label: '物业', value: property?.name || '', dir: '' },
-            ],
+            changes: (() => {
+              const lv = brand?.level || ''
+              const quality = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : 75
+              const rooms = (property?.rooms && Number(property.rooms.match(/(\d+)/)?.[1])) || 70
+              const midPrice = (brand?.price && Number(brand.price.match(/(\d+)-(\d+)/)?.[1]) + Number(brand.price.match(/(\d+)-(\d+)/)?.[2])) / 2 / 1 || 300
+              return [
+                { label: '酒店状态', value: '已开业', dir: 'up' },
+                { label: '品牌', value: brand?.name || '', dir: '' },
+                { label: '物业', value: `${property?.name || ''}（${property?.type || ''}）`, dir: '' },
+                { label: '可排房量', value: `${rooms} 间`, dir: '' },
+                { label: '初始品质分', value: `${quality} / 100`, dir: '' },
+                { label: '房价带', value: brand?.price || '—', dir: '' },
+                { label: '所在商圈', value: property?.name?.includes('枢纽') ? '交通枢纽型' : property?.name?.includes('社区') ? '社区型' : '商圈型', dir: '' },
+              ]
+            })(),
             note: '你的酒店已正式开业！现在进入经营阶段，每天做决策、每周结算、处理差评，经营好这家酒店。',
           }}
           onClose={finishOpening}

@@ -115,7 +115,7 @@ export default function Reputation({ report, history }) {
         <div style={{fontSize:40,fontWeight:700,color:'#A96407'}}>
           {goodRatePct != null ? (goodRatePct / 20).toFixed(1) : '—'}
         </div>
-        <div style={{fontSize:20,letterSpacing:2,marginTop:4}}>
+        <div className="stars-big" style={{fontSize:20,letterSpacing:2,marginTop:4}}>
           {goodRatePct != null ? '★'.repeat(Math.max(1, Math.round(goodRatePct / 20))) + '☆'.repeat(5 - Math.max(1, Math.round(goodRatePct / 20))) : '☆☆☆☆☆'}
         </div>
         <div style={{fontSize:12,color:'#A96407',marginTop:6}}>
