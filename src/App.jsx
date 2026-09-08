@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { APP_VERSION } from './version.js'
 
@@ -487,7 +487,7 @@ function Report({ report, week, history }) {
 }
 
 // ===== 我的页 =====
-function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report }) {
+function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename }) {
   const menus = [
     { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
@@ -550,8 +550,14 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           const name = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q).title
           return { '标杆酒店': '#FDE68A', '人气名店': '#EDE9FE', '精品酒店': '#DBEAFE', '舒适旅店': '#D1FAE5' }[name] || '#FFF4E0'
         })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}>😊</div>
-        <div>
-          <div style={{fontSize:18,fontWeight:700}}>{user?.name || '陈小明'}</div>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{fontSize:18,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}
+            title="点击修改真实姓名"
+            onClick={() => { const n = window.prompt('输入真实姓名（教师端将显示）', user?.name || ''); if (n && n.trim() && n.trim() !== user?.name) onRename(n.trim()) }}
+          >
+            {user?.name || '未命名'} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>✏️改名</span>
+          </div>
           <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>{orgDesc}</div>
         </div>
       </div>
@@ -998,6 +1004,18 @@ export default function App() {
   const [toasts, setToasts] = useState([]) // 轻提示栈
   const [offline, setOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false)
 
+  // 学生改真名：更新云端 profiles + 本地 user
+  async function handleRename(newName) {
+    const name = (newName || '').trim()
+    if (!name || !user || name === user.name) return
+    if (user.cloud && user.uid) {
+      const ok = await updateOwnName(user.uid, name)
+      if (!ok) { toast('❌ 改名失败，请重试'); return }
+    }
+    setUser(prev => ({ ...prev, name }))
+    toast(`✅ 已改名为「${name}」，教师端同步更新`)
+  }
+
   // 断网监听：顶部横幅提醒（本地存档不丢）
   useEffect(() => {
     const off = () => setOffline(true)
@@ -1398,7 +1416,7 @@ export default function App() {
       business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
-      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} />,
+      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
     }
     mainPage = pages[tab]
   }

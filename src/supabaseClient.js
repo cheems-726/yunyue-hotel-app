@@ -37,6 +37,15 @@ export async function fetchGroupMembers(className, groupNo) {
   return data || []
 }
 
+// 学生改自己的显示名（真名）
+export async function updateOwnName(userId, name) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: name })
+    .eq('user_id', userId)
+  return !error
+}
+
 // 同组队友的经营概况（只读，RLS 限同班同组）
 export async function fetchGroupStates(uids) {
   if (!uids.length) return []
