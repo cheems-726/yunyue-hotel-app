@@ -3,11 +3,15 @@ import ResultFeedback from './ResultFeedback.jsx'
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
-export default function DecisionPanel({ decision, onBack, onDone, lastReport }) {
+export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial }) {
   const [feedback, setFeedback] = useState(null)
-  const [sliderVal, setSliderVal] = useState(decision.min ?? 0)
+  const [sliderVal, setSliderVal] = useState(() =>
+    decision.type === 'slider' && initial != null ? initial : (decision.min ?? 0)
+  )
   const [budget, setBudget] = useState(() => {
-    // 初始化预算：平均分配，余数给第一项（100/3 → 34/33/33）
+    if (decision.type !== 'budget') return {}
+    // 修改决策时回填已保存的分配，否则平均分配（余数给第一项）
+    if (initial && typeof initial === 'object') return { ...initial }
     const init = {}
     if (decision.items) {
       const avg = Math.floor(decision.total / decision.items.length)
@@ -15,9 +19,14 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport }) 
     }
     return init
   })
-  const [sortItems, setSortItems] = useState(decision.items || [])
+  const [sortItems, setSortItems] = useState(() =>
+    decision.type === 'sort' && Array.isArray(initial) ? [...initial] : (decision.items || [])
+  )
   const [timeLeft, setTimeLeft] = useState(30)
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState(() =>
+    (decision.type === 'option' || decision.type === 'timer') && typeof initial === 'string' ? initial : null
+  )
+  const isEdit = initial != null
 
   // 倒计时
   useEffect(() => {
@@ -238,7 +247,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport }) 
       {/* 确认按钮 */}
       <div style={{ padding: '8px 20px 24px' }}>
         <button className="btn-confirm" disabled={!hasSelection} onClick={confirm}>
-          {selected || decision.type === 'slider' || decision.type === 'sort' ? '确认决策，保存' : '请先做出选择'}
+          {isEdit ? '修改决策，保存' : selected || decision.type === 'slider' || decision.type === 'sort' ? '确认决策，保存' : '请先做出选择'}
         </button>
       </div>
 

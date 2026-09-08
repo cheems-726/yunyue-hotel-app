@@ -1204,6 +1204,7 @@ export default function App() {
         <DecisionPanel
           key={currentDecision.id}
           decision={currentDecision}
+          initial={doneDecisions[currentDecision.id]}
           lastReport={history.length ? history[history.length - 1] : null}
           onBack={() => setCurrentDecision(null)}
           onDone={(id, answer) => {
