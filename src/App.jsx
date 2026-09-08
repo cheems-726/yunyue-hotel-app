@@ -894,6 +894,26 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card">
+        <div className="card-title">🏅 勋章墙</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {[
+            { icon: '💰', name: '首次盈利', got: history.some(h => h.profit > 0) },
+            { icon: '🚀', name: '出租率破80', got: history.some(h => h.occupancy >= 80) },
+            { icon: '⭐', name: '口碑4.5+', got: history.some(h => h.finalGoodRate >= 90) },
+            { icon: '🛡️', name: '零差评周', got: history.some(h => h.negativeCount === 0 && h.reviewCount > 0) },
+            { icon: '🏆', name: '跻身A级', got: cum.total >= 80 },
+            { icon: '🎓', name: '完赛', got: history.length >= 12 },
+          ].map(b => (
+            <div key={b.name} style={{ textAlign: 'center', padding: '10px 4px', background: b.got ? '#FFF4E0' : '#F9FAFB', borderRadius: 10, border: b.got ? '1px solid #FBE3B3' : '1px solid #F3F4F6' }}>
+              <div style={{ fontSize: 22, filter: b.got ? 'none' : 'grayscale(1)', opacity: b.got ? 1 : 0.35 }}>{b.icon}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: b.got ? '#A96407' : '#9CA3AF', marginTop: 2 }}>{b.name}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6, textAlign: 'center' }}>点亮全部勋章 = 把每一项经营都做到位</div>
+      </div>
+
+      <div className="card">
         <div className="card-title">逐周累计走势</div>
         {history.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
         {history.map((_, i) => {
