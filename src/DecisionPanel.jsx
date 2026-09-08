@@ -3,7 +3,7 @@ import ResultFeedback from './ResultFeedback.jsx'
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
-export default function DecisionPanel({ decision, onBack, onDone }) {
+export default function DecisionPanel({ decision, onBack, onDone, lastReport }) {
   const [feedback, setFeedback] = useState(null)
   const [sliderVal, setSliderVal] = useState(decision.min ?? 0)
   const [budget, setBudget] = useState(() => {
@@ -105,6 +105,13 @@ export default function DecisionPanel({ decision, onBack, onDone }) {
       <div className="card">
         <div className="card-title">{decision.icon} {decision.name}</div>
         <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
+
+        {/* 上周状态参考：让决策有依据 */}
+        {lastReport && (
+          <div style={{ padding: '10px 12px', background: '#F9FAFB', borderRadius: 10, marginBottom: 12, fontSize: 11, color: '#6B7280', lineHeight: 1.7 }}>
+            📊 上周参考：出租率 <b style={{ color: '#111827' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? '#10B981' : '#EF4444' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
+          </div>
+        )}
 
         {/* 教学提示：引导学生在决策前思考 */}
         <div style={{ padding: '12px', background: '#FFF4E0', borderRadius: 10, marginBottom: 16 }}>

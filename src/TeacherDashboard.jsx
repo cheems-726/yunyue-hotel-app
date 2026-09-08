@@ -153,12 +153,12 @@ export default function TeacherDashboard({ user, onLogout }) {
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
     const lines = []
     lines.push('【全班汇总】')
-    lines.push('班级,组名,酒店,城市,周次,状态,出租率%,营收(万),利润(万),口碑(5分),综合评分')
+    lines.push('班级,组名,酒店,城市,周次,状态,称号,出租率%,营收(万),利润(万),口碑(5分),综合评分')
     for (const g of groups) {
       const p = pMap[g.uid] || {}
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
-        g.finished ? '已结业' : '经营中', g.occ, g.revenue, g.profit, g.rating, g.score,
+        g.finished ? '已结业' : '经营中', esc(g.title || ''), g.occ, g.revenue, g.profit, g.rating, g.score,
       ].join(','))
     }
     lines.push('')

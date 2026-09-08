@@ -54,9 +54,33 @@ create policy "game_states_self" on public.game_states for all
 -- 教师可读全部（排名/总览）
 create policy "game_states_teacher_read" on public.game_states for select
   using (public.is_teacher(auth.uid()));
+-- 组内互看（只读）：同班级+同组号的学生可读彼此存档
+create policy "game_states_group_read" on public.game_states for select using (
+  auth.uid() = user_id
+  or exists(
+    select 1 from public.profiles me, public.profiles other
+    where me.user_id = auth.uid()
+      and other.user_id = game_states.user_id
+      and me.role = 'student' and other.role = 'student'
+      and me.group_no is not null
+      and me.class_name = other.class_name
+      and me.group_no = other.group_no
+  )
+);
 
 -- v0.31 增量：班级管理（教师可设置学生组号/班级）
 alter table public.profiles add column if not exists class_name text;
 -- 教师可更新学生档案（分组/班级管理）
 create policy "profiles_teacher_update" on public.profiles for update
   using (public.is_teacher(auth.uid()));
+
+-- v0.40 增量：教学进度控制（全班统一周）
+create table if not exists public.class_state (
+  id int primary key default 1,
+  current_week int not null default 0,
+  updated_at timestamptz not null default now()
+);
+insert into public.class_state (id, current_week) values (1, 0) on conflict (id) do nothing;
+alter table public.class_state enable row level security;
+create policy "class_state_read" on public.class_state for select using (auth.role() = 'authenticated');
+create policy "class_state_teacher_write" on public.class_state for update using (public.is_teacher(auth.uid()));
