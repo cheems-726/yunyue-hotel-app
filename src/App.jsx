@@ -312,6 +312,37 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
 }
 
 // ===== 报表页 =====
+// 双折线趋势图（SVG 手绘：出租率琥珀线 + 利润蓝线，零依赖）
+function TrendChart({ history }) {
+  const W = 320, H = 130, PL = 26, PR = 12, PT = 12, PB = 20
+  const n = history.length
+  const xs = i => PL + i * (W - PL - PR) / Math.max(n - 1, 1)
+  const mk = (arr) => {
+    const min = Math.min(...arr), max = Math.max(...arr)
+    const span = (max - min) || 1
+    return arr.map((v, i) => ({ x: xs(i), y: H - PB - ((v - min) / span) * (H - PT - PB), v }))
+  }
+  const occ = mk(history.map(h => h.occupancy))
+  const prof = mk(history.map(h => +(h.profit / 10000).toFixed(2)))
+  const line = pts => pts.map(p => `${p.x},${p.y}`).join(' ')
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
+      <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+      {occ.map((p, i) => <line key={'g' + i} x1={p.x} y1={p.y} x2={p.x} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />)}
+      <polyline points={line(occ)} fill="none" stroke="#E8940F" strokeWidth="2" strokeLinejoin="round" />
+      <polyline points={line(prof)} fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinejoin="round" />
+      {occ.map((p, i) => <circle key={'o' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#E8940F" strokeWidth="2" />)}
+      {prof.map((p, i) => <circle key={'p' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#3B82F6" strokeWidth="2" />)}
+      {history.map((h, i) => (
+        <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="9" fill="#9CA3AF" textAnchor="middle">{h.week}周</text>
+      ))}
+      <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 出租率%</text>
+      <text x={PL + 62} y={9} fontSize="9" fill="#3B82F6">■ 利润(万)</text>
+    </svg>
+  )
+}
+
+// ===== 报表页 =====
 function Report({ report, week, history }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
@@ -380,23 +411,12 @@ function Report({ report, week, history }) {
       )}
 
       <div className="card">
-        <div className="card-title">📈 各周营收趋势</div>
-        {history.length > 0 ? (
-          <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',height:120,padding:'8px 4px 0',gap:8}}>
-            {history.map((h, i) => {
-              const maxRev = Math.max(...history.map(x => x.revenue), 1)
-              const hh = Math.round((h.revenue / maxRev) * 100)
-              return (
-                <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}} key={i}>
-                  <div style={{width:22,borderRadius:'6px 6px 0 0',background: i===history.length-1 ? '#D97706' : '#FBBF77', height: hh + '%'}}></div>
-                  <span style={{fontSize:10,color:'#9CA3AF'}}>第{h.week}周</span>
-                </div>
-              )
-            })}
-          </div>
+        <div className="card-title">📈 出租率与利润趋势</div>
+        {history.length > 1 ? (
+          <TrendChart history={history} />
         ) : (
           <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '30px 0' }}>
-            暂无历史数据
+            结算满 2 周后解锁趋势图
           </div>
         )}
       </div>
