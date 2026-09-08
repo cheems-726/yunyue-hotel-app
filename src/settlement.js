@@ -48,6 +48,22 @@ const DECISION_NAMES = {
 }
 const DECISION_IDS = Object.keys(DECISION_NAMES)
 
+// 事件一览（教学参考/图鉴用）：与下方触发逻辑一一对应
+export const EVENT_INFO = [
+  { icon: '🐢', name: '满负荷·响应慢', type: 'bad', trigger: '出租率≥85% 且排班精简', tip: '旺季保服务' },
+  { icon: '🧹', name: '卫生敷衍', type: 'bad', trigger: '第4周起未做深清洁', tip: '卫生是口碑底线' },
+  { icon: '💸', name: '性价比失衡', type: 'bad', trigger: '房价≥320 且口碑<80%', tip: '价格要和品质匹配' },
+  { icon: '🏪', name: '竞店开业', type: 'bad', trigger: '选址竞争≥4档', tip: '靠口碑和会员留客' },
+  { icon: '🔥', name: '差评发酵（危机）', type: 'crisis', trigger: '欠2条以上差评不处理', tip: '不处理就上热榜' },
+  { icon: '🧯', name: '消防检查', type: 'bad', trigger: '第6周起未做深清洁', tip: '合规是底线成本' },
+  { icon: '🚱', name: '市政停水半日', type: 'bad', trigger: '小概率随机（不可抗力）', tip: '谁都会遇到，别慌' },
+  { icon: '📸', name: '网红探店', type: 'good', trigger: '好评率≥85%', tip: '好口碑带来免费流量' },
+  { icon: '🔁', name: '会员复购潮', type: 'good', trigger: '会员转化选"强调品质"', tip: '品质转化忠诚度高' },
+  { icon: '🙏', name: '整改获认可·追加好评', type: 'good', trigger: '整改2条以上差评', tip: '整改不是白干' },
+  { icon: '🎪', name: '会展旺季', type: 'good', trigger: '选址客流≥4档', tip: '选对选址才接得住红利' },
+  { icon: '🏅', name: 'OTA金牌商家', type: 'good', trigger: '投放OTA 且好评率≥80%', tip: '流量倾斜跟着口碑走' },
+]
+
 // 事件参数集中配置（调平衡只改这里，不动逻辑）
 export const EVENT_CONFIG = {
   fullLoadSlow:    { prob: 0.6 },                       // 满负荷·响应慢（另需 occupancy>=0.85 且 排班精简）

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
+import { getTitle } from './hotelTitle.js'
+import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -25,8 +27,11 @@ function summarize(gs, profile) {
   const occScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
   const negScore = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
   const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
+  const titleInfo = getTitle(avgOcc, avgGood, s.brand?.level || '')
   return {
     uid: gs.user_id,
+    titleIcon: titleInfo.icon,
+    title: titleInfo.title,
     name: profile?.group_no
       ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组`
       : (profile?.display_name || gs.user_id.slice(0, 8)),
@@ -331,7 +336,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   {i + 1}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span></div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: '#A96407' }}>{g.titleIcon} {g.title}</span>}</div>
                   <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
@@ -403,6 +408,20 @@ export default function TeacherDashboard({ user, onLogout }) {
       {/* 教学参考 */}
       {view === 'teaching' && (
         <div>
+          <div className="card">
+            <div className="card-title">⚡ 事件一览（12种，条件触发非纯随机）</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>
+              讲事件课时对照：每个事件的触发条件都是学生的某个经营状态——"事件是你们自己招来的"
+            </div>
+            {EVENT_INFO.map(e => (
+              <div key={e.name} style={{ padding: '8px 10px', background: e.type === 'good' ? '#EAF9F0' : e.type === 'crisis' ? '#FFF4E0' : '#FEF0EF', borderRadius: 8, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#A96407' : '#991B1B' }}>
+                  {e.icon} {e.name}{e.type === 'crisis' && ' · 危机'}
+                </div>
+                <div style={{ fontSize: 11, color: '#374151', marginTop: 2 }}>触发条件：{e.trigger}</div>
+              </div>
+            ))}
+          </div>
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 8 }}>📖 教学参考 · 18项决策最佳实践</div>
             <div style={{ fontSize: 11, color: '#A96407', marginBottom: 12 }}>
