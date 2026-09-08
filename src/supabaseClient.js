@@ -118,3 +118,12 @@ export async function setClassWeek(week) {
     .eq('id', 1)
   return !error
 }
+
+// 教师端实时订阅：全班任一存档变化时回调（用于自动刷新看板）
+export function subscribeGameStates(onChange) {
+  const channel = supabase
+    .channel('game-states-watch')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'game_states' }, () => onChange())
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}

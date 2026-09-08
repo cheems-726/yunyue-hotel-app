@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -127,7 +127,9 @@ export default function TeacherDashboard({ user, onLogout }) {
     ;(async () => {
       if (!cancelled) await loadAll()
     })()
-    return () => { cancelled = true }
+    // Realtime：学生结算/存档变化时自动刷新看板（无需手动刷新）
+    const unsub = subscribeGameStates(() => { if (!cancelled) loadAll() })
+    return () => { cancelled = true; unsub() }
   }, [])
 
   // 教师改组号/班级（本地即时更新 + 云端写入）
