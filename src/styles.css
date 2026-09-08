@@ -319,3 +319,27 @@ body {
 .task-list .task-card:nth-child(4) { animation-delay: 0.14s; }
 .task-list .task-card:nth-child(5) { animation-delay: 0.18s; }
 .task-list .task-card:nth-child(6) { animation-delay: 0.22s; }
+
+/* 滑块加大触区（手机可拖） */
+input[type="range"] {
+  height: 28px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #F3F4F6;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: #E8940F;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
