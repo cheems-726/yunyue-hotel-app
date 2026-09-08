@@ -66,6 +66,9 @@ def write_version(vc, vn):
     content = re.sub(r'versionName\s+"[^"]+"', f'versionName "{vn}"', content)
     with open(GRADLE_FILE, "w", encoding="utf-8") as f:
         f.write(content)
+    # 同步版本号到前端（我的页显示，便于支持时识别学生版本）
+    with open(os.path.join(os.path.dirname(__file__), "src", "version.js"), "w", encoding="utf-8") as f:
+        f.write(f"// 由 build.py 自动生成\nexport const APP_VERSION = '{vn}'\nexport const APP_VERSION_CODE = {vc}\n")
 
 
 def run(cmd, cwd=None, env=None):
