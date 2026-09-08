@@ -405,12 +405,12 @@ function Report({ report, week, history }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
   if (report) {
-    if (report.occupancy < 55) diagnoses.push({ icon: '⚠', text: `出租率仅 ${report.occupancy}%，偏低。考虑降价促销或提升口碑拉客流。` })
-    if (report.occupancy >= 75) diagnoses.push({ icon: '⚠', text: `出租率 ${report.occupancy}% 较高，注意满负荷服务质量和差评风险。` })
-    if (report.profit < 0) diagnoses.push({ icon: '⚠', text: `本周亏损 ${Math.abs(report.profit)} 元，检查人力/营销成本是否过高。` })
-    if (report.negativeCount > 0) diagnoses.push({ icon: '💬', text: `本周 ${report.negativeCount} 条差评待处理，及时回复可减半负面影响。` })
-    if (report.demandStrength < 0.8) diagnoses.push({ icon: '📉', text: `客源强度偏低（${report.demandStrength}），竞品分流明显。` })
-    if (diagnoses.length === 0) diagnoses.push({ icon: '✅', text: '本周经营稳健，各项指标健康，继续保持！' })
+    if (report.occupancy < 55) diagnoses.push({ icon: '⚠', text: `出租率 ${report.occupancy}%，距健康线 55% 还差 ${55 - report.occupancy} 个百分点。手段：调价让利拉客 / 加大OTA与活动投放 / 修口碑（见效慢但持久）。` })
+    if (report.occupancy >= 75) diagnoses.push({ icon: '⚠', text: `出租率 ${report.occupancy}% 处于满负荷区，注意服务品质——本周已有 ${report.negativeCount} 条差评，满房期更要盯排班和卫生。` })
+    if (report.profit < 0) diagnoses.push({ icon: '⚠', text: `本周亏损 ${Math.abs(report.profit)} 元（单房均亏 ${Math.round(Math.abs(report.profit) / report.rooms)} 元）。成本大头：固定 ${Math.round(report.rooms * 65)} 元档 + 人力浮动，先砍营销费再谈提价。` })
+    if (report.negativeCount > 0) diagnoses.push({ icon: '💬', text: `本周 ${report.negativeCount} 条差评：及时回复可减半负面影响（口碑少掉一半），拖到下周会触发「差评发酵」危机。` })
+    if (report.demandStrength < 0.8) diagnoses.push({ icon: '📉', text: `客源强度 ${report.demandStrength}（全班本周同值，市场大盘无法改变）——能改变的是应对：口碑与会员是逆风期的压舱石。` })
+    if (diagnoses.length === 0) diagnoses.push({ icon: '✅', text: `本周经营稳健：出租率 ${report.occupancy}%、好评率 ${report.finalGoodRate}%、利润 ${report.profit >= 0 ? '+' : ''}${report.profit} 元。继续保持节奏！` })
   }
 
   return (
