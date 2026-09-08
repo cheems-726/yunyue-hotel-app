@@ -100,8 +100,11 @@ export default function BrandSelection({ onConfirm }) {
                 onClick={() => handleBrandClick(b, g.level)}
                 style={{ marginBottom: 8, padding: 12 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                   <span style={{ fontSize: 15, fontWeight: 700 }}>{b.icon} {b.name}</span>
+                  {selected === b.name && (
+                    <span style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, marginTop: 4 }}>{b.desc}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>

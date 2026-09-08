@@ -306,3 +306,16 @@ body {
 .tabular-nums, .metric .value, .card td, .card b {
   font-variant-numeric: tabular-nums;
 }
+
+/* 列表卡片 stagger 入场 */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.task-card { animation: cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.task-list .task-card:nth-child(1) { animation-delay: 0.02s; }
+.task-list .task-card:nth-child(2) { animation-delay: 0.06s; }
+.task-list .task-card:nth-child(3) { animation-delay: 0.10s; }
+.task-list .task-card:nth-child(4) { animation-delay: 0.14s; }
+.task-list .task-card:nth-child(5) { animation-delay: 0.18s; }
+.task-list .task-card:nth-child(6) { animation-delay: 0.22s; }
