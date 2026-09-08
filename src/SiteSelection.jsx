@@ -47,6 +47,24 @@ const districts = {
 
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
 
+// 简易地理网格：按真实相对方位摆放（成都在西，德阳居中偏北，绵阳在东北）
+const cityGeo = {
+  成都: [
+    { name: '都江堰市', row: 0, col: 0 }, { name: '金牛区', row: 0, col: 1 }, { name: '青羊区', row: 1, col: 1 },
+    { name: '武侯区', row: 2, col: 1 }, { name: '锦江区', row: 2, col: 2 }, { name: '高新区', row: 3, col: 1 },
+    { name: '双流区', row: 3, col: 0 }, { name: '龙泉驿区', row: 3, col: 2 }, { name: '简阳市', row: 3, col: 3 },
+  ],
+  德阳: [
+    { name: '绵竹市', row: 0, col: 0 }, { name: '旌阳区', row: 1, col: 1 },
+    { name: '广汉市', row: 2, col: 1 }, { name: '中江县', row: 3, col: 2 },
+  ],
+  绵阳: [
+    { name: '江油市', row: 0, col: 0 }, { name: '游仙区', row: 1, col: 1 },
+    { name: '涪城区', row: 2, col: 1 }, { name: '三台县', row: 3, col: 1 },
+  ],
+}
+const geoTagCls = { 核心: 'tag-core', 商务: 'tag-ind', 文旅: 'tag-tour', 工业: 'tag-ind', 空港: 'tag-ind', 旅游: 'tag-tour', 潜力: 'tag-county', 城区: 'tag-ind', 科研: 'tag-ind', 县域: 'tag-county' }
+
 export default function SiteSelection({ onConfirm }) {
   const [currentCity, setCurrentCity] = useState('成都')
   const [selected, setSelected] = useState(null) // 区县 name
@@ -82,6 +100,39 @@ export default function SiteSelection({ onConfirm }) {
         <span className="step-tag">🏁 第一步 · 选址</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店所在地</h1>
         <div className="sub">每个区县都有代价，选对位置决定酒店生死</div>
+      </div>
+
+      {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}
+      <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
+        <div className="card-title" style={{ marginBottom: 10 }}>🗺️ 地图选点（按真实方位）</div>
+        {['成都', '德阳', '绵阳'].map(city => (
+          <div key={city} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700, marginBottom: 4 }}>{city}</div>
+            <div style={{ position: 'relative', height: 44 * (Math.max(...cityGeo[city].map(p => p.row)) + 1), }}>
+              {cityGeo[city].map(p => {
+                const d = districts[city].find(x => x.name === p.name)
+                const isSel = selected === p.name
+                return (
+                  <button
+                    key={p.name}
+                    onClick={() => { if (currentCity !== city) { setCurrentCity(city); setSelected(null) } handleDistrictClick(d) }}
+                    style={{
+                      position: 'absolute', left: p.col * 25 + '%', top: p.row * 44,
+                      width: '23%', height: 38,
+                      borderRadius: 10, border: isSel ? '2px solid #E8940F' : '1px solid #E5E7EB',
+                      background: isSel ? '#FFF4E0' : '#F9FAFB',
+                      cursor: 'pointer', fontFamily: 'inherit', padding: 2,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 600, color: isSel ? '#A96407' : '#374151' }}>{p.name.slice(0, -1)}</div>
+                    <span className={`district-tag ${geoTagCls[d.tag] || 'tag-county'}`} style={{ fontSize: 9, padding: '1px 5px' }}>{d.tag}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+        <div style={{ fontSize: 10, color: '#9CA3AF' }}>💡 位置按真实地理相对方位摆放，点芯片即选中（详细数据见下方列表）</div>
       </div>
 
       {/* 城市切换 */}
