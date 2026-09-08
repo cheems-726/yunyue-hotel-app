@@ -115,6 +115,8 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           <div>💰 成本 {result.totalCost} 元</div>
           <div>⭐ 好评率 {result.goodRate}% → {result.finalGoodRate}%</div>
           <div>💬 本周 {result.reviewCount} 条评价，{result.negativeCount} 条差评</div>
+          {result.eventFine > 0 && <div style={{ color: '#DC2626' }}>🧯 事件罚款 {result.eventFine} 元（已计入成本）</div>}
+          {result.overbookCompensation > 0 && <div style={{ color: '#DC2626' }}>🛏️ 超售到店无房赔偿 {result.overbookCompensation} 元</div>}
         </div>
       </div>
 

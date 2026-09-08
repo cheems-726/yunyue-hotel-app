@@ -374,6 +374,8 @@ for (let i = 0; i < reviewCount; i++) {
     insights,
     events,
     decisions: { ...decisions },
+    eventFine,
+    overbookCompensation,
     generatedReviews,
   }
 }

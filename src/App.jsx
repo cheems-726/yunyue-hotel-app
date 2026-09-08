@@ -288,7 +288,8 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                 {decisions.filter(d => d.module === mod).map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
                   .map(({ d, isDone }) => (
-                  <div className="task-card" key={d.id} onClick={() => onDecision(d)}>
+                  <div className="task-card" key={d.id} onClick={() => onDecision(d)}
+                    title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
                     <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
                     <div className="task-body">
                       <div className="name">{d.name} {isDone && '✓'}</div>
