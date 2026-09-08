@@ -590,6 +590,7 @@ export default function App() {
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
+  const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
 
   // 启动时恢复 Supabase 会话（真实登录过的用户不用重新输密码）
   useEffect(() => {
@@ -658,6 +659,12 @@ export default function App() {
       setPendingReviewCount(reviews.filter(r => r.status === 'pending').length)
     } catch (e) {}
   }, [tab]) // tab 切换时刷新
+
+  // 云端用户：拉取老师设定的全班统一周
+  useEffect(() => {
+    if (!user?.cloud) return
+    fetchClassWeek().then(setClassWeek).catch(() => {})
+  }, [user?.uid, tab])
 
   const tabs = [
     { key: 'business', icon: '🏠', label: '经营' },
@@ -966,6 +973,12 @@ export default function App() {
           </button>
         ))}
       </div>
+      {/* 全班进度提示：老师锁周且学生超前时显示 */}
+      {classWeek > 0 && !report && !finished && week > classWeek && (
+        <div onClick={() => setTab('business')} style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: '#FFF4E0', border: '1px solid #FBE3B3', color: '#A96407', fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 999, whiteSpace: 'nowrap', boxShadow: 'var(--shadow-md)', zIndex: 50, maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          ⏱ 老师已推进全班到第 {classWeek} 周，你在第 {week} 周——决策可先做，结算等开课
+        </div>
+      )}
     </div>
   )
 }

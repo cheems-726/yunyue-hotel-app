@@ -40,12 +40,57 @@ function summarize(gs, profile) {
   }
 }
 
+// 组详情下钻：展开看该组逐周经营明细（课堂复盘用）
+function GroupDetail({ uid, rawStates, name }) {
+  const gs = rawStates.find(x => x.user_id === uid)
+  if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
+  const s = gs.state || {}
+  const hist = s.history || []
+  const weekDecisions = s.doneDecisions ? Object.keys(s.doneDecisions).length : 0
+  return (
+    <div style={{ padding: 12, background: '#F9FAFB', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
+        {s.brand?.name || '—'}品牌 · 本周已做决策 {weekDecisions}/18 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
+      </div>
+      {hist.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>还没有结算过，看不到逐周数据</div>}
+      {hist.length > 0 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ color: '#9CA3AF' }}>
+                {['周', '出租率', '房价', '营收', '利润', '差评', '好评率'].map(h => (
+                  <th key={h} style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {hist.map(h => (
+                <tr key={h.week} style={{ borderTop: '1px solid #F3F4F6' }}>
+                  <td style={{ padding: '4px 6px', textAlign: 'right', fontWeight: 600 }}>第{h.week}周</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.occupancy}%</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.price}元</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{(h.revenue / 10000).toFixed(2)}万</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right', color: h.profit >= 0 ? '#10B981' : '#EF4444', fontWeight: 600 }}>{h.profit >= 0 ? '+' : ''}{(h.profit / 10000).toFixed(2)}万</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.negativeCount}</td>
+                  <td style={{ padding: '4px 6px', textAlign: 'right' }}>{h.finalGoodRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
+    </div>
+  )
+}
+
 export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('overview') // overview | ranking | groups | teaching
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
+  const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
@@ -202,21 +247,30 @@ export default function TeacherDashboard({ user, onLogout }) {
               )}
             </div>
             {groups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
-            {groups.map(g => (
-              <div key={g.uid} style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel}</span>
-                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city}</span>
+            {groups.map(g => {
+              const expanded = expandedUid === g.uid
+              return (
+              <div key={g.uid}>
+                <div
+                  onClick={() => setExpandedUid(expanded ? null : g.uid)}
+                  style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: expanded ? 0 : 8, cursor: 'pointer', borderBottomLeftRadius: expanded ? 0 : 10, borderBottomRightRadius: expanded ? 0 : 10 }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel}</span>
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city} {expanded ? '▲' : '▼'}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
+                    <span>进度 <b style={{color:'#111827'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
+                    <span>出租率 <b style={{color:'#111827'}}>{g.occ}%</b></span>
+                    <span>营收 <b style={{color:'#111827'}}>{g.revenue}万</b></span>
+                    <span>利润 <b style={{color:'#10B981'}}>{g.profit}万</b></span>
+                    <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
-                  <span>进度 <b style={{color:'#111827'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
-                  <span>出租率 <b style={{color:'#111827'}}>{g.occ}%</b></span>
-                  <span>营收 <b style={{color:'#111827'}}>{g.revenue}万</b></span>
-                  <span>利润 <b style={{color:'#10B981'}}>{g.profit}万</b></span>
-                  <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
-                </div>
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
