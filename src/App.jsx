@@ -215,6 +215,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
 function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history }) {
   const modules = ['部门运营', '会员推广', '门店经营']
+  const [settling, setSettling] = useState(false)
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
@@ -274,8 +275,9 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             完成决策后点击结算，查看本周经营结果
           </div>
         )}
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14 }} onClick={onSettle}>
-          🔄 本周结算（查看经营结果）
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14, opacity: settling ? 0.5 : 1 }} disabled={settling}
+          onClick={() => { setSettling(true); setTimeout(() => { setSettling(false); onSettle() }, 350) }}>
+          {settling ? '⏳ 结算中…' : '🔄 本周结算（查看经营结果）'}
         </button>
       </div>
 
