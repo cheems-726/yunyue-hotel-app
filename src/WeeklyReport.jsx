@@ -1,6 +1,30 @@
 import React, { useState, useEffect } from 'react'
 import { getTitle } from './hotelTitle.js'
 
+// 数字滚动动画（count-up，缓出曲线）
+function useCountUp(target, dur = 800) {
+  const [v, setV] = useState(0)
+  useEffect(() => {
+    let raf
+    const t0 = performance.now()
+    const tick = (t) => {
+      const p = Math.min((t - t0) / dur, 1)
+      setV(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target])
+  return v
+}
+
+// 数字滚动显示（负数利润从0滑向负值也自然）
+function CountNum({ n, wan = false }) {
+  const v = useCountUp(n)
+  if (wan) return <>{(v / 10000).toFixed(1)}</>
+  return <>{v.toLocaleString()}</>
+}
+
 // 危机事件限时应对卡：30秒内选方案，选择存档影响下周结算（超时=自动"不理会"，危机不应对就是最差应对）
 function CrisisCard({ event, week }) {
   const CHOICES = [
@@ -108,15 +132,15 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         <div className="settle-grid">
           <div className="metric">
             <div className="label">出租率{chip(dOcc)}</div>
-            <div className="value">{result.occupancy}<span className="unit">%</span></div>
+            <div className="value"><CountNum n={result.occupancy} /><span className="unit">%</span></div>
           </div>
           <div className="metric">
             <div className="label">营收{chip(dRev)}</div>
-            <div className="value">{(result.revenue/10000).toFixed(1)}<span className="unit">万</span></div>
+            <div className="value"><CountNum n={result.revenue} wan /><span className="unit">万</span></div>
           </div>
           <div className="metric">
             <div className="label">利润{chip(dProfit)}</div>
-            <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}{result.profit}<span className="unit">元</span></div>
+            <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}<CountNum n={result.profit} /><span className="unit">元</span></div>
           </div>
         </div>
       </div>

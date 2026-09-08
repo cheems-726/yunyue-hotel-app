@@ -906,6 +906,16 @@ export default function App() {
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
   const [toasts, setToasts] = useState([]) // 轻提示栈
+  const [offline, setOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false)
+
+  // 断网监听：顶部横幅提醒（本地存档不丢）
+  useEffect(() => {
+    const off = () => setOffline(true)
+    const on = () => setOffline(false)
+    window.addEventListener('offline', off)
+    window.addEventListener('online', on)
+    return () => { window.removeEventListener('offline', off); window.removeEventListener('online', on) }
+  }, [])
 
   // 轻提示：顶部滑入，2秒自动消失
   function toast(msg) {
@@ -1026,6 +1036,8 @@ export default function App() {
           setHistory(cloudSaved.history || [])
           setFinished(!!cloudSaved.finished)
           setWelcomed(!!cloudSaved.welcomed)
+          // 欢迎回来提示（老档才提示）
+          if (cloudSaved.location) toast(`👋 欢迎回来，第 ${cloudSaved.week || 1} 周经营中`)
         } else if (user && user.id !== userInfo.id) {
           // 换账号登录且云端无档：清掉上一账号的本机残留
           resetProgress()
@@ -1306,6 +1318,12 @@ export default function App() {
         <span className="icons">📶 🔋</span>
       </div>
       {mainPage}
+      {/* 断网横幅 */}
+      {offline && (
+        <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+          ⚠ 网络异常，进度已保存在本机
+        </div>
+      )}
       {/* 轻提示栈（顶部滑入） */}
       <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
         {toasts.map(t => (
