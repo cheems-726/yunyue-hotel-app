@@ -14,6 +14,7 @@ import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
+import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -573,6 +574,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           <div style={{color:'#D1D5DB'}}>›</div>
         </div>
       </div>
+      <div style={{ textAlign: 'center', fontSize: 10, color: '#D1D5DB', paddingBottom: 8 }}>云悦酒店 v{APP_VERSION}</div>
     </div>
   )
 }
