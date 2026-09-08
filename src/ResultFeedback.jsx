@@ -27,12 +27,20 @@ export default function ResultFeedback({ result, onClose }) {
 
         <div style={{ fontSize: 14, fontWeight: 600, color: '#A96407', marginBottom: 12 }}>{result.title}</div>
 
-        {/* 结果变化列表 */}
+        {/* 结果变化列表（数值飘字动画） */}
         <div style={{ marginBottom: 16 }}>
           {result.changes.map((c, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 13, color: '#374151' }}>{c.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: c.dir === 'up' ? '#10B981' : (c.dir === 'down' ? '#EF4444' : '#A96407') }}>
+              <span style={{ position: 'relative', fontSize: 13, fontWeight: 700, color: c.dir === 'up' ? '#10B981' : (c.dir === 'down' ? '#EF4444' : '#A96407') }}>
+                {(c.dir === 'up' || c.dir === 'down') && (
+                  <span
+                    className="float-num"
+                    style={{ '--delay': (0.3 + i * 0.25) + 's', position: 'absolute', right: 0, top: -18, fontSize: 15, pointerEvents: 'none', whiteSpace: 'nowrap' }}
+                  >
+                    {c.dir === 'up' ? '↑↑' : '↓↓'}
+                  </span>
+                )}
                 {c.dir === 'up' ? '↑' : c.dir === 'down' ? '↓' : ''} {c.value}
               </span>
             </div>
