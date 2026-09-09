@@ -977,6 +977,7 @@ function GroupMembersPage({ user, onBack }) {
 
 // ===== 积分与评分明细页（四维逐周得分 + 加权总分实时预测） =====
 function ScoreDetail({ history, onBack }) {
+  const [scoreCopied, setScoreCopied] = useState(false)
   // 与 FinalResult 同口径的四维打分
   const scoreOf = (arr) => {
     const totalProfit = arr.reduce((s, h) => s + h.profit, 0)
@@ -1056,7 +1057,18 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card">
-        <div className="card-title">逐周累计走势</div>
+        <div className="card-title">
+          逐周累计走势
+          <button className="btn btn-ghost" style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
+            onClick={() => {
+              const text = `🏆 云悦酒店·累计成绩（${history.length}周）
+综合评分 ${cum.total}（${grade.split(' ')[0]}）
+出租率 ${cum.oS}分 | 口碑 ${cum.rS}分 | 利润 ${cum.pS}分 | 差评处理 ${cum.nS}分
+——来自云悦酒店经营模拟`
+              navigator.clipboard.writeText(text).then(() => setScoreCopied(true)).catch(() => setScoreCopied(false))
+            }}>📋 复制</button>
+        </div>
+        {scoreCopied && <div style={{ fontSize: 11, color: '#16A34A', marginBottom: 8 }}>✅ 已复制累计成绩</div>}
         {history.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
         {history.map((_, i) => {
           const upto = history.slice(0, i + 1)
