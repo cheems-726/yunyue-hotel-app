@@ -421,7 +421,10 @@ export default function TeacherDashboard({ user, onLogout }) {
               return (
                 <div key={p.user_id} style={{ padding: 12, background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{p.display_name || p.user_id.slice(0, 8)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>
+                      {p.display_name || p.user_id.slice(0, 8)}
+                      {p.student_no && p.student_no !== p.display_name && <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 6 }}>（学号 {p.student_no}）</span>}
+                    </span>
                     <span style={{ fontSize: 11, color: '#9CA3AF' }}>
                       {g ? `${g.hotel} · ${g.finished ? '已结业' : `第${g.week || 1}周`}` : '未开始经营'}
                     </span>
