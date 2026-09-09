@@ -142,7 +142,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const list = states.map(gs => summarize(gs, pMap[gs.user_id]))
       list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
       setGroups(list)
-      setProfiles(profiles.filter(p => p.role === 'student'))
+      setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
       setRawStates(states)
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
