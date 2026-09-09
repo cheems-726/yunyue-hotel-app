@@ -285,6 +285,11 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             ))}
           </div>
         )}
+        {!report && doneCount < 18 && (
+          <div style={{ marginTop: 8, fontSize: 11, color: '#A96407', textAlign: 'center' }}>
+            ⚠ 还有 {18 - doneCount} 项未决策，未做的按"维持现状"生效
+          </div>
+        )}
         {(() => {
           const last = history.length ? history[history.length - 1] : null
           if (!last) return null
