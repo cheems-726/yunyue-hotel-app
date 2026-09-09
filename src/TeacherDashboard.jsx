@@ -373,7 +373,8 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
             {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
             {visibleRanked.map((g, i) => (
-              <div key={g.uid} style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div key={g.uid}>
+              <div onClick={() => setExpandedUid(expandedUid === g.uid ? null : g.uid)} style={{ padding: '12px', background: '#fff', borderRadius: expandedUid === g.uid ? '10px 10px 0 0' : 10, marginBottom: expandedUid === g.uid ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#FBE3B3' : i === 1 ? '#E5E7EB' : i === 2 ? '#FDE8D0' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                   {['🥇', '🥈', '🥉'][i] ?? (i + 1)}
                 </span>
@@ -385,6 +386,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</span>
               </div>
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
             ))}
           </div>
         </div>
