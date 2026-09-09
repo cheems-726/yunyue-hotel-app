@@ -213,7 +213,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount }) {
+function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -275,6 +275,12 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
           <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '16px 0' }}>
             完成决策后点击结算，查看本周经营结果
           </div>
+        )}
+        {pendingReviewCount > 0 && (
+          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, color: '#EF4444', borderColor: '#FECACA' }}
+            onClick={() => onGoTab('reputation')}>
+            💬 去口碑页处理 {pendingReviewCount} 条差评（处理率占分 15%）→
+          </button>
         )}
         {report && report.events && report.events.length > 0 && (
           <div style={{ margin: '10px 0 0', padding: '7px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 11, color: '#6B7280' }}>
@@ -1476,7 +1482,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} />,
+      business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
