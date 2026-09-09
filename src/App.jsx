@@ -215,7 +215,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab }) {
+function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -331,6 +331,12 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
           onClick={() => { setSettling(true); setTimeout(() => { setSettling(false); onSettle() }, 350) }}>
           {settling ? '⏳ 结算中…' : '🔄 本周结算（查看经营结果）'}
         </button>
+        {history.length > 0 && (
+          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 6, fontSize: 12 }}
+            onClick={() => onGoRecords()}>
+            📋 查看往期决策复盘（{history.length} 周）
+          </button>
+        )}
       </div>
 
           {/* 今日关键未完成提醒 */}
@@ -1574,7 +1580,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} />,
+      business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
