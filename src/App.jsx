@@ -818,6 +818,7 @@ function HelpPage({ onBack }) {
     { icon: '⚡', title: '事件系统', body: '共 15 种事件，全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
     { icon: '🏆', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
     { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
+    { icon: '📋', title: '18项决策速查', body: '点击下方展开查看全部决策清单，课堂讨论时可以快速定位。' },
     { icon: '💾', title: '数据安全', body: '进度自动存云端+本机。「我的」页可导出备份文件；换设备登录同一学号自动恢复。重开经营需二次确认且会覆盖云端，慎重。' },
     { icon: '👥', title: '组队共管', body: '老师把几位同学设为同班级+同组号后，你们将共同经营同一家酒店：任何人登录看到的都是同一份进度，决策互相接续。「小组成员」页可查看队友的酒店概况和称号。' },
   ]
@@ -869,6 +870,20 @@ function HelpPage({ onBack }) {
           <div key={f.q} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Q：{f.q}</div>
             <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>A：{f.a}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-title">📋 18项决策速查</div>
+        {[
+          ...decisions.slice(0, 7).map(d => ({ mod: '部门运营', ...d })),
+          ...decisions.slice(7, 12).map(d => ({ mod: '会员推广', ...d })),
+          ...decisions.slice(12).map(d => ({ mod: '门店经营', ...d })),
+        ].map((d, i) => (
+          <div key={d.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '4px 0', borderBottom: '1px solid #F9FAFB' }}>
+            <span style={{ fontSize: 11, color: '#D1D5DB', flexShrink: 0 }}>{i + 1}.</span>
+            <span style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{d.icon} {d.name}</span>
+            <span style={{ fontSize: 10, color: '#9CA3AF' }}>{d.module}</span>
           </div>
         ))}
       </div>
