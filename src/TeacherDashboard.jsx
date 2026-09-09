@@ -322,11 +322,17 @@ export default function TeacherDashboard({ user, onLogout }) {
               const avgOcc = avg(g => g.occ)
               const avgRating = avg(g => g.rating)
               const lossCount = withData.filter(g => g.profit < 0).length
+              const avgEvents = withData.length ? +(withData.reduce((a, g) => {
+                const gs = rawStates.find(x => x.user_id === g.uid)
+                const h = (gs?.state?.history) || []
+                return a + h.reduce((acc, w) => acc + ((w.events && w.events.length) || 0), 0)
+              }, 0) / withData.length).toFixed(1) : 0
               return (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   {[
                     { l: '平均出租率', v: avgOcc + '%' },
                     { l: '平均口碑', v: avgRating ? (avgRating / 20).toFixed(1) : '—' },
+                    { l: '平均事件/组', v: avgEvents },
                     { l: '亏损组', v: lossCount + '组' },
                   ].map(s => (
                     <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
