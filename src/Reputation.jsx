@@ -150,6 +150,14 @@ export default function Reputation({ report, history }) {
         </>
       )}
 
+      {pending.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', padding: '18px', background: '#EAF9F0' }}>
+          <div style={{ fontSize: 26 }}>👍</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#065F46', marginTop: 4 }}>暂无待处理差评</div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>口碑很好，保持当前服务标准</div>
+        </div>
+      )}
+
       {resolved.length > 0 && (
         <>
           <div className="section-title"><span className="left">已处理 ({resolved.length})</span></div>
