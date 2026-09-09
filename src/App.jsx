@@ -14,6 +14,7 @@ import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
+import { EVENT_INFO } from './settlement.js'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -811,6 +812,17 @@ function HelpPage({ onBack }) {
           <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>{s.body}</div>
         </div>
       ))}
+      <div className="card">
+        <div className="card-title">⚡ 事件速览（15种，都是经营状态招来的）</div>
+        {EVENT_INFO.map(e => (
+          <div key={e.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
+            <span style={{ fontSize: 13, flexShrink: 0 }}>{e.icon}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#DC2626' : '#991B1B', flexShrink: 0 }}>{e.name}</span>
+            <span style={{ fontSize: 11, color: '#9CA3AF' }}>{e.trigger}</span>
+          </div>
+        ))}
+      </div>
+
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
         <div className="card-title">💬 常见问题</div>
         {faqs.map(f => (
