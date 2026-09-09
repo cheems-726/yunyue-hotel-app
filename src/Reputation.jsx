@@ -222,7 +222,8 @@ export default function Reputation({ report, history }) {
         >
           <div onClick={e => e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:24,width:'100%',animation:'pageIn 0.2s ease-out'}}>
             <div style={{fontSize:18,fontWeight:700,marginBottom:4}}>回复差评</div>
-            <div style={{fontSize:12,color:'#6B7280',marginBottom:16}}>选择回复策略（态度/专业性/解决措施影响得分）</div>
+            <div style={{fontSize:12,color:'#6B7280',marginBottom:4}}>选择回复策略（态度/专业性/解决措施影响得分）</div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:14}}>💡 好的回复要有：①具体改进措施 ②真诚态度 ③补偿方案——不是模板套话</div>
             {replyStrategies.map(s => (
               <div
                 key={s.label}
