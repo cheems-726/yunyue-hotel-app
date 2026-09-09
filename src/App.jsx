@@ -361,7 +361,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                     </div>
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">{d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}</div>
-                      <div className="desc" style={{ whiteSpace: expandedDesc[d.id] ? 'normal' : 'nowrap' }}>
+                      <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: '#6B7280', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone
                           ? (expandedDesc[d.id]
                               ? `当前答案：${fmtDecision(doneDecisions[d.id])}`
