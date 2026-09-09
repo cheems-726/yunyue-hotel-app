@@ -219,6 +219,15 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
+  const [showTop, setShowTop] = useState(false)
+  const contentRef = React.useRef(null)
+  React.useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const fn = () => setShowTop(el.scrollTop > 300)
+    el.addEventListener('scroll', fn, { passive: true })
+    return () => el.removeEventListener('scroll', fn)
+  }, [])
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
@@ -226,7 +235,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
   const rev = report ? (report.revenue / 10000).toFixed(2) : (history.length ? (history[history.length - 1].revenue / 10000).toFixed(2) : null)
   const neg = report ? report.negativeCount : (history.length ? history[history.length - 1].negativeCount : null)
   return (
-    <div className="content">
+    <div className="content" ref={contentRef}>
       <div className="header">
         <div className="row1">
           <span className="hotel-name">{property ? property.name : '云悦酒店'}</span>
@@ -1585,6 +1594,13 @@ export default function App() {
         <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
           ⚠ 网络异常，进度已保存在本机
         </div>
+      )}
+      {/* 回到顶部悬浮按钮 */}
+      {showTop && (
+        <button
+          onClick={() => { if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', right: 16, width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #E5E7EB', boxShadow: 'var(--shadow-md)', cursor: 'pointer', zIndex: 60, fontSize: 14, color: '#6B7280' }}
+        >↑</button>
       )}
       {/* 轻提示栈（顶部滑入） */}
       <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
