@@ -349,7 +349,14 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             <div key={mod}>
               <div className="section-title">
                 <span className="left">{mod}</span>
-                <span className="hint">{decisions.filter(d => d.module === mod).length} 项决策</span>
+                <span className="hint">
+                  {(() => {
+                    const modDecisions = decisions.filter(d => d.module === mod)
+                    const done = modDecisions.filter(d => doneDecisions[d.id] !== undefined).length
+                    const total = modDecisions.length
+                    return done === total ? `✅ ${done}/${total} 全完成` : `${done}/${total} 已决策`
+                  })()}
+                </span>
               </div>
               <div className="task-list">
                 {decisions.filter(d => d.module === mod)
