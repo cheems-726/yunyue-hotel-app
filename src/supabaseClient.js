@@ -57,8 +57,21 @@ export async function fetchGroupStates(uids) {
   return data || []
 }
 
-// 拉取我的游戏状态
-export async function fetchGameState(userId) {
+// 组键：班级|组号（未分组返回 null = 个人档模式）
+export function groupKeyOf(className, groupNo) {
+  return className && groupNo ? `${className}|${groupNo}` : null
+}
+
+// 拉取我的游戏状态（组队共管：优先组档，回退个人档）
+export async function fetchGameState(userId, groupKey = null) {
+  if (groupKey) {
+    const { data: g } = await supabase
+      .from('game_states')
+      .select('state, user_id')
+      .eq('group_key', groupKey)
+      .maybeSingle()
+    if (g) return g.state
+  }
   const { data, error } = await supabase
     .from('game_states')
     .select('state')
@@ -68,18 +81,23 @@ export async function fetchGameState(userId) {
   return data.state
 }
 
-// 保存我的游戏状态（upsert）
-export async function saveGameState(userId, state) {
+// 保存：有组键则写组档（一组一档），否则写个人档
+export async function saveGameState(userId, state, groupKey = null) {
   const payload = {
     user_id: userId,
+    group_key: groupKey,
     state,
     week: state.week || 1,
     finished: !!state.finished,
     updated_at: new Date().toISOString(),
   }
-  const { error } = await supabase.from('game_states').upsert(payload)
+  const { error } = groupKey
+    ? await supabase.from('game_states').upsert(payload, { onConflict: 'group_key' })
+    : await supabase.from('game_states').upsert(payload)
   return !error
 }
+
+
 
 // 教师端：读全班游戏状态（RLS 允许教师读全部）
 export async function fetchAllGameStates() {

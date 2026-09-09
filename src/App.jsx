@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { APP_VERSION } from './version.js'
 
@@ -1134,7 +1134,7 @@ export default function App() {
     if (!user?.cloud || !user?.uid || restoring) return
     const t = setTimeout(() => {
       import('./supabaseClient.js').then(({ saveGameState }) =>
-        saveGameState(user.uid, cloudState).catch(() => {})
+        saveGameState(user.uid, cloudState, groupKeyOf(user.className, user.groupNo)).catch(() => {})
       )
     }, 1500)
     return () => clearTimeout(t)
@@ -1187,7 +1187,7 @@ export default function App() {
     // 真实登录：从云端恢复经营进度（本机进度让位于云端最新）
     if (userInfo.cloud && userInfo.uid) {
       try {
-        const cloudSaved = await fetchGameState(userInfo.uid)
+        const cloudSaved = await fetchGameState(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
         if (cloudSaved) {
           setLocation(cloudSaved.location || null)
           setBrand(cloudSaved.brand || null)
