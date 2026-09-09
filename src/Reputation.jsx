@@ -198,7 +198,7 @@ export default function Reputation({ report, history }) {
             <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
           </div>
           {showIgnored && reviews.filter(r => r.status === 'ignored').map(r => (
-            <div className="card" style={{opacity:0.5}} key={r.id}>
+            <div className="card" style={{opacity:0.9}} key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
                 <div style={{flex:1}}>
@@ -207,8 +207,8 @@ export default function Reputation({ report, history }) {
                 </div>
                 <div style={{fontSize:13,color:'#9CA3AF'}}>{starStr(r.stars)}</div>
               </div>
-              <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
-              <div style={{fontSize:11,color:'#EF4444',marginTop:6}}>这条差评的负面影响全额生效且持续发酵</div>
+              <div style={{fontSize:13,color:'#1F2937',lineHeight:1.6}}>{r.text}</div>
+              <div style={{fontSize:11,color:'#EF4444',marginTop:6,fontWeight:600}}>这条差评的负面影响全额生效且持续发酵</div>
             </div>
           ))}
         </>
