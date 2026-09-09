@@ -385,6 +385,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   </div>
                 </div>
                 <span style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</span>
+                <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
               {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
               </div>
