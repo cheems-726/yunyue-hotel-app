@@ -44,7 +44,9 @@ export default function Reputation({ report, history }) {
   const pending = reviews.filter(r => r.status === 'pending')
   const resolved = reviews.filter(r => r.status === 'resolved')
   const good = reviews.filter(r => r.status === 'good')
-  const handleRate = Math.round((resolved.length / (pending.length + resolved.length || 1)) * 100)
+  const ignoredCount = reviews.filter(r => r.status === 'ignored').length
+  // 处理率口径：已忽略的差评也算"没处理"（不作为不是免罚）
+  const handleRate = Math.round((resolved.length / (pending.length + resolved.length + ignoredCount || 1)) * 100)
 
   function handleReply(r, strategy) {
     setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyScore: strategy.score } : x))
