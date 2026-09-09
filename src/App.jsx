@@ -15,6 +15,7 @@ import { decisions } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
+import { TITLES } from './hotelTitle.js'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -821,6 +822,18 @@ function HelpPage({ onBack }) {
             <span style={{ fontSize: 11, color: '#9CA3AF' }}>{e.trigger}</span>
           </div>
         ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title">🏆 称号一览（5级）</div>
+        {TITLES.map((ti, i) => (
+          <div key={ti.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
+            <span style={{ fontSize: 13 }}>{ti.icon}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#A96407', flexShrink: 0 }}>{ti.name}</span>
+            <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>综合 ≥ {ti.min}</span>
+          </div>
+        ))}
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>综合分 = 出租率×35% + 好评率×35% + 品质分×30%（品质分由品牌档次决定）</div>
       </div>
 
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
