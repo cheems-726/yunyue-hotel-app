@@ -99,6 +99,11 @@ function GroupDetail({ uid, rawStates, name }) {
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
               第{h.week}周 <span style={{ fontWeight: 400, color: '#6B7280' }}>出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
             </div>
+            {h.events && h.events.length > 0 && (
+              <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
+                ⚡ {h.events.map(e => `${e.icon}${e.name}`).join('、')}
+              </div>
+            )}
             {entries.length === 0 ? (
               <div style={{ fontSize: 11, color: '#9CA3AF' }}>决策明细未记录（旧版本结算的一周）</div>
             ) : entries.map(([id, val]) => {
