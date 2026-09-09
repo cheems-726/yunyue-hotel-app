@@ -442,7 +442,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                     </span>
                     <span style={{ fontSize: 11, color: '#9CA3AF' }}>
                       {g ? `${g.hotel} · ${g.finished ? '已结业' : `第${g.week || 1}周`}` : '未开始经营'}
+                      {g && !g.finished && <span style={{ marginLeft: 8, color: '#A96407' }}>{g.week || 1}/12 周</span>}
                     </span>
+                  </div>
+                  {g && !g.finished && (
+                    <div style={{ height: 4, background: '#E5E7EB', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: ((g.week || 1) / 12 * 100) + '%', background: '#E8940F', borderRadius: 2 }} />
+                    </div>
+                  )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>组号</label>
