@@ -894,7 +894,10 @@ function GroupMembersPage({ user, onBack }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧑</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{m.display_name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>
+                      {m.display_name}
+                      {st && st.title && <span style={{ fontSize: 10, color: '#A96407', background: '#FFF4E0', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{st.titleIcon} {st.title}</span>}
+                    </div>
                     <div style={{ fontSize: 11, color: '#9CA3AF' }}>
                       {st ? `${st.finished ? '已结业' : `第${st.week}周`} · ${st.hotel}` : '查看经营概况…'}
                     </div>
