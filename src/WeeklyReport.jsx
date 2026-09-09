@@ -232,7 +232,22 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
 好评率 ${result.finalGoodRate}% | 差评 ${result.negativeCount}条
 ${after.icon} 当前称号：${after.title}${evText}
 ——来自云悦酒店经营模拟`
-          navigator.clipboard.writeText(text).then(() => setCopied(true)).catch(() => setCopied(false))
+          let owed = null
+          try {
+            const revs = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+            owed = revs.filter(r => r.status === 'pending' || r.status === 'ignored').length
+          } catch (e) {}
+          const badges = [
+            history.some(h => h.profit > 0),
+            history.some(h => h.occupancy >= 80),
+            history.some(h => h.finalGoodRate >= 90),
+            history.some(h => h.negativeCount === 0 && h.reviewCount > 0),
+            after.title !== '普通旅社' && after.title !== '舒适旅店',
+            owed === 0,
+            history.length >= 12,
+          ].filter(Boolean).length
+          navigator.clipboard.writeText(text + `
+🏅 勋章 ${badges}/7`).then(() => setCopied(true)).catch(() => setCopied(false))
         }}>📋 一键复制成绩单（发群里）</button>
         {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>✅ 已复制，去微信粘贴吧</div>}
       </div>
