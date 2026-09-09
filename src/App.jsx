@@ -309,6 +309,10 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
           return (
             <div style={{ marginTop: 10, padding: '7px 12px', background: promoted ? '#ECFDF5' : demoted ? '#FEF0EF' : '#FFF4E0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: promoted ? '#065F46' : demoted ? '#991B1B' : '#A96407', textAlign: 'center' }}>
               {promoted ? `🎉 恭喜晋升：${tPrev.title} → ${tNow.title}` : demoted ? `⚠ 降级：${tPrev.title} → ${tNow.title}，下周稳住` : `${tNow.icon} 当前称号：${tNow.title}`}
+              <div style={{ height: 4, background: '#F3F4F6', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: tNow.progress + '%', background: '#E8940F', borderRadius: 2 }} />
+              </div>
+              {tNow.next && <div style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginTop: 3 }}>距「{tNow.next}」还差综合 {tNow.nextAt - tNow.composite} 分</div>}
             </div>
           )
         })()}
