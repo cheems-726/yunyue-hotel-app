@@ -612,12 +612,28 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         </div>
       </div>
 
-      <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',display:'flex',alignItems:'center',justifyContent:'space-between',padding:16}}>
-        <div>
-          <div style={{fontSize:13,color:'#A96407'}}>我的酒店当前排名</div>
-          <div style={{fontSize:12,color:'#9CA3AF'}}>全班共 5 组</div>
-        </div>
-        <div style={{fontSize:34,fontWeight:700,color:'#D97706'}}>第 2 名</div>
+      <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',padding:14}}>
+        {(() => {
+          const last = history.length ? history[history.length - 1] : null
+          const lv = brand?.level || ''
+          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const ti = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
+          return (<>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, color: '#A96407', fontWeight: 700 }}>{ti.icon} 我的酒店称号</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>排名以教师端为准</div>
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#D97706' }}>{ti.title}</div>
+            </div>
+            <div style={{ height: 6, background: '#FBE3B3', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: ti.progress + '%', background: '#E8940F', borderRadius: 3, transition: 'width 0.5s' }} />
+            </div>
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4, textAlign: 'right' }}>
+              {ti.next ? `距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : '已达最高称号'}
+            </div>
+          </>)
+        })()}
       </div>
 
       {/* 我的酒店信息 */}
