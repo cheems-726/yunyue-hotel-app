@@ -349,7 +349,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
             <div key={mod}>
               <div className="section-title">
                 <span className="left">{mod}</span>
-                <span className="hint">
+                <span className="hint" style={{ transition: 'all 0.3s ease' }}>
                   {(() => {
                     const modDecisions = decisions.filter(d => d.module === mod)
                     const done = modDecisions.filter(d => doneDecisions[d.id] !== undefined).length
