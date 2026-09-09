@@ -450,7 +450,6 @@ export default function TeacherDashboard({ user, onLogout }) {
                       <div style={{ height: '100%', width: ((g.week || 1) / 12 * 100) + '%', background: '#E8940F', borderRadius: 2 }} />
                     </div>
                   )}
-                  </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>组号</label>
                     <input
