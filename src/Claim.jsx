@@ -41,6 +41,7 @@ function getPropertyList(brandLevel) {
 
 export default function Claim({ brand, location, onComplete }) {
   const [step, setStep] = useState(0)
+  const [bizMode, setBizMode] = useState(null) // 'direct' | 'ota'
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [claimed, setClaimed] = useState(false)
   const [feedback, setFeedback] = useState(null)
@@ -124,8 +125,29 @@ export default function Claim({ brand, location, onComplete }) {
         <div className="card-title">{current.icon} {current.title}</div>
         <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>{current.desc}</div>
 
-        {/* 第一步：选物业 */}
-        {step === 0 && (
+        {/* 开店模式选择（第0步） */}
+        {step === 0 && !bizMode && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>选择经营模式（不可更改）</div>
+            {[
+              { mode: 'direct', icon: '🏪', name: '自主直营', desc: '完全自主定价、自主营销，利润全归自己，但客源靠本事，前期获客难', pros: '利润100%归自己 · 定价自由', cons: '前期客源少 · 营销成本高 · 风险自担', tag: '高风险高回报', tagColor: '#EF4444' },
+              { mode: 'ota', icon: '🏨', name: 'OTA加盟', desc: '挂靠平台品牌，享受平台流量扶持和标准化运营指导，但需缴纳佣金且受平台规则限制', pros: '客源多且稳定 · 起步容易 · 有品牌背书', cons: '平台抽成15% · 降价受限制 · 违规有处罚', tag: '稳健起步', tagColor: '#16A34A' },
+            ].map(m => (
+              <div key={m.mode} className="district-card" style={{ padding: 16, marginBottom: 10 }} onClick={() => { setBizMode(m.mode); onComplete({ mode: m.mode }) }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700 }}>{m.icon} {m.name}</span>
+                  <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: m.tagColor + '20', color: m.tagColor, fontWeight: 600 }}>{m.tag}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 8 }}>{m.desc}</div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <span style={{ fontSize: 11, color: '#16A34A' }}>✓ {m.pros}</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#EF4444', marginTop: 2 }}>✗ {m.cons}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {step === 0 && bizMode && (
           <div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>符合 {brand.name} 品牌标准的候选物业：</div>
             {propList.map(p => (
@@ -168,10 +190,10 @@ export default function Claim({ brand, location, onComplete }) {
         <button
           className="btn-confirm"
           style={{ flex: 2 }}
-          disabled={step === 0 && !selectedProperty}
+          disabled={(step === 0 && (!bizMode || !selectedProperty))}
           onClick={next}
         >
-          {step === claimSteps.length - 1 ? '完成认领，进入筹建 →' : `完成「${current.title}」，下一步 →`}
+          {step === 0 && !bizMode ? '请先选择经营模式' : step === claimSteps.length - 1 ? '完成认领，进入筹建 →' : `完成「${current.title}」，下一步 →`}
         </button>
       </div>
 
