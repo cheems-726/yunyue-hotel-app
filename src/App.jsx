@@ -359,6 +359,32 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         ))}
       </div>
 
+      {/* 资金状态卡 */}
+      {(() => {
+        const cap = report?.capital ?? 500000
+        const expenses = report?.totalExpenses || 0
+        const isLow = cap < 100000
+        const isCritical = cap < 50000
+        return (
+          <div className="card" style={{ background: isCritical ? '#FEF0EF' : isLow ? '#FFF4E0' : '#F0FDF4', borderColor: isCritical ? '#FECACA' : isLow ? '#FDE68A' : '#BBF7D0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
+                {isCritical ? '🚨 破产预警' : isLow ? '⚠ 资金偏低' : '💰 资金状况'}
+              </span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
+                {(cap / 10000).toFixed(1)} 万
+              </span>
+            </div>
+            {expenses > 0 && (
+              <div style={{ fontSize: 11, color: '#6B7280' }}>
+                上周支出 {expenses.toLocaleString()} 元 · 本周利润 {report ? (report.profit >= 0 ? '+' : '') + report.profit.toLocaleString() : '—'} 元
+              </div>
+            )}
+            {isCritical && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>⚠ 资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
+          </div>
+        )
+      })()}
+
       {/* 18项能力点，按模块分组（未决策的排前面） */}
           {modules.map(mod => (
             <div key={mod}>
@@ -1200,6 +1226,7 @@ export default function App() {
   }
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
+  const [capital, setCapital] = useState(500000) // 初始资金50万
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
 
