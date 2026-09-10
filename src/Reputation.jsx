@@ -191,6 +191,37 @@ export default function Reputation({ report, history }) {
         </div>
       ))}
 
+      {/* 差评来源分析（教学：帮你理解为什么挨差评） */}
+      {(() => {
+        const causes = []
+        // 从历史数据推导差评来源
+        if (history && history.length > 0) {
+          const last = history[history.length - 1]
+          if (last.decisions) {
+            const d = last.decisions
+            if (d.shifts === '精简省成本') causes.push({ icon: '🛏️', text: '排班精简 → 服务响应慢' })
+            if (d.hygiene !== '停房深清洁') causes.push({ icon: '🧹', text: '未做深清洁 → 卫生投诉' })
+            if (d.energy != null && (d.energy <= 21 || d.energy >= 25)) causes.push({ icon: '🌡️', text: `空调${d.energy}℃ → 舒适度差` })
+            if (d.linen === '外包') causes.push({ icon: '🧺', text: '外包布草 → 品质不稳定' })
+            if (d.pricing === '降价 20% 抢客') causes.push({ icon: '💸', text: '大幅降价 → 客群素质下降' })
+          }
+          if (last.overbookCompensation > 0) causes.push({ icon: '🛏️', text: '超售到店无房 → 赔偿+差评' })
+        }
+        if (causes.length === 0) return null
+        return (
+          <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
+            <div className="card-title" style={{ color: '#A96407' }}>🔍 差评来源分析</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
+            {causes.map((c, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                <span style={{ flexShrink: 0 }}>{c.icon}</span>
+                <span style={{ fontSize: 12, color: '#991B1B' }}>{c.text}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* 已忽略的差评（默认折叠只显示计数，点击展开看代价） */}
       {reviews.filter(r => r.status === 'ignored').length > 0 && (
         <>
