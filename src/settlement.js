@@ -380,6 +380,19 @@ for (let i = 0; i < reviewCount; i++) {
     })
   }
 
+  // [16] 资金流水（本周变动）
+  const weeklyExpenses = {
+    人员工资: Math.round(occupiedRooms * 15 + (decisions.shifts === '满编保服务' ? occupiedRooms * 18 : decisions.shifts === '精简省成本' ? occupiedRooms * 8 : occupiedRooms * 12)),
+    物料消耗: Math.round(occupiedRooms * (decisions.linen === '自洗' ? 8 : 12)),
+    水电能耗: Math.round(occupiedRooms * (energy != null ? (energy - 21) * 3 + 15 : 20)),
+    维修保养: decisions.hygiene === '停房深清洁' ? 3000 : decisions.renovation === '投150万改造' ? 2000 : 500,
+    营销推广: marketingCost || 0,
+    OTA佣金: otaCommission || 0,
+    超售赔偿: overbookCompensation || 0,
+    事件罚款: eventFine || 0,
+  }
+  const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
+
   return {
     week,
     occupancy: Math.round(occupancy * 100),
@@ -401,6 +414,8 @@ for (let i = 0; i < reviewCount; i++) {
     eventFine,
     overbookCompensation,
     generatedReviews,
+    weeklyExpenses,
+    totalExpenses,
   }
 }
 
