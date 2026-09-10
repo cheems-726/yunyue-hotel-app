@@ -406,6 +406,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
                   .map(({ d, isDone }) => (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
+                    style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid #E8940F', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
                     <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
                       <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
