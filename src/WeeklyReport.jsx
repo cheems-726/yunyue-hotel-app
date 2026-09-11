@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { getTitle } from './hotelTitle.js'
+import { decisions as ALL_DECISIONS } from './decisions.js'
+
+const DECISION_NAMES_MAP = Object.fromEntries(ALL_DECISIONS.map(d => [d.id, d]))
 
 // 数字滚动动画（count-up，缓出曲线）
 function useCountUp(target, dur = 800) {
@@ -179,6 +182,24 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           💡 市场波动是随机的（全班同一周相同），这是"市场不确定性"。你的决策决定的是如何应对市场。
         </div>
       </div>
+
+      {/* 本周决策摘要 */}
+      {result.decisions && Object.keys(result.decisions).filter(k => !k.startsWith('__')).length > 0 && (
+        <div className="card">
+          <div className="card-title">📋 本周决策摘要（{Object.keys(result.decisions).filter(k => !k.startsWith('__')).length}/18 项）</div>
+          {Object.entries(result.decisions).filter(([k]) => !k.startsWith('__')).map(([id, val]) => {
+            const d = DECISION_NAMES_MAP[id]
+            return (
+              <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid #F9FAFB', fontSize: 11 }}>
+                <span style={{ color: '#6B7280', flexShrink: 0 }}>{d ? `${d.icon} ${d.name}` : id}</span>
+                <span style={{ fontWeight: 600, color: '#374151', textAlign: 'right', marginLeft: 8 }}>
+                  {typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 3).join('＞') : Object.entries(val).map(([k, v]) => `${k}:${v}`).join('、')) : String(val)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* 本周事件（条件触发：你的经营状态招来的好事/坏事；按 危机→负面→正面 排序） */}
       {result.events && result.events.length > 0 && (
