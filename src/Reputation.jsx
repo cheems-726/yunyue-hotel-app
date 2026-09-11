@@ -21,9 +21,18 @@ function loadReviews() {
 
 // 回复策略（对应能力点18：态度/专业性/解决措施三维度评分）
 const replyStrategies = [
-  { label: '真诚道歉 + 赔偿', score: 90, note: '态度好、有实质补偿，客人满意' },
-  { label: '解释原因 + 整改', score: 80, note: '专业性强，给出解决措施' },
-  { label: '模板回复', score: 40, note: '显得敷衍，扣态度和专业性分' },
+  {
+    label: '真诚道歉 + 赔偿', score: 90, note: '态度好、有实质补偿，客人满意',
+    sample: '尊敬的客人您好，非常抱歉给您带来如此糟糕的入住体验。我们已立即安排对该房间进行隔音检查与整改，并为您下次入住提供免费升级房型与延迟退房。真诚邀请您再次光临，让我们有机会弥补。',
+  },
+  {
+    label: '解释原因 + 整改', score: 80, note: '专业性强，给出解决措施',
+    sample: '感谢您的反馈。经核查，该问题源于近期入住高峰期的服务疏漏。我们已优化流程并加强员工培训，确保此类问题不再发生。欢迎您继续监督我们的改进。',
+  },
+  {
+    label: '模板回复', score: 40, note: '显得敷衍，扣态度和专业性分',
+    sample: '感谢您的评价，我们会努力改进，期待您的再次光临。',
+  },
 ]
 
 export default function Reputation({ report, history }) {
@@ -264,6 +273,9 @@ export default function Reputation({ report, history }) {
               >
                 <div style={{fontSize:14,fontWeight:600}}>{s.label}</div>
                 <div style={{fontSize:11,color:'#A96407',marginTop:4}}>得分 {s.score} · {s.note}</div>
+                <div style={{fontSize:11,color:'#6B7280',marginTop:6,padding:'8px 10px',background:'#F9FAFB',borderRadius:8,lineHeight:1.6}}>
+                  <span style={{color:'#9CA3AF'}}>示例回复：</span>{s.sample}
+                </div>
               </div>
             ))}
           </div>

@@ -27,6 +27,20 @@ function summarize(gs, profile) {
   const occScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
   const negScore = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
   const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
+  // 上周分数（去掉最后一周的历史再算一次）→ 用于排名行显示周环比
+  let scorePrev = null
+  if (history.length > 1) {
+    const ph = history.slice(0, -1)
+    const pProfit = ph.reduce((a, h) => a + (h.profit || 0), 0)
+    const pOcc = Math.round(ph.reduce((a, h) => a + h.occupancy, 0) / ph.length)
+    const pGood = Math.round(ph.reduce((a, h) => a + h.finalGoodRate, 0) / ph.length)
+    const pNeg = ph.reduce((a, h) => a + (h.negativeCount || 0), 0)
+    const ps = pProfit >= 50000 ? 100 : pProfit >= 30000 ? 85 : pProfit >= 10000 ? 70 : pProfit >= 0 ? 55 : 40
+    const pr = pGood >= 90 ? 95 : pGood >= 85 ? 85 : pGood >= 75 ? 70 : pGood >= 60 ? 55 : 40
+    const po = pOcc >= 75 ? 95 : pOcc >= 65 ? 80 : pOcc >= 55 ? 65 : pOcc >= 45 ? 50 : 40
+    const pn = pNeg === 0 ? 100 : pNeg <= 5 ? 80 : pNeg <= 10 ? 65 : 50
+    scorePrev = Math.round(ps * 0.4 + pr * 0.25 + po * 0.2 + pn * 0.15)
+  }
   const titleInfo = getTitle(avgOcc, avgGood, s.brand?.level || '')
   return {
     uid: gs.user_id,
@@ -39,7 +53,7 @@ function summarize(gs, profile) {
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
-    score, week: gs.week || s.week || 0, finished: gs.finished,
+    score, scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,
     updated: gs.updated_at,
   }
@@ -390,7 +404,17 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
                 </div>
-                <span style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</span>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
+                  {g.scorePrev != null && g.score !== g.scorePrev && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: g.score > g.scorePrev ? '#10B981' : '#EF4444' }}>
+                      {g.score > g.scorePrev ? '↑' : '↓'}{Math.abs(g.score - g.scorePrev)}
+                    </div>
+                  )}
+                  {g.scorePrev != null && g.score === g.scorePrev && (
+                    <div style={{ fontSize: 10, color: '#D1D5DB' }}>—</div>
+                  )}
+                </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
               {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
