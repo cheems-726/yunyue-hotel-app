@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -434,6 +434,13 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
               </div>
             </div>
           ))}
+      {/* 回到顶部悬浮按钮（Business 内部，状态同作用域） */}
+      {showTop && (
+        <button
+          onClick={() => { if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', right: 16, width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #E5E7EB', boxShadow: 'var(--shadow-md)', cursor: 'pointer', zIndex: 60, fontSize: 14, color: '#6B7280' }}
+        >↑</button>
+      )}
     </div>
   )
 }
@@ -1628,13 +1635,6 @@ export default function App() {
         <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
           ⚠ 网络异常，进度已保存在本机
         </div>
-      )}
-      {/* 回到顶部悬浮按钮 */}
-      {showTop && (
-        <button
-          onClick={() => { if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
-          style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', right: 16, width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #E5E7EB', boxShadow: 'var(--shadow-md)', cursor: 'pointer', zIndex: 60, fontSize: 14, color: '#6B7280' }}
-        >↑</button>
       )}
       {/* 轻提示栈（顶部滑入） */}
       <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
