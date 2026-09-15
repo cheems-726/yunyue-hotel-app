@@ -403,7 +403,9 @@ export default function TeacherDashboard({ user, onLogout }) {
             {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
             {visibleRanked.map((g, i) => (
               <div key={g.uid}>
-              <div onClick={() => setExpandedUid(expandedUid === g.uid ? null : g.uid)} style={{ padding: '12px', background: '#fff', borderRadius: expandedUid === g.uid ? '10px 10px 0 0' : 10, marginBottom: expandedUid === g.uid ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+              <div onClick={() => setExpandedUid(expandedUid === g.uid ? null : g.uid)} style={{ padding: '12px', background: '#fff', borderRadius: expandedUid === g.uid ? '10px 10px 0 0' : 10, marginBottom: expandedUid === g.uid ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#FBE3B3' : i === 1 ? '#E5E7EB' : i === 2 ? '#FDE8D0' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                   {['🥇', '🥈', '🥉'][i] ?? (i + 1)}
                 </span>

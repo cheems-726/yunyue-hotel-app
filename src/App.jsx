@@ -727,6 +727,10 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             <span style={{ fontWeight: 600 }}>第 {week} / 12 周</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#9CA3AF' }}>经营天数</span>
+            <span style={{ fontWeight: 600 }}>{history.length * 7} 天</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#9CA3AF' }}>物业类型</span>
             <span style={{ fontWeight: 600 }}>{property?.type || '—'}</span>
           </div>
