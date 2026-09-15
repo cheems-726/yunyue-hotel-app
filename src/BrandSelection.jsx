@@ -85,13 +85,26 @@ export default function BrandSelection({ onConfirm }) {
         <div className="sub">品牌决定物业标准、加盟费用、房价带</div>
       </div>
 
-      <div style={{ fontSize: 11, color: '#9CA3AF', padding: '0 20px', marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: '#9CA3AF', padding: '0 20px', marginBottom: 8 }}>
         华住全品牌 · 共 {brandGroups.reduce((s, g) => s + g.brands.length, 0)} 个，点击选择
+      </div>
+      <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, fontSize: 10, color: '#9A3412', lineHeight: 1.6 }}>
+        ⚠️ 免责声明：本系统中的酒店价格为<b>模拟经营数据</b>，仅供教学演示使用，不代表实际市场定价。实际投资需以专业可行性调研为准。
       </div>
 
       <div className="district-list">
         {brandGroups.map(g => (
           <div key={g.level} style={{ marginBottom: 16 }}>
+            <div style={{ background: '#FFF9F0', borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: '1px solid #FBE3B3' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>{g.level}</div>
+              <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.6 }}>
+                {gi === 0 && '经济型酒店主打干净、便捷、高性价比。装修简约，服务标准化，目标客群是预算有限的出差和旅行客人。初始资金需求最低（约30万），适合新手起步。'}
+                {gi === 1 && '中端型酒店强调设计感和舒适体验，房价更高但客人要求也更高。初始资金约50万，需要平衡品质与成本，是竞争最激烈的档次。'}
+                {gi === 2 && '中高端酒店在硬件和服务上全面升级，房价400+，对服务细节要求极高。初始资金约80万，适合有一定经营经验的团队。'}
+                {gi === 3 && '高端酒店注重奢华体验和品牌调性，装修和人力成本极高，但房价可达600-1000元。初始资金150万起，回报大但风险也大。'}
+                {gi === 4 && '奢华酒店是顶级定位，极致服务和独特设计，目标客群是高端商务和奢侈品消费者。初始资金200万+，只有最优秀的团队才能盈利。'}
+              </div>
+            </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407', marginBottom: 8, padding: '0 4px' }}>{g.level}</div>
             {g.brands.map(b => (
               <div
