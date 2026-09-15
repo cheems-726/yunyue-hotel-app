@@ -122,9 +122,18 @@ function GroupDetail({ uid, rawStates, name }) {
               <div style={{ fontSize: 11, color: '#9CA3AF' }}>决策明细未记录（旧版本结算的一周）</div>
             ) : entries.map(([id, val]) => {
               const d = decisions.find(x => x.id === id)
+              // 高风险决策判定
+              const risky = []
+              if (id === 'pricing' && val === '降价 20% 抢客') risky.push('利润-20%')
+              if (id === 'shifts' && val === '精简省成本') risky.push('差评+1')
+              if (id === 'overbook' && typeof val === 'number' && val > 3) risky.push('超售风险高')
+              if (id === 'hygiene' && val !== '停房深清洁') risky.push('卫生风险')
+              if (id === 'energy' && typeof val === 'number' && (val <= 21 || val >= 25)) risky.push('舒适度差')
+              if (id === 'reputation' && val === '模板回复') risky.push('态度扣分')
               return (
-                <div key={id} style={{ fontSize: 11, color: '#374151', padding: '2px 0' }}>
+                <div key={id} style={{ fontSize: 11, padding: '2px 0', color: risky.length ? '#DC2626' : '#374151' }}>
                   · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtAnswer(val)}</b>
+                  {risky.length > 0 && <span style={{ fontSize: 10, color: '#DC2626', marginLeft: 4 }}>⚠ {risky.join(' ')}</span>}
                 </div>
               )
             })}
