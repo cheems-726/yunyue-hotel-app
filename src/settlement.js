@@ -83,6 +83,9 @@ export const EVENT_CONFIG = {
   otaGoldBadge:    { prob: 0.3, minGoodRate: 0.8, goodRateUp: 0.01 }, // OTA金牌商家（另需投放OTA）
   staffCareDay:    { prob: 0.35, minWeek: 3, goodRateUp: 0.01 }, // 员工关怀日（另需满编保服务）
   noiseComplaint:  { prob: 0.2 },                       // 深夜噪音投诉
+  staffAbsent:     { prob: 0.18, minWeek: 3 },          // 员工请假（第3周起）
+  equipmentBreak:  { prob: 0.15, minWeek: 2, repairCost: 800 }, // 设备故障（第2周起，维修费）
+  holidaySurge:    { prob: 0.2, minFlow: 3 },           // 节假日爆单（客流>=3档）
   districtAward:   { prob: 0.3, minPrevGoodRate: 85, goodRateUp: 0.015 }, // 片区评选获奖（另需上周好评率≥85）
 }
 
@@ -272,6 +275,30 @@ if (rand() < EVENT_CONFIG.noiseComplaint.prob) {
 if (prevGoodRate != null && prevGoodRate >= EVENT_CONFIG.districtAward.minPrevGoodRate && rand() < EVENT_CONFIG.districtAward.prob) {
   goodRate = Math.min(goodRate + EVENT_CONFIG.districtAward.goodRateUp, 0.95)
   addEvent({ type: 'good', icon: '🏆', name: '片区评选获奖', text: '酒店行业协会年度评选中获奖，品牌曝光度提升', impact: '口碑 +1.5%', tip: '长期主义会被看见' })
+}
+// ⑯ 员工请假：人手短缺影响服务
+if (week >= 3 && rand() < EVENT_CONFIG.staffAbsent.prob) {
+  negativeCount += 1
+  addEvent({ type: 'bad', icon: '🤒', name: '员工请假', text: '前台员工突发感冒请假，人手短缺导致入住办理变慢，新增1条差评', impact: '差评 +1', tip: '关键时刻人员备份很重要' })
+}
+// ⑰ 设备故障：热水器/空调坏了需要维修
+if (week >= 2 && rand() < EVENT_CONFIG.equipmentBreak.prob) {
+  eventFine += EVENT_CONFIG.equipmentBreak.repairCost || 800
+  addEvent({ type: 'bad', icon: '🔧', name: '设备故障', text: '热水系统突发故障，紧急维修花费800元，部分客人体验受影响', impact: '成本 +800元', tip: '定期检修可以预防突发故障' })
+}
+// ⑱ 节假日爆单（正面）：客流>=3的地段节假日客流入涌
+if ((site?.客流 || 3) >= 3 && rand() < EVENT_CONFIG.holidaySurge.prob) {
+  occupancy = Math.min(occupancy + 0.08, 0.98)
+  addEvent({ type: 'good', icon: '🎆', name: '节假日爆单', text: '节假日来临，周边客流量大增，出租率 +8%', impact: '出租率 +8%', tip: '节假日是盈利黄金期，提前备好人力' })
+}
+// ⑲ 周边突发活动（正面）：演唱会/展会等带动客流
+if (week >= 2 && rand() < 0.2) {
+  occupancy = Math.min(occupancy + 0.06, 0.98)
+  addEvent({ type: 'good', icon: '🎤', name: '周边突发活动', text: '附近举办演唱会/展会，大量外地客涌入', impact: '出租率 +6%', tip: '关注周边活动动态，提前调价' })
+}
+// ⑳ 负面舆情（危机）：有差评且未处理时概率触发
+if (pendingNegatives >= 1 && rand() < 0.15) {
+  addEvent({ type: 'crisis', icon: '📢', name: '负面舆情', text: '有客人在社交媒体发布差评帖子，开始被转发议论', impact: '口碑风险', tip: '及时回复差评可以防止舆情扩散' })
 }
 
 // 8. 营收（房量 × 出租率 × 房价）
