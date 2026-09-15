@@ -414,6 +414,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>平均出租率 {g.occ}% · 口碑 {g.rating}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
