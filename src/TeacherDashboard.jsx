@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -141,6 +141,58 @@ function GroupDetail({ uid, rawStates, name }) {
         )
       })}
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
+
+      {/* 教师批注+打分 */}
+      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+        <TeacherNoteForm uid={uid} name={name} />
+      </div>
+    </div>
+  )
+}
+
+// 教师批注表单组件
+function TeacherNoteForm({ uid, name }) {
+  const [note, setNote] = React.useState('')
+  const [score, setScore] = React.useState('')
+  const [saved, setSaved] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+
+  async function save() {
+    if (!note.trim() && !score) return
+    setSaving(true)
+    // 获取教师uid
+    const session = await import('./supabaseClient.js').then(m => m.supabase.auth.getSession())
+    const teacherUid = session.data?.session?.user?.id
+    if (!teacherUid) return
+    const ok = await saveTeacherNote(teacherUid, uid, 0, note.trim(), score ? Number(score) : null)
+    setSaving(false)
+    if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📝 教师批注 & 打分（计入期末总评10%）</div>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder={'给 ' + name + ' 写评语...（如：定价策略合理，但差评处理偏慢）'}
+        style={{ width: '100%', minHeight: 56, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+        <input
+          type="number" min="0" max="100"
+          value={score}
+          onChange={e => setScore(e.target.value)}
+          placeholder="0-100"
+          style={{ width: 64, padding: '6px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: 12, fontFamily: 'inherit' }}
+        />
+        <span style={{ fontSize: 10, color: '#9CA3AF' }}>分</span>
+        <button
+          onClick={save}
+          disabled={saving || (!note.trim() && !score)}
+          style={{ marginLeft: 'auto', border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+        >{saving ? '保存中...' : saved ? '✅ 已保存' : '保存批注'}</button>
+      </div>
     </div>
   )
 }

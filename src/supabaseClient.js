@@ -154,3 +154,31 @@ export function subscribeGameStates(onChange) {
     .subscribe()
   return () => supabase.removeChannel(channel)
 }
+
+// 教师批注：保存/读取
+export async function saveTeacherNote(teacherUid, studentUid, week, note, score) {
+  const { error } = await supabase.from('teacher_notes').upsert({
+    teacher_uid: teacherUid, student_uid: studentUid, week,
+    note, score, updated_at: new Date().toISOString(),
+  })
+  return !error
+}
+
+export async function fetchTeacherNotes() {
+  const { data, error } = await supabase.from('teacher_notes').select('*').order('updated_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+// 学生读自己的批注
+export async function fetchMyNotes(studentUid) {
+  const { data, error } = await supabase.from('teacher_notes').select('week, note, score, updated_at').eq('student_uid', studentUid)
+  if (error) throw error
+  return data || []
+}
+
+// 设置组内职位
+export async function setGroupRole(uid, role) {
+  const { error } = await supabase.from('profiles').update({ role_in_group: role }).eq('user_id', uid)
+  return !error
+}
