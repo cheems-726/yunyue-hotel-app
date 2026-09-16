@@ -701,6 +701,36 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         })()}
       </div>
 
+      {/* 称号历程时间线：按周回放晋升/降级，强化"决策→成长"因果 */}
+      {history.length > 0 && (() => {
+        const lv = brand?.level || ''
+        const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+        const rows = history.map((h, i) => {
+          const now = getTitle(h.occupancy, h.finalGoodRate, q)
+          const prev = i > 0 ? getTitle(history[i - 1].occupancy, history[i - 1].finalGoodRate, q) : null
+          const change = !prev ? 'start' : now.title !== prev.title ? (now.composite > prev.composite ? 'up' : 'down') : 'same'
+          return { week: h.week || i + 1, ...now, change, delta: prev ? now.composite - prev.composite : null }
+        })
+        const changeTag = { up: { t: '晋升', c: '#065F46', bg: '#ECFDF5' }, down: { t: '降级', c: '#991B1B', bg: '#FEF0EF' }, start: { t: '起步', c: '#A96407', bg: '#FFF4E0' }, same: { t: '保持', c: '#6B7280', bg: '#F3F4F6' } }
+        return (
+          <div className="card">
+            <div className="card-title">📜 称号历程</div>
+            {[...rows].reverse().map(r => {
+              const tag = changeTag[r.change]
+              return (
+                <div key={r.week} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ fontSize: 11, color: '#9CA3AF', width: 44, flexShrink: 0 }}>第{r.week}周</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{r.icon} {r.title}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: tag.c, background: tag.bg, borderRadius: 6, padding: '2px 8px' }}>
+                    {tag.t}{r.delta != null && r.change !== 'same' ? `（${r.delta > 0 ? '+' : ''}${r.delta}分）` : ''}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
       {/* 我的酒店信息 */}
       <div className="card">
         <div className="card-title">🏨 我的酒店档案</div>
