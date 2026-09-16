@@ -1,4 +1,4 @@
-import { COMPETITORS } from './siteLocations.mjs'
+import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -321,6 +321,35 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     occupancy = Math.max(occupancy * (1 - competitorPressure), 0.2)
   }
 
+  // [7.9] 客群画像匹配（客群偏好 vs 酒店决策 → 满意度加/减分）
+  const persona = CUSTOMER_PERSONAS[site?.district || ''] || { business: 33, tourist: 33, family: 34 }
+  let personaBonus = 0
+  const personaFeedback = []
+  // 商务客偏好：安静+快速入住+商务设施
+  if (persona.dominant === 'business') {
+    if (decisions.energy != null && energy >= 22 && energy <= 24) { personaBonus += 0.02; personaFeedback.push('✅ 温度适中，商务客满意') }
+    if (decisions.shifts === '满编保服务') { personaBonus += 0.015; personaFeedback.push('✅ 快速办理入住，商务客好评') }
+    if (decisions.hygiene !== '停房深清洁') { personaBonus -= 0.01; personaFeedback.push('⚠ 清洁不足，商务客敏感') }
+  }
+  // 游客偏好：价格+景区距离+当地特色
+  if (persona.dominant === 'tourist') {
+    if (price <= basePrice * 0.9) { personaBonus += 0.02; personaFeedback.push('✅ 价格实惠，游客满意') }
+    if (decisions.hygiene === '停房深清洁') { personaBonus += 0.015; personaFeedback.push('✅ 卫生好，游客好评') }
+    if (decisions.pricing === '降价 20% 抢客') { personaBonus -= 0.01; personaFeedback.push('⚠ 低价可能吸引低质量客') }
+  }
+  // 家庭客偏好：空间+安全+亲子设施
+  if (persona.dominant === 'family') {
+    if (decisions.energy != null && energy >= 22 && energy <= 25) { personaBonus += 0.015; personaFeedback.push('✅ 温度适合家庭') }
+    if (decisions.shifts === '满编保服务') { personaBonus += 0.01; personaFeedback.push('✅ 人手充足，家庭安心') }
+    if (decisions.linen === '外包') { personaBonus -= 0.015; personaFeedback.push('⚠ 外包布草品质不稳定，家庭客在意') }
+  }
+  // 均衡客群（无绝对主力）：通用服务质量决定
+  if (personaFeedback.length === 0) {
+    if (decisions.hygiene === '停房深清洁') { personaBonus += 0.01; personaFeedback.push('✅ 深清洁提升口碑') }
+    if (decisions.reputation === '道歉+赔偿') { personaBonus += 0.01; personaFeedback.push('✅ 优质差评回复提升形象') }
+  }
+  goodRate = Math.max(Math.min(goodRate + personaBonus, 0.98), 0.25)
+
   // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
   let occupiedRooms = Math.round(rooms * occupancy)
@@ -461,6 +490,7 @@ for (let i = 0; i < reviewCount; i++) {
     eventFine,
     competitors: competitorActions,
     competitorPressure: +(competitorPressure * 100).toFixed(0),
+    persona, personaBonus: +(personaBonus * 100).toFixed(1), personaFeedback,
     overbookCompensation,
     generatedReviews,
     weeklyExpenses,

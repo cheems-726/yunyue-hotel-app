@@ -99,3 +99,23 @@ export const COMPETITORS = {
     { name: '广汉宾馆', level: 'budget', basePrice: 140, aggression: 2 },
   ],
 }
+
+
+// 客群画像数据（每个区县的三类客群占比，总和100%）
+// persona: business=商务客 tourist=游客 family=家庭客
+// 商务客看 WiFi+位置+安静 | 游客看 价格+景区距离 | 家庭客看 空间+安全+早餐
+export const CUSTOMER_PERSONAS = {
+  '锦江区':   { business: 55, tourist: 30, family: 15, dominant: 'business', note: '春熙路商圈，商务客为主' },
+  '高新区':   { business: 65, tourist: 15, family: 20, dominant: 'business', note: '软件园+金融城，商务客绝对主力' },
+  '武侯区':   { business: 40, tourist: 35, family: 25, dominant: 'business', note: '武侯祠景区+商务混合' },
+  '青羊区':   { business: 35, tourist: 40, family: 25, dominant: 'tourist', note: '宽窄巷子景区，游客偏多' },
+  '金牛区':   { business: 35, tourist: 20, family: 45, dominant: 'family', note: '居住区为主，家庭客多' },
+  '龙泉驿区': { business: 30, tourist: 20, family: 50, dominant: 'family', note: '汽车产业工人家庭' },
+  '双流区':   { business: 45, tourist: 35, family: 20, dominant: 'business', note: '机场中转客' },
+  '都江堰市': { business: 10, tourist: 60, family: 30, dominant: 'tourist', note: '景区度假型，游客绝对主力' },
+  '简阳市':   { business: 30, tourist: 45, family: 25, dominant: 'tourist', note: '天府机场中转+周边游' },
+  '旌阳区':   { business: 50, tourist: 15, family: 35, dominant: 'business', note: '德阳市中心，政商务客' },
+  '绵竹市':   { business: 25, tourist: 30, family: 45, dominant: 'family', note: '白酒产业+本地家庭' },
+  '中江县':   { business: 15, tourist: 10, family: 75, dominant: 'family', note: '县域本地客为主' },
+  '广汉市':   { business: 20, tourist: 55, family: 25, dominant: 'tourist', note: '三星堆景区驱动' },
+}
