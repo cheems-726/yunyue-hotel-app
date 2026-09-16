@@ -954,6 +954,7 @@ function HelpPage({ onBack }) {
 // ===== 小组成员页（云端同班同组队友名单） =====
 function GroupMembersPage({ user, onBack }) {
   const [members, setMembers] = useState(null)
+  const [myRole, setMyRole] = useState(null)
   const [memberStates, setMemberStates] = useState({}) // uid → 经营概况
   const hasGroup = !!(user?.groupNo && user?.className)
   useEffect(() => {
@@ -1011,6 +1012,36 @@ function GroupMembersPage({ user, onBack }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 职位选择 */}
+      {hasGroup && (
+        <div className="card">
+          <div className="card-title">👔 我的职位</div>
+          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>选择你在团队中的角色（影响课堂分工，全员均可做决策）</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[
+              { role: 'manager', icon: '👔', label: '店长/总经理', desc: '全局统筹' },
+              { role: 'lobby', icon: '🛎️', label: '大堂经理', desc: '服务/客诉/调度' },
+              { role: 'finance', icon: '💰', label: '财务', desc: '资金/报表' },
+              { role: 'ops', icon: '📈', label: '运营专员', desc: '定价/OTA/活动' },
+              { role: 'hr', icon: '👥', label: '人事专员', desc: '招聘/排班' },
+            ].map(r => (
+              <button key={r.role}
+                onClick={() => { import('./supabaseClient.js').then(m => m.setGroupRole(user.uid, r.role)); setMyRole(r.role) }}
+                style={{
+                  flex: '1 1 30%', minWidth: 90, padding: '10px 8px', borderRadius: 10,
+                  border: myRole === r.role ? '2px solid #E8940F' : '1px solid #E5E7EB',
+                  background: myRole === r.role ? '#FFF4E0' : '#fff',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
+                }}>
+                <div style={{ fontSize: 20 }}>{r.icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: myRole === r.role ? '#A96407' : '#374151' }}>{r.label}</div>
+                <div style={{ fontSize: 9, color: '#9CA3AF' }}>{r.desc}</div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
