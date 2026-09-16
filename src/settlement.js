@@ -404,6 +404,13 @@ let capital = prevCapital != null ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0
 const isWarning = !isBankrupt && capital < 50000
+// 防作弊：全部决策选相同模式→可疑警告
+const doneKeys = Object.keys(decisions).filter(k => !k.startsWith('__'))
+if (doneKeys.length === 18) {
+  const vals = Object.values(decisions).filter(v => typeof v === 'string')
+  const allSame = vals.length > 0 && vals.every(v => v === vals[0])
+  if (allSame) insights.push({ good: false, text: '⚠️ 决策模式异常一致，请确认是经过独立思考的选择' })
+}
 if (isBankrupt) {
   addEvent({ type: 'crisis', icon: '🚨', name: '资金链断裂', text: `资金降至 ${Math.round(capital).toLocaleString()} 元！立即削成本或贷款。`, impact: '破产风险', tip: '减少支出' })
 } else if (isWarning) {
