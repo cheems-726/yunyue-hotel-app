@@ -123,6 +123,21 @@ export default function Reputation({ report, history }) {
         </div>
       </div>
 
+      {/* 处理率圆环 */}
+      <div className="card" style={{display:'flex',alignItems:'center',gap:16,padding:16}}>
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="#F3F4F6" strokeWidth="7"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke={handleRate >= 80 ? '#10B981' : handleRate >= 50 ? '#E8940F' : '#EF4444'} strokeWidth="7"
+            strokeDasharray={`${handleRate / 100 * 188.5} 188.5`} strokeLinecap="round"
+            transform="rotate(-90 36 36)" style={{transition:'stroke-dasharray 0.8s ease'}}/>
+          <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill="#374151">{handleRate}%</text>
+        </svg>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>差评处理率</div>
+          <div style={{fontSize:11,color:'#6B7280'}}>占期末评分 15% 权重<br/>及时回复差评提高处理率</div>
+        </div>
+      </div>
+
       <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',textAlign:'center',padding:18}}>
         <div style={{fontSize:40,fontWeight:700,color:'#A96407'}}>
           {goodRatePct != null ? (goodRatePct / 20).toFixed(1) : '—'}

@@ -135,6 +135,16 @@ export default function SiteSelection({ onConfirm }) {
             <div className="cost-box warn">
               <div className="cost-title">⚠️ 代价</div>{d.warn}
             </div>
+            <div style={{ marginTop: 6, fontSize: 11, color: '#A96407' }}>
+              💡 推荐档次：{(() => {
+                const flow = d.attrs['客流'] || 3
+                const rent = d.attrs['租金'] || 3
+                if (flow >= 4 && rent >= 3) return '中端型及以上'
+                if (flow >= 3 && rent <= 2) return '经济型～中端型'
+                if (flow <= 2 && rent <= 2) return '仅经济型（高端必亏）'
+                return '经济型～中端型'
+              })()}
+            </div>
           </div>
         ))}
       </div>
