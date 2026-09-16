@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react'
+import RadarChart from './RadarChart.jsx'
 
 // 通用结果反馈卡片：展示"你的选择会带来什么结果"（6秒自动收起，点击立即关）
+// result.attrs 存在时（选址场景）额外展示六维画像小雷达
 export default function ResultFeedback({ result, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 6000)
@@ -60,6 +62,14 @@ export default function ResultFeedback({ result, onClose }) {
         <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6, background: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 16 }}>
           💡 {result.note}
         </div>
+
+        {/* 选址场景：六维画像小雷达 */}
+        {result.attrs && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center', marginBottom: 4 }}>📊 六维画像</div>
+            <RadarChart attrs={result.attrs} size={180} />
+          </div>
+        )}
 
         <button className="btn-confirm" style={{ width: '100%' }} onClick={onClose}>
           明白了
