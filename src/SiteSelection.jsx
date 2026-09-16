@@ -63,7 +63,7 @@ export default function SiteSelection({ onConfirm }) {
       {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}
       <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
         <div className="card-title" style={{ marginBottom: 10 }}>🗺️ 地图选点（按真实方位）</div>
-        {['成都', '德阳', '绵阳'].map(city => (
+        {['成都', '德阳', '绵阳', '承德', '重庆'].map(city => (
           <div key={city} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700, marginBottom: 4 }}>{city}</div>
             <div style={{ position: 'relative', height: 44 * (Math.max(...cityGeo[city].map(p => p.row)) + 1), }}>
@@ -95,7 +95,7 @@ export default function SiteSelection({ onConfirm }) {
 
       {/* 城市切换 */}
       <div className="city-row">
-        {['成都', '德阳', '绵阳'].map(city => (
+        {['成都', '德阳', '绵阳', '承德', '重庆'].map(city => (
           <button
             key={city}
             className={`city-tab ${currentCity === city ? 'active' : ''}`}

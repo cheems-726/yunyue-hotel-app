@@ -40,6 +40,44 @@ export const districts = {
     { name:'三台县', tag:'县域', tagCls:'tag-county', attrs:{客流:2,房价:2,租金:1,竞争:1,人力:1,波动:2},
       good:'人口大县，成本极低', warn:'消费力弱，酒店市场未成熟' },
   ],
+
+  // ===== 德阳新增（需求文档重点精细区） =====
+  德阳: [
+    { name:'旌阳区', tag:'城区', tagCls:'tag-ind', attrs:{客流:3,房价:3,租金:3,竞争:2,人力:2,波动:2},
+      good:'德阳主城区，工业商务客稳定', warn:'消费力天花板低，知名度不及成都' },
+    { name:'五洲广场商圈', tag:'核心商圈', tagCls:'tag-core', attrs:{客流:4,房价:3,租金:4,竞争:3,人力:3,波动:2},
+      good:'德阳最大城市综合体（120万㎡），日均客流3.45万人次，"10亿级"商圈，S11线五洲广场站', warn:'租金偏高，竞争逐步加剧' },
+    { name:'广汉市', tag:'文旅', tagCls:'tag-tour', attrs:{客流:4,房价:2,租金:1,竞争:1,人力:2,波动:4},
+      good:'三星堆2025年608万游客，全域旅游1197万人次/117.8亿收入，全市住宿仅42家（供给缺口明显）', warn:'景区依赖型，淡季空置，房价天花板低' },
+    { name:'绵竹市', tag:'工业', tagCls:'tag-ind', attrs:{客流:2,房价:2,租金:1,竞争:1,人力:2,波动:2},
+      good:'白酒产业，商务接待需求稳定', warn:'县域客源有限，增长空间小' },
+    { name:'中江县', tag:'县域', tagCls:'tag-county', attrs:{客流:2,房价:2,租金:1,竞争:1,人力:1,波动:2},
+      good:'成本极低，竞争几乎为零', warn:'客流少、消费力弱，可能养不活' },
+  ],
+
+  // ===== 承德（需求文档新增城市，极端季节性教学场景） =====
+  承德: [
+    { name:'双桥区', tag:'主城+景区', tagCls:'tag-tour', attrs:{客流:5,房价:4,租金:4,竞争:4,人力:3,波动:5},
+      good:'避暑山庄所在地（世界遗产5A），暑期日均3-5万游客，全市年游客1.04亿人次', warn:'极端季节性：暑期限流6万/日，冬季客流断崖，酒店旺季涨30-50%' },
+    { name:'双滦区', tag:'城区', tagCls:'tag-ind', attrs:{客流:2,房价:2,租金:2,竞争:2,人力:2,波动:4},
+      good:'成本低于双桥区，承接溢出客源', warn:'离景区远，游客首选率低' },
+    { name:'承德县', tag:'县域', tagCls:'tag-county', attrs:{客流:2,房价:2,租金:1,竞争:1,人力:2,波动:3},
+      good:'成本极低', warn:'约34万人口，客流有限' },
+    { name:'围场满族蒙古族自治县', tag:'草原旅游', tagCls:'tag-tour', attrs:{客流:3,房价:3,租金:2,竞争:2,人力:2,波动:5},
+      good:'河北面积最大县（9058km²），草原旅游旺季爆满', warn:'42万人口，距市区远，淡季完全空置' },
+  ],
+
+  // ===== 重庆（需求文档新增城市，圈层价格差教学场景） =====
+  重庆: [
+    { name:'解放碑商圈', tag:'核心商圈', tagCls:'tag-core', attrs:{客流:5,房价:5,租金:5,竞争:5,人力:4,波动:2},
+      good:'全国商圈热度前五，清明日均客流破百万，紧邻洪崖洞景区', warn:'暑期酒店三四百起步、节假日溢价2-3倍，竞争极其激烈' },
+    { name:'观音桥商圈', tag:'本地商圈', tagCls:'tag-ind', attrs:{客流:5,房价:3,租金:3,竞争:4,人力:3,波动:2},
+      good:'日均60万客流（全国前十），本地人最爱，经济型约70元/舒适型约180元', warn:'游客占比低于解放碑，价格天花板明显' },
+    { name:'南滨路', tag:'江景高端', tagCls:'tag-tour', attrs:{客流:3,房价:5,租金:4,竞争:3,人力:3,波动:2},
+      good:'江景房约400元/晚，万豪/丽笙世嘉等高端品牌集中', warn:'投入极高，客群窄（高端度假）' },
+    { name:'沙坪坝区', tag:'科教城区', tagCls:'tag-ind', attrs:{客流:3,房价:3,租金:3,竞争:3,人力:3,波动:2},
+      good:'大学城+科教文化区，年轻客群', warn:'消费力中等，价格敏感' },
+  ],
 }
 
 
@@ -118,4 +156,13 @@ export const CUSTOMER_PERSONAS = {
   '绵竹市':   { business: 25, tourist: 30, family: 45, dominant: 'family', note: '白酒产业+本地家庭' },
   '中江县':   { business: 15, tourist: 10, family: 75, dominant: 'family', note: '县域本地客为主' },
   '广汉市':   { business: 20, tourist: 55, family: 25, dominant: 'tourist', note: '三星堆景区驱动' },
+  '五洲广场商圈': { business: 45, tourist: 20, family: 35, dominant: 'business', note: '政商混合型商圈' },
+  '双桥区':   { business: 15, tourist: 65, family: 20, dominant: 'tourist', note: '避暑山庄景区，游客绝对主力' },
+  '双滦区':   { business: 25, tourist: 30, family: 45, dominant: 'family', note: '本地居住区' },
+  '承德县':   { business: 20, tourist: 20, family: 60, dominant: 'family', note: '县域本地客' },
+  '围场满族蒙古族自治县': { business: 10, tourist: 70, family: 20, dominant: 'tourist', note: '草原旅游驱动' },
+  '解放碑商圈': { business: 30, tourist: 50, family: 20, dominant: 'tourist', note: '景区+商圈混合' },
+  '观音桥商圈': { business: 40, tourist: 25, family: 35, dominant: 'business', note: '本地生活商圈' },
+  '南滨路':   { business: 25, tourist: 50, family: 25, dominant: 'tourist', note: '江景度假驱动' },
+  '沙坪坝区': { business: 30, tourist: 25, family: 45, dominant: 'family', note: '大学城+居住' },
 }
