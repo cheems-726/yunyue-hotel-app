@@ -211,6 +211,33 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8, lineHeight: 1.6 }}>
           💡 市场波动是随机的（全班同一周相同），这是"市场不确定性"。你的决策决定的是如何应对市场。
         </div>
+        {(() => {
+          // 下周预测：确定性规则推导（不预支随机数），教学化趋势参考而非保证
+          const forecasts = []
+          const prev = (history || []).length >= 1 ? history[history.length - 1] : null
+          const cur = result.demandStrength
+          if (prev && prev.demandStrength != null) {
+            const d = cur - prev.demandStrength
+            if (d >= 0.05) forecasts.push({ icon: '📈', text: `市场热度连续走高（${prev.demandStrength}→${cur}），热度期更要保服务——退潮后的复购靠口碑` })
+            else if (d <= -0.05) forecasts.push({ icon: '📉', text: `市场热度在回落（${prev.demandStrength}→${cur}），别因单周冷清过度砍成本，精简排班易招差评` })
+          }
+          const rival = (result.events || []).some(e => e.name === '竞店开业')
+          if (rival) forecasts.push({ icon: '🏪', text: '竞店分流通常持续 1-2 周，此刻降价前先算「房价×出租率」是不是真划算' })
+          if ((result.negativeCount || 0) > 0) forecasts.push({ icon: '🔥', text: `本周新增 ${result.negativeCount} 条差评，欠着不处理会触发"差评发酵"（口碑额外受损），优先去口碑页处理` })
+          if (forecasts.length === 0) {
+            if (cur < 0.95) forecasts.push({ icon: '🧘', text: '市场偏冷的窗口适合练内功：品质投入和口碑积累，等热度回来时接得住' })
+            else if (cur > 1.05) forecasts.push({ icon: '🔥', text: '市场偏热，客流是白送的——此时满编保服务的边际收益最高' })
+            else forecasts.push({ icon: '⚖️', text: '市场平稳，是检验决策稳定性的时机：维持策略一致性，观察两周再调整' })
+          }
+          return (
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>🔮 下周市场预测（趋势参考）</div>
+              {forecasts.slice(0, 2).map((f, i) => (
+                <div key={i} style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, padding: '2px 0' }}>{f.icon} {f.text}</div>
+              ))}
+            </div>
+          )
+        })()}
       </div>
 
       {/* 本周决策摘要 */}
