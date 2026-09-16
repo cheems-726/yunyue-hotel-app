@@ -49,10 +49,14 @@ const brandGroups = [
   },
 ]
 
-export default function BrandSelection({ onConfirm }) {
+export default function BrandSelection({ location, onConfirm }) {
   const [selected, setSelected] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [confirmBrand, setConfirmBrand] = useState(null) // 含 level 的完整品牌对象
+
+  // 区域限开等级：客流≤2 → 仅经济型(1)；3 → 经济～中端(2)；≥4 → 全档次(5)
+  const flow = location?.attrs?.客流 ?? 3
+  const maxTier = flow >= 4 ? 5 : (flow >= 3 ? 2 : 1)
 
   // 每个品牌选择后的结果反馈
   function brandResult(b) {
@@ -98,7 +102,7 @@ export default function BrandSelection({ onConfirm }) {
       )}
 
       <div className="district-list">
-        {brandGroups.map(g => (
+        {brandGroups.map((g, gi) => (
           <div key={g.level} style={{ marginBottom: 16 }}>
             <div style={{ background: '#FFF9F0', borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: '1px solid #FBE3B3' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>{g.level}</div>

@@ -20,6 +20,16 @@ const cityGeo = {
     { name: '江油市', row: 0, col: 0 }, { name: '游仙区', row: 1, col: 1 },
     { name: '涪城区', row: 2, col: 1 }, { name: '三台县', row: 3, col: 1 },
   ],
+  承德: [
+    { name: '围场满族蒙古族自治县', short: '围场草原', row: 0, col: 0 },
+    { name: '双滦区', short: '双滦', row: 1, col: 0 }, { name: '双桥区', short: '双桥', row: 1, col: 1 },
+    { name: '承德县', row: 2, col: 2 },
+  ],
+  重庆: [
+    { name: '观音桥商圈', short: '观音桥', row: 0, col: 1 },
+    { name: '沙坪坝区', short: '沙坪坝', row: 1, col: 0 }, { name: '解放碑商圈', short: '解放碑', row: 1, col: 1 },
+    { name: '南滨路', row: 2, col: 1 },
+  ],
 }
 const geoTagCls = { 核心: 'tag-core', 商务: 'tag-ind', 文旅: 'tag-tour', 工业: 'tag-ind', 空港: 'tag-ind', 旅游: 'tag-tour', 潜力: 'tag-county', 城区: 'tag-ind', 科研: 'tag-ind', 县域: 'tag-county' }
 
@@ -82,7 +92,7 @@ export default function SiteSelection({ onConfirm }) {
                       cursor: 'pointer', fontFamily: 'inherit', padding: 2,
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 600, color: isSel ? '#A96407' : '#374151' }}>{p.name.slice(0, -1)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: isSel ? '#A96407' : '#374151' }}>{p.short || p.name.slice(0, -1)}</div>
                     <span className={`district-tag ${geoTagCls[d.tag] || 'tag-county'}`} style={{ fontSize: 9, padding: '1px 5px' }}>{d.tag}</span>
                   </button>
                 )

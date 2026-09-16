@@ -16,7 +16,9 @@ function useCountUp(target, dur = 800) {
       if (p < 1) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    // 兜底：后台标签/省电模式会冻结 rAF，超时直接显示终值，防止数字停在0
+    const bail = setTimeout(() => setV(target), dur + 300)
+    return () => { cancelAnimationFrame(raf); clearTimeout(bail) }
   }, [target])
   return v
 }

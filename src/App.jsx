@@ -1586,7 +1586,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <BrandSelection onConfirm={handleBrandConfirm} />
+        <BrandSelection location={location} onConfirm={handleBrandConfirm} />
       </div>
     )
   }
