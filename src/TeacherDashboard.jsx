@@ -201,6 +201,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('overview') // overview | ranking | groups | teaching
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
+  const [notedUids, setNotedUids] = useState(new Set())
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
@@ -219,6 +220,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
       setRawStates(states)
+      fetchTeacherNotes().then(ns => setNotedUids(new Set(ns.map(n => n.student_uid)))).catch(() => {})
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
       setCloudOk(true)
@@ -428,7 +430,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: expanded ? 0 : 8, cursor: 'pointer', borderBottomLeftRadius: expanded ? 0 : 10, borderBottomRightRadius: expanded ? 0 : 10 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}>✍️</span>}</span>
                     <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city} {expanded ? '▲' : '▼'}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
