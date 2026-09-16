@@ -301,6 +301,26 @@ ${after.icon} 当前称号：${after.title}${evText}
         {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>✅ 已复制，去微信粘贴吧</div>}
       </div>
 
+      {/* 竞品动态 */}
+      {result.competitors && result.competitors.length > 0 && (
+        <div className="card">
+          <div className="card-title">🏢 周边竞品动态</div>
+          {result.competitors.map((c, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F9FAFB' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>{c.name}</div>
+                <div style={{ fontSize: 10, color: '#9CA3AF' }}>基准价 ¥{c.basePrice}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: c.action === 'hold' ? '#9CA3AF' : c.action === '促销' || c.action === '降价' ? '#EF4444' : '#10B981' }}>{c.action}</div>
+                {c.priceChange !== 0 && <div style={{ fontSize: 10, color: c.priceChange < 0 ? '#EF4444' : '#10B981' }}>¥{c.price > 0 ? c.price : c.basePrice + c.priceChange}</div>}
+              </div>
+            </div>
+          ))}
+          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>竞品AI会根据市场情况自主调价/促销，直接影响你的客源</div>
+        </div>
+      )}
+
       {/* 复盘建议 */}
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
         <div className="card-title">💡 复盘建议</div>
