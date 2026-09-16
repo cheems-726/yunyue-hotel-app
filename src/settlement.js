@@ -213,20 +213,24 @@ const events = []
 function addEvent(e) { events.push(e) }
 let negativeCount = 0
 let eventFine = 0
+const negSources = [] // 差评来源追踪（只记录，不消耗rand，不影响随机序列）
 
 // ① 满负荷·响应慢：出租率过高 + 排班精简 → 服务跟不上
 if (occupancy >= 0.85 && decisions.shifts === '精简省成本' && rand() < EVENT_CONFIG.fullLoadSlow.prob) {
   negativeCount += 2
+  negSources.push({ icon: '🐢', name: '满负荷·响应慢' })
   addEvent({ type: 'bad', icon: '🐢', name: '满负荷·响应慢', text: `出租率 ${Math.round(occupancy * 100)}% 却只留了精简人手，客人投诉入住/退房排队，新增 2 条差评`, impact: '差评 +2', tip: '旺季保服务：高出租率时该满编排班' })
 }
 // ② 卫生敷衍：连续经营未做深清洁
 if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.hygieneSlack.minWeek && rand() < EVENT_CONFIG.hygieneSlack.prob) {
   negativeCount += 1
+  negSources.push({ icon: '🧹', name: '卫生敷衍' })
   addEvent({ type: 'bad', icon: '🧹', name: '卫生敷衍', text: '连续多周未做深度清洁，客人发现布草污渍，新增 1 条差评', impact: '差评 +1', tip: '卫生是口碑底线，定期停房深清洁' })
 }
 // ③ 性价比失衡：高房价 + 口碑平平 → 客人觉得不值
 if (price >= EVENT_CONFIG.valueMismatch.minPrice && goodRate < EVENT_CONFIG.valueMismatch.maxGoodRate && rand() < EVENT_CONFIG.valueMismatch.prob) {
   negativeCount += 1
+  negSources.push({ icon: '💸', name: '性价比失衡' })
   addEvent({ type: 'bad', icon: '💸', name: '性价比失衡', text: `房价 ${Math.round(price)} 元但口碑平平（好评率 ${Math.round(goodRate * 100)}%），客人吐槽"不值这个价"`, impact: '差评 +1', tip: '价格要和品质匹配，否则招差评' })
 }
 // ④ 竞店开业：选址竞争激烈时被分流
@@ -281,6 +285,7 @@ if (decisions.shifts === '满编保服务' && week >= EVENT_CONFIG.staffCareDay.
 // ⑭ 深夜噪音投诉：任何店都可能碰到
 if (rand() < EVENT_CONFIG.noiseComplaint.prob) {
   negativeCount += 1
+  negSources.push({ icon: '🌙', name: '深夜噪音投诉' })
   addEvent({ type: 'bad', icon: '🌙', name: '深夜噪音投诉', text: '深夜隔壁房间聚会喧哗，投诉处理不及时招来差评', impact: '差评 +1', tip: '前台夜班要主动巡场，防患于未然' })
 }
 // ⑮ 片区评选获奖（正面）：口碑持续优秀被行业协会认可
@@ -291,6 +296,7 @@ if (prevGoodRate != null && prevGoodRate >= EVENT_CONFIG.districtAward.minPrevGo
 // ⑯ 员工请假：人手短缺影响服务
 if (week >= 3 && rand() < EVENT_CONFIG.staffAbsent.prob) {
   negativeCount += 1
+  negSources.push({ icon: '🤒', name: '员工请假' })
   addEvent({ type: 'bad', icon: '🤒', name: '员工请假', text: '前台员工突发感冒请假，人手短缺导致入住办理变慢，新增1条差评', impact: '差评 +1', tip: '关键时刻人员备份很重要' })
 }
 // ⑰ 设备故障：热水器/空调坏了需要维修
@@ -423,7 +429,10 @@ for (let i = 0; i < reviewCount; i++) {
   if (rand() >= goodRate) negativeCount++
 }
   // 超售到店无房必招差评
-  if (overbookCompensation > 0) negativeCount += 1
+  if (overbookCompensation > 0) {
+    negativeCount += 1
+    negSources.push({ icon: '📋', name: '超售到店无房' })
+  }
 
   // 12. 差评处理影响
   let negativeImpact = negativeCount
@@ -458,7 +467,7 @@ for (let i = 0; i < reviewCount; i++) {
   if (decisions.corporate === '让利签约') insights.push({ good: true, text: '协议客户让利签约，商务客流稳定，出租率更稳' })
   if (crisisInsight) insights.push(crisisInsight)
 
-  // 15. 生成本周评价（差评回流口碑页）
+  // 15. 生成本周评价（差评回流口碑页；事件性差评优先携带来源标签）
   const generatedReviews = []
   for (let i = 0; i < Math.min(negativeCount, 3); i++) {
     generatedReviews.push({
@@ -470,6 +479,7 @@ for (let i = 0; i < reviewCount; i++) {
       stars: rand() < 0.5 ? 1 : 2,
       text: negativeTexts[Math.floor(rand() * negativeTexts.length)],
       status: 'pending',
+      source: negSources[i] || null,
     })
   }
   if (reviewCount - negativeCount > 0 && rand() < 0.6) {

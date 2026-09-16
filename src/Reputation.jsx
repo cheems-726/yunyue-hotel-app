@@ -164,6 +164,11 @@ export default function Reputation({ report, history }) {
                 <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
               </div>
               <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              {r.source && (
+                <div style={{fontSize:10,color:'#991B1B',background:'#FEF2F2',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                  来源：{r.source.icon} {r.source.name}——这条差评本可避免
+                </div>
+              )}
               <div style={{display:'flex',gap:6,marginTop:10}}>
                 <button className="btn btn-primary" style={{flex:1}} onClick={() => setReplying(r)}>💬 回复</button>
                 <button className="btn btn-ghost" style={{flex:1}} onClick={() => handleResolve(r)}>🔧 整改</button>
@@ -195,6 +200,11 @@ export default function Reputation({ report, history }) {
                 </div>
               </div>
               <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              {r.source && (
+                <div style={{fontSize:10,color:'#9CA3AF',background:'#F9FAFB',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                  来源：{r.source.icon} {r.source.name}
+                </div>
+              )}
             </div>
           ))}
         </>
