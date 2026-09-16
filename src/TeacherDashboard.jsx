@@ -67,6 +67,43 @@ function fmtAnswer(v) {
   return String(v)
 }
 
+// 策略画像：从逐周决策快照累计三路信号，自动标注策略风格（课堂对比讨论用）
+export function strategyOf(history) {
+  let price = 0, cost = 0, service = 0, weeks = 0
+  ;(history || []).forEach(h => {
+    const d = h.decisions || {}
+    if (!Object.keys(d).length) return
+    weeks++
+    if (d.pricing === '降价 20% 抢客') price += 2
+    else if (d.pricing === '跟降 10%') price += 1
+    if (d.shifts === '精简省成本') cost += 1
+    if (d.linen === '外包') cost += 1
+    if (d.hygiene === '不停房') cost += 1
+    if (d.shifts === '满编保服务') service += 1
+    if (d.hygiene === '停房深清洁') service += 1
+    if (d.reputation === '道歉+赔偿') service += 1
+    if (d['member-convert'] === '强调品质') service += 1
+    if (d.corporate === '让利签约') service += 0.5
+  })
+  if (weeks < 2) return null // 信号不足不下结论
+  if (price >= 3) return { tag: '激进降价型', icon: '🔥', color: '#DC2626', bg: '#FEF2F2' }
+  if (cost >= 3 && cost > service) return { tag: '成本控制型', icon: '✂️', color: '#B45309', bg: '#FFFBEB' }
+  if (service >= 3 && service > cost) return { tag: '稳健服务型', icon: '🛡️', color: '#1D4ED8', bg: '#EFF6FF' }
+  return { tag: '均衡型', icon: '⚖️', color: '#4B5563', bg: '#F3F4F6' }
+}
+
+// 策略标签（信号不足不渲染）
+function StrategyTag({ rawStates, uid }) {
+  const gs = (rawStates || []).find(x => x.user_id === uid)
+  const st = strategyOf(gs?.state?.history || [])
+  if (!st) return null
+  return (
+    <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 5, padding: '2px 6px', marginLeft: 5, verticalAlign: '1px' }}>
+      {st.icon} {st.tag}
+    </span>
+  )
+}
+
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
 function GroupDetail({ uid, rawStates, name }) {
   const gs = rawStates.find(x => x.user_id === uid)
@@ -464,7 +501,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   {['🥇', '🥈', '🥉'][i] ?? (i + 1)}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: '#A96407' }}>{g.titleIcon} {g.title}</span>}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: '#A96407' }}>{g.titleIcon} {g.title}</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></div>
                   <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
