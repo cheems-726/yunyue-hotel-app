@@ -84,3 +84,24 @@ insert into public.class_state (id, current_week) values (1, 0) on conflict (id)
 alter table public.class_state enable row level security;
 create policy "class_state_read" on public.class_state for select using (auth.role() = 'authenticated');
 create policy "class_state_teacher_write" on public.class_state for update using (public.is_teacher(auth.uid()));
+
+
+-- v0.46 增量：教师批注打分 + 职位分工
+create table if not exists public.teacher_notes (
+  id uuid primary key default gen_random_uuid(),
+  student_uid uuid not null references auth.users(id) on delete cascade,
+  teacher_uid uuid not null references auth.users(id) on delete cascade,
+  week int not null default 0,
+  note text,
+  score int check (score >= 0 and score <= 100),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(student_uid, week)
+);
+alter table public.teacher_notes enable row level security;
+create policy "teacher_notes_teacher_all" on public.teacher_notes for all
+  using (public.is_teacher(auth.uid())) with check (public.is_teacher(auth.uid()));
+create policy "teacher_notes_student_read" on public.teacher_notes for select
+  using (auth.uid() = student_uid);
+
+alter table public.profiles add column if not exists role_in_group text;

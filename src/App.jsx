@@ -764,6 +764,30 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         )}
       </div>
 
+      {/* 教师批注 */}
+      {(() => {
+        const [notes, setNotes] = React.useState(null)
+        React.useEffect(() => {
+          if (user?.cloud && user?.uid) {
+            fetchMyNotes(user.uid).then(n => setNotes(n)).catch(() => setNotes([]))
+          } else { setNotes([]) }
+        }, [user?.uid])
+        if (notes === null) return null
+        if (notes.length === 0) return null
+        return (
+          <div className="card" style={{ background: '#FFF4E0' }}>
+            <div className="card-title">📝 老师评语</div>
+            {notes.map((n, i) => (
+              <div key={i} style={{ padding: '8px 0', borderBottom: i < notes.length - 1 ? '1px solid #FBE3B3' : 'none' }}>
+                {n.note && <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>}
+                {n.score != null && <div style={{ fontSize: 12, color: '#A96407', fontWeight: 700, marginTop: 4 }}>评分：{n.score} / 100</div>}
+                <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{new Date(n.updated_at).toLocaleDateString('zh-CN')}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* 本地备份 */}
       <div className="card">
         <div className="card-title">💾 数据备份</div>
