@@ -933,6 +933,18 @@ function OperationRecords({ history, onBack }) {
         </div>
       )}
 
+      {/* 周次快捷选择：点任意周直达该周决策快照 */}
+      {weeks.length > 0 && (
+        <div className="city-row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
+          {history.map(h => (
+            <button key={h.week} className={`city-tab ${openWeek === h.week ? 'active' : ''}`} style={{ padding: '8px 12px', fontSize: 12 }}
+              onClick={() => setOpenWeek(openWeek === h.week ? null : h.week)}>
+              第{h.week}周
+            </button>
+          ))}
+        </div>
+      )}
+
       {weeks.map(h => {
         const dec = h.decisions || {}
         const entries = Object.entries(dec)
