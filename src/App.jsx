@@ -359,9 +359,9 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
         ))}
       </div>
 
-      {/* 资金状态卡 */}
+      {/* 资金状态 + 主力客群显示条 */}
       {(() => {
-        const cap = report?.capital ?? 500000
+        const cap = 500000 - history.reduce((a, h) => a + (h.totalExpenses || 0), 0) + history.reduce((a, h) => a + (h.profit || 0), 0)
         const expenses = report?.totalExpenses || 0
         const isLow = cap < 100000
         const isCritical = cap < 50000
@@ -384,6 +384,12 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
           </div>
         )
       })()}
+      {/* 主力客群提示 */}
+      {location?.district && (
+        <div style={{ margin: '0 20px 8px', padding: '6px 12px', background: '#EFF6FF', borderRadius: 8, fontSize: 11, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 6 }}>
+          👥 决策时注意匹配 {location.district} 的主力客群偏好
+        </div>
+      )}
 
       {/* 18项能力点，按模块分组（未决策的排前面） */}
           {modules.map(mod => (
