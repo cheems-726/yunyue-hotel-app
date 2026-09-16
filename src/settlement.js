@@ -1,3 +1,5 @@
+import { COMPETITORS } from './siteLocations.mjs'
+
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
 // 客源强度 = 价格竞争力 × 口碑影响 × 促销/营销加成 × 市场波动 × 城市客流
@@ -105,7 +107,7 @@ export const EVENT_CONFIG = {
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
 export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0 }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
-  const s = site || {}
+const s = site || {}
 
   // 1. 城市客流系数（选址"客流"属性 1-5 → 0.5-1.5）
   const cityFlow = 0.5 + (s.客流 || 3) * 0.2
@@ -301,7 +303,25 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   addEvent({ type: 'crisis', icon: '📢', name: '负面舆情', text: '有客人在社交媒体发布差评帖子，开始被转发议论', impact: '口碑风险', tip: '及时回复差评可以防止舆情扩散' })
 }
 
-// 8. 营收（房量 × 出租率 × 房价）
+  // [7.8] 竞品AI动态调价（每个竞品根据侵略性决定本周策略）
+  const competitors = COMPETITORS[site?.district || ''] || []
+  let competitorPressure = 0
+  const competitorActions = competitors.map(c => {
+    // AI决策：根据侵略性和随机数决定行为
+    const roll = rand()
+    let action = 'hold'
+    let priceChange = 0
+    if (roll < c.aggression * 0.08) { action = '降价'; priceChange = -Math.round(c.basePrice * 0.1); competitorPressure += 0.04 }
+    else if (roll < c.aggression * 0.12) { action = '促销'; priceChange = -Math.round(c.basePrice * 0.15); competitorPressure += 0.06 }
+    else if (roll > 1 - c.aggression * 0.05) { action = '涨价'; priceChange = Math.round(c.basePrice * 0.08); competitorPressure -= 0.02 }
+    return { name: c.name, level: c.level, basePrice: c.basePrice, action, price: c.basePrice + priceChange }
+  })
+  // 竞品降价 → 客流被分流（出租率下降）
+  if (competitorPressure > 0) {
+    occupancy = Math.max(occupancy * (1 - competitorPressure), 0.2)
+  }
+
+  // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
   let occupiedRooms = Math.round(rooms * occupancy)
   const revenue = Math.round(occupiedRooms * price)
@@ -439,6 +459,8 @@ for (let i = 0; i < reviewCount; i++) {
     events,
     decisions: { ...decisions },
     eventFine,
+    competitors: competitorActions,
+    competitorPressure: +(competitorPressure * 100).toFixed(0),
     overbookCompensation,
     generatedReviews,
     weeklyExpenses,

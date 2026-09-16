@@ -158,6 +158,34 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           <div>💰 成本 {result.totalCost} 元</div>
           <div>⭐ 好评率 {result.goodRate}% → {result.finalGoodRate}%</div>
           <div>💬 本周 {result.reviewCount} 条评价，{result.negativeCount} 条差评</div>
+          {result.totalExpenses > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>本周成本构成（共 {result.totalExpenses.toLocaleString()} 元）</div>
+              {(() => {
+                const rooms = result.rooms || 70
+                const occupied = result.occupiedRooms || 0
+                const items = [
+                  { name: '固定成本', val: rooms * 65, color: '#818CF8' },
+                  { name: '人员工资', val: occupied * (result.decisions?.shifts === '满编保服务' ? 30 : result.decisions?.shifts === '精简省成本' ? 20 : 25), color: '#F472B6' },
+                  { name: '物料水电', val: occupied * 25, color: '#FBBF24' },
+                  { name: 'OTA佣金', val: result.decisions?.ota ? Math.round(result.revenue * 0.11) : 0, color: '#34D399' },
+                  { name: '营销推广', val: result.decisions?.campaign ? 5000 : 0, color: '#60A5FA' },
+                  { name: '维修/罚款', val: (result.eventFine || 0) + (result.overbookCompensation || 0), color: '#F87171' },
+                ].filter(x => x.val > 0)
+                return items.map(item => (
+                  <div key={item.name} style={{ marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9CA3AF' }}>
+                      <span>{item.name}</span>
+                      <span>{item.val.toLocaleString()} 元</span>
+                    </div>
+                    <div style={{ height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: Math.min((item.val / result.totalCost * 100), 100) + '%', background: item.color, borderRadius: 2 }} />
+                    </div>
+                  </div>
+                ))
+              })()}
+            </div>
+          )}
           {result.eventFine > 0 && <div style={{ color: '#DC2626' }}>🧯 事件罚款 {result.eventFine} 元（已计入成本）</div>}
           {result.overbookCompensation > 0 && <div style={{ color: '#DC2626' }}>🛏️ 超售到店无房赔偿 {result.overbookCompensation} 元</div>}
         </div>

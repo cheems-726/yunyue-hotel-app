@@ -41,3 +41,61 @@ export const districts = {
       good:'人口大县，成本极低', warn:'消费力弱，酒店市场未成熟' },
   ],
 }
+
+
+// 竞品酒店数据（每个区县的周边竞争对手）
+// level: 品牌档次 (budget=经济/mid=中端/upscale=中高端/luxury=高端)
+// basePrice: 基准房价
+// aggression: 侵略性 (1-5, 越高越积极调价)
+export const COMPETITORS = {
+  // 成都
+  '锦江区': [
+    { name: '亚朵酒店', level: 'upscale', basePrice: 450, aggression: 4 },
+    { name: '如家精选', level: 'mid', basePrice: 280, aggression: 3 },
+    { name: '7天连锁', level: 'budget', basePrice: 160, aggression: 5 },
+  ],
+  '高新区': [
+    { name: '希尔顿欢朋', level: 'upscale', basePrice: 420, aggression: 3 },
+    { name: '维也纳', level: 'mid', basePrice: 300, aggression: 4 },
+  ],
+  '武侯区': [
+    { name: '全季酒店', level: 'mid', basePrice: 350, aggression: 3 },
+    { name: '汉庭', level: 'budget', basePrice: 200, aggression: 4 },
+  ],
+  '青羊区': [
+    { name: '亚朵S', level: 'upscale', basePrice: 480, aggression: 2 },
+    { name: '如家商旅', level: 'mid', basePrice: 260, aggression: 3 },
+  ],
+  '金牛区': [
+    { name: '桔子酒店', level: 'mid', basePrice: 320, aggression: 3 },
+    { name: '锦江之星', level: 'budget', basePrice: 180, aggression: 3 },
+  ],
+  '龙泉驿区': [
+    { name: '尚客优', level: 'budget', basePrice: 150, aggression: 4 },
+  ],
+  '双流区': [
+    { name: '空港酒店', level: 'mid', basePrice: 240, aggression: 3 },
+  ],
+  '都江堰市': [
+    { name: '青城山度假酒店', level: 'upscale', basePrice: 500, aggression: 2 },
+    { name: '景区客栈', level: 'budget', basePrice: 120, aggression: 3 },
+  ],
+  '简阳市': [
+    { name: '天府机场快捷', level: 'budget', basePrice: 140, aggression: 3 },
+  ],
+  // 德阳
+  '旌阳区': [
+    { name: '德阳大酒店', level: 'mid', basePrice: 260, aggression: 2 },
+    { name: '速8酒店', level: 'budget', basePrice: 150, aggression: 3 },
+  ],
+  '绵竹市': [
+    { name: '绵竹宾馆', level: 'budget', basePrice: 130, aggression: 2 },
+  ],
+  '中江县': [
+    { name: '中江商务酒店', level: 'budget', basePrice: 100, aggression: 2 },
+  ],
+  '广汉市': [
+    { name: '三星堆酒店', level: 'mid', basePrice: 280, aggression: 3 },
+    { name: '广汉宾馆', level: 'budget', basePrice: 140, aggression: 2 },
+  ],
+}
