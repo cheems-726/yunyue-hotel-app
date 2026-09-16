@@ -482,6 +482,51 @@ function TrendChart({ history }) {
   )
 }
 
+// 累计利润盈亏平衡图：累计折线 + 0轴虚线 + 回本点高亮（教学：多久开始赚钱）
+function BreakEvenChart({ history }) {
+  const W = 320, H = 150, PL = 30, PR = 12, PT = 14, PB = 20
+  const n = history.length
+  const cum = []
+  let acc = 0
+  history.forEach(h => { acc += h.profit || 0; cum.push(acc) })
+  const lo = Math.min(0, ...cum), hi = Math.max(0, ...cum)
+  const span = (hi - lo) || 1
+  const xs = i => PL + i * (W - PL - PR) / Math.max(n - 1, 1)
+  const ys = v => H - PB - ((v - lo) / span) * (H - PT - PB)
+  const zeroY = ys(0)
+  const beIdx = cum.findIndex(v => v >= 0)
+  const breakeven = beIdx > 0 // 之前为负、之后转正才算"回本"
+  const labelAnchor = i => xs(i) < 55 ? 'start' : xs(i) > W - 55 ? 'end' : 'middle'
+  return (
+    <>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
+        <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+        <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4 3" />
+        <text x={W - PR} y={zeroY - 4} fontSize="8" fill="#9CA3AF" textAnchor="end">盈亏平衡线 0</text>
+        <polyline points={cum.map((v, i) => `${xs(i)},${ys(v)}`).join(' ')} fill="none" stroke="#E8940F" strokeWidth="2" strokeLinejoin="round" />
+        {cum.map((v, i) => (
+          <circle key={'c' + i} cx={xs(i)} cy={ys(v)} r="3" fill="#fff" stroke="#E8940F" strokeWidth="2" />
+        ))}
+        {breakeven && (
+          <>
+            <circle cx={xs(beIdx)} cy={ys(cum[beIdx])} r="4.5" fill="#10B981" stroke="#fff" strokeWidth="1.5" />
+            <text x={xs(beIdx)} y={ys(cum[beIdx]) - 9} fontSize="9" fontWeight="700" fill="#059669" textAnchor={labelAnchor(beIdx)}>第{history[beIdx].week}周回本</text>
+          </>
+        )}
+        {history.map((h, i) => (
+          <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="9" fill="#9CA3AF" textAnchor="middle">{h.week}周</text>
+        ))}
+        <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 累计利润</text>
+      </svg>
+      <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', marginTop: 4, color: breakeven ? '#059669' : acc >= 0 ? '#16A34A' : '#DC2626' }}>
+        {breakeven ? `🎉 第 ${history[beIdx].week} 周实现累计盈利，当前累计 ${acc.toLocaleString()} 元`
+          : acc >= 0 ? `持续盈利中，当前累计 ${acc.toLocaleString()} 元`
+          : `⏳ 尚未回本，当前累计 ${acc.toLocaleString()} 元`}
+      </div>
+    </>
+  )
+}
+
 // ===== 报表页 =====
 // KPI 环比小箭头（本周 vs 上周）
 function KpiDelta({ cur, prev, goodUp = true, unit = '' }) {
@@ -578,6 +623,15 @@ function Report({ report, week, history }) {
           <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '30px 0' }}>
             结算满 2 周后解锁趋势图
           </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">💰 累计利润 · 盈亏平衡</div>
+        {history.length > 0 ? (
+          <BreakEvenChart history={history} />
+        ) : (
+          <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
         )}
       </div>
 
