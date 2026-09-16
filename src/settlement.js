@@ -105,7 +105,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0 }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
 const s = site || {}
 
@@ -128,7 +128,17 @@ const s = site || {}
   else if (pricing === '降价 20% 抢客') { price = basePrice * 0.8; priceCompetitive = 1.3 }
   else if (pricing === '不跟降') { priceCompetitive = 0.8 }
 
-  // 2.5 收益管理（连住优惠稳出租 / 尾房闪购拉出租压价 / 组合套餐提价）
+  // [2.45] 开店模式引擎差异化（OTA加盟 vs 直营）
+let otaCommissionRate = 0
+if (bizMode === 'ota') {
+  otaCommissionRate = 0.15
+  priceCompetitive *= 1.2
+  if (pricing === '降价 20% 抢客') { priceCompetitive *= 0.9 }
+} else {
+  priceCompetitive *= 0.85
+}
+
+// 2.5 收益管理（连住优惠稳出租 / 尾房闪购拉出租压价 / 组合套餐提价）
   const revenueMgmt = decisions['revenue-mgmt']
   if (revenueMgmt === '连住优惠') { priceCompetitive *= 1.06 }
   else if (revenueMgmt === '尾房闪购') { price *= 0.93; priceCompetitive *= 1.12 }
@@ -375,8 +385,8 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   let variableCost = occupiedRooms * perRoomVariable
   // 营销成本 = 做活动才有额外支出
   let marketingCost = decisions.campaign ? 5000 : 0
-  // OTA 佣金（按营收 8-15%，取 11%）
-  const otaCommission = decisions.ota ? Math.round(revenue * 0.11) : 0
+  // OTA 佣金：加盟模式全营收抽成15%，直营只有投放OTA时才有11%佣金
+  const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.11) : 0)
   // 超售赔偿：到店无房按间赔偿（每间赔一晚房价）
   let overbookCompensation = 0
   if (overbook > 0) {
@@ -387,6 +397,18 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
 
   // 10. 利润
   const profit = revenue - totalCost
+
+// [10.5] 资金真实扣减 + 破产判定
+const initialCapital = 500000
+let capital = prevCapital != null ? prevCapital : initialCapital
+capital = capital + profit
+const isBankrupt = capital < 0
+const isWarning = !isBankrupt && capital < 50000
+if (isBankrupt) {
+  addEvent({ type: 'crisis', icon: '🚨', name: '资金链断裂', text: `资金降至 ${Math.round(capital).toLocaleString()} 元！立即削成本或贷款。`, impact: '破产风险', tip: '减少支出' })
+} else if (isWarning) {
+  addEvent({ type: 'bad', icon: '⚠️', name: '资金预警', text: `资金仅 ${Math.round(capital).toLocaleString()} 元。`, impact: '接近破产', tip: '控制成本' })
+}
 
 // 11. 评价生成
 const reviewCount = Math.round(occupiedRooms * 0.08)
@@ -488,6 +510,8 @@ for (let i = 0; i < reviewCount; i++) {
     events,
     decisions: { ...decisions },
     eventFine,
+    capital: Math.round(capital),
+    isBankrupt, isWarning, bizMode,
     competitors: competitorActions,
     competitorPressure: +(competitorPressure * 100).toFixed(0),
     persona, personaBonus: +(personaBonus * 100).toFixed(1), personaFeedback,

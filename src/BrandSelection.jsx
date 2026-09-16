@@ -91,6 +91,11 @@ export default function BrandSelection({ onConfirm }) {
       <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, fontSize: 10, color: '#9A3412', lineHeight: 1.6 }}>
         ⚠️ 免责声明：本系统中的酒店价格为<b>模拟经营数据</b>，仅供教学演示使用，不代表实际市场定价。实际投资需以专业可行性调研为准。
       </div>
+      {location && maxTier < 5 && (
+        <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 11, color: '#991B1B' }}>
+          🚫 {location.district}（客流{flow}档）限开：{maxTier === 1 ? '仅经济型品牌' : '经济型～中端型品牌'}，高端品牌在此区域必亏
+        </div>
+      )}
 
       <div className="district-list">
         {brandGroups.map(g => (
