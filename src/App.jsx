@@ -455,29 +455,34 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
 // 双折线趋势图（SVG 手绘：出租率琥珀线 + 利润蓝线，零依赖）
 function TrendChart({ history }) {
   const W = 320, H = 130, PL = 26, PR = 12, PT = 12, PB = 20
+  const TOTAL = 12
   const n = history.length
-  const xs = i => PL + i * (W - PL - PR) / Math.max(n - 1, 1)
-  const mk = (arr) => {
-    const min = Math.min(...arr), max = Math.max(...arr)
+  const xs = i => PL + i * (W - PL - PR) / (TOTAL - 1)
+  const pts = arr => {
+    const vals = arr.map(o => o.v)
+    const min = Math.min(...vals), max = Math.max(...vals)
     const span = (max - min) || 1
-    return arr.map((v, i) => ({ x: xs(i), y: H - PB - ((v - min) / span) * (H - PT - PB), v }))
+    return arr.map(o => ({ x: xs(o.slot), y: H - PB - ((o.v - min) / span) * (H - PT - PB), v: o.v }))
   }
-  const occ = mk(history.map(h => h.occupancy))
-  const prof = mk(history.map(h => +(h.profit / 10000).toFixed(2)))
-  const line = pts => pts.map(p => `${p.x},${p.y}`).join(' ')
+  const occ = pts(history.map(h => ({ v: h.occupancy, slot: Math.min(h.week || 1, TOTAL) - 1 })))
+  const prof = pts(history.map(h => ({ v: +(h.profit / 10000).toFixed(2), slot: Math.min(h.week || 1, TOTAL) - 1 })))
+  const line = p => p.map(q => `${q.x},${q.y}`).join(' ')
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
       <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
-      {occ.map((p, i) => <line key={'g' + i} x1={p.x} y1={p.y} x2={p.x} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />)}
+      {Array.from({ length: TOTAL }, (_, i) => (
+        <line key={'g' + i} x1={xs(i)} y1={PT} x2={xs(i)} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+      ))}
       <polyline points={line(occ)} fill="none" stroke="#E8940F" strokeWidth="2" strokeLinejoin="round" />
       <polyline points={line(prof)} fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinejoin="round" />
       {occ.map((p, i) => <circle key={'o' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#E8940F" strokeWidth="2" />)}
       {prof.map((p, i) => <circle key={'p' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#3B82F6" strokeWidth="2" />)}
-      {history.map((h, i) => (
-        <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="9" fill="#9CA3AF" textAnchor="middle">{h.week}周</text>
+      {Array.from({ length: TOTAL }, (_, i) => (
+        <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="8" fill={i < n ? '#9CA3AF' : '#D1D5DB'} textAnchor="middle">{i + 1}</text>
       ))}
       <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 出租率%</text>
       <text x={PL + 62} y={9} fontSize="9" fill="#3B82F6">■ 利润(万)</text>
+      {n < TOTAL && <text x={W - PR} y={9} fontSize="9" fill="#D1D5DB" textAnchor="end">还剩 {TOTAL - n} 周</text>}
     </svg>
   )
 }
