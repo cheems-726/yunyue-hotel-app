@@ -4,6 +4,8 @@ import { decisions as ALL_DECISIONS } from './decisions.js'
 
 const DECISION_NAMES_MAP = Object.fromEntries(ALL_DECISIONS.map(d => [d.id, d]))
 
+// 周内组件：WeeklyReport 每次结算重新挂载，tipOpen 用模块级 useRef 不可行——放组件内
+
 // 数字滚动动画（count-up，缓出曲线）
 function useCountUp(target, dur = 800) {
   const [v, setV] = useState(0)
@@ -81,6 +83,7 @@ function CrisisCard({ event, week }) {
 export default function WeeklyReport({ result, onClose, history = [], brand = {} }) {
   const isProfit = result.profit >= 0
   const [copied, setCopied] = useState(false)
+  const [tipOpen, setTipOpen] = useState(null) // 决策摘要展开的 tip 行
   // 称号变化检测：结算前 vs 结算后（晋升时刻/降级警示）
   const qualityOf = (lv) => lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
   const quality = qualityOf(brand?.level || '')
@@ -241,18 +244,29 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         })()}
       </div>
 
-      {/* 本周决策摘要 */}
+      {/* 本周决策摘要（点击行展开该决策的设计考量） */}
       {result.decisions && Object.keys(result.decisions).filter(k => !k.startsWith('__')).length > 0 && (
         <div className="card">
           <div className="card-title">📋 本周决策摘要（{Object.keys(result.decisions).filter(k => !k.startsWith('__')).length}/18 项）</div>
           {Object.entries(result.decisions).filter(([k]) => !k.startsWith('__')).map(([id, val]) => {
             const d = DECISION_NAMES_MAP[id]
+            const expanded = tipOpen === id
             return (
-              <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid #F9FAFB', fontSize: 11 }}>
-                <span style={{ color: '#6B7280', flexShrink: 0 }}>{d ? `${d.icon} ${d.name}` : id}</span>
-                <span style={{ fontWeight: 600, color: '#374151', textAlign: 'right', marginLeft: 8 }}>
-                  {typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 3).join('＞') : Object.entries(val).map(([k, v]) => `${k}:${v}`).join('、')) : String(val)}
-                </span>
+              <div key={id} style={{ borderBottom: '1px solid #F9FAFB' }}>
+                <div
+                  onClick={() => d && d.tip && setTipOpen(expanded ? null : id)}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: 11, cursor: d && d.tip ? 'pointer' : 'default' }}
+                >
+                  <span style={{ color: '#6B7280', flexShrink: 0 }}>{d ? `${d.icon} ${d.name}` : id}{d && d.tip && <span style={{ fontSize: 9, color: '#D1D5DB', marginLeft: 4 }}>{expanded ? '▲' : '💡'}</span>}</span>
+                  <span style={{ fontWeight: 600, color: '#374151', textAlign: 'right', marginLeft: 8 }}>
+                    {typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 3).join('＞') : Object.entries(val).map(([k, v]) => `${k}:${v}`).join('、')) : String(val)}
+                  </span>
+                </div>
+                {expanded && d && d.tip && (
+                  <div style={{ fontSize: 10, color: '#1E40AF', background: '#EFF6FF', borderRadius: 6, padding: '5px 8px', marginBottom: 5, lineHeight: 1.6 }}>
+                    💡 设计考量：{d.tip}
+                  </div>
+                )}
               </div>
             )
           })}

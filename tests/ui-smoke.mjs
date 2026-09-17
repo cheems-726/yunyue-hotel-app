@@ -297,8 +297,15 @@ try {
   }
   // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
   {
-    const { pg, body } = await cloudLogin('我是学生', '2025', '123456')
-    const loggedIn = !body.includes('账号或密码错误') && !body.includes('学生登录')
+    let stu = await cloudLogin('我是学生', '2025', '123456')
+    let loggedIn = !stu.body.includes('账号或密码错误') && !stu.body.includes('学生登录')
+    if (!loggedIn) { // 跨国网络偶发抖动，重试一次
+      try { await stu.pg.close() } catch (e) {}
+      await sleep(3000)
+      stu = await cloudLogin('我是学生', '2025', '123456')
+      loggedIn = !stu.body.includes('账号或密码错误') && !stu.body.includes('学生登录')
+    }
+    const { pg, body } = stu
     if (loggedIn) {
       await pg.evaluate(() => {
         const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('开始我的酒店之旅'))
