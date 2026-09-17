@@ -29,46 +29,65 @@ function phaseOf(h) {
   return { name: '深夜值守', window: '23:00-00:00', checkout: 0, checkin: 0, curve: 0.97, speed: 10000 }
 }
 
-// 按时段生成一条运营动态（真实作息语义）
-function genEvent(phase, rooms) {
+// 按时段生成一条运营动态：{ text, amt }（amt=资金流水，0 为服务性事件不进流水）
+function genEvent(phase, rooms, price) {
   const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
   const roll = Math.random()
   const h = new Date().getHours()
-  if (phase.checkout > 0 && roll < 0.4) {
-    return `🧳 ${fmtTime()} · ${room}房客人退房，钥匙已交前台（12:00 前退房）`
+  const roomFee = () => Math.round(price * (0.85 + Math.random() * 0.3))
+  if (phase.checkout > 0 && roll < 0.42) {
+    return { text: `🧳 ${fmtTime()} · ${room}房退房结账（12:00 前退房）`, amt: roomFee() }
   }
-  if (phase.checkout > 0 && roll < 0.55) {
-    return `🧹 ${fmtTime()} · 客房部抢清 ${2 + Math.floor(Math.random() * 6)} 间退房客房`
+  if (phase.checkout > 0 && roll < 0.58) {
+    return { text: `🧹 ${fmtTime()} · 客房部抢清 ${2 + Math.floor(Math.random() * 6)} 间退房客房`, amt: 0 }
   }
-  if (phase.checkin > 0 && roll < 0.45) {
+  if (phase.checkin > 0 && roll < 0.42) {
     const mix = ['商务出差', '家庭出游', '旅行散客', '会议客人']
-    return `🛎️ ${fmtTime()} · ${room}房办理入住（14:00 后）· ${mix[Math.floor(Math.random() * mix.length)]}客人`
+    return { text: `🛎️ ${fmtTime()} · ${room}房办理入住（14:00 后）· ${mix[Math.floor(Math.random() * mix.length)]}客人`, amt: roomFee() }
   }
   if (phase.checkin > 0 && roll < 0.55) {
-    return `🛄 ${fmtTime()} · 提前到店客人的行李已寄存前台`
+    return { text: `🛄 ${fmtTime()} · 提前到店客人的行李已寄存前台`, amt: 0 }
   }
   if (h >= 23 || h < 6) {
-    if (roll < 0.3) return `🌙 ${fmtTime()} · 夜班保安巡场完毕，楼层安静`
-    if (roll < 0.5) return `🔦 ${fmtTime()} · 夜班前台处理 1 起深夜到店入住`
-    if (roll < 0.7) return `🔧 ${fmtTime()} · 值班工程师完成锅炉房夜间巡检`
-    return `🌃 ${fmtTime()} · 出租率保持稳定，夜班一切正常`
+    if (roll < 0.3) return { text: `🌙 ${fmtTime()} · 夜班保安巡场完毕，楼层安静`, amt: 0 }
+    if (roll < 0.55) return { text: `🔦 ${fmtTime()} · 夜班前台接待 1 位深夜到店客人`, amt: Math.round(price * 0.9) }
+    if (roll < 0.75) return { text: `🔧 ${fmtTime()} · 值班工程师完成锅炉房夜间巡检`, amt: 0 }
+    return { text: `🌃 ${fmtTime()} · 出租率保持稳定，夜班一切正常`, amt: 0 }
   }
-  if (roll < 0.35) return `🧹 ${fmtTime()} · 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`
-  if (roll < 0.45) return `🔧 ${fmtTime()} · 工程部完成 ${room}房设备巡检`
-  if (roll < 0.55) return `💬 ${fmtTime()} · 前台收到客人口头表扬 · 服务亲切`
-  if (roll < 0.65) return `💳 ${fmtTime()} · 前台为 ${room}房客人办理押金退还`
-  if (roll < 0.72) return `⭐ ${fmtTime()} · 前台转化 1 名会员 · 赠送欢迎水果`
-  if (roll < 0.79) return `📞 ${fmtTime()} · 商务客人来电咨询长租协议价`
-  if (roll < 0.86) return `🍳 ${fmtTime()} · 餐厅更新明日早餐菜单（6:30-10:00）`
-  return `🚕 ${fmtTime()} · 前台为退房客人叫车，行李已协助搬运`
+  if (roll < 0.3) return { text: `🧹 ${fmtTime()} · 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 }
+  if (roll < 0.38) return { text: `🔧 ${fmtTime()} · ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) }
+  if (roll < 0.46) return { text: `💬 ${fmtTime()} · 前台收到客人口头表扬 · 服务亲切`, amt: 0 }
+  if (roll < 0.53) return { text: `💳 ${fmtTime()} · 为 ${room}房客人退还押金`, amt: -100 }
+  if (roll < 0.6) return { text: `⭐ ${fmtTime()} · 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 }
+  if (roll < 0.67) return { text: `📞 ${fmtTime()} · 商务客人来电咨询长租协议价`, amt: 0 }
+  if (roll < 0.73) return { text: `🛒 ${fmtTime()} · 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) }
+  if (roll < 0.79) return { text: `🍬 ${fmtTime()} · 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) }
+  if (roll < 0.85) return { text: `😤 ${fmtTime()} · 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) }
+  if (roll < 0.91) return { text: `🍳 ${fmtTime()} · 餐厅备餐（明日早餐 6:30-10:00）`, amt: 0 }
+  return { text: `🚕 ${fmtTime()} · 前台协助退房客人叫车搬运行李`, amt: 0 }
 }
 
-// 实时动态流：按当前时段的事件池生成，深夜自动降频
-function LiveFeed({ occupiedRooms }) {
+// 实时动态流 + 今日资金流水（同源联动；按当前时段事件池生成，深夜自动降频）
+function LiveFeed({ occupiedRooms, price }) {
   const [feed, setFeed] = useState([])
+  const [flow, setFlow] = useState({ income: 0, expense: 0 })
   useEffect(() => {
     const rooms = Math.max(occupiedRooms, 8)
-    const push = () => setFeed(f => [genEvent(phaseOf(new Date().getHours()), rooms), ...f].slice(0, 4))
+    const p = price || 230
+    // 回放今天已发生的量级估算（按作息：白天退房入账为主，14点后入住入账）
+    const nowH = new Date().getHours()
+    let inc = 0, exp = 0
+    // 口径：日房费收入 ≈ 在店间数 × 房价（与引擎出租率口径一致）
+    if (nowH >= 6) { inc += occupiedRooms * p * 0.5; exp += 120 + (occupiedRooms % 7) * 30 }
+    if (nowH >= 14) { inc += occupiedRooms * p * 0.35 }
+    if (nowH >= 20) { inc += occupiedRooms * p * 0.1; exp += 200 }
+    setFlow({ income: Math.round(inc), expense: Math.round(exp) })
+    const push = () => {
+      const ev = genEvent(phaseOf(new Date().getHours()), rooms, p)
+      setFeed(f => [ev.text, ...f].slice(0, 4))
+      if (ev.amt > 0) setFlow(fl => ({ ...fl, income: fl.income + ev.amt }))
+      else if (ev.amt < 0) setFlow(fl => ({ ...fl, expense: fl.expense - ev.amt }))
+    }
     push(); push()
     let timer
     const loop = () => {
@@ -77,10 +96,24 @@ function LiveFeed({ occupiedRooms }) {
     }
     timer = setTimeout(loop, 4000)
     return () => clearTimeout(timer)
-  }, [occupiedRooms])
+  }, [occupiedRooms, price])
 
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
+        <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>+{flow.income.toLocaleString()}</div>
+          <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日入账</div>
+        </div>
+        <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>-{flow.expense.toLocaleString()}</div>
+          <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日支出</div>
+        </div>
+        <div style={{ background: '#EFF6FF', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: flow.income - flow.expense >= 0 ? '#1D4ED8' : '#DC2626' }}>{flow.income - flow.expense >= 0 ? '+' : ''}{(flow.income - flow.expense).toLocaleString()}</div>
+          <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日净流入</div>
+        </div>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>📡 实时运营动态</span>
         <span style={{ fontSize: 9, color: '#9CA3AF' }}>按真实时间发生 · 退房12点前 · 入住14点后</span>
@@ -90,6 +123,7 @@ function LiveFeed({ occupiedRooms }) {
           {f}
         </div>
       ))}
+      <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6, textAlign: 'center' }}>今日流水为抽样估算，实际收支以每周结算为准</div>
     </div>
   )
 }
@@ -172,7 +206,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         <div style={{ marginTop: 10, padding: '8px 12px', background: '#FFF4E0', borderRadius: 10, fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center' }}>
           📅 今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
         </div>
-        <LiveFeed occupiedRooms={6} />
+        <LiveFeed occupiedRooms={6} price={230} />
         <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '10px 0 4px', lineHeight: 1.8 }}>
           属性面板将在首次周结算后解锁<br />
           届时可实时查看：口碑分 / 好评率 / 满意度 / 出租率 / 品质分
@@ -244,7 +278,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         </div>
       ))}
 
-      <LiveFeed occupiedRooms={occRooms} />
+      <LiveFeed occupiedRooms={occRooms} price={report?.price || 230} />
 
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周
