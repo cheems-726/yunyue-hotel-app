@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
+import { negativeTexts, positiveTexts, guestNames } from './settlement.js'
 
 // 差评数据（含处理状态）
 const initialReviews = [
@@ -39,6 +40,25 @@ export default function Reputation({ report, history }) {
   const [replyText, setReplyText] = useState('') // 自由输入的话术
   const [showIgnored, setShowIgnored] = useState(false) // 忽略区折叠
   const [feedback, setFeedback] = useState(null)
+
+  // 口碑是流动的：处理完一条评价后，有概率有新客人发布评价（好评率越高新好评越多）
+  function spawnRelated() {
+    const goodPct = (latest ? latest.finalGoodRate : 70) / 100
+    const roll = Math.random()
+    const isGood = roll < goodPct
+    const name = guestNames[Math.floor(Math.random() * guestNames.length)]
+    const now = new Date()
+    const hh = String(now.getHours()).padStart(2, '0')
+    const mm = String(now.getMinutes()).padStart(2, '0')
+    const nid = 'flow-' + Date.now()
+    setReviews(reviews => [...reviews, {
+      id: nid, avatar: isGood ? '👩' : '🧑', bg: isGood ? 'green' : 'blue',
+      name, date: `刚刚 ${hh}:${mm}`,
+      stars: isGood ? 5 : (Math.random() < 0.5 ? 1 : 2),
+      text: isGood ? positiveTexts[Math.floor(Math.random() * positiveTexts.length)] : negativeTexts[Math.floor(Math.random() * negativeTexts.length)],
+      status: isGood ? 'good' : 'pending',
+    }])
+  }
 
   // 持久化差评处理状态
   useEffect(() => {
@@ -106,6 +126,7 @@ export default function Reputation({ report, history }) {
       changes: [reaction, { label: '差评处理率', value: newRate + '%', dir: 'up' }, { label: '负面影响', value: tier === 'fair' ? '部分生效' : '减半', dir: 'up' }],
       note: tier === 'excellent' ? '道歉、补偿、解决措施、时效全都到位——教科书级的差评回复。' : tier === 'good' ? '有诚意、有措施，客人的情绪基本被安抚。' : '解决了，但缺少让人回头的诚意。',
     })
+    if (Math.random() < 0.5) setTimeout(spawnRelated, 2500) // 口碑流动：处理妥当后新客人发布评价
   }
 
   function handleResolve(r) {
@@ -119,6 +140,7 @@ export default function Reputation({ report, history }) {
       ],
       note: '整改完成，差评转为已解决。差评处理率直接影响最终评分（占15%权重）。',
     })
+    if (Math.random() < 0.4) setTimeout(spawnRelated, 2500)
   }
 
   function handleIgnore(r) {

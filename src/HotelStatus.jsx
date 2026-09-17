@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { getTitle } from './hotelTitle.js'
 
-// 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态
-// 真实规则：退房 12:00 前 / 入住 14:00 后；事件类型和在店人数都跟随现实时钟
+// 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
+// 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按"游戏内时间片"（15/30/60分钟）推进
 const OPENING = { month: 3, day: 1 }
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
@@ -14,9 +14,9 @@ function simDate(week) {
   return { text: `${d.getMonth() + 1}月${d.getDate()}日`, weekday: WEEKDAYS[today.getDay()] }
 }
 
-function fmtTime() {
-  const n = new Date()
-  return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`
+function fmtGameClock(mins) {
+  const m = ((mins % 1440) + 1440) % 1440
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
 
 // 运营时段（真实酒店作息）：事件权重 + 在店人数曲线 + 时段标签
@@ -29,72 +29,92 @@ function phaseOf(h) {
   return { name: '深夜值守', window: '23:00-00:00', checkout: 0, checkin: 0, curve: 0.97, speed: 10000 }
 }
 
-// 按时段生成一条运营动态：{ text, amt }（amt=资金流水，0 为服务性事件不进流水）
-function genEvent(phase, rooms, price) {
-  const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
-  const roll = Math.random()
-  const h = new Date().getHours()
-  const roomFee = () => Math.round(price * (0.85 + Math.random() * 0.3))
-  if (phase.checkout > 0 && roll < 0.42) {
-    return { text: `🧳 ${fmtTime()} · ${room}房退房结账（12:00 前退房）`, amt: roomFee() }
-  }
-  if (phase.checkout > 0 && roll < 0.58) {
-    return { text: `🧹 ${fmtTime()} · 客房部抢清 ${2 + Math.floor(Math.random() * 6)} 间退房客房`, amt: 0 }
-  }
-  if (phase.checkin > 0 && roll < 0.42) {
-    const mix = ['商务出差', '家庭出游', '旅行散客', '会议客人']
-    return { text: `🛎️ ${fmtTime()} · ${room}房办理入住（14:00 后）· ${mix[Math.floor(Math.random() * mix.length)]}客人`, amt: roomFee() }
-  }
-  if (phase.checkin > 0 && roll < 0.55) {
-    return { text: `🛄 ${fmtTime()} · 提前到店客人的行李已寄存前台`, amt: 0 }
-  }
-  if (h >= 23 || h < 6) {
-    if (roll < 0.3) return { text: `🌙 ${fmtTime()} · 夜班保安巡场完毕，楼层安静`, amt: 0 }
-    if (roll < 0.55) return { text: `🔦 ${fmtTime()} · 夜班前台接待 1 位深夜到店客人`, amt: Math.round(price * 0.9) }
-    if (roll < 0.75) return { text: `🔧 ${fmtTime()} · 值班工程师完成锅炉房夜间巡检`, amt: 0 }
-    return { text: `🌃 ${fmtTime()} · 出租率保持稳定，夜班一切正常`, amt: 0 }
-  }
-  if (roll < 0.3) return { text: `🧹 ${fmtTime()} · 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 }
-  if (roll < 0.38) return { text: `🔧 ${fmtTime()} · ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) }
-  if (roll < 0.46) return { text: `💬 ${fmtTime()} · 前台收到客人口头表扬 · 服务亲切`, amt: 0 }
-  if (roll < 0.53) return { text: `💳 ${fmtTime()} · 为 ${room}房客人退还押金`, amt: -100 }
-  if (roll < 0.6) return { text: `⭐ ${fmtTime()} · 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 }
-  if (roll < 0.67) return { text: `📞 ${fmtTime()} · 商务客人来电咨询长租协议价`, amt: 0 }
-  if (roll < 0.73) return { text: `🛒 ${fmtTime()} · 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) }
-  if (roll < 0.79) return { text: `🍬 ${fmtTime()} · 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) }
-  if (roll < 0.85) return { text: `😤 ${fmtTime()} · 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) }
-  if (roll < 0.91) return { text: `🍳 ${fmtTime()} · 餐厅备餐（明日早餐 6:30-10:00）`, amt: 0 }
-  return { text: `🚕 ${fmtTime()} · 前台协助退房客人叫车搬运行李`, amt: 0 }
+// 房型结构（按总房数比例切分；套房价格溢价最高——匹配其更大面积与成本）
+function roomTypes(total, basePrice) {
+  const big = Math.round(total * 0.5)
+  const twin = Math.round(total * 0.35)
+  const suite = total - big - twin
+  return [
+    { name: '大床房', total: big, price: Math.round(basePrice * 0.9), occRate: 0.9 },
+    { name: '标准双床', total: twin, price: Math.round(basePrice * 1.0), occRate: 0.75 },
+    { name: '套房', total: suite, price: Math.round(basePrice * 1.8), occRate: 0.5 },
+  ]
 }
 
-// 实时动态流 + 今日资金流水（同源联动；按当前时段事件池生成，深夜自动降频）
+// 按游戏内时刻生成一条运营动态：{ clock, text, amt }（amt=资金流水，0 为服务性事件）
+function genEvent(gameMin, phase, price) {
+  const roll = Math.random()
+  const clockTag = fmtGameClock(gameMin)
+  const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
+  const roomFee = () => Math.round(price * (0.85 + Math.random() * 0.3))
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)]
+  const h = Math.floor(((gameMin % 1440) + 1440) % 1440 / 60)
+  if (phase.checkout > 0 && roll < 0.42) {
+    return { clock: clockTag, text: `🧳 ${room}房退房结账（12:00 前退房）`, amt: roomFee() }
+  }
+  if (phase.checkout > 0 && roll < 0.58) {
+    return { clock: clockTag, text: `🧹 客房部抢清 ${2 + Math.floor(Math.random() * 6)} 间退房客房`, amt: 0 }
+  }
+  if (phase.checkin > 0 && roll < 0.42) {
+    return { clock: clockTag, text: `🛎️ ${room}房办理入住（14:00 后）· ${pick(['商务出差', '家庭出游', '旅行散客', '会议客人'])}客人`, amt: roomFee() }
+  }
+  if (phase.checkin > 0 && roll < 0.55) {
+    return { clock: clockTag, text: `🛄 提前到店客人的行李已寄存前台`, amt: 0 }
+  }
+  if (h >= 23 || h < 6) {
+    if (roll < 0.3) return { clock: clockTag, text: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 }
+    if (roll < 0.55) return { clock: clockTag, text: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(price * 0.9) }
+    if (roll < 0.75) return { clock: clockTag, text: `🔧 值班工程师完成锅炉房夜间巡检`, amt: 0 }
+    return { clock: clockTag, text: `🌃 出租率保持稳定，夜班一切正常`, amt: 0 }
+  }
+  if (roll < 0.3) return { clock: clockTag, text: `🧹 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 }
+  if (roll < 0.38) return { clock: clockTag, text: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) }
+  if (roll < 0.46) return { clock: clockTag, text: `💬 前台收到客人口头表扬 · 服务亲切`, amt: 0 }
+  if (roll < 0.53) return { clock: clockTag, text: `💳 为 ${room}房客人退还押金`, amt: -100 }
+  if (roll < 0.6) return { clock: clockTag, text: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 }
+  if (roll < 0.67) return { clock: clockTag, text: `📞 商务客人来电咨询长租协议价`, amt: 0 }
+  if (roll < 0.73) return { clock: clockTag, text: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) }
+  if (roll < 0.79) return { clock: clockTag, text: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) }
+  if (roll < 0.85) return { clock: clockTag, text: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) }
+  if (roll < 0.91) return { clock: clockTag, text: `🍳 餐厅备餐（明日早餐 6:30-10:00）`, amt: 0 }
+  return { clock: clockTag, text: `🚕 前台协助退房客人叫车搬运行李`, amt: 0 }
+}
+
+// 实时运营流：按"游戏内时间片"（15/30/60 分钟）推进，一条动态代表一个时间片
 function LiveFeed({ occupiedRooms, price }) {
   const [feed, setFeed] = useState([])
   const [flow, setFlow] = useState({ income: 0, expense: 0 })
+  const [gameMin, setGameMin] = useState(() => {
+    const n = new Date()
+    return n.getHours() * 60 + n.getMinutes()
+  })
   useEffect(() => {
     const rooms = Math.max(occupiedRooms, 8)
     const p = price || 230
     // 回放今天已发生的量级估算（按作息：白天退房入账为主，14点后入住入账）
     const nowH = new Date().getHours()
     let inc = 0, exp = 0
-    // 口径：日房费收入 ≈ 在店间数 × 房价（与引擎出租率口径一致）
     if (nowH >= 6) { inc += occupiedRooms * p * 0.5; exp += 120 + (occupiedRooms % 7) * 30 }
     if (nowH >= 14) { inc += occupiedRooms * p * 0.35 }
     if (nowH >= 20) { inc += occupiedRooms * p * 0.1; exp += 200 }
     setFlow({ income: Math.round(inc), expense: Math.round(exp) })
-    const push = () => {
-      const ev = genEvent(phaseOf(new Date().getHours()), rooms, p)
-      setFeed(f => [ev.text, ...f].slice(0, 4))
-      if (ev.amt > 0) setFlow(fl => ({ ...fl, income: fl.income + ev.amt }))
-      else if (ev.amt < 0) setFlow(fl => ({ ...fl, expense: fl.expense - ev.amt }))
-    }
-    push(); push()
     let timer
     const loop = () => {
-      push()
-      timer = setTimeout(loop, phaseOf(new Date().getHours()).speed)
+      // 游戏内时钟前进 15/30/60 分钟一档（随机），生成该时间片的运营事件
+      const step = [15, 30, 60][Math.floor(Math.random() * 3)]
+      setGameMin(m => {
+        const next = m + step
+        const ph = phaseOf(Math.floor(((next % 1440) + 1440) % 1440 / 60))
+        const ev = genEvent(next, ph, p)
+        setFeed(f => [`🕐 [${ev.clock}] ${ev.text}`, ...f].slice(0, 4))
+        if (ev.amt > 0) setFlow(fl => ({ ...fl, income: fl.income + ev.amt }))
+        else if (ev.amt < 0) setFlow(fl => ({ ...fl, expense: fl.expense - ev.amt }))
+        return next
+      })
+      // 现实 25~40 秒 = 游戏内一个时间片
+      timer = setTimeout(loop, 25000 + Math.floor(Math.random() * 15000))
     }
-    timer = setTimeout(loop, 4000)
+    timer = setTimeout(loop, 6000)
     return () => clearTimeout(timer)
   }, [occupiedRooms, price])
 
@@ -116,7 +136,7 @@ function LiveFeed({ occupiedRooms, price }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>📡 实时运营动态</span>
-        <span style={{ fontSize: 9, color: '#9CA3AF' }}>按真实时间发生 · 退房12点前 · 入住14点后</span>
+        <span style={{ fontSize: 9, color: '#9CA3AF' }}>游戏内每 15/30/60 分钟一个时间片</span>
       </div>
       {feed.map((f, i) => (
         <div key={f + i} style={{ fontSize: 10, color: i === 0 ? '#374151' : '#9CA3AF', padding: '3px 0', lineHeight: 1.5, opacity: 1 - i * 0.18 }}>
@@ -140,9 +160,13 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   // 模拟日历 + 时钟驱动的入住情况
   const rooms = report?.rooms || (property?.rooms && Number(property.rooms.match(/(\d+)/)?.[1])) || 70
   const occRooms = report?.occupiedRooms || (history.length ? history[history.length - 1].occupiedRooms : 0) || Math.round(rooms * occupancy / 100)
+  const price = report?.price || 230
   const seed = week * 7 + (new Date().getDate())
 
-  // 时钟驱动状态：在店人数沿时段曲线浮动；今日已退房/已入住按现实时刻累计
+  // 房型结构（大床50% / 双床35% / 套房15%，套房溢价最高）
+  const types = useMemo(() => roomTypes(rooms, price), [rooms, price])
+
+  // 时钟驱动状态：在店人数沿时段曲线浮动
   const [clock, setClock] = useState(new Date())
   const [liveGuests, setLiveGuests] = useState(null)
   const [walkinCount, setWalkinCount] = useState(0)
@@ -153,22 +177,19 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   const phase = phaseOf(clock.getHours())
   const dayProgress = clock.getHours() + clock.getMinutes() / 60
 
-  // 基准在店人数（晚满、早空的日曲线 × 满租在店）
   const fullGuests = occRooms * 2 - 3
   const targetGuests = Math.max(2, Math.round(fullGuests * phase.curve))
   useEffect(() => {
-    // 目标变化（时段切换）时直接贴合，之后 4 秒一次微波动
     setLiveGuests(targetGuests)
     const timer = setInterval(() => {
       setLiveGuests(g => {
         const next = g + (Math.random() < 0.5 ? -1 : 1)
         return Math.max(targetGuests - 3, Math.min(targetGuests + 3, next))
       })
-    }, 4000)
+    }, 6000)
     return () => clearInterval(timer)
   }, [targetGuests])
 
-  // 已退房/已入住按时刻推算（真实规则）：退房 6-12 点线性发生，入住 14-22 点线性发生
   const checkoutDone = phase.name === '退房高峰'
     ? Math.round(occRooms * 0.4 * ((dayProgress - 6) / 6))
     : dayProgress >= 12 ? Math.round(occRooms * 0.4) : 0
@@ -187,6 +208,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   const hasData = report || history.length > 0
   const title = getTitle(occupancy, goodRate, quality)
   const dateInfo = useMemo(() => simDate(week), [week])
+
   const roomsCell = [
     { l: '今日已退房', v: checkoutDone + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
     { l: '今日已入住', v: dayProgress >= 14 ? checkinDone + ' 间' : '未开始', c: '#16A34A', sub: dayProgress >= 14 ? '14:00 后办理' : '14:00 开办入住' },
@@ -232,7 +254,6 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         </span>
       </div>
 
-      {/* 模拟日历 + 运营时段 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF4E0', borderRadius: 10, padding: '7px 12px', marginBottom: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>📅 今天是 {dateInfo.text}（{dateInfo.weekday}）</span>
         <span style={{ fontSize: 10, color: '#9CA3AF' }}>第 {week} 周 · 开业第 {(week - 1) * 7 + new Date().getDay() + 1} 天</span>
@@ -256,7 +277,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         </div>
       </div>
 
-      {/* 今日入住情况（按时钟语义变化） */}
+      {/* 今日入住情况 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
         {roomsCell.map(s => (
           <div key={s.l} style={{ background: '#fff', borderRadius: 10, padding: '8px 10px' }}>
@@ -278,7 +299,22 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         </div>
       ))}
 
-      <LiveFeed occupiedRooms={occRooms} price={report?.price || 230} />
+      {/* 房型结构（档次越高价格越高，匹配成本） */}
+      <div style={{ marginTop: 4 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>🛏️ 房型结构（共 {rooms} 间）</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+          {types.map(tp => (
+            <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{tp.name}</div>
+              <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700 }}>{tp.price}元/晚</div>
+              <div style={{ fontSize: 9, color: '#9CA3AF' }}>{tp.total} 间 · 在店 {Math.round(tp.total * tp.occRate)}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
+      </div>
+
+      <LiveFeed occupiedRooms={occRooms} price={price} />
 
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周
