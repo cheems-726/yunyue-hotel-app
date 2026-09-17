@@ -59,7 +59,8 @@ declare
   v_crisis text;
   v_review_status jsonb;
   v_r double precision;
-  v_neg_texts text[] := array['「隔音太差了，隔壁半夜看电视听得一清二楚，完全没睡好。」','「前台办理入住等了半小时，体验很差。」','「房间卫生一般，床品有异味，期望落差大。」','「空调忽冷忽热，半夜被冻醒。」','「热水等了十分钟才来，洗澡体验差。」','「网络太慢，视频会议都开不了。」','「停车场要绕很远，前台也说不清楚。」','「房间设施老旧，和网上照片差距太大。」'];
+  v_neg_texts text[] := array['「隔音太差了，隔壁半夜看电视听得一清二楚，完全没睡好。」','「网络太慢，视频会议都开不了。」','「热水等了十分钟才来，洗澡体验差。」','「停车场要绕很远，前台也说不清楚。」','「房间设施老旧，和网上照片差距太大。」','「前台办理入住等了半小时，体验很差。」','「床单上有污渍，看着就不舒服，要求换房还推脱。」','「空调制冷效果差，一夜没睡好。」','「早餐品种太少，还限时间，根本来不及吃。」','「服务员态度冷淡，问个问题爱答不理。」','「房间有异味，闻着像烟味，要求处理也没下文。」','「价格太贵了，就这条件和两百块的快捷酒店没区别。」','「退房查房查了十分钟，押金迟迟不退，什么意思？」','「凌晨还有人走廊里大声喧哗，酒店完全不管。」','「叫醒服务没打，差点误了飞机，赔偿都不谈。」','「马桶堵了报修两次才来人，这服务没谁了。」'];
+  v_pos_texts text[] := array['「位置很好，离地铁近，房间干净，下次还来。」','「前台服务很热情，入住体验超出预期。」','「床品舒服，睡了个好觉，性价比高。」','「会员价格实惠，还送了早餐，好评。」','「房间隔音好，设施新，细节满分。」','「退房速度快，还主动帮忙叫车，服务到位。」','「热水又快又足，水压也稳，住得舒心。」','「楼下就有便利店和餐馆，出行太方便了。」','「亲戚来旅游订的这家，全家都说好。」','「卫生做得好，连床底都干干净净，放心。」','「出差常驻这家了，稳定靠谱，前台都记住我了。」','「半夜到店还给留了房间，暖心，五星。」'];
   v_guest_names text[] := array['王先生 · 商务出差','李女士 · 家庭出游','张先生 · 旅行','刘女士 · 亲子','陈先生 · 商务出差','赵女士 · 度假','周先生 · 旅行'];
 
 begin
@@ -275,10 +276,64 @@ begin
       'id', 'w'||p_week||'-n'||i, 'avatar','🧑','bg','blue',
       'name', v_guest_names[1 + floor(public.rand_float(v_rand) * 7)::int],
       'date', '第'||p_week||'周', 'stars', case when public.rand_float(v_rand) < 0.5 then 1 else 2 end,
-      'text', v_neg_texts[1 + floor(public.rand_float(v_rand) * 8)::int],
+      'text', v_neg_texts[1 + floor(public.rand_float(v_rand) * 16)::int],
       'status', 'pending', 'week', p_week
     );
   end loop;
+
+  -- [15.1] 好评回流（与 JS 引擎口径一致：还有好评名额时 60% 概率生成 1 条）
+  v_rand := public.rand_next(v_rand);
+  if (v_review_count - v_negative) > 0 and public.rand_float(v_rand) < 0.6 then
+    v_rand := public.rand_next(v_rand);
+    v_reviews := v_reviews || jsonb_build_object(
+      'id', 'w'||p_week||'-g0', 'avatar','👩','bg','green',
+      'name', v_guest_names[1 + floor(public.rand_float(v_rand) * 7)::int],
+      'date', '第'||p_week||'周', 'stars', 5,
+      'text', v_pos_texts[1 + floor(public.rand_float(v_rand) * 12)::int],
+      'status', 'good', 'week', p_week
+    );
+  end if;
+
+  -- [15.2] RPG 口碑联动：好评率≥80% 触发口碑爆发（追加1~2条好评）；≤55% 触发差评潮（追加1条差评）
+  if v_good_rate >= 0.8 then
+    v_rand := public.rand_next(v_rand);
+    if public.rand_float(v_rand) < 0.5 then
+      v_rand := public.rand_next(v_rand);
+      v_reviews := v_reviews || jsonb_build_object(
+        'id', 'w'||p_week||'-g1', 'avatar','🧑','bg','green',
+        'name', v_guest_names[1 + floor(public.rand_float(v_rand) * 7)::int],
+        'date', '第'||p_week||'周', 'stars', 5,
+        'text', v_pos_texts[1 + floor(public.rand_float(v_rand) * 12)::int],
+        'status', 'good', 'week', p_week, 'surge', '口碑爆发'
+      );
+      v_rand := public.rand_next(v_rand);
+      if public.rand_float(v_rand) < 0.5 then
+        v_rand := public.rand_next(v_rand);
+        v_reviews := v_reviews || jsonb_build_object(
+          'id', 'w'||p_week||'-g2', 'avatar','👩','bg','green',
+          'name', v_guest_names[1 + floor(public.rand_float(v_rand) * 7)::int],
+          'date', '第'||p_week||'周', 'stars', 5,
+          'text', v_pos_texts[1 + floor(public.rand_float(v_rand) * 12)::int],
+          'status', 'good', 'week', p_week, 'surge', '口碑爆发'
+        );
+      end if;
+    end if;
+  end if;
+  if v_good_rate <= 0.55 then
+    v_rand := public.rand_next(v_rand);
+    if public.rand_float(v_rand) < 0.4 then
+      v_negative := v_negative + 1;
+      v_rand := public.rand_next(v_rand);
+      v_reviews := v_reviews || jsonb_build_object(
+        'id', 'w'||p_week||'-n9', 'avatar','🧑','bg','blue',
+        'name', v_guest_names[1 + floor(public.rand_float(v_rand) * 7)::int],
+        'date', '第'||p_week||'周', 'stars', 1 + floor(public.rand_float(v_rand) * 2)::int,
+        'text', v_neg_texts[1 + floor(public.rand_float(v_rand) * 16)::int],
+        'status', 'pending', 'week', p_week,
+        'source', jsonb_build_object('icon', '🌊', 'name', '差评潮')
+      );
+    end if;
+  end if;
 
   return jsonb_build_object(
     'week', p_week,

@@ -11,7 +11,7 @@ import FinalResult from './FinalResult.jsx'
 import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
-import { decisions } from './decisions.js'
+import { decisions, OWNER_LABELS } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf, fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
@@ -448,7 +448,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">
                         <span style={{ fontSize: 10, color: '#D1D5DB', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
-                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
+                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}{d.owner && OWNER_LABELS[d.owner] && <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}>{OWNER_LABELS[d.owner].icon} {OWNER_LABELS[d.owner].label}</span>}
                       </div>
                       <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: '#6B7280', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone

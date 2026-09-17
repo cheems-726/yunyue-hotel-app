@@ -1,10 +1,18 @@
 // 经营决策数据：18项能力点（模块二部门运营7 + 模块三会员推广5 + 模块四门店经营6）
+// owner = 建议负责的小组职业（manager店长 / lobby大堂经理 / finance财务 / ops运营专员 / hr人事专员）
+export const OWNER_LABELS = {
+  manager: { icon: '👔', label: '店长' },
+  lobby: { icon: '🛎️', label: '大堂经理' },
+  finance: { icon: '💰', label: '财务' },
+  ops: { icon: '📈', label: '运营专员' },
+  hr: { icon: '👥', label: '人事专员' },
+}
 // 每项：id、名称、类别、类型（slider/option/budget/sort/timer）、选项/范围、结果反馈
 
 export const decisions = [
   // ===== 模块二 · 部门运营（7项） =====
   {
-    id: 'pricing', module: '部门运营', name: '动态调价', icon: '💸',
+    id: 'pricing', owner: 'ops', module: '部门运营', name: '动态调价', icon: '💸',
     tip: '竞店降价时，盲目跟降会压缩利润，不跟会流失客流。关键是算清「房价×出租率」的最优平衡点，而不是单纯比谁便宜。',
     type: 'option',
     desc: '竞店降价了，你的房价怎么调整？',
@@ -15,7 +23,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'shifts', module: '部门运营', name: '前台排班', icon: '🛏️',
+    id: 'shifts', owner: 'hr', module: '部门运营', name: '前台排班', icon: '🛏️',
     tip: '满编保服务但人力成本高，精简省成本但响应慢。旺季该保服务，淡季可适当精简——根据出租率动态调整。',
     type: 'option',
     desc: '今天前台怎么排班？',
@@ -25,7 +33,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'overbook', module: '部门运营', name: '超额预订', icon: '📋',
+    id: 'overbook', owner: 'manager', module: '部门运营', name: '超额预订', icon: '📋',
     tip: '超售能提高满房率，但到店无房要赔偿且伤口碑。超售量应匹配历史 no-show 率，贪多必失。',
     type: 'slider',
     desc: '设置超售房间数（0-5间），超售多=满房率高但到店无房风险大',
@@ -33,7 +41,7 @@ export const decisions = [
     result: (v) => v === 0 ? '不超售，满房率低但零风险' : `超售${v}间，满房率↑，但${v*8}%概率到店无房需赔偿`,
   },
   {
-    id: 'member-convert', module: '部门运营', name: '会员转化', icon: '⭐',
+    id: 'member-convert', owner: 'lobby', module: '部门运营', name: '会员转化', icon: '⭐',
     tip: '转化会员不能只看转化率，忠诚度更重要。强调品质转化的客人，比只图优惠的客人更有长期价值。',
     type: 'option',
     desc: '3位客人，选话术转化会员：',
@@ -44,14 +52,14 @@ export const decisions = [
     ],
   },
   {
-    id: 'quality-check', module: '部门运营', name: '客房质检', icon: '🔍',
+    id: 'quality-check', owner: 'lobby', module: '部门运营', name: '客房质检', icon: '🔍',
     tip: '整改优先级应该按「影响客人体验的程度」排序，隔音、卫生这类硬伤优先，灯光、电视这类软项靠后。',
     type: 'sort',
     desc: '10项扣分项，预算只够改5项，排序整改优先级',
     items: ['隔音', '卫生', '床品', '卫生间', '空调', '热水', '灯光', '电视', '网络', '窗帘'],
   },
   {
-    id: 'linen', module: '部门运营', name: '布草管理', icon: '🧺',
+    id: 'linen', owner: 'lobby', module: '部门运营', name: '布草管理', icon: '🧺',
     tip: '自洗长期成本低但前期投入大，外包省事但单件贵。出租率稳定时自洗划算，波动大时外包灵活。',
     type: 'option',
     desc: '布草清洗：自洗还是外包？',
@@ -61,7 +69,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'hygiene', module: '部门运营', name: '卫生计划', icon: '🧹',
+    id: 'hygiene', owner: 'lobby', module: '部门运营', name: '卫生计划', icon: '🧹',
     tip: '旺季停房深清洁会损失收入，但卫生是口碑底线。长期看，口碑带来的复购价值可能超过短期收入损失。',
     type: 'option',
     desc: '旺季是否停房深清洁？',
@@ -73,7 +81,7 @@ export const decisions = [
 
   // ===== 模块三 · 会员推广（5项） =====
   {
-    id: 'ota', module: '会员推广', name: 'OTA优化', icon: '📱',
+    id: 'ota', owner: 'ops', module: '会员推广', name: 'OTA优化', icon: '📱',
     tip: 'OTA 流量大但佣金高（8-15%）。直订渠道利润高但流量小。平衡各平台投入，别过度依赖单一 OTA。',
     type: 'budget',
     desc: '预算在三个OTA平台分配（携程/美团/飞猪）',
@@ -82,7 +90,7 @@ export const decisions = [
     result: '流量分配影响各平台客源和佣金成本',
   },
   {
-    id: 'campaign', module: '会员推广', name: '活动策划', icon: '🎯',
+    id: 'campaign', owner: 'ops', module: '会员推广', name: '活动策划', icon: '🎯',
     tip: '活动策划要算投入产出比。线上广告拉新客，门店物料做转化，员工激励提升服务，会员礼包促复购——按目标分配。',
     type: 'budget',
     desc: '5000元预算分4渠道（线上广告/门店物料/员工激励/会员礼包）',
@@ -91,7 +99,7 @@ export const decisions = [
     result: '不同渠道拉动不同客源',
   },
   {
-    id: 'corporate', module: '会员推广', name: '协议客户', icon: '🤝',
+    id: 'corporate', owner: 'ops', module: '会员推广', name: '协议客户', icon: '🤝',
     tip: '协议客户折扣大但带来稳定商务客流，是出租率的压舱石。适当让利换长期稳定，通常值得。',
     type: 'option',
     desc: '协议客户要折扣，怎么处理？',
@@ -101,7 +109,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'reputation', module: '会员推广', name: '口碑管理', icon: '💬',
+    id: 'reputation', owner: 'lobby', module: '会员推广', name: '口碑管理', icon: '💬',
     tip: '差评回复的三要素：态度诚恳、专业解释、给出解决措施。模板回复显得敷衍，真诚的个性化回复才能挽回客人。',
     type: 'option',
     desc: '差评回复策略：',
@@ -112,7 +120,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'member-threshold', module: '会员推广', name: '会员门槛', icon: '🏅',
+    id: 'member-threshold', owner: 'ops', module: '会员推广', name: '会员门槛', icon: '🏅',
     tip: '会员门槛太低会员价值低，太高升级率低。找「升级率×会员价值」的平衡点，3-5晚通常是最优区间。',
     type: 'slider',
     desc: '银卡→金卡间夜数门槛（3-10晚）',
@@ -122,7 +130,7 @@ export const decisions = [
 
   // ===== 模块四 · 门店经营（6项） =====
   {
-    id: 'report-diagnosis', module: '门店经营', name: '月度报表诊断', icon: '📊',
+    id: 'report-diagnosis', owner: 'finance', module: '门店经营', name: '月度报表诊断', icon: '📊',
     tip: '诊断优先解决「影响利润」和「影响口碑」的问题。RevPAR 高但利润低说明成本有问题，先查人力。',
     type: 'option',
     desc: '10项数据异常，只能优先解决3项，选哪个？',
@@ -133,7 +141,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'revenue-mgmt', module: '门店经营', name: '收益管理', icon: '📈',
+    id: 'revenue-mgmt', owner: 'finance', module: '门店经营', name: '收益管理', icon: '📈',
     tip: '出租率65%时，连住优惠能提连住率，尾房闪购能清尾房但拉低均价，组合套餐提客单价——按目标选择。',
     type: 'option',
     desc: '出租率65%下制定房价策略：',
@@ -144,7 +152,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'hr-optimize', module: '门店经营', name: '人力优化', icon: '👥',
+    id: 'hr-optimize', owner: 'hr', module: '门店经营', name: '人力优化', icon: '👥',
     tip: '裁员立即降本但服务可能下滑，培训提升人效但短期不降本。长远看，培训比裁员更可持续。',
     type: 'option',
     desc: '人力成本超预算5%，怎么办？',
@@ -154,7 +162,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'energy', module: '门店经营', name: '能耗管控', icon: '⚡',
+    id: 'energy', owner: 'finance', module: '门店经营', name: '能耗管控', icon: '⚡',
     tip: '节能与舒适要平衡。温度设太低省电但客人投诉冷，设太高舒适但能耗高。20-24℃通常是节能与舒适的最优区间。',
     type: 'slider',
     desc: '冬季空调温度设定（20-26℃）',
@@ -162,7 +170,7 @@ export const decisions = [
     result: (v) => v <= 21 ? '节能但客人可能投诉冷' : v >= 25 ? '舒适但能耗成本高' : '节能与舒适平衡',
   },
   {
-    id: 'renovation', module: '门店经营', name: '改造投资', icon: '🏗️',
+    id: 'renovation', owner: 'finance', module: '门店经营', name: '改造投资', icon: '🏗️',
     tip: '150万改造提升品质和房价，但回收期长。评估改造后房价能否提升足够多来覆盖投入，再决定。',
     type: 'option',
     desc: '投150万改造，还是不投？',
@@ -172,7 +180,7 @@ export const decisions = [
     ],
   },
   {
-    id: 'emergency', module: '门店经营', name: '应急预案', icon: '🚨',
+    id: 'emergency', owner: 'manager', module: '门店经营', name: '应急预案', icon: '🚨',
     tip: '客人摔倒等突发事件，第一时间送医+诚恳道歉是基本原则。推卸责任会激化矛盾，引发差评发酵。',
     type: 'timer',
     desc: '突发事件：客人摔倒！30秒内选方案',
