@@ -110,6 +110,7 @@ function LoginPage({ onLogin }) {
       cloud: true,
       groupNo: profile?.group_no || null,
       className: profile?.class_name || null,
+      groupRole: profile?.role_in_group && !['student', 'teacher'].includes(profile.role_in_group) ? profile.role_in_group : null,
     })
   }
 
@@ -215,7 +216,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
+function Business({ user, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -433,6 +434,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                   .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
                   .map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
+                  .sort((a, b) => (b.d.owner === user?.groupRole ? 1 : 0) - (a.d.owner === user?.groupRole ? 1 : 0)) // 我的职责置顶
                   .map(({ d, isDone }) => {
                   const lastChoice = history.length && history[history.length - 1].decisions ? history[history.length - 1].decisions[d.id] : undefined
                   return (
@@ -448,7 +450,9 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">
                         <span style={{ fontSize: 10, color: '#D1D5DB', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
-                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}{d.owner && OWNER_LABELS[d.owner] && <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}>{OWNER_LABELS[d.owner].icon} {OWNER_LABELS[d.owner].label}</span>}
+                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
+  ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: '#1D4ED8', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>👤 我的职责</span>
+  : <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}>{OWNER_LABELS[d.owner].icon} {OWNER_LABELS[d.owner].label}</span>)}
                       </div>
                       <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: '#6B7280', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone
@@ -1903,7 +1907,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
