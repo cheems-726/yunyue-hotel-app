@@ -224,6 +224,7 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           const rival = (result.events || []).some(e => e.name === '竞店开业')
           if (rival) forecasts.push({ icon: '🏪', text: '竞店分流通常持续 1-2 周，此刻降价前先算「房价×出租率」是不是真划算' })
           if ((result.negativeCount || 0) > 0) forecasts.push({ icon: '🔥', text: `本周新增 ${result.negativeCount} 条差评，欠着不处理会触发"差评发酵"（口碑额外受损），优先去口碑页处理` })
+          if (result.capital != null && result.capital < 100000) forecasts.unshift({ icon: '🚨', text: `资金 ${Math.round(result.capital / 10000)} 万已接近预警线（10 万），下周优先控成本：排班随出租率浮动、砍低投产比投放` })
           if (forecasts.length === 0) {
             if (cur < 0.95) forecasts.push({ icon: '🧘', text: '市场偏冷的窗口适合练内功：品质投入和口碑积累，等热度回来时接得住' })
             else if (cur > 1.05) forecasts.push({ icon: '🔥', text: '市场偏热，客流是白送的——此时满编保服务的边际收益最高' })
