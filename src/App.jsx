@@ -797,6 +797,25 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         return (
           <div className="card">
             <div className="card-title">📜 称号历程</div>
+            {(() => {
+              // 综合分走势迷你折线（复用结算数字配色）
+              const W = 320, H = 46, PL = 10, PR = 10, PT = 8, PB = 8
+              const n = rows.length
+              const xs = i => PL + i * (W - PL - PR) / Math.max(n - 1, 1)
+              const vals = rows.map(r => r.composite)
+              const lo = Math.min(...vals) - 2, hi = Math.max(...vals) + 2
+              const span = (hi - lo) || 1
+              const pts = rows.map((r, i) => ({ x: xs(i), y: H - PB - ((r.composite - lo) / span) * (H - PT - PB) }))
+              const rising = vals[n - 1] >= vals[0]
+              return (
+                <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', marginBottom: 4 }}>
+                  <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+                  <polyline points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={rising ? '#10B981' : '#EF4444'} strokeWidth="2" strokeLinejoin="round" />
+                  {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#fff" stroke={rising ? '#10B981' : '#EF4444'} strokeWidth="1.5" />)}
+                  <text x={PL} y={7} fontSize="8" fill="#9CA3AF">综合分 {vals[0]} → {vals[n - 1]}</text>
+                </svg>
+              )
+            })()}
             {[...rows].reverse().map(r => {
               const tag = changeTag[r.change]
               return (
