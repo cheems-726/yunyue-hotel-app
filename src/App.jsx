@@ -229,6 +229,7 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
     return () => el.removeEventListener('scroll', fn)
   }, [])
   const [filter, setFilter] = useState('all') // all | undone | done | key
+  const [showBreakdown, setShowBreakdown] = useState(false) // 资金卡支出构成折叠
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
   const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : null)
@@ -380,6 +381,28 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                 上周支出 {expenses.toLocaleString()} 元 · 本周利润 {report ? (report.profit >= 0 ? '+' : '') + report.profit.toLocaleString() : '—'} 元
               </div>
             )}
+            {(() => {
+              // 上周支出构成折叠明细（引擎 weeklyExpenses 分项，降序占比条）
+              const lastH = history.length ? history[history.length - 1] : null
+              const bd = lastH && lastH.weeklyExpenses ? Object.entries(lastH.weeklyExpenses).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]) : []
+              if (!bd.length || !lastH.totalExpenses) return null
+              return (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ fontSize: 11, cursor: 'pointer', color: '#6B7280', userSelect: 'none' }} onClick={() => setShowBreakdown(!showBreakdown)}>
+                    {showBreakdown ? '▾' : '▸'} 上周支出构成（共 {lastH.totalExpenses.toLocaleString()} 元，点看明细）
+                  </div>
+                  {showBreakdown && bd.map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#374151', padding: '2px 0' }}>
+                      <span style={{ width: 50, flexShrink: 0, color: '#6B7280' }}>{k}</span>
+                      <div style={{ flex: 1, height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: Math.round(v / lastH.totalExpenses * 100) + '%', background: '#F59E0B', borderRadius: 3 }} />
+                      </div>
+                      <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontWeight: 600 }}>{v.toLocaleString()}元</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
             {isCritical && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>⚠ 资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
           </div>
         )

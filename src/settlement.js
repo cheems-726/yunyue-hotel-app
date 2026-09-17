@@ -527,6 +527,7 @@ for (let i = 0; i < reviewCount; i++) {
     events,
     decisions: { ...decisions },
     eventFine,
+    weeklyExpenses,
     capital: Math.round(capital),
     isBankrupt, isWarning, bizMode,
     competitors: competitorActions,
