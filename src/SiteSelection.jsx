@@ -1,10 +1,18 @@
 import React, { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
-import { districts } from './siteLocations.mjs'
+import { districts, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
+
+// 客群主特性一句话（hover/列表行共用）
+const DOMINANT_LABEL = { business: '商务客为主', tourist: '游客为主', family: '家庭客为主' }
+function personaLine(city, name) {
+  const per = CUSTOMER_PERSONAS[name]
+  if (!per) return null
+  return `${DOMINANT_LABEL[per.dominant] || '客群混合'} · ${per.note}（商${per.business}/游${per.tourist}/家${per.family}）`
+}
 
 // 简易地理网格：按真实相对方位摆放（成都在西，德阳居中偏北，绵阳在东北）
 const cityGeo = {
@@ -85,6 +93,7 @@ export default function SiteSelection({ onConfirm }) {
                 return (
                   <button
                     key={p.name}
+                    title={personaLine(city, p.name) || undefined}
                     onClick={() => { if (currentCity !== city) { setCurrentCity(city); setSelected(null) } handleDistrictClick(d) }}
                     style={{
                       position: 'absolute', left: p.col * 25 + '%', top: p.row * 44,
@@ -162,6 +171,11 @@ export default function SiteSelection({ onConfirm }) {
             <div className="cost-box warn">
               <div className="cost-title">⚠️ 代价</div>{d.warn}
             </div>
+            {personaLine(currentCity, d.name) && (
+              <div style={{ marginTop: 6, fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
+                👥 客群画像：{personaLine(currentCity, d.name)}
+              </div>
+            )}
             <div style={{ marginTop: 6, fontSize: 11, color: '#A96407' }}>
               💡 推荐档次：{(() => {
                 const flow = d.attrs['客流'] || 3
