@@ -217,9 +217,24 @@ function TeacherNoteForm({ uid, name }) {
     if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
   }
 
+  // 快捷批注：一键填充评语+分数（教师可再手改）
+  const quickNotes = [
+    { label: '👍 优秀', score: 95, text: '经营策略清晰，决策完成度高，口碑与利润双优，保持节奏。' },
+    { label: '✅ 良好', score: 85, text: '整体经营稳健，定价与成本控制合理，差评处理再及时一些会更好。' },
+    { label: '✍️ 需改进', score: 70, text: '决策完成度不足，差评积压影响口碑——建议每周优先处理差评再优化定价。' },
+    { label: '⚠️ 预警', score: 50, text: '资金/口碑存在明显风险，注意控成本、提完成度，及时复盘调整策略。' },
+  ]
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📝 教师批注 & 打分（计入期末总评10%）</div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+        {quickNotes.map(q => (
+          <button key={q.label}
+            onClick={() => { setNote(q.text); setScore(String(q.score)) }}
+            style={{ border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' }}
+          >{q.label} {q.score}</button>
+        ))}
+      </div>
       <textarea
         value={note}
         onChange={e => setNote(e.target.value)}
