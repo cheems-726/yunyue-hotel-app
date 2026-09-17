@@ -433,7 +433,9 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                   .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
                   .map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
-                  .map(({ d, isDone }) => (
+                  .map(({ d, isDone }) => {
+                  const lastChoice = history.length && history[history.length - 1].decisions ? history[history.length - 1].decisions[d.id] : undefined
+                  return (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
                     style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid #E8940F', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
@@ -456,10 +458,14 @@ function Business({ onOpen, location, brand, property, onDecision, doneDecisions
                           : (expandedDesc[d.id] ? d.desc : d.desc.slice(0, 25) + (d.desc.length > 25 ? '…' : ''))}
                         <span style={{ color: '#E8940F', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : (isDone ? '展开答案' : (d.desc.length > 25 ? '全文' : ''))}</span>
                       </div>
+                      {!isDone && lastChoice != null && (
+                        <div style={{ fontSize: 10, color: '#9CA3AF', padding: '1px 0 2px' }}>上周：{String(fmtDecision(lastChoice)).slice(0, 18)}{String(fmtDecision(lastChoice)).length > 18 ? '…' : ''}</div>
+                      )}
                     </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}
