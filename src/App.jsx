@@ -1833,7 +1833,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <FinalResult history={history} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
+        <FinalResult history={history} brand={brand} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
       </div>
     )
   }

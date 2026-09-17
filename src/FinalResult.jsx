@@ -1,8 +1,14 @@
 import React from 'react'
 
+import { strategyOf } from './TeacherDashboard.jsx'
+import { getTitle } from './hotelTitle.js'
+
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
-export default function FinalResult({ history, onRestart }) {
+export default function FinalResult({ history, onRestart, brand }) {
+  // 品质分按品牌档次推导（与其他页面同口径）
+  const lv = brand?.level || ''
+  const quality = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
   const TOTAL_WEEKS = 12
 
   // 汇总12周经营数据
@@ -64,6 +70,35 @@ export default function FinalResult({ history, onRestart }) {
           </div>
         ))}
       </div>
+
+      {/* 学期回顾：策略画像 + 称号轨迹 */}
+      {(() => {
+        const st = strategyOf(history)
+        let prevTitle = null
+        const nodes = []
+        history.forEach(h => {
+          const t2 = getTitle(h.occupancy, h.finalGoodRate, quality).title
+          if (t2 !== prevTitle) { nodes.push(`第${h.week}周 ${t2}`); prevTitle = t2 }
+        })
+        return (
+          <div className="card">
+            <div className="card-title">🎓 学期画像回顾</div>
+            {st && (
+              <div style={{ fontSize: 13, fontWeight: 700, color: st.color, marginBottom: 6 }}>
+                {st.icon} 本学期策略风格：{st.tag}
+              </div>
+            )}
+            {nodes.length > 0 && (
+              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
+                📜 称号轨迹：{nodes.join(' → ')}
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
+              策略风格由 12 周的决策快照自动归纳；轨迹仅在称号变化处记录节点
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 经营总结 */}
       <div className="card" style={{ background: '#FFF4E0' }}>
