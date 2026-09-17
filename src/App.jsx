@@ -1868,7 +1868,22 @@ export default function App() {
           onDone={(id, answer) => {
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             setCurrentDecision(null)
-            toast(`✓ ${decisions.find(d => d.id === id)?.name || '决策'} 已保存`)
+            const dName = decisions.find(d => d.id === id)?.name || '决策'
+            // 与上周选择对比（换思路提醒）：上周选择来自最近一周的决策快照
+            const normVal = v => {
+              if (v == null) return null
+              if (Array.isArray(v)) return JSON.stringify(v)
+              if (typeof v === 'object') return JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]))
+              return JSON.stringify(v)
+            }
+            const lastChoice = history.length ? (history[history.length - 1].decisions || {})[id] : undefined
+            if (lastChoice === undefined) {
+              toast(`✓ ${dName} 已保存`)
+            } else if (normVal(lastChoice) === normVal(answer)) {
+              toast(`✓ ${dName} 已保存 · 与上周一致，维持打法`)
+            } else {
+              toast(`↺ ${dName} 已保存 · 与上周不同，换了思路`)
+            }
           }}
         />
       </div>
