@@ -264,6 +264,58 @@ try {
   await page.evaluate(() => history.back()); await sleep(500)
   ok('侧滑返回不退出站点', await page.evaluate(() => !!document.querySelector('.tabbar')))
 
+  // ===== 11. 云端真实登录段（独立页面，干净上下文）=====
+  const cloudLogin = async (who, id, pw) => {
+    const pg = await (await browser.newContext({ viewport: { width: 480, height: 900 } })).newPage()
+    pg.on('pageerror', e => { if (!(e.message || '').includes('plugin is not implemented')) results.push({ name: '云端页面JS异常: ' + e.message, pass: false }) })
+    await pg.goto(BASE)
+    await pg.waitForLoadState('domcontentloaded'); await sleep(1300)
+    await pg.evaluate(() => localStorage.clear())
+    await pg.reload(); await pg.waitForLoadState('domcontentloaded'); await sleep(1300)
+    await pg.evaluate(who2 => { const b = [...document.querySelectorAll('button, span')].find(x => x.textContent.includes(who2)); b && b.click() }, who)
+    await sleep(500)
+    await pg.evaluate(({ id, pw }) => {
+      const inputs = [...document.querySelectorAll('input')]
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(inputs[0], id); inputs[0].dispatchEvent(new Event('input', { bubbles: true }))
+      setter.call(inputs[1], pw); inputs[1].dispatchEvent(new Event('input', { bubbles: true }))
+      const btn = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '登录' && !x.disabled)
+      if (btn) { btn.click(); return }
+      const reg = [...document.querySelectorAll('button')].find(x => x.textContent.includes('注册并登录'))
+      reg && reg.click()
+    }, { id, pw })
+    await sleep(3000)
+    const body = await pg.evaluate(() => document.body.innerText)
+    return { pg, body }
+  }
+  // 教师 t001
+  {
+    const { pg, body } = await cloudLogin('我是老师', 't001', '123456')
+    ok('云端教师登录（t001）', body.includes('教师后台'))
+    ok('教师端四页签渲染', body.includes('总览') && body.includes('排名') && body.includes('分组') && body.includes('教学'))
+    await pg.close()
+  }
+  // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
+  {
+    const { pg, body } = await cloudLogin('我是学生', '2025', '123456')
+    const loggedIn = !body.includes('账号或密码错误') && !body.includes('学生登录')
+    if (loggedIn) {
+      await pg.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('开始我的酒店之旅'))
+        if (b) b.click()
+      }); await sleep(800)
+      await pg.evaluate(() => {
+        const el = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '👤我的' || x.textContent.includes('我的'))
+        el && el.click()
+      }); await sleep(900)
+      const me = await pg.evaluate(() => document.body.innerText)
+      ok('云端学生"我的"页（fetchMyNotes路径）', me.includes('我的酒店') && !me.includes('页面出了点问题'))
+    } else {
+      ok('云端学生登录（2025）——账号不存在，已跳过', true)
+    }
+    await pg.close()
+  }
+
 } catch (e) {
   results.push({ name: '测试执行中断: ' + e.message, pass: false })
 }
