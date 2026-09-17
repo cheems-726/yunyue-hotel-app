@@ -1047,7 +1047,7 @@ function HelpPage({ onBack }) {
   const sections = [
     { icon: '🎯', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
     { icon: '📅', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 点「本周结算」看结果 → 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
-    { icon: '⚡', title: '事件系统', body: '共 15 种事件，全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
+    { icon: '⚡', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
     { icon: '🏆', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
     { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
     { icon: '📋', title: '18项决策速查', body: '点击下方展开查看全部决策清单，课堂讨论时可以快速定位。' },
@@ -1088,7 +1088,7 @@ function HelpPage({ onBack }) {
       </div>
 
       <div className="card">
-        <div className="card-title">⚡ 事件速览（15种，都是经营状态招来的）</div>
+        <div className="card-title">⚡ 事件速览（22种，都是经营状态招来的）</div>
         {EVENT_INFO.map(e => (
           <div key={e.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
             <span style={{ fontSize: 13, flexShrink: 0 }}>{e.icon}</span>

@@ -67,6 +67,13 @@ export const EVENT_INFO = [
   { icon: '🎂', name: '员工关怀日', type: 'good', trigger: '第3周起满编保服务', tip: '对员工好=对客人好' },
   { icon: '🌙', name: '深夜噪音投诉', type: 'bad', trigger: '小概率随机', tip: '夜班主动巡场防患未然' },
   { icon: '🏆', name: '片区评选获奖', type: 'good', trigger: '上周好评率≥85%', tip: '长期主义会被看见' },
+  { icon: '🤒', name: '员工请假', type: 'bad', trigger: '第3周起小概率随机', tip: '关键时刻人员备份很重要' },
+  { icon: '🔧', name: '设备故障', type: 'bad', trigger: '第2周起小概率随机', tip: '定期检修预防突发故障' },
+  { icon: '🎆', name: '节假日爆单', type: 'good', trigger: '选址客流≥3档', tip: '盈利黄金期，提前备好人力' },
+  { icon: '🎤', name: '周边突发活动', type: 'good', trigger: '第2周起小概率随机', tip: '关注周边活动动态，提前调价' },
+  { icon: '📢', name: '负面舆情（危机）', type: 'crisis', trigger: '有差评未处理时小概率', tip: '及时回复防舆情扩散' },
+  { icon: '🚨', name: '资金链断裂（危机）', type: 'crisis', trigger: '资金见底', tip: '资金是生命线，宁少赚别乱花' },
+  { icon: '⚠️', name: '资金预警', type: 'bad', trigger: '资金接近预警线', tip: '立即控成本、增收' },
 ]
 
 // 事件参数集中配置（调平衡只改这里，不动逻辑）
