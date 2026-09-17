@@ -131,7 +131,7 @@ export default function Claim({ brand, location, onComplete }) {
             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>选择经营模式（不可更改）</div>
             {[
               { mode: 'direct', icon: '🏪', name: '自主直营', desc: '完全自主定价、自主营销，利润全归自己，但客源靠本事，前期获客难', pros: '利润100%归自己 · 定价自由', cons: '前期客源少 · 营销成本高 · 风险自担', tag: '高风险高回报', tagColor: '#EF4444' },
-              { mode: 'ota', icon: '🏨', name: 'OTA加盟', desc: '挂靠平台品牌，享受平台流量扶持和标准化运营指导，但需缴纳佣金且受平台规则限制', pros: '客源多且稳定 · 起步容易 · 有品牌背书', cons: '平台抽成15% · 降价受限制 · 违规有处罚', tag: '稳健起步', tagColor: '#16A34A' },
+              { mode: 'ota', icon: '📱', name: 'OTA平台合作', desc: '把酒店上架到OTA平台（携程/美团/飞猪）获取线上流量，享受平台曝光和订单分发，但需缴纳佣金且受平台规则限制', pros: '线上客源多且稳定 · 起步容易 · 有平台背书', cons: '平台抽成15% · 降价受限制 · 违规有处罚', tag: '稳健起步', tagColor: '#16A34A' },
             ].map(m => (
               <div key={m.mode} className="district-card" style={{ padding: 16, marginBottom: 10 }} onClick={() => { setBizMode(m.mode); onComplete({ mode: m.mode }) }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

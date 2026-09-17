@@ -135,7 +135,7 @@ const s = site || {}
   else if (pricing === '降价 20% 抢客') { price = basePrice * 0.8; priceCompetitive = 1.3 }
   else if (pricing === '不跟降') { priceCompetitive = 0.8 }
 
-  // [2.45] 开店模式引擎差异化（OTA加盟 vs 直营）
+  // [2.45] 开店模式引擎差异化（OTA平台合作 vs 直营）
 let otaCommissionRate = 0
 if (bizMode === 'ota') {
   otaCommissionRate = 0.15
@@ -398,7 +398,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   let variableCost = occupiedRooms * perRoomVariable
   // 营销成本 = 做活动才有额外支出
   let marketingCost = decisions.campaign ? 5000 : 0
-  // OTA 佣金：加盟模式全营收抽成15%，直营只有投放OTA时才有11%佣金
+  // OTA 佣金：平台合作模式全营收抽成15%，直营只有投放OTA时才有11%佣金
   const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.11) : 0)
   // 超售赔偿：到店无房按间赔偿（每间赔一晚房价）
   let overbookCompensation = 0
