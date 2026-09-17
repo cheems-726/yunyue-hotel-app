@@ -278,6 +278,16 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
               </div>
                   <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
                   <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
+                  {(() => {
+                    // 与口碑页同口径：该事件产生的差评已在口碑页标注来源
+                    const n = (result.generatedReviews || []).filter(rv => rv.source && rv.source.name === e.name).length
+                    if (!n) return null
+                    return (
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#991B1B', background: '#FEF2F2', borderRadius: 5, padding: '3px 8px', marginTop: 5, display: 'inline-block' }}>
+                        ↳ 已在口碑页标注到 {n} 条差评的来源
+                      </div>
+                    )
+                  })()}
                 </div>
           ))}
           <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
