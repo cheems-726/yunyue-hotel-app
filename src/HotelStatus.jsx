@@ -80,70 +80,115 @@ function genEvent(gameMin, phase, price) {
   return { clock: clockTag, text: `🚕 前台协助退房客人叫车搬运行李`, amt: 0 }
 }
 
-// 实时运营流：按"游戏内时间片"（15/30/60 分钟）推进，一条动态代表一个时间片
+// 实时运营流：游戏内时钟连续流动（现实2秒=游戏1分钟），
+// 事件在各时段内按概率随机触发——15/30/60分钟窗口内可能没有也可能连续发生
+const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.012, night: 0.006 }
+
 function LiveFeed({ occupiedRooms, price }) {
   const [feed, setFeed] = useState([])
-  const [flow, setFlow] = useState({ income: 0, expense: 0 })
-  const [gameMin, setGameMin] = useState(() => {
-    const n = new Date()
-    return n.getHours() * 60 + n.getMinutes()
-  })
+  const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0 })
+  const [gameMin, setGameMin] = useState(6 * 60) // 游戏内从早6点退房高峰开始
+  const statsRef = React.useRef(stats)
+  statsRef.current = stats
+
   useEffect(() => {
     const rooms = Math.max(occupiedRooms, 8)
     const p = price || 230
-    // 回放今天已发生的量级估算（按作息：白天退房入账为主，14点后入住入账）
-    const nowH = new Date().getHours()
+    const roomFee = () => Math.round(p * (0.85 + Math.random() * 0.3))
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)]
     let inc = 0, exp = 0
-    if (nowH >= 6) { inc += occupiedRooms * p * 0.5; exp += 120 + (occupiedRooms % 7) * 30 }
-    if (nowH >= 14) { inc += occupiedRooms * p * 0.35 }
-    if (nowH >= 20) { inc += occupiedRooms * p * 0.1; exp += 200 }
-    setFlow({ income: Math.round(inc), expense: Math.round(exp) })
+    const nowH = new Date().getHours()
+    if (nowH >= 6) { inc = rooms * p * 0.35; exp = 100 }
+    if (nowH >= 14) { inc += rooms * p * 0.25 }
+    setStats({ income: Math.round(inc), expense: Math.round(exp), checkout: 0, checkin: 0, guests: Math.round(occupiedRooms * 2 - 3) })
+
     let timer
     const loop = () => {
-      // 游戏内时钟前进 15/30/60 分钟一档（随机），生成该时间片的运营事件
-      const step = [15, 30, 60][Math.floor(Math.random() * 3)]
       setGameMin(m => {
-        const next = m + step
-        const ph = phaseOf(Math.floor(((next % 1440) + 1440) % 1440 / 60))
-        const ev = genEvent(next, ph, p)
-        setFeed(f => [`🕐 [${ev.clock}] ${ev.text}`, ...f].slice(0, 4))
-        if (ev.amt > 0) setFlow(fl => ({ ...fl, income: fl.income + ev.amt }))
-        else if (ev.amt < 0) setFlow(fl => ({ ...fl, expense: fl.expense - ev.amt }))
+        const next = m + 1 // 游戏内 +1 分钟
+        const hm = ((next % 1440) + 1440) % 1440
+        const h = Math.floor(hm / 60)
+        const ph = phaseOf(h)
+        const clockTag = fmtGameClock(hm)
+        const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
+        const st = statsRef.current
+        const roll = Math.random()
+
+        // 各时段概率触发（每游戏分钟独立掷骰 → 15分钟窗口内随机 0~2 次）
+        if (ph.checkout > 0 && roll < EVENT_PROB.checkout && st.checkout + st.checkin < Math.round(rooms * 0.8)) {
+          const fee = roomFee()
+          setStats(s => ({ ...s, checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee }))
+          setFeed(f => [`🧳 [\${clockTag}] \${room}房客人退房结账，收款 \${fee} 元`, ...f].slice(0, 5))
+        } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && st.checkin < Math.round(rooms * 0.6)) {
+          const fee = roomFee()
+          const g = pick(['商务出差', '家庭出游', '旅行散客', '会议客人'])
+          setStats(s => ({ ...s, checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee }))
+          setFeed(f => [`🛎️ [\${clockTag}] \${room}房入住 · \${g}客人，收房费 \${fee} 元`, ...f].slice(0, 5))
+        } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
+          const evs = [
+            { t: `🔧 \${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
+            { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) },
+            { t: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) },
+            { t: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) },
+            { t: `🧹 客房部完成 \${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 },
+            { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 },
+            { t: `💳 为 \${room}房客人退还押金`, amt: -100 },
+          ]
+          const ev = pick(evs)
+          if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
+          else if (ev.amt < 0) setStats(s => ({ ...s, expense: s.expense - ev.amt }))
+          setFeed(f => [`🕐 [\${clockTag}] \${ev.t}`, ...f].slice(0, 5))
+        } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
+          const evs = [
+            { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
+            { t: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(p * 0.9) },
+            { t: `🔧 值班工程师完成锅炉房夜间巡检`, amt: 0 },
+          ]
+          const ev = pick(evs)
+          if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
+          setFeed(f => [`🌙 [\${clockTag}] \${ev.t}`, ...f].slice(0, 5))
+        }
         return next
       })
-      // 现实 25~40 秒 = 游戏内一个时间片
-      timer = setTimeout(loop, 25000 + Math.floor(Math.random() * 15000))
+      timer = setTimeout(loop, 2000) // 现实 2 秒 = 游戏内 1 分钟
     }
-    timer = setTimeout(loop, 6000)
+    timer = setTimeout(loop, 1500)
     return () => clearTimeout(timer)
   }, [occupiedRooms, price])
+
+  // 向 App 层暴露今日退房/入住计数（通过自定义事件，供四宫格读取）
+  useEffect(() => {
+    const handler = e => e.detail(statsRef.current)
+    window.addEventListener('hotel-live-stats', handler)
+    return () => window.removeEventListener('hotel-live-stats', handler)
+  }, [])
 
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
         <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>+{flow.income.toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>+{stats.income.toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日入账</div>
         </div>
         <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>-{flow.expense.toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>-{stats.expense.toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日支出</div>
         </div>
         <div style={{ background: '#EFF6FF', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: flow.income - flow.expense >= 0 ? '#1D4ED8' : '#DC2626' }}>{flow.income - flow.expense >= 0 ? '+' : ''}{(flow.income - flow.expense).toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: stats.income - stats.expense >= 0 ? '#1D4ED8' : '#DC2626' }}>{stats.income - stats.expense >= 0 ? '+' : ''}{(stats.income - stats.expense).toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日净流入</div>
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>📡 实时运营动态</span>
-        <span style={{ fontSize: 9, color: '#9CA3AF' }}>游戏内每 15/30/60 分钟一个时间片</span>
+        <span style={{ fontSize: 9, color: '#9CA3AF' }}>按概率随机发生 · 退房12点前 · 入住14点后</span>
       </div>
       {feed.map((f, i) => (
         <div key={f + i} style={{ fontSize: 10, color: i === 0 ? '#374151' : '#9CA3AF', padding: '3px 0', lineHeight: 1.5, opacity: 1 - i * 0.18 }}>
           {f}
         </div>
       ))}
-      <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6, textAlign: 'center' }}>今日流水为抽样估算，实际收支以每周结算为准</div>
+      <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6, textAlign: 'center' }}>今日流水为模拟估算，实际收支以每周结算为准</div>
     </div>
   )
 }
