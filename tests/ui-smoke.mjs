@@ -123,13 +123,14 @@ try {
   ok('认领完成进入筹建', (await text(page)).includes('门店筹建'))
 
   // 5. 筹建：15 个选项逐一点击
-  const invest = ['乐观情景', '基准情景', '悲观情景']
-  for (const n of invest) {
-    await clickCard(page, n, 'starts'); await sleep(500)
-    if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(500) }
-    ok('筹建·投资·' + n, await hasOverlay(page))
-    await closeOverlay(page)
-  }
+  const gated = await text(page)
+  ok('筹建·投资门控（未选时下一步禁用）', gated.includes('请先选择一个投资情景'))
+  await clickCard(page, '乐观情景', 'starts'); await sleep(500)
+  ok('筹建·投资·乐观情景反馈', await hasOverlay(page))
+  await closeOverlay(page)
+  await clickCard(page, '基准情景', 'starts'); await sleep(500)
+  await closeOverlay(page)
+  ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('✅ 基准情景'))
   // 证照（点步骤导航 📄）
   await page.evaluate(() => {
     const s = [...document.querySelectorAll('div')].find(d => d.textContent === '📄' && d.style.cursor === 'pointer')
@@ -151,20 +152,25 @@ try {
     if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n); await sleep(500) }
     ok('筹建·采购·' + n, await hasOverlay(page))
     await closeOverlay(page)
+    if (n === '供应商 A') break // 选定A后看B/C详情不影响已选
   }
+  await clickCard(page, '供应商 A'); await sleep(300)
+  ok('筹建·采购选中（✅供应商A）', (await text(page)).includes('✅ 供应商 A'))
   // 开业（🎉）
   await page.evaluate(() => {
     const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🎉' && d.style.cursor === 'pointer')
     s && s.click()
   }); await sleep(400)
-  for (const n of ['装修', '招聘', '系统上线']) {
+  for (const [i, n] of ['装修', '系统上线', '招聘'].entries()) {
     await clickCard(page, n, 'starts'); await sleep(500)
-    if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(500) }
-    ok('筹建·开业·' + n, await hasOverlay(page))
+    ok('筹建·开业详情·' + n, await hasOverlay(page))
     await closeOverlay(page)
+    await clickCard(page, n, 'starts'); await sleep(350)
+    ok('筹建·开业优先级第' + (i + 1) + '（' + n + '）', (await text(page)).includes('第' + (i + 1) + '优先'))
   }
-  await clickText(page, '完成筹建'); await sleep(800)
-  ok('开业反馈弹出', (await text(page)).includes('正式开业'))
+  await clickText(page, '完成筹建'); await sleep(900)
+  const opening = await text(page)
+  ok('开业反馈弹出（含筹建决策汇总）', opening.includes('正式开业') && opening.includes('开业优先级') && opening.includes('投资情景'))
   await closeOverlay(page)
 
   // 6. 经营页

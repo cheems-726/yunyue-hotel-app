@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf, fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -1446,6 +1446,7 @@ export default function App() {
   const [brand, setBrand] = useState(saved.brand || null) // 选中的品牌
   const [property, setProperty] = useState(saved.property || null) // 认领的物业
   const [established, setEstablished] = useState(saved.established || false) // 是否完成筹建
+  const [estChoices, setEstChoices] = useState(saved.estChoices || null) // 筹建决策（投资情景/采购渠道/开业优先级）
   const [tab, setTab] = useState('business')
   const [openPage, setOpenPage] = useState(null) // { title, icon }
   const [currentDecision, setCurrentDecision] = useState(null) // 当前决策
@@ -1540,12 +1541,12 @@ export default function App() {
   // 状态持久化：本机 localStorage 即时保存
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed }))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed])
 
   // 云端同步：真实登录时防抖 1.5s 上传经营状态（教师端可见）
-  const cloudState = { location, brand, property, established, doneDecisions, report, week, history, finished, welcomed }
+  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed }
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const t = setTimeout(() => {
@@ -1609,6 +1610,7 @@ export default function App() {
           setBrand(cloudSaved.brand || null)
           setProperty(cloudSaved.property || null)
           setEstablished(!!cloudSaved.established)
+          setEstChoices(cloudSaved.estChoices || null)
           setDoneDecisions(cloudSaved.doneDecisions || {})
           setReport(cloudSaved.report || null)
           setWeek(cloudSaved.week || 1)
@@ -1717,7 +1719,8 @@ export default function App() {
     setProperty(result.property)
     setEstablished(false)
   }
-  function handleEstablished() {
+  function handleEstablished(choices) {
+    setEstChoices(choices || { invest: null, supplier: null, opening: [] })
     setEstablished(true)
     setTab('business')
   }
