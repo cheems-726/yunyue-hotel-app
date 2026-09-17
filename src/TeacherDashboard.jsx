@@ -125,9 +125,17 @@ function GroupDetail({ uid, rawStates, name }) {
         const lv = s.brand?.level || ''
         const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
         const ti = getTitle(avgOcc, avgGood, q)
+        // 称号轨迹：仅在称号变化的周记录节点（课堂复盘看成长路径）
+        let prevTitle = null
+        const nodes = []
+        hist.forEach(h => {
+          const t = getTitle(h.occupancy, h.finalGoodRate, q).title
+          if (t !== prevTitle) { nodes.push(`第${h.week}周 ${t}`); prevTitle = t }
+        })
         return (
           <div style={{ fontSize: 11, color: '#A96407', marginBottom: 8 }}>
             {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
+            {nodes.length > 1 && <div style={{ color: '#6B7280', marginTop: 3 }}>📜 轨迹：{nodes.join(' → ')}</div>}
           </div>
         )
       })()}
