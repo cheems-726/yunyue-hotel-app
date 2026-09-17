@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
+import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
 
 // 差评数据（含处理状态）
 const initialReviews = [
@@ -19,25 +20,23 @@ function loadReviews() {
   }
 }
 
-// 回复策略（对应能力点18：态度/专业性/解决措施三维度评分）
-const replyStrategies = [
-  {
-    label: '真诚道歉 + 赔偿', score: 90, note: '态度好、有实质补偿，客人满意',
-    sample: '尊敬的客人您好，非常抱歉给您带来如此糟糕的入住体验。我们已立即安排对该房间进行隔音检查与整改，并为您下次入住提供免费升级房型与延迟退房。真诚邀请您再次光临，让我们有机会弥补。',
-  },
-  {
-    label: '解释原因 + 整改', score: 80, note: '专业性强，给出解决措施',
-    sample: '感谢您的反馈。经核查，该问题源于近期入住高峰期的服务疏漏。我们已优化流程并加强员工培训，确保此类问题不再发生。欢迎您继续监督我们的改进。',
-  },
-  {
-    label: '模板回复', score: 40, note: '显得敷衍，扣态度和专业性分',
-    sample: '感谢您的评价，我们会努力改进，期待您的再次光临。',
-  },
+// 快捷话术（只是打字辅助，不提示任何评分规则——学生自己判断怎么写）
+const quickNegReplies = [
+  '尊敬的客人您好，非常抱歉给您带来不好的体验。我们已第一时间排查整改该问题，并为您申请了免费房型升级与延迟退房作为补偿，真诚期待您再次给我们机会。',
+  '您好，感谢您的反馈，非常抱歉。我们已经核实并安排整改，同时会加强员工培训，避免类似情况再次发生。',
+  '感谢您的评价，我们会努力改进。',
+  '这个问题属于客人个人使用原因，属正常现象，请您理解。',
+]
+const quickGoodReplies = [
+  '谢谢您的认可！已为您准备了一份会员小惊喜，下次入住报手机号即可领取，期待再次见到您！',
+  '感谢您的肯定，我们会继续保持，欢迎下次再来！',
+  '好的，谢谢。',
 ]
 
 export default function Reputation({ report, history }) {
   const [reviews, setReviews] = useState(loadReviews)
-  const [replying, setReplying] = useState(null) // 正在回复的差评
+  const [replying, setReplying] = useState(null) // 正在回复的评价 { review, isGood }
+  const [replyText, setReplyText] = useState('') // 自由输入的话术
   const [showIgnored, setShowIgnored] = useState(false) // 忽略区折叠
   const [feedback, setFeedback] = useState(null)
 
@@ -57,20 +56,55 @@ export default function Reputation({ report, history }) {
   // 处理率口径：已忽略的差评也算"没处理"（不作为不是免罚）
   const handleRate = Math.round((resolved.length / (pending.length + resolved.length + ignoredCount || 1)) * 100)
 
-  function handleReply(r, strategy) {
-    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyScore: strategy.score } : x))
-    // 用更新后的列表计算处理率，避免显示过期值
+  // 自由话术提交：词云内核评分，敷衍的回复等于没回复
+  function submitReply() {
+    const { review: r, isGood } = replying
+    const text = replyText.trim()
+    if (!text) return
+    if (isGood) {
+      const { tier } = scoreGoodReply(text)
+      setReviews(reviews.map(x => x.id === r.id ? { ...x, goodReplyText: text, goodReplyTier: tier } : x))
+      setReplying(null); setReplyText('')
+      setFeedback({
+        title: `回复「${r.name.split(' ·')[0]}」的好评`,
+        changes: tier === 'warm'
+          ? [{ label: '客人回复', value: '很暖心，说下次一定还来', dir: 'up' }, { label: '口碑', value: '忠诚客人+1', dir: 'up' }]
+          : tier === 'ok'
+            ? [{ label: '客人回复', value: '客气地回了个笑脸', dir: '' }]
+            : [{ label: '客人回复', value: '没有再回复', dir: 'down' }],
+        note: tier === 'warm' ? '真诚的感谢会让好评客人变成回头客。' : tier === 'ok' ? '礼貌有余、温度不足。' : '连感谢都懒得写，客人的热情被泼了冷水。',
+      })
+      return
+    }
+    const { tier } = scoreNegativeReply(text)
+    if (tier === 'poor') {
+      // 敷衍/推责的回复：差评仍是待处理状态（等于没回复）
+      setReviews(reviews.map(x => x.id === r.id ? { ...x, poorReplyText: text } : x))
+      setReplying(null); setReplyText('')
+      setFeedback({
+        title: `回复「${r.name.split(' ·')[0]}」的差评`,
+        changes: [
+          { label: '客人回复', value: '更加生气了，扬言发帖曝光', dir: 'down' },
+          { label: '差评状态', value: '仍是待处理', dir: 'down' },
+          { label: '发酵风险', value: '↑', dir: 'down' },
+        ],
+        note: '客人认为你的回复毫无诚意——差评没有解决，继续计入发酵风险。换个有诚意的写法再试一次。',
+      })
+      return
+    }
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyText: text, replyTier: tier } : x))
     const newResolved = resolved.length + 1
     const newRate = Math.round((newResolved / (pending.length - 1 + newResolved || 1)) * 100)
-    setReplying(null)
+    setReplying(null); setReplyText('')
+    const reaction = tier === 'excellent'
+      ? { label: '客人回复', value: '态度缓和，接受了补偿方案并修改了评价', dir: 'up' }
+      : tier === 'good'
+        ? { label: '客人回复', value: '表示可以接受，事件就此解决', dir: 'up' }
+        : { label: '客人回复', value: '勉强接受，但表示不会再来了', dir: 'down' }
     setFeedback({
       title: `回复「${r.name.split(' ·')[0]}」的差评`,
-      changes: [
-        { label: '处理得分', value: strategy.score + ' 分', dir: strategy.score >= 80 ? 'up' : 'down' },
-        { label: '差评处理率', value: newRate + '%', dir: 'up' },
-        { label: '负面影响', value: '减半', dir: 'up' },
-      ],
-      note: `${strategy.label} → ${strategy.note}。按时回复的差评负面影响减半，处理得当能挽回口碑。`,
+      changes: [reaction, { label: '差评处理率', value: newRate + '%', dir: 'up' }, { label: '负面影响', value: tier === 'fair' ? '部分生效' : '减半', dir: 'up' }],
+      note: tier === 'excellent' ? '道歉、补偿、解决措施、时效全都到位——教科书级的差评回复。' : tier === 'good' ? '有诚意、有措施，客人的情绪基本被安抚。' : '解决了，但缺少让人回头的诚意。',
     })
   }
 
@@ -170,7 +204,7 @@ export default function Reputation({ report, history }) {
                 </div>
               )}
               <div style={{display:'flex',gap:6,marginTop:10}}>
-                <button className="btn btn-primary" style={{flex:1}} onClick={() => setReplying(r)}>💬 回复</button>
+                <button className="btn btn-primary" style={{flex:1}} onClick={() => setReplying({ review: r, isGood: false })}>💬 回复</button>
                 <button className="btn btn-ghost" style={{flex:1}} onClick={() => handleResolve(r)}>🔧 整改</button>
                 <button className="btn btn-ghost" style={{flex:1, color:'#EF4444'}} onClick={() => handleIgnore(r)}>不处理</button>
               </div>
@@ -195,11 +229,16 @@ export default function Reputation({ report, history }) {
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>✓已解决</span>{r.replyScore != null && <span style={{fontSize:10,background:'#ECFDF5',color:'#065F46',borderRadius:5,padding:'1px 6px',marginLeft:5}}>回复得分 {r.replyScore}</span>}</div>
+                  <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>✓已解决</span>{r.replyTier && <span style={{fontSize:10,background:r.replyTier==='excellent'?'#ECFDF5':r.replyTier==='good'?'#F0FDF4':'#F9FAFB',color:r.replyTier==='excellent'?'#065F46':r.replyTier==='good'?'#16A34A':'#6B7280',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
                   <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
                 </div>
               </div>
               <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              {r.replyText && (
+                <div style={{fontSize:11,color:'#1E40AF',background:'#EFF6FF',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+                  <span style={{color:'#9CA3AF'}}>我的回复：</span>{r.replyText}
+                </div>
+              )}
               {r.source && (
                 <div style={{fontSize:10,color:'#9CA3AF',background:'#F9FAFB',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：{r.source.icon} {r.source.name}
@@ -212,7 +251,7 @@ export default function Reputation({ report, history }) {
 
       <div className="section-title"><span className="left">近期好评</span></div>
       {good.map(r => (
-        <div className="card" style={{opacity:0.7}} key={r.id}>
+        <div className="card" key={r.id}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:'50%',background:'#EFF6FF',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
             <div style={{flex:1}}>
@@ -222,6 +261,14 @@ export default function Reputation({ report, history }) {
             <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
           </div>
           <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+          {r.goodReplyText && (
+            <div style={{fontSize:11,color:'#065F46',background:'#EAF9F0',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+              <span style={{color:'#9CA3AF'}}>我的回复：</span>{r.goodReplyText}
+            </div>
+          )}
+          {!r.goodReplyText && (
+            <button className="btn btn-ghost" style={{marginTop:8,padding:'8px 0',fontSize:12,width:'100%'}} onClick={() => { setReplyText(''); setReplying({ review: r, isGood: true }) }}>💬 回复感谢</button>
+          )}
         </div>
       ))}
 
@@ -279,30 +326,37 @@ export default function Reputation({ report, history }) {
         </>
       )}
 
-      {/* 回复策略弹窗 */}
+      {/* 回复弹窗：自由话术 + 快捷填入（评分规则不显示） */}
       {replying && (
         <div
           onClick={() => setReplying(null)}
-          style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 32px'}}
+          style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 24px'}}
         >
-          <div onClick={e => e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:24,width:'100%',animation:'pageIn 0.2s ease-out'}}>
-            <div style={{fontSize:18,fontWeight:700,marginBottom:4}}>回复差评</div>
-            <div style={{fontSize:12,color:'#6B7280',marginBottom:4}}>选择回复策略（态度/专业性/解决措施影响得分）</div>
-            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:14}}>💡 好的回复要有：①具体改进措施 ②真诚态度 ③补偿方案——不是模板套话</div>
-            {replyStrategies.map(s => (
-              <div
-                key={s.label}
-                className="district-card"
-                style={{padding:12,marginBottom:8}}
-                onClick={() => handleReply(replying, s)}
-              >
-                <div style={{fontSize:14,fontWeight:600}}>{s.label}</div>
-                <div style={{fontSize:11,color:'#A96407',marginTop:4}}>得分 {s.score} · {s.note}</div>
-                <div style={{fontSize:11,color:'#6B7280',marginTop:6,padding:'8px 10px',background:'#F9FAFB',borderRadius:8,lineHeight:1.6}}>
-                  <span style={{color:'#9CA3AF'}}>示例回复：</span>{s.sample}
-                </div>
+          <div onClick={e => e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:22,width:'100%',maxHeight:'82vh',overflowY:'auto',animation:'pageIn 0.2s ease-out'}}>
+            <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>{replying.isGood ? '回复好评' : '回复差评'}</div>
+            <div style={{fontSize:12,color:'#374151',lineHeight:1.6,padding:'8px 12px',background:'#F9FAFB',borderRadius:8,marginBottom:10}}>
+              {replying.review.text}
+            </div>
+            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:8}}>
+              💡 用你自己的话回复这位客人。怎么说、说什么由你决定——客人会感受到诚意，也会感受到敷衍。
+            </div>
+            <textarea
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              placeholder={replying.isGood ? '写一段感谢的话……' : '写下你的回复话术（道歉？补偿？解决措施？由你决定）……'}
+              rows={5}
+              style={{width:'100%',padding:'10px 12px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:13,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
+            />
+            <div style={{fontSize:10,color:'#9CA3AF',marginBottom:6}}>快捷话术（点击填入，可自行修改）：{replyText.replace(/\s/g,'').length} 字</div>
+            {(replying.isGood ? quickGoodReplies : quickNegReplies).map((q, i) => (
+              <div key={i} onClick={() => setReplyText(q)} style={{fontSize:11,color:'#374151',padding:'7px 10px',background:'#F9FAFB',borderRadius:8,marginBottom:6,cursor:'pointer',lineHeight:1.5}}>
+                {q.slice(0, 42)}{q.length > 42 ? '…' : ''}
               </div>
             ))}
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <button className="btn btn-ghost" style={{flex:1}} onClick={() => setReplying(null)}>取消</button>
+              <button className="btn-confirm" style={{flex:2,opacity:replyText.trim()?1:0.5}} disabled={!replyText.trim()} onClick={submitReply}>发送回复</button>
+            </div>
           </div>
         </div>
       )}

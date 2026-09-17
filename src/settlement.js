@@ -24,19 +24,35 @@ function seededRandom(seed) {
 // 差评文案池（结算生成差评时取样，文案与决策联动）
 const negativeTexts = [
   '「隔音太差了，隔壁半夜看电视听得一清二楚，完全没睡好。」',
-  '「前台办理入住等了半小时，体验很差。」',
-  '「房间卫生一般，床品有异味，期望落差大。」',
-  '「空调忽冷忽热，半夜被冻醒。」',
-  '「热水等了十分钟才来，洗澡体验差。」',
   '「网络太慢，视频会议都开不了。」',
+  '「热水等了十分钟才来，洗澡体验差。」',
   '「停车场要绕很远，前台也说不清楚。」',
   '「房间设施老旧，和网上照片差距太大。」',
+  '「前台办理入住等了半小时，体验很差。」',
+  '「床单上有污渍，看着就不舒服，要求换房还推脱。」',
+  '「空调制冷效果差，一夜没睡好。」',
+  '「早餐品种太少，还限时间，根本来不及吃。」',
+  '「服务员态度冷淡，问个问题爱答不理。」',
+  '「房间有异味，闻着像烟味，要求处理也没下文。」',
+  '「价格太贵了，就这条件和两百块的快捷酒店没区别。」',
+  '「退房查房查了十分钟，押金迟迟不退，什么意思？」',
+  '「凌晨还有人走廊里大声喧哗，酒店完全不管。」',
+  '「叫醒服务没打，差点误了飞机，赔偿都不谈。」',
+  '「马桶堵了报修两次才来人，这服务没谁了。」',
 ]
 const positiveTexts = [
   '「位置很好，离地铁近，房间干净，下次还来。」',
   '「前台服务很热情，入住体验超出预期。」',
   '「床品舒服，睡了个好觉，性价比高。」',
   '「会员价格实惠，还送了早餐，好评。」',
+  '「房间隔音好，设施新，细节满分。」',
+  '「退房速度快，还主动帮忙叫车，服务到位。」',
+  '「热水又快又足，水压也稳，住得舒心。」',
+  '「楼下就有便利店和餐馆，出行太方便了。」',
+  '「亲戚来旅游订的这家，全家都说好。」',
+  '「卫生做得好，连床底都干干净净，放心。」',
+  '「出差常驻这家了，稳定靠谱，前台都记住我了。」',
+  '「半夜到店还给留了房间，暖心，五星。」',
 ]
 const guestNames = ['王先生 · 商务出差', '李女士 · 家庭出游', '张先生 · 旅行', '刘女士 · 亲子', '陈先生 · 商务出差', '赵女士 · 度假', '周先生 · 旅行']
 
@@ -499,6 +515,34 @@ for (let i = 0; i < reviewCount; i++) {
       stars: 5,
       text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
       status: 'good',
+    })
+  }
+  // RPG 式口碑联动：好评率越高，愿意写评价的客人越多
+  if (goodRate >= 0.8 && rand() < 0.5) {
+    generatedReviews.push({
+      id: `w${week}-g1`, avatar: '🧑', bg: 'green',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: 5,
+      text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
+      status: 'good', surge: '口碑爆发',
+    })
+    if (rand() < 0.5) generatedReviews.push({
+      id: `w${week}-g2`, avatar: '👩', bg: 'green',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: 5,
+      text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
+      status: 'good', surge: '口碑爆发',
+    })
+  }
+  if (goodRate <= 0.55 && rand() < 0.4) {
+    negativeCount += 1 // 差评潮：口碑差时更多客人倾向于写差评（下周经 pendingNegatives 发酵）
+    negSources.push({ icon: '🌊', name: '差评潮' })
+    generatedReviews.push({
+      id: `w${week}-n9`, avatar: '🧑', bg: 'blue',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: Math.floor(rand() * 2) + 1,
+      text: negativeTexts[Math.floor(rand() * negativeTexts.length)],
+      status: 'pending', source: { icon: '🌊', name: '差评潮' },
     })
   }
 

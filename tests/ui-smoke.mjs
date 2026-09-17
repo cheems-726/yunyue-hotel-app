@@ -218,6 +218,38 @@ try {
   ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计利润 · 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
   await clickText(page, '口碑'); await sleep(700)
   ok('口碑页渲染', (await text(page)).includes('差评处理率'))
+  // 回复交互：注入固定测试差评（stub）保证可测——先敷衍（应保持待处理）再优质（应解决）
+  await page.evaluate(() => {
+    const key = 'hotel-sim-reviews'
+    const list = JSON.parse(localStorage.getItem(key) || '[]')
+    list.push({ id: 'smoke-n1', avatar: '🧑', bg: 'blue', name: '冒烟测试客 · 剧本', date: '第1周', stars: 1, text: '「空调坏了，一晚上没睡好。」', status: 'pending' })
+    localStorage.setItem(key, JSON.stringify(list))
+  })
+  await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1300)
+  await clickText(page, '口碑'); await sleep(700)
+  const replyOnce = async (txt) => {
+    await page.evaluate(() => {
+      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('💬 回复'))
+      el && el.click()
+    }); await sleep(500)
+    await page.evaluate((txt2) => {
+      const ta = document.querySelector('textarea')
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+      setter.call(ta, txt2)
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    }, txt); await sleep(300)
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('发送回复'))
+      b && b.click()
+    }); await sleep(800)
+  }
+  await clickCard(page, '冒烟测试客'); await sleep(300)
+  await replyOnce('这个问题属于客人个人使用原因，属正常现象，请您理解。')
+  ok('敷衍回复：客人更生气且差评仍待处理', (await text(page)).includes('更加生气') && (await text(page)).includes('仍是待处理'))
+  await closeOverlay(page)
+  await replyOnce('尊敬的客人您好，非常抱歉。我们已第一时间维修更换空调，并为您申请了部分退款补偿，今晚立即为您升级安静房型，24小时内跟进解决，期待您再次给我们机会。')
+  ok('优质回复：客人接受并修改评价', (await text(page)).includes('接受了补偿方案') || (await text(page)).includes('修改了评价'))
+  await closeOverlay(page)
   await clickText(page, '我的'); await sleep(700)
   const me = await text(page)
   ok('我的页：称号历程+档案', me.includes('称号历程') && me.includes('我的酒店档案'))
