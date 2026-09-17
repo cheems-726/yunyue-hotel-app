@@ -41,7 +41,10 @@ function summarize(gs, profile) {
     const pn = pNeg === 0 ? 100 : pNeg <= 5 ? 80 : pNeg <= 10 ? 65 : 50
     scorePrev = Math.round(ps * 0.4 + pr * 0.25 + po * 0.2 + pn * 0.15)
   }
-  const titleInfo = getTitle(avgOcc, avgGood, s.brand?.level || '')
+  // 品质分按品牌档次推导（与学生端同口径；直接传 level 字符串会得到 NaN 并让 getTitle 崩溃）
+  const lv2 = s.brand?.level || ''
+  const q2 = lv2.includes('经济') ? 60 : lv2.includes('中高档') || lv2.includes('精选') ? 85 : lv2.includes('高档') ? 90 : lv2.includes('奢华') ? 95 : lv2.includes('中档') ? 75 : 70
+  const titleInfo = getTitle(avgOcc, avgGood, q2)
   return {
     uid: gs.user_id,
     titleIcon: titleInfo.icon,

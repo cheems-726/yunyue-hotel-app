@@ -13,7 +13,8 @@ export function getTitle(occ, goodRatePct, quality) {
   const composite = Math.round(
     (occ || 0) * 0.35 + (goodRatePct || 0) * 0.35 + (quality == null ? 70 : quality) * 0.3
   )
-  const tier = TITLES.find(t => composite >= t.min)
+  // 防御：composite 非法（NaN等）时兜底到最低档，绝不返回 undefined
+  const tier = TITLES.find(t => composite >= t.min) || TITLES[TITLES.length - 1]
   const idx = TITLES.indexOf(tier)
   const next = TITLES[idx - 1] || null
   // 距下一称号的进度（0-100）
