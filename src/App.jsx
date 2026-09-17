@@ -1414,6 +1414,31 @@ function loadState() {
   }
 }
 
+// ===== 全局错误兜底：任何子组件崩溃显示友好错误页（防白屏），可一键重置界面 =====
+class AppErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null } }
+  static getDerivedStateFromError(err) { return { err } }
+  componentDidCatch(err) { try { console.error('[AppError]', err) } catch (e) {} }
+  render() {
+    if (!this.state.err) return this.props.children
+    const msg = String((this.state.err && this.state.err.message) || this.state.err)
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 44 }}>😵</div>
+        <div style={{ fontSize: 17, fontWeight: 700, marginTop: 12 }}>页面出了点问题</div>
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8, wordBreak: 'break-all', lineHeight: 1.6 }}>{msg}</div>
+        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>你的经营进度已自动保存，不受影响</div>
+        <button className="btn-confirm" style={{ marginTop: 24, width: '100%' }} onClick={() => { this.props.onReset && this.props.onReset(); this.setState({ err: null }) }}>
+          重置界面，回到经营页
+        </button>
+        <button className="btn btn-ghost" style={{ marginTop: 10, width: '100%' }} onClick={() => { try { localStorage.removeItem('hotel-sim-ui') } catch (e) {} location.reload() }}>
+          刷新页面
+        </button>
+      </div>
+    )
+  }
+}
+
 export default function App() {
   const saved = loadState()
   const [user, setUser] = useState(saved.user || null) // null = 未登录
@@ -1424,6 +1449,22 @@ export default function App() {
   const [tab, setTab] = useState('business')
   const [openPage, setOpenPage] = useState(null) // { title, icon }
   const [currentDecision, setCurrentDecision] = useState(null) // 当前决策
+  // 手机侧滑返回：关一层界面（子页/决策面板→回经营tab），永不直接退出站点
+  const navRef = React.useRef({})
+  navRef.current = { openPage, currentDecision, tab, close: () => { setOpenPage(null); setCurrentDecision(null) }, setTab }
+  React.useEffect(() => {
+    try { window.history.pushState({ app: 1 }, '') } catch (e) {}
+    const onPop = () => {
+      const nav = navRef.current
+      try {
+        if (nav.openPage || nav.currentDecision) nav.close()
+        else if (nav.tab !== 'business') nav.setTab('business')
+      } catch (e) {}
+      try { window.history.pushState({ app: 1 }, '') } catch (e) {}
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const [doneDecisions, setDoneDecisions] = useState(saved.doneDecisions || {}) // 已完成的决策
   const [report, setReport] = useState(saved.report || null) // 周报结果
   const [week, setWeek] = useState(saved.week || 1) // 当前经营周
@@ -1857,7 +1898,7 @@ export default function App() {
         <span className="time">{time || '09:41'}</span>
         <span className="icons">📶 🔋</span>
       </div>
-      {mainPage}
+      <AppErrorBoundary onReset={() => { setOpenPage(null); setCurrentDecision(null); setTab('business') }}>{mainPage}</AppErrorBoundary>
       {/* 断网横幅 */}
       {offline && (
         <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
