@@ -108,7 +108,7 @@ function StrategyTag({ rawStates, uid }) {
 }
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
-function GroupDetail({ uid, rawStates, name }) {
+function GroupDetail({ uid, rawStates, name, allNotes = [] }) {
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
   const s = gs.state || {}
@@ -190,16 +190,37 @@ function GroupDetail({ uid, rawStates, name }) {
       })}
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
 
+      {/* 历史批注时间线（多条按时间排列） */}
+      {(() => {
+        const mine = allNotes.filter(n => n.student_uid === uid)
+        if (!mine.length) return null
+        return (
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📜 批注时间线（{mine.length} 条）</div>
+            {mine.map(n => (
+              <div key={n.id || n.updated_at} style={{ padding: '7px 10px', background: '#FFF9F0', borderRadius: 8, marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#A96407' }}>{n.week > 0 ? `第${n.week}周批注` : '总评'}</span>
+                  <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>
+                {n.score != null && <div style={{ fontSize: 10, color: '#A96407', fontWeight: 700, marginTop: 3 }}>评分 {n.score}/100</div>}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* 教师批注+打分 */}
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
-        <TeacherNoteForm uid={uid} name={name} />
+        <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} />
       </div>
     </div>
   )
 }
 
 // 教师批注表单组件
-function TeacherNoteForm({ uid, name }) {
+function TeacherNoteForm({ uid, name, week = 0 }) {
   const [note, setNote] = React.useState('')
   const [score, setScore] = React.useState('')
   const [saved, setSaved] = React.useState(false)
@@ -212,7 +233,7 @@ function TeacherNoteForm({ uid, name }) {
     const session = await import('./supabaseClient.js').then(m => m.supabase.auth.getSession())
     const teacherUid = session.data?.session?.user?.id
     if (!teacherUid) return
-    const ok = await saveTeacherNote(teacherUid, uid, 0, note.trim(), score ? Number(score) : null)
+    const ok = await saveTeacherNote(teacherUid, uid, week, note.trim(), score ? Number(score) : null)
     setSaving(false)
     if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
   }
@@ -265,6 +286,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
   const [notedUids, setNotedUids] = useState(new Set())
+  const [allNotes, setAllNotes] = useState([]) // 全部批注（GroupDetail 时间线用）
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
@@ -283,7 +305,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
       setRawStates(states)
-      fetchTeacherNotes().then(ns => setNotedUids(new Set(ns.map(n => n.student_uid)))).catch(() => {})
+      fetchTeacherNotes().then(ns => { setNotedUids(new Set(ns.map(n => n.student_uid))); setAllNotes(ns) }).catch(() => {})
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
       setCloudOk(true)
@@ -505,7 +527,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} />}
               </div>
               )
             })}
@@ -547,7 +569,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} />}
               </div>
             ))}
           </div>
