@@ -54,7 +54,7 @@ export default function Establishment({ brand, property, onComplete }) {
   }
   function finishOpening() {
     setOpening(false)
-    onComplete()
+    onComplete(choices)
   }
   function next() {
     if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1)
@@ -110,7 +110,7 @@ export default function Establishment({ brand, property, onComplete }) {
       <div className="card">
         <div className="card-title">{step.icon} {step.title}</div>
         <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>{step.desc}</div>
-        <StepContent stepKey={step.key} onPick={pick} picked={picked} />
+        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} />
       </div>
 
       {/* 底部按钮 */}
@@ -123,7 +123,7 @@ export default function Establishment({ brand, property, onComplete }) {
             {stepSatisfied() ? `完成「${step.title}」，下一步 →` : step.title === '投资测算' ? '请先选择一个投资情景' : step.title === '物资采购' ? '请先选择采购渠道' : '请先完成本步'}
           </button>
         ) : (
-          <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={() => { markDone(); onComplete(choices) }}>
+          <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={markDone}>
             {stepSatisfied() ? '🎉 完成筹建，正式开业 →' : '请为三项任务排出优先级（点击依次选定）'}
           </button>
         )}
@@ -164,7 +164,7 @@ export default function Establishment({ brand, property, onComplete }) {
   )
 }
 
-function StepContent({ stepKey, onPick, picked }) {
+function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask }) {
   const clickable = key => ({
     cursor: 'pointer',
     border: picked[key] ? '1px solid #E8940F' : '1px solid transparent',

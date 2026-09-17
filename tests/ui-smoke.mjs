@@ -168,8 +168,9 @@ try {
     await clickCard(page, n, 'starts'); await sleep(350)
     ok('筹建·开业优先级第' + (i + 1) + '（' + n + '）', (await text(page)).includes('第' + (i + 1) + '优先'))
   }
-  await clickText(page, '完成筹建'); await sleep(900)
+  await clickText(page, '完成筹建'); await sleep(1200)
   const opening = await text(page)
+  if (!opening.includes('正式开业')) console.log('    [开业页实况] ' + opening.slice(0, 170).split('\n').join(' | '))
   ok('开业反馈弹出（含筹建决策汇总）', opening.includes('正式开业') && opening.includes('开业优先级') && opening.includes('投资情景'))
   await closeOverlay(page)
 
