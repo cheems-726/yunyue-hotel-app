@@ -31,6 +31,7 @@ function lenAdjust(pts, text) {
   const len = text.replace(/\s/g, '').length
   if (len < 8) return Math.min(pts, 1) // 太短的话术没有诚意
   if (len < 20) return Math.min(pts, 4)
+  if (len > 120) pts = Math.max(pts - 2, 3) // 长篇大论堆砌辞藻，轻微降分（过度包装反而显假）
   return pts
 }
 
