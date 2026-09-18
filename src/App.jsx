@@ -1147,6 +1147,7 @@ function GroupMembersPage({ user, onBack }) {
   const [members, setMembers] = useState(null)
   const [myRole, setMyRole] = useState(null)
   const [memberStates, setMemberStates] = useState({}) // uid → 经营概况
+  const [dutyOpenUid, setDutyOpenUid] = useState(null) // 展开未完成职责清单的成员
   const hasGroup = !!(user?.groupNo && user?.className)
   useEffect(() => {
     if (!hasGroup) return
@@ -1271,11 +1272,25 @@ function GroupMembersPage({ user, onBack }) {
                   const doneCnt = duty.filter(d => doneList[d.id] !== undefined).length
                   if (!role || !duty.length || !st) return null
                   const full = doneCnt >= duty.length
+                  const undone = duty.filter(d => doneList[d.id] === undefined)
                   return (
                     <div style={{ marginTop: 6, paddingLeft: 52 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: full ? '#065F46' : '#A96407', background: full ? '#ECFDF5' : '#FFF4E0', borderRadius: 5, padding: '2px 8px' }}>
-                        {full ? '✅' : '⏳'} {OWNER_LABELS[role]?.icon || ''} {OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成
+                      <span
+                        onClick={() => setDutyOpenUid(dutyOpenUid === m.user_id ? null : m.user_id)}
+                        style={{ fontSize: 10, fontWeight: 700, color: full ? '#065F46' : '#A96407', background: full ? '#ECFDF5' : '#FFF4E0', borderRadius: 5, padding: '2px 8px', cursor: 'pointer', display: 'inline-block' }}
+                        title={full ? '职责决策全部完成' : '点击查看未完成的职责决策'}
+                      >
+                        {full ? '✅' : '⏳'} {OWNER_LABELS[role]?.icon || ''} {OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成{!full ? ' · 点击查看' : ''}
                       </span>
+                      {dutyOpenUid === m.user_id && undone.length > 0 && (
+                        <div style={{ marginTop: 4, padding: '6px 10px', background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 8 }}>
+                          {undone.map(d => (
+                            <div key={d.id} style={{ fontSize: 11, color: '#991B1B', padding: '2px 0', lineHeight: 1.5 }}>
+                              · {d.icon} {d.name}——还没做，提醒 TA 去经营页完成
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })()}
