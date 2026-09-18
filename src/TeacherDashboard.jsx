@@ -602,7 +602,11 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (liveWeekFilter > 0) {
               const snap = hist.find(h => h.week === liveWeekFilter)
               entries = Object.entries((snap && snap.decisions) || {})
-              srcLabel = `第${liveWeekFilter}周快照`
+              // 该周综合分（与称号口径一致）：出租率35%+好评率35%+品质30%
+              const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
+              const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+              const comp = snap ? Math.round((snap.occupancy || 0) * 0.35 + (snap.finalGoodRate || 0) * 0.35 + q * 0.3) : null
+              srcLabel = `第${liveWeekFilter}周快照${comp != null ? ' · 综合' + comp + '分' : ''}`
             } else {
               entries = Object.entries(done)
               srcLabel = `第${gs.week || 1}周实时`
