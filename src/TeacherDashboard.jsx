@@ -297,6 +297,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [weekSaved, setWeekSaved] = useState(false)
   const [newChips, setNewChips] = useState({}) // uid -> Set(决策id)：最近一次刷新新增/变化的决策（高亮）
   const [chipDetail, setChipDetail] = useState(null) // 大屏chips点击的详情
+  const [liveWeekFilter, setLiveWeekFilter] = useState(0) // 大屏周次筛选（0=当前周/最新，1-12=历史周快照）
   const prevDoneRef = React.useRef(null)
   useEffect(() => {
     const cur = {}
@@ -585,15 +586,25 @@ export default function TeacherDashboard({ user, onLogout }) {
         const liveList = [...rawStates]
           .map(gs => {
             const p = (profiles.find(x => x.user_id === gs.user_id) || {})
+            const hist = (gs.state && gs.state.history) || []
             const done = (gs.state && gs.state.doneDecisions) || {}
-            const entries = Object.entries(done)
+            // 周次筛选：1-12=历史周快照（history[].decisions），0=当前周（doneDecisions 实时）
+            let entries, srcLabel
+            if (liveWeekFilter > 0) {
+              const snap = hist.find(h => h.week === liveWeekFilter)
+              entries = Object.entries((snap && snap.decisions) || {})
+              srcLabel = `第${liveWeekFilter}周快照`
+            } else {
+              entries = Object.entries(done)
+              srcLabel = `第${gs.week || 1}周实时`
+            }
             return {
               uid: gs.user_id,
               name: p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8)),
               hotel: (gs.state?.brand?.name || '') + (gs.state?.property?.name ? '·' + gs.state.property.name : ''),
               week: gs.week || gs.state?.week || 1,
               updated: gs.updated_at,
-              entries,
+              entries, srcLabel,
             }
           })
           .sort((a, b) => new Date(b.updated) - new Date(a.updated))
@@ -604,8 +615,17 @@ export default function TeacherDashboard({ user, onLogout }) {
             {/* 大屏统计条 */}
             <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>📡 学生决策实时动向</div>
-                <span style={{ fontSize: 9, color: '#10B981', fontWeight: 700 }}>● Realtime 自动刷新</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>📡 学生决策动向{liveWeekFilter > 0 ? `（第${liveWeekFilter}周快照）` : '（实时）'}</div>
+                <span style={{ fontSize: 9, color: liveWeekFilter > 0 ? '#9CA3AF' : '#10B981', fontWeight: 700 }}>{liveWeekFilter > 0 ? '历史回放' : '● Realtime 自动刷新'}</span>
+              </div>
+              {/* 周次筛选chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(w => (
+                  <button key={w} onClick={() => setLiveWeekFilter(w)}
+                    style={{ fontSize: 10, fontWeight: liveWeekFilter === w ? 700 : 400, color: liveWeekFilter === w ? '#fff' : '#6B7280', background: liveWeekFilter === w ? '#1D4ED8' : '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {w === 0 ? '实时' : `第${w}周`}
+                  </button>
+                ))}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
@@ -627,7 +647,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               <div className="card" key={g.uid} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{g.name} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>{g.hotel}</span></span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: g.entries.length >= 18 ? '#16A34A' : '#E8940F' }}>{g.entries.length}/18 项</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: g.entries.length >= 18 ? '#16A34A' : '#E8940F' }}>{g.entries.length}/18 项 · {g.srcLabel}</span>
                 </div>
                 {g.entries.length === 0 ? (
                   <div style={{ fontSize: 11, color: '#9CA3AF' }}>该组本周还没有保存决策</div>
