@@ -193,6 +193,17 @@ export default function Reputation({ report, history }) {
           处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
           {todayResolved > 0 && <b style={{ color: '#16A34A' }}> · 今天已处理 {todayResolved} 条 ✓</b>}
         </div>
+        {/* 发酵预警：欠2条以上差评会触发危机事件（与引擎 minPending:2 对应） */}
+        {pending.length === 1 && (
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#A96407', background: '#FFF4E0', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px' }}>
+            ⚠ 再欠 1 条差评就到发酵危险区（欠 2 条以上会触发「差评发酵」危机，口碑额外受损）
+          </div>
+        )}
+        {pending.length >= 2 && (
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
+            🔴 已欠 {pending.length} 条差评——已在发酵危机触发区！每多欠一条，口碑受损越重，立即处理
+          </div>
+        )}
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
         {(() => {
           const pts = (history || []).map(h => ({ w: h.week, v: h.finalGoodRate }))
