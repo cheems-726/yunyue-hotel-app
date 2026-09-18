@@ -282,7 +282,7 @@ function TeacherNoteForm({ uid, name, week = 0 }) {
 }
 
 export default function TeacherDashboard({ user, onLogout }) {
-  const [view, setView] = useState('overview') // overview | ranking | groups | teaching
+  const [view, setView] = useState('live') // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
   const [notedUids, setNotedUids] = useState(new Set())
@@ -399,7 +399,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   }
 
   return (
-    <div className="content">
+    <div className="content" style={{ paddingBottom: 76 }}>
       <div className="header">
         <div className="row1"><span className="hotel-name">教师后台</span></div>
         <div className="sub">
@@ -407,19 +407,14 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       </div>
 
-      {/* 功能切换 */}
-      <div className="city-row">
-        {[
-          { key: 'overview', label: '📊 总览' },
-          { key: 'ranking', label: '🏆 排名' },
-          { key: 'groups', label: '👥 分组' },
-          { key: 'teaching', label: '📖 教学' },
-        ].map(v => (
-          <button key={v.key} className={`city-tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
-            {v.label}
-          </button>
-        ))}
-      </div>
+      {/* 视图标题（分组/教学/总览 从"我的"进入时显示返回） */}
+      {(view === 'groups' || view === 'teaching' || view === 'overview') && (
+        <div style={{ padding: '0 20px 8px' }}>
+          <button className="btn btn-ghost" style={{ width: '100%', padding: '10px 0' }} onClick={() => setView('me')}>‹ 返回我的</button>
+        </div>
+      )}
+
+
 
       {groups === null && (
         <div className="card">
@@ -434,6 +429,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       )}
 
       {/* 总览 */}
+      {/* 班级总览（从'我的'进入） */}
       {view === 'overview' && groups !== null && (
         <div>
           {/* 教学进度控制：全班统一周 */}
@@ -534,6 +530,77 @@ export default function TeacherDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* 实时决策大屏：学生们做过/正在做的决策，实时观察动向 */}
+      {view === 'live' && groups !== null && (() => {
+        const liveList = [...rawStates]
+          .map(gs => {
+            const p = (profiles.find(x => x.user_id === gs.user_id) || {})
+            const done = (gs.state && gs.state.doneDecisions) || {}
+            const entries = Object.entries(done)
+            return {
+              uid: gs.user_id,
+              name: p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8)),
+              hotel: (gs.state?.brand?.name || '') + (gs.state?.property?.name ? '·' + gs.state.property.name : ''),
+              week: gs.week || gs.state?.week || 1,
+              updated: gs.updated_at,
+              entries,
+            }
+          })
+          .sort((a, b) => new Date(b.updated) - new Date(a.updated))
+        const totalDone = liveList.reduce((a, g) => a + g.entries.length, 0)
+        const lastUpd = liveList.length ? liveList[0].updated : null
+        return (
+          <div>
+            {/* 大屏统计条 */}
+            <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>📡 学生决策实时动向</div>
+                <span style={{ fontSize: 9, color: '#10B981', fontWeight: 700 }}>● Realtime 自动刷新</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { l: '全班决策数', v: totalDone },
+                  { l: '人均完成', v: (groups.length ? (totalDone / groups.length).toFixed(1) : 0) + ' 项' },
+                  { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—' },
+                ].map(s => (
+                  <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1D4ED8' }}>{s.v}</div>
+                    <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
+            </div>
+
+            {/* 各组决策流（最近更新的组排最上） */}
+            {liveList.map(g => (
+              <div className="card" key={g.uid} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{g.name} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>{g.hotel}</span></span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: g.entries.length >= 18 ? '#16A34A' : '#E8940F' }}>{g.entries.length}/18 项</span>
+                </div>
+                {g.entries.length === 0 ? (
+                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>该组本周还没有保存决策</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {g.entries.map(([id, val]) => {
+                      const d = decisions.find(x => x.id === id)
+                      const short = typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 2).join('＞') : Object.entries(val).slice(0, 2).map(([k, v]) => `${k}:${v}`).join(' ')) : String(val)
+                      return (
+                        <span key={id} title={`${d ? d.name : id}: ${short}`} style={{ fontSize: 10, background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: '#374151' }}>
+                          {d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+                <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6 }}>更新于 {new Date(g.updated).toLocaleString('zh-CN')}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* 排名 */}
       {view === 'ranking' && groups !== null && (
@@ -706,8 +773,49 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       )}
 
-      <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn btn-ghost" style={{ width: '100%', padding: '14px 0', color: '#EF4444' }} onClick={onLogout}>退出登录</button>
+      {/* 我的视图（教师信息 + 功能入口 + 退出） */}
+      {view === 'me' && (
+        <div>
+          <div className="card" style={{ textAlign: 'center', padding: 24 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>👩‍🏫</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{user?.name}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
+          </div>
+          <div className="card">
+            <div className="card-title">🧰 功能入口</div>
+            {[
+              { v: 'overview', icon: '📊', label: '班级总览 & 教学进度控制', desc: '全班统计 / 锁周 / CSV导出' },
+              { v: 'groups', icon: '👥', label: '分组管理', desc: '分组 / 班级 / 学号' },
+              { v: 'teaching', icon: '📖', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
+            ].map(x => (
+              <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid #F3F4F6', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18 }}>{x.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{x.label}</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>{x.desc}</div>
+                </div>
+                <span style={{ color: '#D1D5DB' }}>›</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: '8px 0 0' }}>
+            <button className="btn btn-ghost" style={{ width: '100%', padding: '13px 0', color: '#EF4444' }} onClick={onLogout}>退出登录</button>
+          </div>
+        </div>
+      )}
+
+      {/* 底部三导航：排名 / 实时决策 / 我的 */}
+      <div className="tabbar">
+        {[
+          { key: 'live', icon: '📡', label: '实时决策' },
+          { key: 'ranking', icon: '🏆', label: '排名' },
+          { key: 'me', icon: '👤', label: '我的' },
+        ].map(v => (
+          <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
+            <div className="tab-icon">{v.icon}</div>
+            <div className="tab-label">{v.label}</div>
+          </button>
+        ))}
       </div>
     </div>
   )
