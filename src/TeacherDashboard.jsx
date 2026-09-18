@@ -403,15 +403,18 @@ export default function TeacherDashboard({ user, onLogout }) {
     }
     lines.push('')
     lines.push('【每周明细】')
-    lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),利润(元),评价数,差评数,好评率%')
+    lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),利润(元),评价数,差评数,好评率%,综合分')
     for (const gs of rawStates.filter(x => visibleUids.has(x.user_id))) {
       const p = pMap[gs.user_id] || {}
       const gname = p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8))
       const hist = (gs.state && gs.state.history) || []
+      const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
+      const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
       for (const h of hist) {
+        const comp = Math.round((h.occupancy || 0) * 0.35 + (h.finalGoodRate || 0) * 0.35 + q * 0.3)
         lines.push([
           p.class_name || '', gname, h.week, h.occupancy, h.price, h.revenue, h.totalCost, h.profit,
-          h.reviewCount ?? '', h.negativeCount ?? '', h.finalGoodRate ?? '',
+          h.reviewCount ?? '', h.negativeCount ?? '', h.finalGoodRate ?? '', comp,
         ].join(','))
       }
     }
