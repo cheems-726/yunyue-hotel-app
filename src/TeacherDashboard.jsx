@@ -108,7 +108,7 @@ function StrategyTag({ rawStates, uid }) {
 }
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
-function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote }) {
+function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved }) {
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
   const s = gs.state || {}
@@ -217,14 +217,14 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote }) {
 
       {/* 教师批注+打分 */}
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
-        <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} />
+        <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} onSaved={onSaved} />
       </div>
     </div>
   )
 }
 
 // 教师批注表单组件
-function TeacherNoteForm({ uid, name, week = 0 }) {
+function TeacherNoteForm({ uid, name, week = 0, onSaved }) {
   const [note, setNote] = React.useState('')
   const [score, setScore] = React.useState('')
   const [saved, setSaved] = React.useState(false)
@@ -239,7 +239,7 @@ function TeacherNoteForm({ uid, name, week = 0 }) {
     if (!teacherUid) return
     const ok = await saveTeacherNote(teacherUid, uid, week, note.trim(), score ? Number(score) : null)
     setSaving(false)
-    if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+    if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); onSaved && onSaved() }
   }
 
   // 快捷批注：一键填充评语+分数（教师可再手改）
@@ -568,7 +568,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} />}
               </div>
               )
             })}
@@ -735,7 +735,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} />}
               </div>
             ))}
           </div>
