@@ -296,6 +296,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
   const [newChips, setNewChips] = useState({}) // uid -> Set(决策id)：最近一次刷新新增/变化的决策（高亮）
+  const [chipDetail, setChipDetail] = useState(null) // 大屏chips点击的详情
   const prevDoneRef = React.useRef(null)
   useEffect(() => {
     const cur = {}
@@ -553,6 +554,23 @@ export default function TeacherDashboard({ user, onLogout }) {
       )}
 
       {/* 实时决策大屏：学生们做过/正在做的决策，实时观察动向 */}
+      {view === 'live' && chipDetail && (
+        <div onClick={() => setChipDetail(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%', animation: 'pageIn 0.2s ease-out' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{chipDetail.icon} {chipDetail.name}</div>
+            <div style={{ fontSize: 12, color: '#374151', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 10 }}>
+              学生选择：<b>{chipDetail.answer}</b>
+            </div>
+            {chipDetail.tip && (
+              <div style={{ fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
+                💡 设计考量：{chipDetail.tip}
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>课堂提示：可现场问学生"为什么这么选"</div>
+            <button className="btn btn-primary" style={{ marginTop: 10, width: '100%' }} onClick={() => setChipDetail(null)}>知道了</button>
+          </div>
+        </div>
+      )}
       {view === 'live' && groups !== null && (() => {
         const liveList = [...rawStates]
           .map(gs => {
@@ -610,7 +628,8 @@ export default function TeacherDashboard({ user, onLogout }) {
                       const short = typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 2).join('＞') : Object.entries(val).slice(0, 2).map(([k, v]) => `${k}:${v}`).join(' ')) : String(val)
                       const isNew = newChips[g.uid] && newChips[g.uid].has(id)
                       return (
-                        <span key={id} title={`${d ? d.name : id}: ${short}`} style={{ fontSize: 10, background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
+                        <span key={id} onClick={() => d && setChipDetail({ name: d.name, icon: d.icon, tip: d.tip, answer: short })}
+                          style={{ fontSize: 10, cursor: 'pointer', background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
                           {isNew && '🆕 '}{d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
                         </span>
                       )
