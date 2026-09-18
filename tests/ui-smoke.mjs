@@ -292,7 +292,7 @@ try {
   {
     const { pg, body } = await cloudLogin('我是老师', 't001', '123456')
     ok('云端教师登录（t001）', body.includes('教师后台'))
-    ok('教师端四页签渲染', body.includes('总览') && body.includes('排名') && body.includes('分组') && body.includes('教学'))
+    ok('教师端底部三导航+实时大屏', body.includes('学生决策实时动向') && body.includes('实时决策') && body.includes('排名') && body.includes('我的'))
     await pg.close()
   }
   // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
