@@ -6,6 +6,7 @@ import { getTitle } from './hotelTitle.js'
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
 export default function FinalResult({ history, onRestart, brand }) {
+  const [copied, setCopied] = React.useState(false)
   // 品质分按品牌档次推导（与其他页面同口径）
   const lv = brand?.level || ''
   const quality = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
@@ -96,6 +97,20 @@ export default function FinalResult({ history, onRestart, brand }) {
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
               策略风格由 12 周的决策快照自动归纳；轨迹仅在称号变化处记录节点
             </div>
+            <button className="btn btn-primary" style={{ marginTop: 10, width: '100%', fontSize: 12 }}
+              onClick={() => {
+                const grade = document.querySelector('.card div[style*="color: rgb(232, 148, 15)"]')
+                const score = history.length >= 1
+                const txt = [
+                  '🏨 云悦酒店 · 12周经营成绩单',
+                  `策略风格：${st ? st.icon + ' ' + st.tag : '—'}`,
+                  `称号轨迹：${nodes.join(' → ') || '—'}`,
+                  `累计利润：${(totalProfit / 10000).toFixed(2)}万 · 平均出租率 ${avgOccupancy}% · 平均好评率 ${avgGoodRate}%`,
+                  '—— 云悦酒店经营模拟',
+                ].join('\n')
+                navigator.clipboard.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {})
+              }}
+            >{copied ? '✅ 已复制，去群里粘贴吧' : '📋 一键复制成绩单（发群里）'}</button>
           </div>
         )
       })()}
