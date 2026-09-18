@@ -295,6 +295,27 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
+  const [newChips, setNewChips] = useState({}) // uid -> Set(决策id)：最近一次刷新新增/变化的决策（高亮）
+  const prevDoneRef = React.useRef(null)
+  useEffect(() => {
+    const cur = {}
+    rawStates.forEach(gs => {
+      cur[gs.user_id] = Object.fromEntries(Object.entries((gs.state && gs.state.doneDecisions) || {}).map(([k, v]) => [k, JSON.stringify(v === undefined ? null : (Array.isArray(v) ? v : typeof v === 'object' ? Object.keys(v).sort().map(k2 => [k2, v[k2]]) : v))]))
+    })
+    const prev = prevDoneRef.current
+    if (prev) {
+      const marks = {}
+      for (const uid in cur) {
+        for (const id in cur[uid]) {
+          if (prev[uid] && prev[uid][id] !== cur[uid][id]) {
+            (marks[uid] = marks[uid] || new Set()).add(id)
+          }
+        }
+      }
+      setNewChips(marks)
+    }
+    prevDoneRef.current = cur
+  }, [rawStates])
 
   const loadAll = async () => {
     try {
@@ -587,9 +608,10 @@ export default function TeacherDashboard({ user, onLogout }) {
                     {g.entries.map(([id, val]) => {
                       const d = decisions.find(x => x.id === id)
                       const short = typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 2).join('＞') : Object.entries(val).slice(0, 2).map(([k, v]) => `${k}:${v}`).join(' ')) : String(val)
+                      const isNew = newChips[g.uid] && newChips[g.uid].has(id)
                       return (
-                        <span key={id} title={`${d ? d.name : id}: ${short}`} style={{ fontSize: 10, background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: '#374151' }}>
-                          {d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
+                        <span key={id} title={`${d ? d.name : id}: ${short}`} style={{ fontSize: 10, background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
+                          {isNew && '🆕 '}{d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
                         </span>
                       )
                     })}
