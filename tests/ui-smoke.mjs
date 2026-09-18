@@ -319,7 +319,24 @@ try {
     }
     const { pg, body } = teacher
     ok('云端教师登录（t001）', body.includes('教师后台'))
-    ok('教师端底部三导航+实时大屏', body.includes('学生决策实时动向') && body.includes('实时决策') && body.includes('排名') && body.includes('我的'))
+    // 云端数据拉取可能慢（夜间线路），轮询等待大屏渲染最多10秒
+    let liveReady = false
+    for (let i = 0; i < 10; i++) {
+      const b = await pg.evaluate(() => document.body.innerText)
+      if (b.includes('学生决策动向') && b.includes('排名') && b.includes('我的')) { liveReady = true; break }
+      await sleep(1000)
+    }
+    ok('教师端底部三导航+实时大屏', liveReady)
+    // 周次筛选断言：切第1周快照回放，再切回实时
+    await pg.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '第1周')
+      b && b.click()
+    }); await sleep(700)
+    ok('大屏周次筛选（历史回放模式）', await pg.evaluate(() => document.body.innerText.includes('历史回放') && document.body.innerText.includes('第1周快照')))
+    await pg.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '实时')
+      b && b.click()
+    }); await sleep(500)
     await pg.close()
   }
   // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
