@@ -373,13 +373,23 @@ export default function TeacherDashboard({ user, onLogout }) {
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
     const lines = []
     lines.push(filterClass ? `【${filterClass} 汇总】` : '【全班汇总】')
-    lines.push('班级,组名,酒店,城市,周次,状态,称号,策略标签,出租率%,营收(万),利润(万),口碑(5分),综合评分')
+    lines.push('班级,组名,酒店,城市,周次,状态,称号,称号轨迹,策略标签,出租率%,营收(万),利润(万),口碑(5分),综合评分')
     for (const g of visible) {
       const p = pMap[g.uid] || {}
-      const st = strategyOf(((rawStates.find(x => x.user_id === g.uid) || {}).state || {}).history || [])
+      const gs = rawStates.find(x => x.user_id === g.uid) || {}
+      const hist = (gs.state && gs.state.history) || []
+      const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
+      const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+      let prevT = null
+      const nodes = []
+      hist.forEach(h => {
+        const t2 = getTitle(h.occupancy, h.finalGoodRate, q).title
+        if (t2 !== prevT) { nodes.push(`第${h.week}周${t2}`); prevT = t2 }
+      })
+      const st = strategyOf(hist)
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
-        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(st ? st.tag : ''), g.occ, g.revenue, g.profit, g.rating, g.score,
+        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), g.occ, g.revenue, g.profit, g.rating, g.score,
       ].join(','))
     }
     lines.push('')
