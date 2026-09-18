@@ -98,6 +98,19 @@ export default function FinalResult({ history, onRestart, brand }) {
               策略风格由 12 周的决策快照自动归纳；轨迹仅在称号变化处记录节点
             </div>
             {(() => {
+              // 事件类型分布：12周触发过的事件按次数排序
+              const counts = {}
+              history.forEach(h => (h.events || []).forEach(e => { counts[e.icon + e.name] = (counts[e.icon + e.name] || 0) + 1 }))
+              const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+              if (!top.length) return null
+              return (
+                <div style={{ fontSize: 11, color: '#374151', marginTop: 8, paddingTop: 8, borderTop: '1px dashed #F3F4F6', lineHeight: 1.8 }}>
+                  ⚡ 12周共触发事件 <b>{history.reduce((a, h) => a + (h.events || []).length, 0)}</b> 次，最常见：
+                  {top.map(([key, n]) => <span key={key} style={{ background: '#F9FAFB', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{key}×{n}</span>)}
+                </div>
+              )
+            })()}
+            {(() => {
               // 最值得复盘的一周：经营表现（出租率/好评率各半）周间波动最大的一周
               if (history.length < 2) return null
               const perf = history.map(h => h.occupancy * 0.5 + h.finalGoodRate * 0.5)
