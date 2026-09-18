@@ -708,7 +708,19 @@ export default function TeacherDashboard({ user, onLogout }) {
                   <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>平均出租率 {g.occ}% · 口碑 {g.rating}</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>平均出租率 {g.occ}% · 口碑 {g.rating}{(() => {
+                    // 职责完成度：该组学生职业集合对应的决策，在组档中的完成数
+                    const gp = profiles.find(p => p.user_id === g.uid)
+                    if (!gp || gp.group_no == null || !gp.class_name) return ''
+                    const members = profiles.filter(p => p.class_name === gp.class_name && p.group_no === gp.group_no)
+                    const roles = new Set(members.map(p => p.role_in_group).filter(r => r && !['student', 'teacher'].includes(r)))
+                    const dutyIds = new Set(decisions.filter(d => roles.has(d.owner)).map(d => d.id))
+                    if (!dutyIds.size) return ''
+                    const gs0 = rawStates.find(x => x.user_id === g.uid) || {}
+                    const done = (gs0.state && gs0.state.doneDecisions) || {}
+                    const doneCnt = [...dutyIds].filter(id => done[id] !== undefined).length
+                    return ` · 职责完成 ${doneCnt}/${dutyIds.size}`
+                  })()}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
