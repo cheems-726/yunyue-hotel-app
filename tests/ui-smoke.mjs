@@ -290,7 +290,15 @@ try {
   }
   // 教师 t001
   {
-    const { pg, body } = await cloudLogin('我是老师', 't001', '123456')
+    let teacher = await cloudLogin('我是老师', 't001', '123456')
+    let tries = 0
+    while (!teacher.body.includes('教师后台') && tries < 2) { // 跨国线路偶发抖动，最多重试2次
+      try { await teacher.pg.close() } catch (e) {}
+      await sleep(3000)
+      teacher = await cloudLogin('我是老师', 't001', '123456')
+      tries += 1
+    }
+    const { pg, body } = teacher
     ok('云端教师登录（t001）', body.includes('教师后台'))
     ok('教师端底部三导航+实时大屏', body.includes('学生决策实时动向') && body.includes('实时决策') && body.includes('排名') && body.includes('我的'))
     await pg.close()
@@ -317,6 +325,7 @@ try {
       }); await sleep(900)
       const me = await pg.evaluate(() => document.body.innerText)
       ok('云端学生"我的"页（fetchMyNotes路径）', me.includes('我的酒店') && !me.includes('页面出了点问题'))
+    await assertClean(pg, '云端学生我的页')
     } else {
       ok('云端学生登录（2025）——账号不存在，已跳过', true)
     }
