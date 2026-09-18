@@ -42,10 +42,10 @@ export default function Reputation({ report, history }) {
   const [feedback, setFeedback] = useState(null)
 
   // 口碑是流动的：处理完一条评价后，有概率有新客人发布评价（好评率越高新好评越多）
-  function spawnRelated() {
+  function spawnRelated(forceGood) {
     const goodPct = (latest ? latest.finalGoodRate : 70) / 100
     const roll = Math.random()
-    const isGood = roll < goodPct
+    const isGood = forceGood || roll < goodPct
     const name = guestNames[Math.floor(Math.random() * guestNames.length)]
     const now = new Date()
     const hh = String(now.getHours()).padStart(2, '0')
@@ -94,6 +94,18 @@ export default function Reputation({ report, history }) {
             : [{ label: '客人回复', value: '没有再回复', dir: 'down' }],
         note: tier === 'warm' ? '真诚的感谢会让好评客人变成回头客。' : tier === 'ok' ? '礼貌有余、温度不足。' : '连感谢都懒得写，客人的热情被泼了冷水。',
       })
+      if (tier === 'warm' && Math.random() < 0.35) {
+        // 口碑流动的正向支线：被暖到的客人会介绍朋友来
+        setTimeout(() => {
+          const name = '转介绍客人 · ' + (reviews[0] ? reviews[0].name.split(' ·')[0] + '的朋友' : '新客人')
+          setReviews(reviews => [...reviews, {
+            id: 'ref-' + Date.now(), avatar: '🧑', bg: 'green',
+            name, date: '刚刚', stars: 5,
+            text: '「朋友说他家住得很好，特意订了这家，果然没让我失望！」',
+            status: 'good',
+          }])
+        }, 2000)
+      }
       return
     }
     const { tier } = scoreNegativeReply(text)
