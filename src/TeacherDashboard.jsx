@@ -868,13 +868,15 @@ export default function TeacherDashboard({ user, onLogout }) {
               return (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   {[
-                    { l: '已开档组', v: groups.length },
-                    { l: '全班平均分', v: avgScore },
-                    { l: '最近动向', v: latest && latest.updated ? new Date(latest.updated).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—' },
+                    { l: '已开档组', v: groups.length, to: 'groups' },
+                    { l: '全班平均分', v: avgScore, to: 'ranking' },
+                    { l: '最近动向', v: latest && latest.updated ? new Date(latest.updated).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', to: 'live' },
                   ].map(s => (
-                    <div key={s.l} style={{ flex: 1, background: '#FFF9F0', borderRadius: 8, padding: '7px 0' }}>
+                    <div key={s.l} onClick={() => setView(s.to)} style={{ flex: 1, background: '#FFF9F0', borderRadius: 8, padding: '7px 0', textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#FFEFD0'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#FFF9F0'}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>{s.v}</div>
-                      <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l}</div>
+                      <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l} ›</div>
                     </div>
                   ))}
                 </div>
