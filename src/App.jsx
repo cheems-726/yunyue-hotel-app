@@ -1188,7 +1188,7 @@ function HelpPage({ onBack }) {
 }
 
 // ===== 小组成员页（云端同班同组队友名单） =====
-function GroupMembersPage({ user, onBack }) {
+function GroupMembersPage({ user, onBack, onGoDecision }) {
   const [members, setMembers] = useState(null)
   const [myRole, setMyRole] = useState(null)
   const [memberStates, setMemberStates] = useState({}) // uid → 经营概况
@@ -1330,8 +1330,16 @@ function GroupMembersPage({ user, onBack }) {
                       {dutyOpenUid === m.user_id && undone.length > 0 && (
                         <div style={{ marginTop: 4, padding: '6px 10px', background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 8 }}>
                           {undone.map(d => (
-                            <div key={d.id} style={{ fontSize: 11, color: '#991B1B', padding: '2px 0', lineHeight: 1.5 }}>
-                              · {d.icon} {d.name}——还没做，提醒 TA 去经营页完成
+                            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+                              <span style={{ fontSize: 11, color: '#991B1B', flex: 1, lineHeight: 1.5 }}>
+                                · {d.icon} {d.name}——还没做，提醒 TA 去经营页完成
+                              </span>
+                              {onGoDecision && (
+                                <button onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
+                                  style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1D4ED8', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                                  去完成 ›
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1976,7 +1984,7 @@ export default function App() {
     mainPage = openPage.key === 'scores'
       ? <ScoreDetail history={history} onBack={close} />
       : openPage.key === 'members'
-        ? <GroupMembersPage user={user} onBack={close} />
+        ? <GroupMembersPage user={user} onBack={close} onGoDecision={(id) => { setOpenPage(null); setTab('business'); setCurrentDecision(decisions.find(d => d.id === id) || null) }} />
         : openPage.key === 'records'
           ? <OperationRecords history={history} onBack={close} />
           : openPage.key === 'help'
