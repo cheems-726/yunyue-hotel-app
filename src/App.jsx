@@ -839,7 +839,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         })
         const changeTag = { up: { t: '晋升', c: '#065F46', bg: '#ECFDF5' }, down: { t: '降级', c: '#991B1B', bg: '#FEF0EF' }, start: { t: '起步', c: '#A96407', bg: '#FFF4E0' }, same: { t: '保持', c: '#6B7280', bg: '#F3F4F6' } }
         return (
-          <div className="card">
+          <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-title">📜 称号历程</div>
             {(() => {
               // 综合分走势迷你折线（复用结算数字配色）
@@ -877,8 +877,8 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       })()}
 
       {/* 我的酒店信息 */}
-      <div className="card">
-        <div className="card-title">🏨 我的酒店档案</div>
+      <div className="card" style={{ marginTop: 12, paddingTop: 16 }}>
+        <div className="card-title" style={{ marginBottom: 10 }}>🏨 我的酒店档案</div>
         <div style={{ fontSize: 13, color: '#374151', lineHeight: 2 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#9CA3AF' }}>酒店称号</span>
