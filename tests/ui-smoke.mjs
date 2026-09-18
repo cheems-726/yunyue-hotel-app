@@ -177,6 +177,25 @@ try {
   // 6. 经营页
   const biz = await text(page)
   ok('经营页：资金卡+18决策+结算按钮', biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周结算'))
+  // 职业置顶断言：注入 groupRole=lobby → 大堂经理职责决策应置顶且带"我的职责"徽章（防回归）
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    if (st.user) { st.user.groupRole = 'lobby'; localStorage.setItem('hotel-sim-state', JSON.stringify(st)) }
+  })
+  await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
+  ok('职业置顶：首个未完成决策带我的职责徽章', await page.evaluate(() => {
+    const card = document.querySelector('.task-card')
+    return card && card.textContent.includes('我的职责')
+  }))
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    if (st.user) { st.user.groupRole = null; localStorage.setItem('hotel-sim-state', JSON.stringify(st)) }
+  })
+  await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
+  ok('还原后徽章消失', await page.evaluate(() => {
+    const card = document.querySelector('.task-card')
+    return card && !card.textContent.includes('我的职责')
+  }))
   // 做一个决策（第一个"去决策"）
   await page.evaluate(() => {
     const el = [...document.querySelectorAll('div, span')].reverse().find(x => x.textContent.trim() === '去决策')
