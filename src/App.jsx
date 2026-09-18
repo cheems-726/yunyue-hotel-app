@@ -231,6 +231,8 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
   }, [])
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const [showBreakdown, setShowBreakdown] = useState(false) // 资金卡支出构成折叠
+  const [renameOpen, setRenameOpen] = useState(false) // 真实姓名修改弹窗（替代window.prompt移动端bug）
+  const [renameVal, setRenameVal] = useState(user?.name || '')
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
   const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : null)
@@ -473,6 +475,25 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
               </div>
             </div>
           ))}
+      {/* 真实姓名修改弹窗 */}
+      {renameOpen && (
+        <div onClick={() => setRenameOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>✏️ 修改真实姓名</div>
+            <input
+              value={renameVal}
+              onChange={e => setRenameVal(e.target.value)}
+              placeholder="输入真实姓名（教师端将显示）"
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setRenameOpen(false)}>取消</button>
+              <button className="btn-confirm" style={{ flex: 2, opacity: renameVal.trim() ? 1 : 0.5 }} disabled={!renameVal.trim()}
+                onClick={() => { const n = renameVal.trim(); if (n && n !== user?.name) onRename(n); setRenameOpen(false) }}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 回到顶部悬浮按钮（Business 内部，状态同作用域） */}
       {showTop && (
         <button
@@ -761,7 +782,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           <div
             style={{fontSize:18,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}
             title="点击修改真实姓名"
-            onClick={() => { const n = window.prompt('输入真实姓名（教师端将显示）', user?.name || ''); if (n && n.trim() && n.trim() !== user?.name) onRename(n.trim()) }}
+            onClick={() => setRenameOpen(true)}
           >
             {user?.name || '未命名'} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>✏️改名</span>
           </div>
