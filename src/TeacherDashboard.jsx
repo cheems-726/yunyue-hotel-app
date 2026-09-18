@@ -872,6 +872,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
               )
             })()}
+          </div>
           <div className="card">
             <div className="card-title">🧰 功能入口</div>
             {[
