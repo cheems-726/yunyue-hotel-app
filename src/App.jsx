@@ -993,9 +993,14 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             <div style={{color:'#D1D5DB'}}>›</div>
           </div>
         ))}
-        <div onClick={onLogout} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',cursor:'pointer'}}>
-          <div style={{width:40,height:40,borderRadius:'50%',background:'#FFF4E0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>⚙️</div>
-          <div style={{flex:1,fontSize:14,fontWeight:500,color:'#EF4444'}}>退出登录</div>
+        <div onClick={onLogout} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',cursor:'pointer',transition:'transform 0.12s'}}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = ''}>
+          <div style={{width:42,height:42,borderRadius:14,background:'#FEF2F2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}>🚪</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600,color:'#EF4444'}}>退出登录</div>
+            <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>进度已自动保存，换设备登录不丢失</div>
+          </div>
           <div style={{color:'#D1D5DB'}}>›</div>
         </div>
       </div>
