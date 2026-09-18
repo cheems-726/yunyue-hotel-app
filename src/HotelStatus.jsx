@@ -81,87 +81,126 @@ function genEvent(gameMin, phase, price) {
 }
 
 // 实时运营流：游戏内时钟连续流动（现实2秒=游戏1分钟），
-// 事件在各时段内按概率随机触发——15/30/60分钟窗口内可能没有也可能连续发生
+// 事件按概率随机触发；流水/统计持久化到 localStorage（按日期+周为键），刷新不回退
+// 退房后进入待清扫队列，到期自动生成清扫事件并扣耗材成本
 const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.012, night: 0.006 }
+const CLEAN_FEE = 25
 
-function LiveFeed({ occupiedRooms, price }) {
+function LiveFeed({ occupiedRooms, price, week, onStats }) {
   const [feed, setFeed] = useState([])
-  const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0 })
-  const [gameMin, setGameMin] = useState(6 * 60) // 游戏内从早6点退房高峰开始
+  const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0, guests: Math.round(occupiedRooms * 2 - 3) })
   const statsRef = React.useRef(stats)
   statsRef.current = stats
 
   useEffect(() => {
-    const rooms = Math.max(occupiedRooms, 8)
     const p = price || 230
-    const roomFee = () => Math.round(p * (0.85 + Math.random() * 0.3))
-    const pick = arr => arr[Math.floor(Math.random() * arr.length)]
-    let inc = 0, exp = 0
-    const nowH = new Date().getHours()
-    if (nowH >= 6) { inc = rooms * p * 0.35; exp = 100 }
-    if (nowH >= 14) { inc += rooms * p * 0.25 }
-    setStats({ income: Math.round(inc), expense: Math.round(exp), checkout: 0, checkin: 0, guests: Math.round(occupiedRooms * 2 - 3) })
+    const dateKey = new Date().toISOString().slice(0, 10)
+    const storeKey = `hotel-live-${dateKey}-w${week || 1}`
+    // 恢复（刷新不回退）；无存档则按当前时刻回放估算
+    let st
+    try {
+      const raw = localStorage.getItem(storeKey)
+      st = raw ? JSON.parse(raw) : null
+    } catch (e) { st = null }
+    if (!st || typeof st.income !== 'number') {
+      const nowH = new Date().getHours()
+      let inc = 0, exp = 0
+      if (nowH >= 6) { inc = Math.round(occupiedRooms * p * 0.5); exp = 120 }
+      if (nowH >= 14) inc += Math.round(occupiedRooms * p * 0.35)
+      if (nowH >= 20) { inc += Math.round(occupiedRooms * p * 0.1); exp += 200 }
+      const n = new Date()
+      st = {
+        income: inc, expense: exp, checkout: 0, checkin: 0,
+        guests: Math.max(4, Math.round(occupiedRooms * 2 - 3)),
+        gameMin: nowH * 60 + n.getMinutes(), pendingClean: [], feed: [],
+      }
+    }
+    if (!Array.isArray(st.pendingClean)) st.pendingClean = []
+    if (!Array.isArray(st.feed)) st.feed = []
+    setStats({ checkout: st.checkout, checkin: st.checkin, income: st.income, expense: st.expense, guests: st.guests })
+    setFeed(st.feed)
+    let gameMin = st.gameMin || new Date().getHours() * 60 + new Date().getMinutes()
+    let pendingClean = st.pendingClean
+
+    const persist = () => {
+      const s = statsRef.current
+      try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current })) } catch (e) {}
+    }
+    const feedRef = { current: st.feed }
+    const pushFeed = (text, amt) => {
+      const line = (amt ? (amt > 0 ? ` +${amt}元` : ` ${amt}元`) : '')
+      const entry = `${text}${line}`
+      feedRef.current = [entry, ...feedRef.current].slice(0, 4)
+      setFeed(feedRef.current)
+    }
+    const apply = (patch) => {
+      setStats(s => {
+        const next = { ...s, ...patch }
+        statsRef.current = next
+        if (onStats) onStats({ checkout: next.checkout, checkin: next.checkin, guests: next.guests, income: next.income, expense: next.expense })
+        return next
+      })
+    }
 
     let timer
     const loop = () => {
-      setGameMin(m => {
-        const next = m + 1 // 游戏内 +1 分钟
-        const hm = ((next % 1440) + 1440) % 1440
-        const h = Math.floor(hm / 60)
-        const ph = phaseOf(h)
-        const clockTag = fmtGameClock(hm)
-        const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
-        const st = statsRef.current
-        const roll = Math.random()
+      gameMin += 1
+      const hm = ((gameMin % 1440) + 1440) % 1440
+      const h = Math.floor(hm / 60)
+      const clockTag = `${String(h).padStart(2, '0')}:${String(hm % 60).padStart(2, '0')}`
+      const ph = phaseOf(h)
+      const s = statsRef.current
+      const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
+      const roll = Math.random()
 
-        // 各时段概率触发（每游戏分钟独立掷骰 → 15分钟窗口内随机 0~2 次）
-        if (ph.checkout > 0 && roll < EVENT_PROB.checkout && st.checkout + st.checkin < Math.round(rooms * 0.8)) {
-          const fee = roomFee()
-          setStats(s => ({ ...s, checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee }))
-          setFeed(f => [`🧳 [${clockTag}] ${room}房客人退房结账，收款 ${fee} 元`, ...f].slice(0, 5))
-        } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && st.checkin < Math.round(rooms * 0.6)) {
-          const fee = roomFee()
-          const g = pick(['商务出差', '家庭出游', '旅行散客', '会议客人'])
-          setStats(s => ({ ...s, checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee }))
-          setFeed(f => [`🛎️ [${clockTag}] ${room}房入住 · ${g}客人，收房费 ${fee} 元`, ...f].slice(0, 5))
-        } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
-          const evs = [
-            { t: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
-            { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) },
-            { t: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) },
-            { t: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) },
-            { t: `🧹 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 },
-            { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 },
-            { t: `💳 为 ${room}房客人退还押金`, amt: -100 },
-          ]
-          const ev = pick(evs)
-          if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
-          else if (ev.amt < 0) setStats(s => ({ ...s, expense: s.expense - ev.amt }))
-          setFeed(f => [`🕐 [${clockTag}] ${ev.t}`, ...f].slice(0, 5))
-        } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
-          const evs = [
-            { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
-            { t: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(p * 0.9) },
-            { t: `🔧 值班工程师完成锅炉房夜间巡检`, amt: 0 },
-          ]
-          const ev = pick(evs)
-          if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
-          setFeed(f => [`🌙 [${clockTag}] ${ev.t}`, ...f].slice(0, 5))
-        }
-        return next
-      })
-      timer = setTimeout(loop, 2000) // 现实 2 秒 = 游戏内 1 分钟
+      // 到期的清扫任务：退房后 15-35 游戏分钟完成，扣耗材成本
+      const due = pendingClean.filter(x => x.due <= gameMin)
+      if (due.length) {
+        pendingClean = pendingClean.filter(x => x.due > gameMin)
+        due.forEach(x => {
+          apply({ expense: statsRef.current.expense + CLEAN_FEE })
+          pushFeed(`🧹 [${clockTag}] ${x.room}房退房清扫完成，耗材成本 ${CLEAN_FEE} 元`, -CLEAN_FEE)
+        })
+      }
+
+      if (ph.checkout > 0 && roll < EVENT_PROB.checkout && s.checkout + s.checkin < Math.round(occupiedRooms * 0.8)) {
+        const fee = Math.round(p * (0.85 + Math.random() * 0.3))
+        pendingClean.push({ room, due: gameMin + 15 + Math.floor(Math.random() * 20) })
+        apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee })
+        pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房），收款 ${fee} 元`, fee)
+      } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && s.checkin < Math.round(occupiedRooms * 0.6)) {
+        const fee = Math.round(p * (0.85 + Math.random() * 0.3))
+        const g = ['商务出差', '家庭出游', '旅行散客', '会议客人'][Math.floor(Math.random() * 4)]
+        apply({ checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee })
+        pushFeed(`🛎️ [${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人，收房费 ${fee} 元`, fee)
+      } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
+        const evs = [
+          { t: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
+          { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) },
+          { t: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) },
+          { t: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) },
+          { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 },
+          { t: `💳 为 ${room}房客人退还押金`, amt: -100 },
+        ]
+        const ev = evs[Math.floor(Math.random() * evs.length)]
+        if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
+        else if (ev.amt < 0) apply({ expense: statsRef.current.expense - ev.amt })
+        pushFeed(`🕐 [${clockTag}] ${ev.t}`, ev.amt)
+      } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
+        const evs = [
+          { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
+          { t: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(p * 0.9) },
+        ]
+        const ev = evs[Math.floor(Math.random() * evs.length)]
+        if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
+        pushFeed(`🌙 [${clockTag}] ${ev.t}`, ev.amt)
+      }
+      persist()
+      timer = setTimeout(loop, 2000)
     }
     timer = setTimeout(loop, 1500)
     return () => clearTimeout(timer)
-  }, [occupiedRooms, price])
-
-  // 向 App 层暴露今日退房/入住计数（通过自定义事件，供四宫格读取）
-  useEffect(() => {
-    const handler = e => e.detail(statsRef.current)
-    window.addEventListener('hotel-live-stats', handler)
-    return () => window.removeEventListener('hotel-live-stats', handler)
-  }, [])
+  }, [occupiedRooms, price, week])
 
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
@@ -215,6 +254,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   const [clock, setClock] = useState(new Date())
   const [liveGuests, setLiveGuests] = useState(null)
   const [walkinCount, setWalkinCount] = useState(0)
+  const [liveStats, setLiveStats] = useState(null) // LiveFeed 上报的实时统计（退房/入住/在店）
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 30000)
     return () => clearInterval(t)
@@ -255,9 +295,9 @@ export default function HotelStatus({ report, brand, property, week, history }) 
   const dateInfo = useMemo(() => simDate(week), [week])
 
   const roomsCell = [
-    { l: '今日已退房', v: checkoutDone + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
-    { l: '今日已入住', v: dayProgress >= 14 ? checkinDone + ' 间' : '未开始', c: '#16A34A', sub: dayProgress >= 14 ? '14:00 后办理' : '14:00 开办入住' },
-    { l: '在店客人', v: (liveGuests ?? targetGuests) + ' 人', c: '#1D4ED8', live: true },
+    { l: '今日已退房', v: (liveStats ? liveStats.checkout : checkoutDone) + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
+    { l: '今日已入住', v: liveStats ? liveStats.checkin + ' 间' : (dayProgress >= 14 ? checkinDone + ' 间' : '未开始'), c: '#16A34A', sub: '14:00 开办入住' },
+    { l: '在店客人', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 人', c: '#1D4ED8', live: true },
     { l: '明日预抵', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280' },
   ]
 
@@ -273,7 +313,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         <div style={{ marginTop: 10, padding: '8px 12px', background: '#FFF4E0', borderRadius: 10, fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center' }}>
           📅 今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
         </div>
-        <LiveFeed occupiedRooms={6} price={230} />
+        <LiveFeed occupiedRooms={6} price={230} week={week} />
         <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '10px 0 4px', lineHeight: 1.8 }}>
           属性面板将在首次周结算后解锁<br />
           届时可实时查看：口碑分 / 好评率 / 满意度 / 出租率 / 品质分
@@ -359,7 +399,7 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
       </div>
 
-      <LiveFeed occupiedRooms={occRooms} price={price} />
+      <LiveFeed occupiedRooms={occRooms} price={price} week={week} onStats={setLiveStats} />
 
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周
