@@ -1987,7 +1987,9 @@ export default function App() {
         <span className="time">{time || '09:41'}</span>
         <span className="icons">📶 🔋</span>
       </div>
-      <AppErrorBoundary onReset={() => { setOpenPage(null); setCurrentDecision(null); setTab('business') }}>{mainPage}</AppErrorBoundary>
+      <AppErrorBoundary onReset={() => { setOpenPage(null); setCurrentDecision(null); setTab('business') }}>
+        <div key={(tab || '') + '|' + (openPage ? openPage.key : '')} style={{ animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>{mainPage}</div>
+      </AppErrorBoundary>
       {/* 断网横幅 */}
       {offline && (
         <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>

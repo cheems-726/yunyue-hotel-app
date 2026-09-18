@@ -440,6 +440,7 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       </div>
 
+      <div key={view} style={{ animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>
       {/* 视图标题（分组/教学/总览 从"我的"进入时显示返回） */}
       {(view === 'groups' || view === 'teaching' || view === 'overview') && (
         <div style={{ padding: '0 20px 8px' }}>
@@ -875,6 +876,7 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       )}
 
+      </div>
       {/* 底部三导航：排名 / 实时决策 / 我的 */}
       <div className="tabbar">
         {[
