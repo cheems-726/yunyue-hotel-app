@@ -97,6 +97,23 @@ export default function FinalResult({ history, onRestart, brand }) {
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
               策略风格由 12 周的决策快照自动归纳；轨迹仅在称号变化处记录节点
             </div>
+            {(() => {
+              // 最值得复盘的一周：经营表现（出租率/好评率各半）周间波动最大的一周
+              if (history.length < 2) return null
+              const perf = history.map(h => h.occupancy * 0.5 + h.finalGoodRate * 0.5)
+              let worst = 1, swing = 0
+              for (let i = 1; i < perf.length; i++) {
+                const d = Math.abs(perf[i] - perf[i - 1])
+                if (d > swing) { swing = d; worst = i }
+              }
+              if (swing < 8) return null // 波动太小不值得点名
+              const up = perf[worst] > perf[worst - 1]
+              return (
+                <div style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 8, padding: '6px 10px', marginTop: 8, lineHeight: 1.6 }}>
+                  📌 最值得复盘：第 {history[worst].week} 周（综合表现较前一周{up ? '飙升' : '下滑'} {Math.round(swing)} 分）——去「我的」页经营操作记录看看那周做了什么决策
+                </div>
+              )
+            })()}
             <button className="btn btn-primary" style={{ marginTop: 10, width: '100%', fontSize: 12 }}
               onClick={() => {
                 const grade = document.querySelector('.card div[style*="color: rgb(232, 148, 15)"]')
