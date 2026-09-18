@@ -118,26 +118,26 @@ function LiveFeed({ occupiedRooms, price }) {
         if (ph.checkout > 0 && roll < EVENT_PROB.checkout && st.checkout + st.checkin < Math.round(rooms * 0.8)) {
           const fee = roomFee()
           setStats(s => ({ ...s, checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee }))
-          setFeed(f => [`🧳 [\${clockTag}] \${room}房客人退房结账，收款 \${fee} 元`, ...f].slice(0, 5))
+          setFeed(f => [`🧳 [${clockTag}] ${room}房客人退房结账，收款 ${fee} 元`, ...f].slice(0, 5))
         } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && st.checkin < Math.round(rooms * 0.6)) {
           const fee = roomFee()
           const g = pick(['商务出差', '家庭出游', '旅行散客', '会议客人'])
           setStats(s => ({ ...s, checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee }))
-          setFeed(f => [`🛎️ [\${clockTag}] \${room}房入住 · \${g}客人，收房费 \${fee} 元`, ...f].slice(0, 5))
+          setFeed(f => [`🛎️ [${clockTag}] ${room}房入住 · ${g}客人，收房费 ${fee} 元`, ...f].slice(0, 5))
         } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
           const evs = [
-            { t: `🔧 \${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
+            { t: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
             { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) },
             { t: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) },
             { t: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) },
-            { t: `🧹 客房部完成 \${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 },
+            { t: `🧹 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 },
             { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 },
-            { t: `💳 为 \${room}房客人退还押金`, amt: -100 },
+            { t: `💳 为 ${room}房客人退还押金`, amt: -100 },
           ]
           const ev = pick(evs)
           if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
           else if (ev.amt < 0) setStats(s => ({ ...s, expense: s.expense - ev.amt }))
-          setFeed(f => [`🕐 [\${clockTag}] \${ev.t}`, ...f].slice(0, 5))
+          setFeed(f => [`🕐 [${clockTag}] ${ev.t}`, ...f].slice(0, 5))
         } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
           const evs = [
             { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
@@ -146,7 +146,7 @@ function LiveFeed({ occupiedRooms, price }) {
           ]
           const ev = pick(evs)
           if (ev.amt > 0) setStats(s => ({ ...s, income: s.income + ev.amt }))
-          setFeed(f => [`🌙 [\${clockTag}] \${ev.t}`, ...f].slice(0, 5))
+          setFeed(f => [`🌙 [${clockTag}] ${ev.t}`, ...f].slice(0, 5))
         }
         return next
       })
