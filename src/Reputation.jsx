@@ -197,11 +197,13 @@ export default function Reputation({ report, history }) {
         {pending.length === 1 && (
           <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#A96407', background: '#FFF4E0', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px' }}>
             ⚠ 再欠 1 条差评就到发酵危险区（欠 2 条以上会触发「差评发酵」危机，口碑额外受损）
+            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#16A34A', marginTop: 3 }}>💪 今天已处理 {todayResolved} 条——照这个节奏马上就脱离危险区</div>}
           </div>
         )}
         {pending.length >= 2 && (
           <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
             🔴 已欠 {pending.length} 条差评——已在发酵危机触发区！每多欠一条，口碑受损越重，立即处理
+            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#16A34A', marginTop: 3 }}>💪 今天已处理 {todayResolved} 条——每处理一条，预警就会降级</div>}
           </div>
         )}
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
