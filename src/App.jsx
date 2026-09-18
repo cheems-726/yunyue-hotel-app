@@ -981,9 +981,15 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 
       <div className="card" style={{padding:'4px 0'}}>
         {menus.map(m => (
-          <div key={m.name} onClick={() => onOpen(m.name, m.icon, m.key)} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 20px',borderBottom:'1px solid #F9FAFB',cursor:'pointer'}}>
-            <div style={{width:40,height:40,borderRadius:'50%',background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{m.icon}</div>
-            <div style={{flex:1,fontSize:14,fontWeight:500}}>{m.name}</div>
+          <div key={m.name} onClick={() => onOpen(m.name, m.icon, m.key)}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',borderBottom:'1px solid #F9FAFB',cursor:'pointer',transition:'transform 0.12s'}}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>
+            <div style={{width:42,height:42,borderRadius:14,background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}>{m.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:600}}>{m.name}</div>
+              <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{{records:'逐周决策复盘与批注时间线',scores:'四维评分与积分构成',members:'队友概况与职责分工',help:'玩法说明与常见问题'}[m.key] || ''}</div>
+            </div>
             <div style={{color:'#D1D5DB'}}>›</div>
           </div>
         ))}
