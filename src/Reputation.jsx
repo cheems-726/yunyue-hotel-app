@@ -205,6 +205,9 @@ export default function Reputation({ report, history }) {
           const y = v => H - PB - ((v - lo) / span) * (H - PT - PB)
           const rising = pts[pts.length - 1].v >= pts[0].v
           const color = pts[pts.length - 1].v >= 80 ? '#16A34A' : pts[pts.length - 1].v >= 60 ? '#E8940F' : '#DC2626'
+          // 最低点标注（定位口碑最差周，复盘锚点）
+          let minIdx = 0
+          pts.forEach((p, i) => { if (p.v < pts[minIdx].v) minIdx = i })
           return (
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>好评率走势（历史各周，{rising ? '整体↑' : '整体↓'}）</div>
@@ -213,6 +216,10 @@ export default function Reputation({ report, history }) {
                 <polyline points={pts.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
                 {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r="2.5" fill="#fff" stroke={color} strokeWidth="1.5" />)}
                 <text x={PL} y={8} fontSize="8" fill="#9CA3AF">当前 {pts[pts.length - 1].v}%</text>
+                {minIdx > 0 && minIdx < pts.length - 1 && (
+                  <text x={x(minIdx)} y={y(pts[minIdx].v) - 5} fontSize="8" fontWeight="700" fill="#DC2626" textAnchor="middle">↓{pts[minIdx].v}% 第{pts[minIdx].w}周</text>
+                )}
+                {pts[minIdx].v < 60 && <circle cx={x(minIdx)} cy={y(pts[minIdx].v)} r="4" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeDasharray="2 2" />}
               </svg>
             </div>
           )
