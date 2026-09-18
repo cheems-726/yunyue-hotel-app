@@ -852,7 +852,26 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>👩‍🏫</div>
             <div style={{ fontSize: 17, fontWeight: 700 }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
-          </div>
+            {/* 本班统计摘要 */}
+            {groups && groups.length > 0 && (() => {
+              const withData = groups.filter(g => g.historyCount > 0)
+              const avgScore = withData.length ? Math.round(withData.reduce((a, g) => a + g.score, 0) / withData.length) : 0
+              const latest = groups.reduce((a, g) => (a && a.updated > g.updated ? a : g), groups[0])
+              return (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  {[
+                    { l: '已开档组', v: groups.length },
+                    { l: '全班平均分', v: avgScore },
+                    { l: '最近动向', v: latest && latest.updated ? new Date(latest.updated).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—' },
+                  ].map(s => (
+                    <div key={s.l} style={{ flex: 1, background: '#FFF9F0', borderRadius: 8, padding: '7px 0' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>{s.v}</div>
+                      <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           <div className="card">
             <div className="card-title">🧰 功能入口</div>
             {[
