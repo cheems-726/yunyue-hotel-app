@@ -394,15 +394,28 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
                   <div style={{ fontSize: 11, cursor: 'pointer', color: '#6B7280', userSelect: 'none' }} onClick={() => setShowBreakdown(!showBreakdown)}>
                     {showBreakdown ? '▾' : '▸'} 上周支出构成（共 {lastH.totalExpenses.toLocaleString()} 元，点看明细）
                   </div>
-                  {showBreakdown && bd.map(([k, v]) => (
-                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#374151', padding: '2px 0' }}>
-                      <span style={{ width: 50, flexShrink: 0, color: '#6B7280' }}>{k}</span>
-                      <div style={{ flex: 1, height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: Math.round(v / lastH.totalExpenses * 100) + '%', background: '#F59E0B', borderRadius: 3 }} />
-                      </div>
-                      <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontWeight: 600 }}>{v.toLocaleString()}元</span>
-                    </div>
-                  ))}
+                  {showBreakdown && (() => {
+                    // 较上周增减对比（成本管控教学）：上周分项数据来自 history 倒数第二条
+                    const prevH = history.length >= 2 ? history[history.length - 2] : null
+                    const prevExp = prevH && prevH.weeklyExpenses ? prevH.weeklyExpenses : null
+                    return bd.map(([k, v]) => {
+                      const prevV = prevExp ? (prevExp[k] || 0) : null
+                      const diffPct = prevV != null && prevV > 0 ? Math.round((v - prevV) / prevV * 100) : null
+                      const dColor = diffPct == null ? '#9CA3AF' : diffPct > 0 ? '#DC2626' : diffPct < 0 ? '#16A34A' : '#9CA3AF'
+                      return (
+                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#374151', padding: '2px 0' }}>
+                          <span style={{ width: 50, flexShrink: 0, color: '#6B7280' }}>{k}</span>
+                          <div style={{ flex: 1, height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: Math.round(v / (lastH.totalExpenses || 1) * 100) + '%', background: '#F59E0B', borderRadius: 3 }} />
+                          </div>
+                          <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontWeight: 600 }}>{v.toLocaleString()}元</span>
+                          <span style={{ width: 44, textAlign: 'right', flexShrink: 0, fontWeight: 700, color: dColor }}>
+                            {diffPct == null || diffPct === 0 ? '—' : (diffPct > 0 ? '↑' + diffPct + '%' : '↓' + Math.abs(diffPct) + '%')}
+                          </span>
+                        </div>
+                      )
+                    })
+                  })()}
                 </div>
               )
             })()}
