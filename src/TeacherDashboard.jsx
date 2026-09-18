@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { decisions } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote } from './supabaseClient.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -108,7 +108,7 @@ function StrategyTag({ rawStates, uid }) {
 }
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
-function GroupDetail({ uid, rawStates, name, allNotes = [] }) {
+function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote }) {
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
   const s = gs.state || {}
@@ -199,9 +199,13 @@ function GroupDetail({ uid, rawStates, name, allNotes = [] }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📜 批注时间线（{mine.length} 条）</div>
             {mine.map(n => (
               <div key={n.id || n.updated_at} style={{ padding: '7px 10px', background: '#FFF9F0', borderRadius: 8, marginBottom: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#A96407' }}>{n.week > 0 ? `第${n.week}周批注` : '总评'}</span>
-                  <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
+                    <button title="删除这条批注" onClick={e => { e.stopPropagation(); if (window.confirm('确定删除这条批注吗？')) onDeleteNote(n.id) }}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#D1D5DB', padding: '0 2px', fontFamily: 'inherit' }}>🗑</button>
+                  </span>
                 </div>
                 <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>
                 {n.score != null && <div style={{ fontSize: 10, color: '#A96407', fontWeight: 700, marginTop: 3 }}>评分 {n.score}/100</div>}
@@ -287,6 +291,10 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [cloudOk, setCloudOk] = useState(true)
   const [notedUids, setNotedUids] = useState(new Set())
   const [allNotes, setAllNotes] = useState([]) // 全部批注（GroupDetail 时间线用）
+  const handleDeleteNote = async (noteId) => {
+    const okk = await import('./supabaseClient.js').then(m => m.deleteTeacherNote(noteId))
+    if (okk) { setAllNotes(ns => ns.filter(n => n.id !== noteId)); loadAll() }
+  }
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
@@ -557,7 +565,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} />}
               </div>
               )
             })}
@@ -708,7 +716,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} />}
               </div>
             ))}
           </div>

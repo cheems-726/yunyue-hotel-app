@@ -170,6 +170,12 @@ export async function fetchTeacherNotes() {
   return data || []
 }
 
+// 教师删除单条批注（时间线上误存/过时批注清理）
+export async function deleteTeacherNote(noteId) {
+  const { error } = await supabase.from('teacher_notes').delete().eq('id', noteId)
+  return !error
+}
+
 // 学生读自己的批注
 export async function fetchMyNotes(studentUid) {
   const { data, error } = await supabase.from('teacher_notes').select('week, note, score, updated_at').eq('student_uid', studentUid)
