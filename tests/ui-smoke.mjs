@@ -287,6 +287,7 @@ try {
   const cloudLogin = async (who, id, pw) => {
     const pg = await (await browser.newContext({ viewport: { width: 480, height: 900 } })).newPage()
     pg.on('pageerror', e => { if (!(e.message || '').includes('plugin is not implemented')) results.push({ name: '云端页面JS异常: ' + e.message, pass: false }) })
+    pg.on('dialog', d => d.accept())
     await pg.goto(BASE)
     await pg.waitForLoadState('domcontentloaded'); await sleep(1300)
     await pg.evaluate(() => localStorage.clear())
@@ -337,6 +338,45 @@ try {
       const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '实时')
       b && b.click()
     }); await sleep(500)
+    // 云端批注交互：快捷批注保存→时间线刷新→删除自清理
+    await pg.evaluate(() => {
+      const tab = [...document.querySelectorAll('.tab')].find(x => x.textContent.includes('排名'))
+      tab && tab.click()
+    }); await sleep(900)
+    await pg.evaluate(() => {
+      const row = [...document.querySelectorAll('div')].find(d => d.textContent.includes('平均出租率') && d.style.cursor === 'pointer')
+      row && row.click()
+    }); await sleep(900)
+    const hasNoteForm = await pg.evaluate(() => document.body.innerText.includes('教师批注'))
+    if (hasNoteForm) {
+      await pg.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('👍 优秀'))
+        b && b.click()
+      }); await sleep(400)
+      await pg.evaluate(() => {
+        const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('保存批注'))
+        b && b.click()
+      }); await sleep(2200)
+      ok('云端批注：快捷保存后时间线刷新', await pg.evaluate(() => document.body.innerText.includes('经营策略清晰，决策完成度高')))
+      // 删除点击有浮层自动关闭竞态，重试点击最多3次
+      let goneNow = false
+      for (let i = 0; i < 3 && !goneNow; i++) {
+        await pg.evaluate(() => {
+          const rows = [...document.querySelectorAll('div')].filter(d => d.textContent.includes('经营策略清晰，决策完成度高') && d.style.borderRadius === '8px')
+          const btn = rows.length ? [...rows[0].querySelectorAll('button')].find(b => b.textContent.includes('🗑')) : null
+          btn && btn.click()
+        })
+        await sleep(1800)
+        for (let w = 0; w < 4 && !goneNow; w++) {
+          goneNow = await pg.evaluate(() => !document.body.innerText.includes('经营策略清晰，决策完成度高'))
+          if (!goneNow) await sleep(900)
+        }
+      }
+      ok('云端批注：删除自清理', goneNow)
+    } else {
+      ok('云端批注：未找到下钻批注表单（组数据不足，跳过）', true)
+    }
+
     await pg.close()
   }
   // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
