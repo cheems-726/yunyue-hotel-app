@@ -1166,6 +1166,7 @@ function GroupMembersPage({ user, onBack }) {
               hotel: gs.state?.brand?.name && gs.state?.property?.name ? `${gs.state.brand.name}·${gs.state.property.name}` : (gs.state?.brand?.name || '未开业'),
               week: gs.week || 1,
               finished: gs.finished,
+              doneDecisions: gs.state?.doneDecisions || {},
               occ: h.length ? Math.round(h.reduce((a, x) => a + x.occupancy, 0) / h.length) : 0,
               profit: h.reduce((a, x) => a + (x.profit || 0), 0),
             }
@@ -1262,6 +1263,22 @@ function GroupMembersPage({ user, onBack }) {
                     </div>
                   </div>
                 </div>
+                {(() => {
+                  // 职业职责完成度：该成员职业对应的决策项，在组档中的完成情况（互相提醒）
+                  const role = m.role_in_group && !['student', 'teacher'].includes(m.role_in_group) ? m.role_in_group : null
+                  const duty = role ? decisions.filter(d => d.owner === role) : []
+                  const doneList = st?.doneDecisions || {}
+                  const doneCnt = duty.filter(d => doneList[d.id] !== undefined).length
+                  if (!role || !duty.length || !st) return null
+                  const full = doneCnt >= duty.length
+                  return (
+                    <div style={{ marginTop: 6, paddingLeft: 52 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: full ? '#065F46' : '#A96407', background: full ? '#ECFDF5' : '#FFF4E0', borderRadius: 5, padding: '2px 8px' }}>
+                        {full ? '✅' : '⏳'} {OWNER_LABELS[role]?.icon || ''} {OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成
+                      </span>
+                    </div>
+                  )
+                })()}
                 {st && st.occ > 0 && (
                   <div style={{ display: 'flex', gap: 14, fontSize: 11, color: '#6B7280', marginTop: 6, paddingLeft: 52 }}>
                     <span>平均出租率 <b style={{ color: '#111827' }}>{st.occ}%</b></span>

@@ -28,7 +28,7 @@ export async function fetchProfile(userId) {
 export async function fetchGroupMembers(className, groupNo) {
   let q = supabase
     .from('profiles')
-    .select('user_id, display_name, group_no, class_name')
+    .select('user_id, display_name, group_no, class_name, role_in_group')
     .eq('role', 'student')
   if (className) q = q.eq('class_name', className)
   if (groupNo) q = q.eq('group_no', groupNo)
