@@ -189,6 +189,30 @@ export default function Reputation({ report, history }) {
         <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
           处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
         </div>
+        {/* 好评率走势迷你图（历史各周，≥3周才画） */}
+        {(() => {
+          const pts = (history || []).map(h => ({ w: h.week, v: h.finalGoodRate }))
+          if (pts.length < 3) return null
+          const W = 320, H = 40, PL = 6, PR = 6, PT = 4, PB = 4
+          const lo = Math.min(...pts.map(p => p.v)) - 3
+          const hi = Math.max(...pts.map(p => p.v)) + 3
+          const span = (hi - lo) || 1
+          const x = i => PL + i * (W - PL - PR) / (pts.length - 1)
+          const y = v => H - PB - ((v - lo) / span) * (H - PT - PB)
+          const rising = pts[pts.length - 1].v >= pts[0].v
+          const color = pts[pts.length - 1].v >= 80 ? '#16A34A' : pts[pts.length - 1].v >= 60 ? '#E8940F' : '#DC2626'
+          return (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>好评率走势（历史各周，{rising ? '整体↑' : '整体↓'}）</div>
+              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
+                <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+                <polyline points={pts.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+                {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r="2.5" fill="#fff" stroke={color} strokeWidth="1.5" />)}
+                <text x={PL} y={8} fontSize="8" fill="#9CA3AF">当前 {pts[pts.length - 1].v}%</text>
+              </svg>
+            </div>
+          )
+        })()}
       </div>
 
       {/* 处理率圆环 */}
