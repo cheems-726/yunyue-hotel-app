@@ -75,6 +75,9 @@ export default function Reputation({ report, history }) {
   const ignoredCount = reviews.filter(r => r.status === 'ignored').length
   // 处理率口径：已忽略的差评也算"没处理"（不作为不是免罚）
   const handleRate = Math.round((resolved.length / (pending.length + resolved.length + ignoredCount || 1)) * 100)
+  // 今日已处理数：resolvedAt 为今天的已解决差评
+  const todayStr = new Date().toDateString()
+  const todayResolved = resolved.filter(r => r.resolvedAt && new Date(r.resolvedAt).toDateString() === todayStr).length
 
   // 自由话术提交：词云内核评分，敷衍的回复等于没回复
   function submitReply() {
@@ -124,7 +127,7 @@ export default function Reputation({ report, history }) {
       })
       return
     }
-    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyText: text, replyTier: tier } : x))
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyText: text, replyTier: tier, resolvedAt: new Date().toISOString() } : x))
     const newResolved = resolved.length + 1
     const newRate = Math.round((newResolved / (pending.length - 1 + newResolved || 1)) * 100)
     setReplying(null); setReplyText('')
@@ -142,7 +145,7 @@ export default function Reputation({ report, history }) {
   }
 
   function handleResolve(r) {
-    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved' } : x))
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', resolvedAt: new Date().toISOString() } : x))
     setFeedback({
       title: `标记整改「${r.name.split(' ·')[0]}」`,
       changes: [
@@ -188,6 +191,7 @@ export default function Reputation({ report, history }) {
         </div>
         <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
           处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
+          {todayResolved > 0 && <b style={{ color: '#16A34A' }}> · 今天已处理 {todayResolved} 条 ✓</b>}
         </div>
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
         {(() => {
