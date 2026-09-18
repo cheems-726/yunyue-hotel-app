@@ -2007,7 +2007,7 @@ export default function App() {
           <button className={`tab ${tab === t.key && !openPage ? 'active' : ''}`} key={t.key} onClick={() => { setTab(t.key); close() }}>
             <div className="tab-icon">{t.icon}</div>
             <div className="tab-label">{t.label}</div>
-            {t.key === 'reputation' && pendingReviewCount > 0 && <div className="badge-dot"></div>}
+            {t.key === 'reputation' && pendingReviewCount > 0 && <div className="badge-num">{pendingReviewCount}</div>}
           </button>
         ))}
       </div>
