@@ -241,19 +241,23 @@ try {
     const dump = await page.evaluate(() => document.body.innerText.slice(0, 200))
     console.log('    [崩溃详情] ' + dump.slice(0, 400))
   }
-  // 决策轨迹块渲染断言：第2周打开任一决策面板，应显示近3周轨迹块
+
+
+  // 8. 四 tab
+  await clickText(page, '报表'); await sleep(700)
+  ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计利润 · 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
+  await page.screenshot({ path: 'tests/_s3-report.png' })
+  await clickText(page, '口碑'); await sleep(700)
+  ok('口碑页渲染', (await text(page)).includes('差评处理率'))
+  // 决策趋势块断言：回经营页打开任一决策面板，应显示近3周轨迹块
+  await clickText(page, '🏠经营'); await sleep(700)
   await page.evaluate(() => {
     const b = [...document.querySelectorAll('button, span')].reverse().find(x => x.textContent.trim() === '去决策')
     b && b.click()
   }); await sleep(700)
   ok('决策面板趋势块渲染', (await text(page)).includes('该决策近'))
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('返回')); b && b.click() }); await sleep(500)
-
-  // 8. 四 tab
-  await clickText(page, '报表'); await sleep(700)
-  ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计利润 · 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
-  await clickText(page, '口碑'); await sleep(700)
-  ok('口碑页渲染', (await text(page)).includes('差评处理率'))
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('‹ 返回') || x.textContent.includes('返回')); b && b.click() }); await sleep(600)
+  await page.screenshot({ path: 'tests/_s3-rep.png' })
   // 回复交互：注入固定测试差评（stub）保证可测——先敷衍（应保持待处理）再优质（应解决）
   await page.evaluate(() => {
     const key = 'hotel-sim-reviews'
