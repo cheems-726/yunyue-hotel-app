@@ -57,7 +57,7 @@ const sleep = ms => page.waitForTimeout(ms)
 
 const page = await (async () => {
   if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true })
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true })
   for (let i = 0; i < 30; i++) {
     try { const r = await fetch(BASE); if (r.ok) break } catch (e) {}
     await new Promise(r => setTimeout(r, 300))
@@ -229,8 +229,18 @@ try {
   }
   const rep = await text(page)
   ok('周报渲染（评级/事件/预测）', rep.includes('周经营结果') && rep.includes('本周经营事件') && rep.includes('下周市场预测'))
-  await clickText(page, '进入第 2 周'); await sleep(800)
-  ok('进入第2周', (await text(page)).includes('第 2 周'))
+  // 进入第2周：原生 locator 点击（actionability等待，重渲染竞态下最稳）
+  let week2 = false
+  for (let r = 0; r < 3 && !week2; r++) {
+    try { await page.locator('button', { hasText: '进入第 2 周' }).first().click({ timeout: 2000 }) } catch (e) {}
+    await sleep(900)
+    week2 = (await text(page)).includes('第 2 周')
+  }
+  ok('进入第2周', week2)
+  if (!week2) {
+    const dump = await page.evaluate(() => document.body.innerText.slice(0, 200))
+    console.log('    [崩溃详情] ' + dump.slice(0, 400))
+  }
 
   // 8. 四 tab
   await clickText(page, '报表'); await sleep(700)
@@ -421,5 +431,5 @@ const failed = results.filter(r => !r.pass)
 console.log('\n========== 结果: ' + (results.length - failed.length) + ' 通过 / ' + failed.length + ' 失败 ==========')
 for (const f of failed) console.log('  ✗ ' + f.name)
 try { await browser?.close() } catch (e) {}
-try { server?.kill() } catch (e) {}
+try { if (server?.pid) process.platform === 'win32' ? require('node:child_process').execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' }) : server.kill('SIGTERM') } catch (e) {}
 process.exit(failed.length ? 1 : 0)
