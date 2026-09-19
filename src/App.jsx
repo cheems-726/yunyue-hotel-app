@@ -340,9 +340,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             </div>
           )
         })()}
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14, opacity: settling ? 0.5 : 1 }} disabled={settling}
+        <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14, opacity: settling ? 0.5 : 1, ...(Object.keys(doneDecisions).length === 18 && !settling ? { animation: 'pulseBorder 1.5s ease-in-out infinite', border: '2px solid #E8940F' } : {}) }} disabled={settling}
           onClick={() => { setSettling(true); setTimeout(() => { setSettling(false); onSettle() }, 350) }}>
-          {settling ? '⏳ 结算中…' : '🔄 本周结算（查看经营结果）'}
+          {settling ? '⏳ 结算中…' : Object.keys(doneDecisions).length === 18 ? '🎉 18项决策已完成，立即结算！' : '🔄 本周结算（查看经营结果）'}
         </button>
         {history.length > 0 && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 6, fontSize: 12 }}
