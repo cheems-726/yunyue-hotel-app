@@ -108,7 +108,7 @@ function StrategyTag({ rawStates, uid }) {
 }
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
-function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved }) {
+function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved, profiles = [] }) {
   const [editNote, setEditNote] = useState(null) // 正在编辑的批注
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
@@ -140,6 +140,28 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
           <div style={{ fontSize: 11, color: '#A96407', marginBottom: 8 }}>
             {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
             {nodes.length > 1 && <div style={{ color: '#6B7280', marginTop: 3 }}>📜 轨迹：{nodes.join(' → ')}</div>}
+          </div>
+        )
+      })()}
+      {/* 职责决策完成明细：按组内学生职业展开，未完成的标红提醒 */}
+      {(() => {
+        const s0 = s
+        const done = s0.doneDecisions || {}
+        const members = profiles.filter(p => p.class_name === (profiles.find(x => x.user_id === uid) || {}).class_name && p.group_no === (profiles.find(x => x.user_id === uid) || {}).group_no)
+        const roles = new Set(members.map(p => p.role_in_group).filter(r => r && !['student', 'teacher'].includes(r)))
+        const duty = decisions.filter(d => roles.has(d.owner))
+        if (!duty.length) return null
+        return (
+          <div style={{ marginBottom: 10, padding: '8px 10px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>🎯 职责决策完成明细（组内职业对应项）</div>
+            {duty.map(d => {
+              const isDone = done[d.id] !== undefined
+              return (
+                <div key={d.id} style={{ fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
+                  {isDone ? '✓' : '✗'} {d.icon} {d.name}{!isDone && ' —— 未完成，可提醒对应学生'}
+                </div>
+              )
+            })}
           </div>
         )
       })()}
@@ -591,7 +613,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} />}
               </div>
               )
             })}
@@ -801,7 +823,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} />}
               </div>
             ))}
           </div>
