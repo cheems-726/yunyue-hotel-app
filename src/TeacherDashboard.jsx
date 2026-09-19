@@ -108,7 +108,7 @@ function StrategyTag({ rawStates, uid }) {
 }
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
-function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved, profiles = [] }) {
+function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved, profiles = [], onGoDecision }) {
   const [editNote, setEditNote] = useState(null) // 正在编辑的批注
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
@@ -157,8 +157,16 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
             {duty.map(d => {
               const isDone = done[d.id] !== undefined
               return (
-                <div key={d.id} style={{ fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
-                  {isDone ? '✓' : '✗'} {d.icon} {d.name}{!isDone && ' —— 未完成，可提醒对应学生'}
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
+                  <span style={{ flex: 1 }}>
+                    {isDone ? '✓' : '✗'} {d.icon} {d.name}{!isDone && ' —— 未完成，可提醒对应学生'}
+                  </span>
+                  {!isDone && onGoDecision && (
+                    <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
+                      style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1D4ED8', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                      去完成 ›
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -645,7 +653,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { close(); onGoDecision && onGoDecision(id) }} />}
               </div>
               )
             })}
@@ -855,7 +863,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { close(); onGoDecision && onGoDecision(id) }} />}
               </div>
             ))}
           </div>

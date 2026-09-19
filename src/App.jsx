@@ -1870,7 +1870,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <TeacherDashboard user={user} onLogout={handleLogout} />
+        <TeacherDashboard user={user} onLogout={handleLogout}  onGoDecision={(id) => { setOpenPage(null); setTab("business"); const d = decisions.find(x => x.id === id); if (d) setCurrentDecision(d) }} />
       </div>
     )
   }
