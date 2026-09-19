@@ -1961,6 +1961,7 @@ export default function App() {
           decision={currentDecision}
           initial={doneDecisions[currentDecision.id]}
           lastReport={history.length ? history[history.length - 1] : null}
+          history={history}
           onBack={() => setCurrentDecision(null)}
           onDone={(id, answer) => {
             setDoneDecisions({ ...doneDecisions, [id]: answer })

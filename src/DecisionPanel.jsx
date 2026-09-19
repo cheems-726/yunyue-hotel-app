@@ -3,7 +3,7 @@ import ResultFeedback from './ResultFeedback.jsx'
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
-export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial }) {
+export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [] }) {
   const [feedback, setFeedback] = useState(null)
   const [sliderVal, setSliderVal] = useState(() =>
     decision.type === 'slider' && initial != null ? initial : (decision.min ?? 0)
@@ -121,6 +121,26 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             📊 上周参考：出租率 <b style={{ color: '#111827' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? '#10B981' : '#EF4444' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
           </div>
         )}
+        {/* 近3周决策趋势：该决策的历史选择轨迹，判断是否该换打法 */}
+        {(() => {
+          const fmt = v => v == null ? null : (Array.isArray(v) ? v.join('＞') : typeof v === 'object' ? Object.entries(v).map(([k, x]) => `${k}:${x}`).join('、') : String(v))
+          const trail = history.slice(-3).map(h => ({ week: h.week, choice: fmt((h.decisions || {})[decision.id]) })).filter(x => x.choice)
+          if (trail.length === 0) return null
+          const changed = trail.length >= 2 && trail[trail.length - 1].choice !== trail[trail.length - 2].choice
+          return (
+            <div style={{ padding: '10px 12px', background: changed ? '#EFF6FF' : '#F9FAFB', borderRadius: 10, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>
+                📈 该决策近{trail.length}周轨迹 {changed && <span style={{ color: '#1D4ED8' }}>· 上周换了打法</span>}
+              </div>
+              {trail.map(x => (
+                <div key={x.week} style={{ fontSize: 11, color: '#374151', padding: '2px 0', lineHeight: 1.5 }}>
+                  第{x.week}周：<b>{x.choice.length > 30 ? x.choice.slice(0, 30) + '…' : x.choice}</b>
+                </div>
+              ))}
+              {changed && <div style={{ fontSize: 10, color: '#1E40AF', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
+            </div>
+          )
+        })()}
 
         {/* 教学提示：引导学生在决策前思考 */}
         <div style={{ padding: '12px', background: '#FFF4E0', borderRadius: 10, marginBottom: 16 }}>
