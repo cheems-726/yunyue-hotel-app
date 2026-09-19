@@ -570,7 +570,33 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </button>
               )}
             </div>
-            {/* 班级整体统计条 */}
+            {/* 全班策略分布（课堂讨论：同样市场，不同打法） */}
+          {(() => {
+            const dist = {}
+            ;(visibleGroups || []).forEach(g => {
+              const gs = rawStates.find(x => x.user_id === g.uid) || {}
+              const st = strategyOf((gs.state && gs.state.history) || [])
+              if (!st) return
+              const key = st.icon + ' ' + st.tag
+              dist[key] = dist[key] || { n: 0, color: st.color, bg: st.bg }
+              dist[key].n += 1
+            })
+            const entries = Object.entries(dist)
+            if (!entries.length) return null
+            return (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 5 }}>🎯 全班策略分布</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {entries.map(([key, v]) => (
+                    <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
+                      {key} × {v.n} 组
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+          {/* 班级整体统计条 */}
             {visibleGroups.length > 0 && (() => {
               const withData = visibleGroups.filter(g => g.historyCount > 0)
               const avg = (fn) => withData.length ? Math.round(withData.reduce((a, g) => a + fn(g), 0) / withData.length) : 0
