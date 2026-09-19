@@ -169,7 +169,8 @@ export default function FinalResult({ history, onRestart, user }) {
             if (e.type === 'crisis') {
               // 应对结果：下一周 insights 里的危机应对评语
               const nextIns = history[i + 1] ? (history[i + 1].insights || []).find(x => x.text.includes('危机')) : null
-              crises.push({ week: h.week, icon: e.icon, name: e.name, response: h.crisisChoice || null, result: nextIns ? nextIns.text : null })
+              const decCnt = Object.keys(h.decisions || {}).length
+              crises.push({ week: h.week, icon: e.icon, name: e.name, response: h.crisisChoice || null, result: nextIns ? nextIns.text : null, decCnt })
             }
           })
         })
@@ -190,6 +191,7 @@ export default function FinalResult({ history, onRestart, user }) {
               <div key={i} style={{ padding: '8px 0', borderBottom: i < crises.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>
                   第{c.week}周 {c.icon} {c.name}
+                  <span style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', marginLeft: 6 }}>（当时决策完成 {c.decCnt}/18）</span>
                   {c.response && <span style={{ fontSize: 10, fontWeight: 600, color: '#1E40AF', background: '#EFF6FF', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>应对：{c.response}</span>}
                 </div>
                 {c.result && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 1.6 }}>结果：{c.result}</div>}
