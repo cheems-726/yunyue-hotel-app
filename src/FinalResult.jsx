@@ -124,6 +124,16 @@ export default function FinalResult({ history, onRestart, brand }) {
               return (
                 <div style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 8, padding: '6px 10px', marginTop: 8, lineHeight: 1.6 }}>
                   📌 最值得复盘：第 {history[worst].week} 周（综合表现较前一周{up ? '飙升' : '下滑'} {Math.round(swing)} 分）——去「我的」页经营操作记录看看那周做了什么决策
+                  {(() => {
+                    // 联动事件摘要：展示该周的主要事件（复盘有具体抓手）
+                    const evs = (history[worst].events || [])
+                    if (!evs.length) return null
+                    return (
+                      <div style={{ fontSize: 10, color: '#991B1B', marginTop: 4 }}>
+                        ⚡ 该周事件：{evs.map(e => `${e.icon}${e.name}`).join('、')}
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })()}
