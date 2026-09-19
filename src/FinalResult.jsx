@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { strategyOf } from './TeacherDashboard.jsx'
+import { EVENT_INFO } from './settlement.js'
 import { getTitle } from './hotelTitle.js'
 
 // 最终成绩：12周经营结束后，按四维评分
@@ -106,7 +107,11 @@ export default function FinalResult({ history, onRestart, brand }) {
               return (
                 <div style={{ fontSize: 11, color: '#374151', marginTop: 8, paddingTop: 8, borderTop: '1px dashed #F3F4F6', lineHeight: 1.8 }}>
                   ⚡ 12周共触发事件 <b>{history.reduce((a, h) => a + (h.events || []).length, 0)}</b> 次，最常见：
-                  {top.map(([key, n]) => <span key={key} style={{ background: '#F9FAFB', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{key}×{n}</span>)}
+                  {top.map(([key, n]) => {
+                    // title 联动 EVENT_INFO：hover 显示触发条件与教学提示
+                    const info = EVENT_INFO.find(e => e.icon + e.name === key)
+                    return <span key={key} title={info ? `触发条件：${info.trigger}` : undefined} style={{ background: '#F9FAFB', borderRadius: 5, padding: '1px 6px', marginRight: 4, cursor: 'help' }}>{key}×{n}</span>
+                  })}
                 </div>
               )
             })()}
