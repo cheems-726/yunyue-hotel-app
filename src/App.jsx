@@ -216,7 +216,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -231,6 +231,15 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
   }, [])
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const [showBreakdown, setShowBreakdown] = useState(false) // 资金卡支出构成折叠
+  // 满18庆祝：会话内首次集齐时弹一次（reload 不重复骚扰）
+  const celebratedRef = React.useRef(Object.keys(doneDecisions || {}).length >= 18)
+  React.useEffect(() => {
+    const n = Object.keys(doneDecisions || {}).length
+    if (n === 18 && !celebratedRef.current) {
+      celebratedRef.current = true
+      toast && toast('🎉 全部 18 项决策已完成，可以结算了！')
+    }
+  }, [doneDecisions])
   const [renameOpen, setRenameOpen] = useState(false) // 真实姓名修改弹窗（替代window.prompt移动端bug）
   const [renameVal, setRenameVal] = useState(user?.name || '')
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
@@ -2005,7 +2014,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
