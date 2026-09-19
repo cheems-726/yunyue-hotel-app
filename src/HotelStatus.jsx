@@ -88,6 +88,9 @@ const CLEAN_FEE = 25
 
 function LiveFeed({ occupiedRooms, price, week, onStats }) {
   const [feed, setFeed] = useState([])
+  const [flows, setFlows] = useState([]) // 结构化流水明细
+  const [detailOpen, setDetailOpen] = useState(false) // 明细展开
+  const flowsRef = React.useRef([]) // 渲染数据源（与 flows 同步）
   const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0, guests: Math.round(occupiedRooms * 2 - 3) })
   const statsRef = React.useRef(stats)
   statsRef.current = stats
@@ -117,6 +120,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
     }
     if (!Array.isArray(st.pendingClean)) st.pendingClean = []
     if (!Array.isArray(st.feed)) st.feed = []
+    if (!Array.isArray(st.flows)) st.flows = []
     setStats({ checkout: st.checkout, checkin: st.checkin, income: st.income, expense: st.expense, guests: st.guests })
     setFeed(st.feed)
     let gameMin = st.gameMin || new Date().getHours() * 60 + new Date().getMinutes()
@@ -124,14 +128,20 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
 
     const persist = () => {
       const s = statsRef.current
-      try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current })) } catch (e) {}
+      try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current, flows: flowsRef.current })) } catch (e) {}
     }
     const feedRef = { current: st.feed }
+    const flowsRef = { current: st.flows }
     const pushFeed = (text, amt) => {
       const line = (amt ? (amt > 0 ? ` +${amt}元` : ` ${amt}元`) : '')
       const entry = `${text}${line}`
       feedRef.current = [entry, ...feedRef.current].slice(0, 4)
       setFeed(feedRef.current)
+      // 结构化流水：有金额的事件进入明细列表（供展开查看）
+      if (amt) {
+        flowsRef.current = [{ text: entry, amt }, ...flowsRef.current].slice(0, 20)
+        setFlows(flowsRef.current)
+      }
     }
     const apply = (patch) => {
       setStats(s => {
@@ -205,19 +215,30 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
-        <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+        <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>+{stats.income.toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日入账</div>
         </div>
-        <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+        <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#FEF2F2', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>-{stats.expense.toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日支出</div>
         </div>
-        <div style={{ background: '#EFF6FF', borderRadius: 8, padding: '6px 0', textAlign: 'center' }}>
+        <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#EFF6FF', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: stats.income - stats.expense >= 0 ? '#1D4ED8' : '#DC2626' }}>{stats.income - stats.expense >= 0 ? '+' : ''}{(stats.income - stats.expense).toLocaleString()}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日净流入</div>
         </div>
       </div>
+      {detailOpen && (
+        <div style={{ marginBottom: 8, padding: '6px 8px', background: '#F8FAFC', borderRadius: 8, maxHeight: 150, overflowY: 'auto' }}>
+          {flowsRef.current.length === 0 && <div style={{ fontSize: 10, color: '#9CA3AF', textAlign: 'center', padding: '4px 0' }}>暂无流水记录，经营事件发生后这里会滚动记录</div>}
+          {flowsRef.current.map((f, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 10, padding: '3px 0', borderBottom: i < flowsRef.current.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+              <span style={{ color: '#374151', lineHeight: 1.4, flex: 1 }}>{f.text}</span>
+              <span style={{ fontWeight: 700, color: f.amt > 0 ? '#16A34A' : '#DC2626', flexShrink: 0 }}>{f.amt > 0 ? '+' : ''}{f.amt}元</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>📡 实时运营动态</span>
         <span style={{ fontSize: 9, color: '#9CA3AF' }}>按概率随机发生 · 退房12点前 · 入住14点后</span>
