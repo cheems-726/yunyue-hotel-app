@@ -426,7 +426,7 @@ export default function TeacherDashboard({ user, onLogout }) {
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
     const lines = []
     lines.push(filterClass ? `【${filterClass} 汇总】` : '【全班汇总】')
-    lines.push('班级,组名,酒店,城市,周次,状态,称号,称号轨迹,策略标签,出租率%,营收(万),利润(万),口碑(5分),综合评分')
+    lines.push('班级,组名,酒店,城市,周次,状态,称号,称号轨迹,策略标签,职责完成度,出租率%,营收(万),利润(万),口碑(5分),综合评分')
     for (const g of visible) {
       const p = pMap[g.uid] || {}
       const gs = rawStates.find(x => x.user_id === g.uid) || {}
@@ -440,9 +440,15 @@ export default function TeacherDashboard({ user, onLogout }) {
         if (t2 !== prevT) { nodes.push(`第${h.week}周${t2}`); prevT = t2 }
       })
       const st = strategyOf(hist)
+      // 职责完成度：该组学生职业集合对应决策在组档中的完成数（与 GroupDetail 口径一致）
+      const grpProfiles = profiles.filter(x => x.class_name === p.class_name && x.group_no === p.group_no)
+      const roles = new Set(grpProfiles.map(x => x.role_in_group).filter(r => r && !['student', 'teacher'].includes(r)))
+      const dutyIds = new Set(decisions.filter(d => roles.has(d.owner)).map(d => d.id))
+      const doneCnt = [...dutyIds].filter(id => ((gs.state && gs.state.doneDecisions) || {})[id] !== undefined).length
+      const dutyStr = dutyIds.size ? `${doneCnt}/${dutyIds.size}` : ''
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
-        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), g.occ, g.revenue, g.profit, g.rating, g.score,
+        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), esc(dutyStr), g.occ, g.revenue, g.profit, g.rating, g.score,
       ].join(','))
     }
     lines.push('')
