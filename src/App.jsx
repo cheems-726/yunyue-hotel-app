@@ -370,7 +370,9 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
         const isLow = cap < 100000
         const isCritical = cap < 50000
         return (
-          <div className="card" style={{ background: isCritical ? '#FEF0EF' : isLow ? '#FFF4E0' : '#F0FDF4', borderColor: isCritical ? '#FECACA' : isLow ? '#FDE68A' : '#BBF7D0' }}>
+          <div className="card" title="点击查看实时流水明细"
+            onClick={() => { contentRef.current && contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            style={{ background: isCritical ? '#FEF0EF' : isLow ? '#FFF4E0' : '#F0FDF4', borderColor: isCritical ? '#FECACA' : isLow ? '#FDE68A' : '#BBF7D0', cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
                 {isCritical ? '🚨 破产预警' : isLow ? '⚠ 资金偏低' : '💰 资金状况'}
@@ -381,7 +383,7 @@ function Business({ user, onOpen, location, brand, property, onDecision, doneDec
             </div>
             {expenses > 0 && (
               <div style={{ fontSize: 11, color: '#6B7280' }}>
-                上周支出 {expenses.toLocaleString()} 元 · 本周利润 {report ? (report.profit >= 0 ? '+' : '') + report.profit.toLocaleString() : '—'} 元
+                上周支出 {expenses.toLocaleString()} 元 · 本周利润 {report ? (report.profit >= 0 ? '+' : '') + report.profit.toLocaleString() : '—'} 元 · 点击看实时流水 ↩
               </div>
             )}
             {(() => {
