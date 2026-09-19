@@ -960,7 +960,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               <div key={i} style={{ padding: '8px 0', borderBottom: i < notes.length - 1 ? '1px solid #FBE3B3' : 'none' }}>
                 {n.note && <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>}
                 {n.score != null && <div style={{ fontSize: 12, color: '#A96407', fontWeight: 700, marginTop: 4 }}>评分：{n.score} / 100</div>}
-                <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{new Date(n.updated_at).toLocaleDateString('zh-CN')}</div>
+                <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{n.week > 0 ? `第${n.week}周批注 · ` : ''}{new Date(n.updated_at).toLocaleDateString('zh-CN')}</div>
               </div>
             ))}
           </div>
