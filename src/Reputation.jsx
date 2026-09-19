@@ -242,7 +242,7 @@ export default function Reputation({ report, history }) {
         )}
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
         {(() => {
-          const pts = (history || []).map(h => ({ w: h.week, v: h.finalGoodRate }))
+          const pts = (history || []).map(h => ({ w: h.week, v: h.finalGoodRate, wk: h.week != null ? h.week : 0 }))
           if (pts.length < 3) return null
           const W = 320, H = 40, PL = 6, PR = 6, PT = 4, PB = 4
           const lo = Math.min(...pts.map(p => p.v)) - 3
@@ -257,10 +257,13 @@ export default function Reputation({ report, history }) {
           pts.forEach((p, i) => { if (p.v < pts[minIdx].v) minIdx = i })
           return (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>好评率走势（历史各周，{rising ? '整体↑' : '整体↓'}）</div>
+              <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>好评率走势（历史各周{rising ? '，整体↑' : '，整体↓'}）</div>
               <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
                 <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
                 <polyline points={pts.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+                {pts.map((p, i) => (
+                  <text key={'w' + i} x={p.x != null ? p.x : x(i)} y={H - 3} fontSize="7" fill="#9CA3AF" textAnchor="middle">W{i + 1}</text>
+                ))}
                 {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r="2.5" fill="#fff" stroke={color} strokeWidth="1.5" />)}
                 <text x={PL} y={8} fontSize="8" fill="#9CA3AF">当前 {pts[pts.length - 1].v}%</text>
                 {minIdx > 0 && minIdx < pts.length - 1 && (
