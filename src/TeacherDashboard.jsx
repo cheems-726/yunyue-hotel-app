@@ -308,6 +308,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
 
 export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('live') // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
+  const [rankBy, setRankBy] = useState('score') // 排名排序维度：score/profit/occ/rating
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
   const [notedUids, setNotedUids] = useState(new Set())
@@ -454,7 +455,8 @@ export default function TeacherDashboard({ user, onLogout }) {
   const visibleGroups = filterClass
     ? (groups || []).filter(g => classByUid[g.uid] === filterClass)
     : (groups || [])
-  const visibleRanked = [...visibleGroups].sort((a, b) => b.score - a.score)
+  const rankKey = { score: 'score', profit: 'profit', occ: 'occ', rating: 'rating' }[rankBy] || 'score'
+  const visibleRanked = [...visibleGroups].sort((a, b) => (b[rankKey] || 0) - (a[rankKey] || 0))
 
   function scoreBar(score) {
     if (score >= 90) return '#10B981'
@@ -740,6 +742,22 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
             )
           })()}
+          <div className="card" style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📊 排序维度（点击切换，奖牌跟随变化）</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[
+                { k: 'score', label: '综合评分' },
+                { k: 'profit', label: '累计利润' },
+                { k: 'occ', label: '平均出租率' },
+                { k: 'rating', label: '口碑' },
+              ].map(r => (
+                <button key={r.k} onClick={() => setRankBy(r.k)}
+                  style={{ fontSize: 11, fontWeight: rankBy === r.k ? 700 : 400, color: rankBy === r.k ? '#fff' : '#6B7280', background: rankBy === r.k ? '#A96407' : '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 999, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
             {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
