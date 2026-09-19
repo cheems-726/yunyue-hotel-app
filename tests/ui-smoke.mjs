@@ -353,6 +353,11 @@ try {
         const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('👍 优秀'))
         b && b.click()
       }); await sleep(400)
+      ok('云端批注：快捷按钮一键填充（评语+分数）', await pg.evaluate(() => {
+        const ta = document.querySelector('textarea')
+        const num = document.querySelector('input[type="number"]')
+        return ta && ta.value.includes('经营策略清晰') && num && num.value === '95'
+      }))
       await pg.evaluate(() => {
         const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('保存批注'))
         b && b.click()
