@@ -6,7 +6,7 @@ import { getTitle } from './hotelTitle.js'
 
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
-export default function FinalResult({ history, onRestart, brand }) {
+export default function FinalResult({ history, onRestart, user }) {
   const [copied, setCopied] = React.useState(false)
   // 品质分按品牌档次推导（与其他页面同口径）
   const lv = brand?.level || ''
@@ -148,6 +148,7 @@ export default function FinalResult({ history, onRestart, brand }) {
                 const score = history.length >= 1
                 const txt = [
                   '🏨 云悦酒店 · 12周经营成绩单',
+                  `${user?.className ? user.className + ' · ' : ''}${user?.groupNo ? '第' + user.groupNo + '组 · ' : ''}${user?.name || ''}（学号 ${user?.id || '—'}）`,
                   `策略风格：${st ? st.icon + ' ' + st.tag : '—'}`,
                   `称号轨迹：${nodes.join(' → ') || '—'}`,
                   `累计利润：${(totalProfit / 10000).toFixed(2)}万 · 平均出租率 ${avgOccupancy}% · 平均好评率 ${avgGoodRate}%`,
