@@ -1787,6 +1787,7 @@ export default function App() {
       const kept = reviews.filter(r => r.week == null && !String(r.id).startsWith('w'))
       localStorage.setItem('hotel-sim-reviews', JSON.stringify([...kept, ...result.generatedReviews]))
     } catch (e) {}
+    if (crisisResponse) result.crisisChoice = crisisResponse // 危机应对选择存档（学期复盘用）
     setReport(result)
   }
   // 结算确认后：进入下一周，清空决策，保存历史

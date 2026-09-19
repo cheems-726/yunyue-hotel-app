@@ -155,6 +155,48 @@ export default function FinalResult({ history, onRestart, brand }) {
         )
       })()}
 
+      {/* 事件应对复盘：危机事件 + 当时应对 + 结果 */}
+      {(() => {
+        const crises = []
+        history.forEach((h, i) => {
+          (h.events || []).forEach(e => {
+            if (e.type === 'crisis') {
+              // 应对结果：下一周 insights 里的危机应对评语
+              const nextIns = history[i + 1] ? (history[i + 1].insights || []).find(x => x.text.includes('危机')) : null
+              crises.push({ week: h.week, icon: e.icon, name: e.name, response: h.crisisChoice || null, result: nextIns ? nextIns.text : null })
+            }
+          })
+        })
+        if (!crises.length) {
+          return (
+            <div className="card" style={{ background: '#EAF9F0' }}>
+              <div className="card-title">🚨 事件应对复盘</div>
+              <div style={{ fontSize: 12, color: '#065F46', textAlign: 'center', padding: '10px 0' }}>
+                ✅ 12 周零危机——差评没攒过线、资金没见底，风险控制本身就是实力
+              </div>
+            </div>
+          )
+        }
+        return (
+          <div className="card">
+            <div className="card-title">🚨 事件应对复盘（{crises.length} 次危机）</div>
+            {crises.map((c, i) => (
+              <div key={i} style={{ padding: '8px 0', borderBottom: i < crises.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>
+                  第{c.week}周 {c.icon} {c.name}
+                  {c.response && <span style={{ fontSize: 10, fontWeight: 600, color: '#1E40AF', background: '#EFF6FF', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>应对：{c.response}</span>}
+                </div>
+                {c.result && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 1.6 }}>结果：{c.result}</div>}
+                {!c.response && <div style={{ fontSize: 10, color: '#DC2626', marginTop: 3 }}>当时未选择应对方案（按最差情况处理）</div>}
+              </div>
+            ))}
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
+              💡 危机不可怕，可怕的是没有预案。对照每次应对与结果，下次遇到就知道怎么选。
+            </div>
+          </div>
+        )
+      })()}
+
       {/* 经营总结 */}
       <div className="card" style={{ background: '#FFF4E0' }}>
         <div className="card-title">📝 经营总结</div>
