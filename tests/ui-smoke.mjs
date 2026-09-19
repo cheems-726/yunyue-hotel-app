@@ -241,6 +241,13 @@ try {
     const dump = await page.evaluate(() => document.body.innerText.slice(0, 200))
     console.log('    [崩溃详情] ' + dump.slice(0, 400))
   }
+  // 决策轨迹块渲染断言：第2周打开任一决策面板，应显示近3周轨迹块
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button, span')].reverse().find(x => x.textContent.trim() === '去决策')
+    b && b.click()
+  }); await sleep(700)
+  ok('决策面板趋势块渲染', (await text(page)).includes('该决策近'))
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('返回')); b && b.click() }); await sleep(500)
 
   // 8. 四 tab
   await clickText(page, '报表'); await sleep(700)
