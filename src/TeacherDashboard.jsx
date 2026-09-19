@@ -692,6 +692,33 @@ export default function TeacherDashboard({ user, onLogout }) {
       {/* 排名 */}
       {view === 'ranking' && groups !== null && (
         <div>
+          {/* 策略分布统计（课堂讨论：同样市场，不同打法） */}
+          {(() => {
+            const dist = {}
+            ;(visibleRanked || []).forEach(g => {
+              const gs = rawStates.find(x => x.user_id === g.uid) || {}
+              const st = strategyOf((gs.state && gs.state.history) || [])
+              if (!st) return
+              const key = st.icon + ' ' + st.tag
+              dist[key] = dist[key] || { n: 0, color: st.color, bg: st.bg }
+              dist[key].n += 1
+            })
+            const entries = Object.entries(dist)
+            if (!entries.length) return null
+            return (
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>🎯 全班策略分布（同样市场，不同打法）</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {entries.map(([key, v]) => (
+                    <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
+                      {key} × {v.n} 组
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 5 }}>课堂讨论点：为什么同样的市场条件下，不同打法结果不同？</div>
+              </div>
+            )
+          })()}
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
             <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
             {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
