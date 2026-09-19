@@ -156,7 +156,14 @@ export function subscribeGameStates(onChange) {
 }
 
 // 教师批注：保存/读取
-export async function saveTeacherNote(teacherUid, studentUid, week, note, score) {
+export async function saveTeacherNote(teacherUid, studentUid, week, note, score, noteId) {
+  if (noteId) {
+    // 编辑模式：按原批注 id 更新
+    const { error } = await supabase.from('teacher_notes').update({
+      note, score, updated_at: new Date().toISOString(),
+    }).eq('id', noteId)
+    return !error
+  }
   const { error } = await supabase.from('teacher_notes').upsert({
     teacher_uid: teacherUid, student_uid: studentUid, week,
     note, score, updated_at: new Date().toISOString(),

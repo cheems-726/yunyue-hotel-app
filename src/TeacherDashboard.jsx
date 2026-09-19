@@ -109,6 +109,7 @@ function StrategyTag({ rawStates, uid }) {
 
 // 组详情下钻：展开看该组逐周经营明细+当周决策内容（课堂复盘用）
 function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved }) {
+  const [editNote, setEditNote] = useState(null) // 正在编辑的批注
   const gs = rawStates.find(x => x.user_id === uid)
   if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
   const s = gs.state || {}
@@ -203,6 +204,8 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#A96407' }}>{n.week > 0 ? `第${n.week}周批注` : '总评'}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
+                    <button title="编辑这条批注" onClick={e => { e.stopPropagation(); setEditNote(n) }}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#9CA3AF', padding: '0 2px', fontFamily: 'inherit' }}>✏️</button>
                     <button title="删除这条批注" onClick={e => { e.stopPropagation(); if (window.confirm('确定删除这条批注吗？')) onDeleteNote(n.id) }}
                       style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#D1D5DB', padding: '0 2px', fontFamily: 'inherit' }}>🗑</button>
                   </span>
@@ -217,18 +220,25 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
 
       {/* 教师批注+打分 */}
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
-        <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} onSaved={onSaved} />
+        <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} onSaved={onSaved} editNote={editNote} onEditCancel={() => setEditNote(null)} />
       </div>
     </div>
   )
 }
 
 // 教师批注表单组件
-function TeacherNoteForm({ uid, name, week = 0, onSaved }) {
+function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel }) {
   const [note, setNote] = React.useState('')
   const [score, setScore] = React.useState('')
   const [saved, setSaved] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
+  // 编辑模式：editNote 变化时把原批注内容同步进表单
+  React.useEffect(() => {
+    if (editNote) {
+      setNote(editNote.note || '')
+      setScore(editNote.score != null ? String(editNote.score) : '')
+    }
+  }, [editNote])
 
   async function save() {
     if (!note.trim() && !score) return
@@ -237,9 +247,14 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved }) {
     const session = await import('./supabaseClient.js').then(m => m.supabase.auth.getSession())
     const teacherUid = session.data?.session?.user?.id
     if (!teacherUid) return
-    const ok = await saveTeacherNote(teacherUid, uid, week, note.trim(), score ? Number(score) : null)
+    const ok = await saveTeacherNote(teacherUid, uid, week, note.trim(), score ? Number(score) : null, editNote ? editNote.id : null)
     setSaving(false)
-    if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); onSaved && onSaved() }
+    if (ok) {
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+      setNote(''); setScore('')
+      onEditCancel && onEditCancel()
+      onSaved && onSaved()
+    }
   }
 
   // 快捷批注：一键填充评语+分数（教师可再手改）
@@ -251,7 +266,13 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved }) {
   ]
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📝 教师批注 & 打分（计入期末总评10%）</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '✏️ 正在编辑批注（保存后覆盖原批注）' : '📝 教师批注 & 打分（计入期末总评10%）'}</span>
+        {editNote && (
+          <button onClick={() => { setEditNote(null); setNote(''); setScore('') }}
+            style={{ border: 'none', background: 'none', fontSize: 10, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit' }}>取消编辑</button>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
         {quickNotes.map(q => (
           <button key={q.label}
