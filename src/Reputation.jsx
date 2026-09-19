@@ -184,6 +184,40 @@ export default function Reputation({ report, history }) {
         </div>
       </div>
 
+      {/* 口碑构成拆解：三指标联动关系 + 当前值（课堂讲解口碑体系用） */}
+      {(() => {
+        const satisfaction = goodRatePct != null ? Math.min(100, Math.round(goodRatePct * 1.1)) : null
+        const goodColor = goodRatePct == null ? '#9CA3AF' : goodRatePct >= 80 ? '#16A34A' : goodRatePct >= 60 ? '#E8940F' : '#DC2626'
+        const handleColor = handleRate >= 80 ? '#16A34A' : handleRate >= 50 ? '#E8940F' : '#DC2626'
+        const box = (label, val, color) => (
+          <div style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color }}>{val}</div>
+            <div style={{ fontSize: 9, color: '#9CA3AF' }}>{label}</div>
+          </div>
+        )
+        return (
+          <div className="card" style={{ background: '#F8FAFC' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 8 }}>🧩 口碑构成拆解（三个指标怎么互相影响）</div>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+              {box('差评处理率', handleRate + '%', handleColor)}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: '#A96407' }}>➜</span>
+                <span style={{ fontSize: 8, color: '#9CA3AF' }}>拖后腿</span>
+              </div>
+              {box('好评率', (goodRatePct ?? '—') + '%', goodColor)}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: '#A96407' }}>➜</span>
+                <span style={{ fontSize: 8, color: '#9CA3AF' }}>衍生出</span>
+              </div>
+              {box('满意度', satisfaction != null ? satisfaction + '%' : '—', goodColor)}
+            </div>
+            <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, lineHeight: 1.7 }}>
+              欠着差评不处理 → 好评率被拖下水 → 满意度跟着跌 → 客流流失。<b>处理率是口碑的源头活水</b>：处理一条，三个指标一起止血。
+            </div>
+          </div>
+        )
+      })()}
+
       {/* 差评处理率进度条（评分权重15%的可视化） */}
       <div style={{ padding: '0 20px 12px' }}>
         <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
