@@ -317,6 +317,11 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
         placeholder={'给 ' + name + ' 写评语...（如：定价策略合理，但差评处理偏慢）'}
         style={{ width: '100%', minHeight: 56, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
       />
+      {note.replace(/\s/g, '').length > 200 && (
+        <div style={{ fontSize: 10, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '4px 8px', marginTop: 4 }}>
+          当前 {note.replace(/\s/g, '').length} 字——建议精简到 200 字内，聚焦最有价值的反馈
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <input
           type="number" min="0" max="100"
