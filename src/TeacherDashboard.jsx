@@ -156,10 +156,13 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
             <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>🎯 职责决策完成明细（组内职业对应项）</div>
             {duty.map(d => {
               const isDone = done[d.id] !== undefined
+              // 负责人：组内职业匹配该决策 owner 的学生
+              const owner = members.find(p => p.role_in_group === d.owner)
+              const ownerName = owner ? (owner.display_name || '未命名') : null
               return (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
                   <span style={{ flex: 1 }}>
-                    {isDone ? '✓' : '✗'} {d.icon} {d.name}{!isDone && ' —— 未完成，可提醒对应学生'}
+                    {isDone ? '✓' : '✗'} {d.icon} {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
                   </span>
                   {!isDone && onGoDecision && (
                     <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
