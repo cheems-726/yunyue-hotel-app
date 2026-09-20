@@ -124,7 +124,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {/* 近3周决策趋势：该决策的历史选择轨迹，判断是否该换打法 */}
         {(() => {
           const fmt = v => v == null ? null : (Array.isArray(v) ? v.join('＞') : typeof v === 'object' ? Object.entries(v).map(([k, x]) => `${k}:${x}`).join('、') : String(v))
-          const trail = history.slice(-3).map(h => ({ week: h.week, choice: fmt((h.decisions || {})[decision.id]) })).filter(x => x.choice)
+          const trail = history.slice(-3).map(h => ({ week: h.week, choice: fmt((h.decisions || {})[decision.id]), occ: h.occupancy, profit: h.profit })).filter(x => x.choice)
           if (trail.length === 0) return null
           const changed = trail.length >= 2 && trail[trail.length - 1].choice !== trail[trail.length - 2].choice
           return (
@@ -135,6 +135,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               {trail.map(x => (
                 <div key={x.week} style={{ fontSize: 11, color: '#374151', padding: '2px 0', lineHeight: 1.5 }}>
                   第{x.week}周：<b>{x.choice.length > 30 ? x.choice.slice(0, 30) + '…' : x.choice}</b>
+                  <span style={{ color: '#9CA3AF', marginLeft: 6 }}>出租率 {x.occ}% · 利润 {x.profit >= 0 ? '+' : ''}{x.profit}元</span>
                 </div>
               ))}
               {changed && <div style={{ fontSize: 10, color: '#1E40AF', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
