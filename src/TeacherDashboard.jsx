@@ -510,7 +510,8 @@ export default function TeacherDashboard({ user, onLogout }) {
   }
 
   return (
-    <div className="content" style={{ paddingBottom: 76 }}>
+    <>
+    <div className="content" style={{ paddingBottom: 24 }}>
       <div className="header">
         <div className="row1"><span className="hotel-name">教师后台</span></div>
         <div className="sub">
@@ -1062,19 +1063,20 @@ export default function TeacherDashboard({ user, onLogout }) {
       )}
 
       </div>
-      {/* 底部三导航：排名 / 实时决策 / 我的 */}
-      <div className="tabbar">
-        {[
-          { key: 'live', icon: '📡', label: '实时决策' },
-          { key: 'ranking', icon: '🏆', label: '排名' },
-          { key: 'me', icon: '👤', label: '我的' },
-        ].map(v => (
-          <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
-            <div className="tab-icon">{v.icon}</div>
-            <div className="tab-label">{v.label}</div>
-          </button>
-        ))}
-      </div>
     </div>
+    {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
+    <div className="tabbar">
+      {[
+        { key: 'live', icon: '📡', label: '实时决策' },
+        { key: 'ranking', icon: '🏆', label: '排名' },
+        { key: 'me', icon: '👤', label: '我的' },
+      ].map(v => (
+        <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
+          <div className="tab-icon">{v.icon}</div>
+          <div className="tab-label">{v.label}</div>
+        </button>
+      ))}
+    </div>
+    </>
   )
 }
