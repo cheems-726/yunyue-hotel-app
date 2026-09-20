@@ -2066,7 +2066,8 @@ export default function App() {
         <span className="icons">📶 🔋</span>
       </div>
       <AppErrorBoundary onReset={() => { setOpenPage(null); setCurrentDecision(null); setTab('business') }}>
-        <div key={(tab || '') + '|' + (openPage ? openPage.key : '')} style={{ animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>{mainPage}</div>
+        {/* 切页动画包装层：必须是可收缩的 flex 容器，否则会被内容撑高、把 .tabbar 顶出视口（9-19 回归） */}
+        <div key={(tab || '') + '|' + (openPage ? openPage.key : '')} style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>{mainPage}</div>
       </AppErrorBoundary>
       {/* 断网横幅 */}
       {offline && (
