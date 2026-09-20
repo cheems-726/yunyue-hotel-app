@@ -16,7 +16,7 @@ import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetch
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
-import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs } from './attrs.js'
+import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta } from './attrs.js'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -217,7 +217,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -265,7 +265,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       </div>
 
       {/* 酒店状态面板（RPG属性） */}
-      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} />
+      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} />
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -1592,6 +1592,9 @@ export default function App() {
   const [doneDecisions, setDoneDecisions] = useState(saved.doneDecisions || {}) // 已完成的决策
   // RPG 属性池（品质/声誉/士气）：旧档无 attrs 时用 normalizeAttrs 兜底，保证不 NaN 不报错
   const [attrs, setAttrs] = useState(() => normalizeAttrs(saved.attrs))
+  // 属性变化飘字（规格 §8）：App 权威下发增量，供经营页属性条飘「品质 +5」
+  // 说明：决策面板是全屏替换分支，确认时经营页会卸载→重挂载，组件内做 diff 拿不到增量
+  const [attrFlash, setAttrFlash] = useState(null)
   const [report, setReport] = useState(saved.report || null) // 周报结果
   const [week, setWeek] = useState(saved.week || 1) // 当前经营周
   const [history, setHistory] = useState(saved.history || []) // 历史周报
@@ -1669,6 +1672,13 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs])
+
+  // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
+  useEffect(() => {
+    if (!attrFlash) return
+    const t = setTimeout(() => setAttrFlash(null), 2000)
+    return () => clearTimeout(t)
+  }, [attrFlash])
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
   const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }
@@ -2025,10 +2035,18 @@ export default function App() {
           onDone={(id, answer) => {
             // 属性池：先撤销旧答案的增量（学生改答案时不重复累加），再应用新答案
             const prevAnswer = doneDecisions[id]
-            setAttrs(prev => {
-              const revert = prevAnswer === undefined ? prev : applyDecisionToAttrs(prev, id, prevAnswer, -1)
-              return applyDecisionToAttrs(revert, id, answer)
-            })
+            const before = normalizeAttrs(attrs)
+            const reverted = prevAnswer === undefined ? before : applyDecisionToAttrs(before, id, prevAnswer, -1)
+            const after = applyDecisionToAttrs(reverted, id, answer)
+            setAttrs(after)
+            // 真实属性变化反馈（规格 §8）：如「品质 +5（60→65）」；无变化则为空串
+            const deltaText = formatAttrDelta(before, after)
+            const flashDelta = {}
+            for (const k of ['quality', 'reputation', 'morale']) {
+              const diff = after[k] - before[k]
+              if (diff !== 0) flashDelta[k] = diff
+            }
+            setAttrFlash(Object.keys(flashDelta).length ? { ...flashDelta, nonce: Date.now() } : null)
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             setCurrentDecision(null)
             const dName = decisions.find(d => d.id === id)?.name || '决策'
@@ -2040,12 +2058,13 @@ export default function App() {
               return JSON.stringify(v)
             }
             const lastChoice = history.length ? (history[history.length - 1].decisions || {})[id] : undefined
+            const tail = deltaText ? ` · ${deltaText}` : '' // 无属性变化时保留原有描述，不出空反馈
             if (lastChoice === undefined) {
-              toast(`✓ ${dName} 已保存`)
+              toast(`✓ ${dName} 已保存${tail}`)
             } else if (normVal(lastChoice) === normVal(answer)) {
-              toast(`✓ ${dName} 已保存 · 与上周一致，维持打法`)
+              toast(`✓ ${dName} 已保存 · 与上周一致，维持打法${tail}`)
             } else {
-              toast(`↺ ${dName} 已保存 · 与上周不同，换了思路`)
+              toast(`↺ ${dName} 已保存 · 与上周不同，换了思路${tail}`)
             }
           }}
         />
@@ -2066,7 +2085,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,

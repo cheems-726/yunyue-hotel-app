@@ -296,6 +296,23 @@ export function applyWeeklyDecay(attrs, brandLevel) {
   }
 }
 
+// ───────────────────────── 反馈文案（规格 §8 格式）─────────────────────────
+// 属性中文名（面板与反馈文案共用，避免多处各写一份）
+export const ATTR_LABELS = { quality: '品质', reputation: '声誉', morale: '士气' }
+
+// 生成"真实属性变化"文案：如 "品质 +5（60→65）"；多项变化用「，」连接
+// 无变化返回 ''（调用方保留原有描述文本，避免出现空反馈）
+export function formatAttrDelta(before, after) {
+  const b = normalizeAttrs(before)
+  const a = normalizeAttrs(after)
+  const parts = []
+  for (const k of KEYS) {
+    const d = a[k] - b[k]
+    if (d !== 0) parts.push(`${ATTR_LABELS[k]} ${d > 0 ? '+' : ''}${d}（${b[k]}→${a[k]}）`)
+  }
+  return parts.join('，')
+}
+
 // ───────────────────────── 称号（规格 §九）─────────────────────────
 // 综合分 = 品质30% + 声誉40% + 士气30%
 // 第3批只实现、不接 UI：称号目前仍走 hotelTitle.getTitle(出租率, 好评率, 品质分) 老口径

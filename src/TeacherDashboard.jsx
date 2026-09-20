@@ -3,6 +3,7 @@ import { decisions } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote } from './supabaseClient.js'
+import { normalizeAttrs } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -41,9 +42,10 @@ function summarize(gs, profile) {
     const pn = pNeg === 0 ? 100 : pNeg <= 5 ? 80 : pNeg <= 10 ? 65 : 50
     scorePrev = Math.round(ps * 0.4 + pr * 0.25 + po * 0.2 + pn * 0.15)
   }
-  // 品质分按品牌档次推导（与学生端同口径；直接传 level 字符串会得到 NaN 并让 getTitle 崩溃）
-  const lv2 = s.brand?.level || ''
-  const q2 = lv2.includes('经济') ? 60 : lv2.includes('中高档') || lv2.includes('精选') ? 85 : lv2.includes('高档') ? 90 : lv2.includes('奢华') ? 95 : lv2.includes('中档') ? 75 : 70
+  // 品质分改读属性池（与学生端同口径：normalizeAttrs 兜底旧档无 attrs → 初值 60，绝不 NaN）
+  // 保险丝：极端脏数据下回退 70，避免 getTitle 崩溃（历史教训：undefined 会让称号计算炸）
+  const attrsQ = normalizeAttrs(gs?.state?.attrs).quality
+  const q2 = Number.isFinite(attrsQ) ? attrsQ : 70
   const titleInfo = getTitle(avgOcc, avgGood, q2)
   return {
     uid: gs.user_id,

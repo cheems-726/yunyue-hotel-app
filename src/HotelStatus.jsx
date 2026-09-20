@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { getTitle } from './hotelTitle.js'
+import { normalizeAttrs, ATTR_LABELS } from './attrs.js'
 
 // 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
 // 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按"游戏内时间片"（15/30/60分钟）推进
@@ -255,14 +256,14 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
   )
 }
 
-export default function HotelStatus({ report, brand, property, week, history }) {
+export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
-  const reputationScore = (goodRate / 20).toFixed(1)
   const profit = history.reduce((s, h) => s + h.profit, 0)
-  const satisfaction = Math.min(100, Math.round(goodRate * 1.1))
-  const brandLevel = brand?.level || ''
-  const quality = brandLevel.includes('经济') ? 60 : brandLevel.includes('中档') ? 75 : brandLevel.includes('高档') ? 90 : brandLevel.includes('奢华') ? 95 : 70
+  // RPG 属性池（品质/声誉/士气）：唯一数据源 = state.attrs
+  // 旧档无 attrs / 脏数据一律经 normalizeAttrs 兜底（初值 60/70/65），绝不 NaN
+  const A = useMemo(() => normalizeAttrs(attrs), [attrs?.quality, attrs?.reputation, attrs?.morale])
+  const quality = A.quality // 称号综合分沿用「出租率35%+好评率35%+品质30%」口径，品质改由属性池驱动
 
   // 模拟日历 + 时钟驱动的入住情况
   const rooms = report?.rooms || (property?.rooms && Number(property.rooms.match(/(\d+)/)?.[1])) || 70
@@ -306,13 +307,22 @@ export default function HotelStatus({ report, brand, property, week, history }) 
     ? Math.round(occRooms * 0.35 * Math.min((dayProgress - 14) / 6, 1)) + walkinCount
     : 0
 
-  const attrs = [
-    { icon: '⭐', label: '口碑分', value: reputationScore, max: 5, display: reputationScore + ' / 5' },
-    { icon: '💯', label: '好评率', value: goodRate, max: 100, display: goodRate + '%' },
-    { icon: '😊', label: '满意度', value: satisfaction, max: 100, display: satisfaction + '%' },
-    { icon: '🏠', label: '出租率', value: occupancy, max: 100, display: occupancy + '%' },
-    { icon: '💎', label: '品质分', value: quality, max: 100, display: quality + '' },
+  // RPG 三属性（物/名/人）：替代原先"口碑分/满意度"这类好评率派生值
+  const attrRows = [
+    { key: 'quality', icon: '💎', label: ATTR_LABELS.quality, hint: '硬件·卫生', value: A.quality },
+    { key: 'reputation', icon: '⭐', label: ATTR_LABELS.reputation, hint: '口碑·形象', value: A.reputation },
+    { key: 'morale', icon: '😊', label: ATTR_LABELS.morale, hint: '团队·状态', value: A.morale },
   ]
+  // 经营指标（真实统计值，非派生）：与属性池分开展示，避免"派生值冒充属性"
+  const bizRows = [
+    { icon: '💯', label: '好评率', value: goodRate, display: goodRate + '%' },
+    { icon: '🏠', label: '出租率', value: occupancy, display: occupancy + '%' },
+  ]
+
+  // 实时反馈（规格 §8「数字跳动 + 飘字」）：增量由 App 在确认决策时权威下发
+  // ⚠️ 不能用"本组件 ref 前后对比"实现——决策面板是全屏替换分支，打开时本组件卸载、
+  //    关闭后重新挂载，本地 ref 永远只看到新值（实测踩坑：实例 ID 从 pd0p 变 xe26）。
+  const flash = attrFlash && attrFlash.nonce ? attrFlash : null
 
   const hasData = report || history.length > 0
   const title = getTitle(occupancy, goodRate, quality)
@@ -324,6 +334,39 @@ export default function HotelStatus({ report, brand, property, week, history }) 
     { l: '在店客人', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 人', c: '#1D4ED8', live: true },
     { l: '明日预抵', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280' },
   ]
+
+  // 属性池渲染块：结算前后共用（属性是做决策当场变化的真实状态，不该等结算才解锁）
+  const attrPanel = (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>🎭 酒店属性</span>
+        <span style={{ fontSize: 9, color: '#9CA3AF' }}>做决策立即变化 · 每周自然衰减</span>
+      </div>
+      {attrRows.map(a => (
+        <div key={a.key} style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, color: '#6B7280' }}>{a.icon} {a.label}<span style={{ fontSize: 9, color: '#D1D5DB', marginLeft: 5 }}>{a.hint}</span></span>
+            <span style={{ position: 'relative', fontSize: 12, fontWeight: 700, color: barColor(a.value) }}>
+              {/* 飘字：属性变化时出现（+5 / -3），1.5s 自动消失 */}
+              {flash && flash[a.key] != null && (
+                <span
+                  className="float-num"
+                  key={`${a.key}-${flash[a.key]}-${flash.nonce}`}
+                  style={{ '--delay': '0s', position: 'absolute', right: '100%', top: -14, marginRight: 4, fontSize: 12, fontWeight: 800, color: flash[a.key] > 0 ? '#16A34A' : '#DC2626', background: '#fff', border: '1px solid ' + (flash[a.key] > 0 ? '#BBF7D0' : '#FECACA'), borderRadius: 999, padding: '1px 8px', boxShadow: '0 2px 6px rgba(16,24,40,0.10)', pointerEvents: 'none', whiteSpace: 'nowrap' }}
+                >
+                  {ATTR_LABELS[a.key]} {flash[a.key] > 0 ? '+' : ''}{flash[a.key]}
+                </span>
+              )}
+              {a.value}
+            </span>
+          </div>
+          <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: a.value + '%', background: barColor(a.value), borderRadius: 3, transition: 'width 0.5s cubic-bezier(0.22,1,0.36,1)' }}></div>
+          </div>
+        </div>
+      ))}
+    </>
+  )
 
   if (!hasData) {
     return (
@@ -337,18 +380,20 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         <div style={{ marginTop: 10, padding: '8px 12px', background: '#FFF4E0', borderRadius: 10, fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center' }}>
           📅 今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
         </div>
+        {attrPanel}
         <LiveFeed occupiedRooms={6} price={230} week={week} />
         <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '10px 0 4px', lineHeight: 1.8 }}>
-          属性面板将在首次周结算后解锁<br />
-          届时可实时查看：口碑分 / 好评率 / 满意度 / 出租率 / 品质分
+          经营指标（好评率 / 出租率）将在首次周结算后解锁<br />
+          三个属性从做第一个决策起就实时变化
         </div>
       </div>
     )
   }
 
+  // 属性条配色（规格 §8）：≥80 绿 / 50-79 琥珀 / <50 红
   function barColor(v) {
     if (v >= 80) return '#16A34A'
-    if (v >= 60) return '#E8940F'
+    if (v >= 50) return '#E8940F'
     return '#DC2626'
   }
 
@@ -419,17 +464,18 @@ export default function HotelStatus({ report, brand, property, week, history }) 
         )
       })()}
 
-      {attrs.map(a => (
-        <div key={a.label} style={{ marginBottom: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: '#6B7280' }}>{a.icon} {a.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: barColor(a.value / a.max * 100) }}>{a.display}</span>
+      {/* RPG 属性池：品质 / 声誉 / 士气（做决策当场变化并飘字） */}
+      {attrPanel}
+
+      {/* 经营指标（真实统计值，非派生）：好评率 / 出租率 */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 2, marginBottom: 4 }}>
+        {bizRows.map(b => (
+          <div key={b.label} style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>{b.display}</div>
+            <div style={{ fontSize: 9, color: '#9CA3AF' }}>{b.icon} {b.label}</div>
           </div>
-          <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: (a.value / a.max * 100) + '%', background: barColor(a.value / a.max * 100), borderRadius: 3, transition: 'width 0.5s cubic-bezier(0.22,1,0.36,1)' }}></div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* 房型结构（档次越高价格越高，匹配成本） */}
       <div style={{ marginTop: 4 }}>
