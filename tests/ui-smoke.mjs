@@ -55,6 +55,53 @@ async function closeOverlay(page) {
 }
 const sleep = ms => page.waitForTimeout(ms)
 
+// ── 布局可见性/可达性断言（防"导航栏在视口外 / 内容滚不动"类回归）──
+// 背景：2026-09-19 切页动画包装层缺 flex 约束 → .tabbar 被顶出视口 2200px + .content 零滚动区间，
+//       而旧断言（element.click() 不做可操作性检查 + innerText 存在性）全部照过，
+//       导致潜伏到 9-20 真机才暴露。本函数就是那次的防线。
+// 注意：checkVisibility() 只反映 display/visibility/opacity，**不反映被 overflow 裁切**（本 bug 正是裁切），
+//       所以真正承载判定的是 rect 断言与"滚到底后末元素是否进入视口"断言。
+async function assertLayout(pg, label) {
+  const r = await pg.evaluate(() => {
+    const tb = document.querySelector('.tabbar')
+    const c = document.querySelector('.content')
+    const vh = window.innerHeight
+    const out = { vh, tabbar: null, content: null }
+    if (tb) {
+      const b = tb.getBoundingClientRect()
+      out.tabbar = {
+        top: Math.round(b.top), bottom: Math.round(b.bottom),
+        inViewport: b.bottom <= vh + 1 && b.top > 0,
+        checkVis: typeof tb.checkVisibility === 'function' ? tb.checkVisibility() : true,
+      }
+    }
+    if (c) {
+      const before = c.scrollTop
+      c.scrollTop = c.scrollHeight // 尽力滚到底
+      const scrolled = Math.round(c.scrollTop)
+      const last = c.lastElementChild
+      const lastBottom = last ? Math.round(last.getBoundingClientRect().bottom) : null
+      c.scrollTop = before // 还原，避免影响后续断言
+      out.content = {
+        boxH: Math.round(c.getBoundingClientRect().height), scrollH: c.scrollHeight,
+        overflow: c.scrollHeight > c.clientHeight + 1,
+        scrolledTo: scrolled, lastBottom,
+        bottomReachable: lastBottom === null ? true : lastBottom <= vh + 4,
+      }
+    }
+    return out
+  })
+  if (r.tabbar) {
+    ok(`布局【${label}】导航栏在视口内 (top=${r.tabbar.top} bottom=${r.tabbar.bottom} 视口=${r.vh})`, r.tabbar.inViewport)
+    ok(`布局【${label}】导航栏 checkVisibility()`, r.tabbar.checkVis)
+  }
+  if (r.content) {
+    ok(`布局【${label}】滚到底内容可达 (boxH=${r.content.boxH} scrollH=${r.content.scrollH} 滚到底=${r.content.scrolledTo} 末元素底=${r.content.lastBottom})`, r.content.bottomReachable)
+    if (r.content.overflow) ok(`布局【${label}】溢出时可实际滚动（scrollTop 赋值生效）`, r.content.scrolledTo > 0)
+  }
+  return r
+}
+
 const page = await (async () => {
   if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
   server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true })
@@ -177,6 +224,8 @@ try {
   // 6. 经营页
   const biz = await text(page)
   ok('经营页：资金卡+18决策+结算按钮', biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周结算'))
+  // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
+  await assertLayout(page, '学生经营页')
   // 职业置顶断言：注入 groupRole=lobby → 大堂经理职责决策应置顶且带"我的职责"徽章（防回归）
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
@@ -246,9 +295,11 @@ try {
   // 8. 四 tab
   await clickText(page, '报表'); await sleep(700)
   ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计利润 · 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
+  await assertLayout(page, '学生报表')
   await page.screenshot({ path: 'tests/_s3-report.png' })
   await clickText(page, '口碑'); await sleep(700)
   ok('口碑页渲染', (await text(page)).includes('差评处理率'))
+  await assertLayout(page, '学生口碑')
   // 决策趋势块断言：回经营页打开任一决策面板，应显示近3周轨迹块
   await clickText(page, '🏠经营'); await sleep(700)
   await page.evaluate(() => {
@@ -293,6 +344,7 @@ try {
   await clickText(page, '我的'); await sleep(700)
   const me = await text(page)
   ok('我的页：称号历程+档案', me.includes('称号历程') && me.includes('我的酒店档案'))
+  await assertLayout(page, '学生我的')
   // 9. 复盘周次chips
   await page.evaluate(() => {
     const el = [...document.querySelectorAll('*')].reverse().find(x => x.textContent.trim() === '经营操作记录' && x.children.length <= 1)
@@ -349,6 +401,7 @@ try {
       await sleep(1000)
     }
     ok('教师端底部三导航+实时大屏', liveReady)
+    await assertLayout(pg, '教师实时决策')
     // 周次筛选断言：切第1周快照回放，再切回实时
     await pg.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '第1周')
@@ -364,6 +417,7 @@ try {
       const tab = [...document.querySelectorAll('.tab')].find(x => x.textContent.includes('排名'))
       tab && tab.click()
     }); await sleep(900)
+    await assertLayout(pg, '教师排名')
     await pg.evaluate(() => {
       const row = [...document.querySelectorAll('div')].find(d => d.textContent.includes('平均出租率') && d.style.cursor === 'pointer')
       row && row.click()
@@ -402,6 +456,13 @@ try {
     } else {
       ok('云端批注：未找到下钻批注表单（组数据不足，跳过）', true)
     }
+
+    // 教师"我的"视图布局断言（三视图全覆蓋：实时决策/排名/我的）
+    await pg.evaluate(() => {
+      const tab = [...document.querySelectorAll('.tab')].find(x => x.textContent.includes('我的'))
+      tab && tab.click()
+    }); await sleep(1200)
+    await assertLayout(pg, '教师我的')
 
     await pg.close()
   }
