@@ -296,6 +296,15 @@ export function applyWeeklyDecay(attrs, brandLevel) {
   }
 }
 
+// ───────────────────────── 统一品质来源（N2）─────────────────────────
+// 品质分唯一来源 = 属性池（品牌差异体现在衰减速度与放大系数，不体现在起点值）
+// 入参兼容两种：state 对象（{attrs:{...}}）或裸 attrs 对象（{quality,...}）
+// 旧档/脏数据一律经 normalizeAttrs 兜底 → 回退初值 60，绝不 NaN
+export function qualityOf(stateOrAttrs) {
+  const a = stateOrAttrs && stateOrAttrs.attrs !== undefined ? stateOrAttrs.attrs : stateOrAttrs
+  return normalizeAttrs(a).quality
+}
+
 // ───────────────────────── 反馈文案（规格 §8 格式）─────────────────────────
 // 属性中文名（面板与反馈文案共用，避免多处各写一份）
 export const ATTR_LABELS = { quality: '品质', reputation: '声誉', morale: '士气' }

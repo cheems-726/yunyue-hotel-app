@@ -2,7 +2,7 @@
 // 运行：node tests/attrs.test.mjs
 import {
   ATTR_INIT, ATTR_MIN, ATTR_MAX, tierOf, tierDecay, tierMultiplier,
-  normalizeAttrs, applyDecisionToAttrs, applyEventToAttrs, applyWeeklyDecay,
+  normalizeAttrs, applyDecisionToAttrs, applyEventToAttrs, applyWeeklyDecay, qualityOf,
   attrsComposite, attrsToTitle,
 } from '../src/attrs.js'
 import { TITLES } from '../src/hotelTitle.js'
@@ -157,6 +157,15 @@ const ids = decisions.map(d => d.id)
 ok('决策表 id 全部存在于 decisions.js', covered.every(id => ids.includes(id)), covered.filter(id => !ids.includes(id)).join(','))
 const noAttr = ids.filter(id => !covered.includes(id))
 console.log(`  · 规格表覆盖 ${covered.length}/${ids.length} 项；暂无属性规则的 ${noAttr.length} 项：${noAttr.join(', ')}`)
+
+console.log('\n▶ qualityOf 统一来源（N2：四端品质唯一来源）')
+ok('裸 attrs 对象 → 取其 quality', qualityOf({ quality: 65, reputation: 70, morale: 65 }) === 65)
+ok('state 对象（{attrs:{...}}）→ 取 attrs.quality', qualityOf({ attrs: { quality: 42, reputation: 1, morale: 1 } }) === 42)
+ok('旧档无 attrs → 回退初值 60', qualityOf({}) === 60 && qualityOf(undefined) === 60 && qualityOf(null) === 60)
+ok('attrs.attrs 为 null → 回退 60（不当成 0）', qualityOf({ attrs: null }) === 60)
+ok('脏数据 → 回退 60，不 NaN', qualityOf({ quality: null }) === 60 && qualityOf({ quality: 'x' }) === 60 && Number.isFinite(qualityOf({ quality: NaN })))
+ok('越界值 clamp', qualityOf({ quality: 999 }) === 100 && qualityOf({ quality: -5 }) === 20)
+ok('与 normalizeAttrs 口径一致', qualityOf({ quality: 77 }) === normalizeAttrs({ quality: 77 }).quality)
 
 console.log(`\n========== attrs 自测：${pass} 通过 / ${fail} 失败 ==========`)
 process.exit(fail ? 1 : 0)

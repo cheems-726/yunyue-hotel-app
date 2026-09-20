@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { getTitle } from './hotelTitle.js'
 import { decisions as ALL_DECISIONS } from './decisions.js'
+import { qualityOf } from './attrs.js'
 
 const DECISION_NAMES_MAP = Object.fromEntries(ALL_DECISIONS.map(d => [d.id, d]))
 
@@ -80,13 +81,12 @@ function CrisisCard({ event, week }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, history = [], brand = {} }) {
+export default function WeeklyReport({ result, onClose, history = [], brand = {}, attrs }) {
   const isProfit = result.profit >= 0
   const [copied, setCopied] = useState(false)
   const [tipOpen, setTipOpen] = useState(null) // 决策摘要展开的 tip 行
   // 称号变化检测：结算前 vs 结算后（晋升时刻/降级警示）
-  const qualityOf = (lv) => lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
-  const quality = qualityOf(brand?.level || '')
+  const quality = qualityOf(attrs)  // 品质统一来源（N2）
   const last = history.length ? history[history.length - 1] : null
   const before = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, quality)
   const after = getTitle(result.occupancy, result.finalGoodRate, quality)

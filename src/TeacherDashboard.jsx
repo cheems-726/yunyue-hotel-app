@@ -3,7 +3,7 @@ import { decisions } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote } from './supabaseClient.js'
-import { normalizeAttrs } from './attrs.js'
+import { normalizeAttrs, qualityOf } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -128,8 +128,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         if (!hist.length) return null
         const avgOcc = Math.round(hist.reduce((a, h) => a + h.occupancy, 0) / hist.length)
         const avgGood = Math.round(hist.reduce((a, h) => a + h.finalGoodRate, 0) / hist.length)
-        const lv = s.brand?.level || ''
-        const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+        const q = qualityOf(s)
         const ti = getTitle(avgOcc, avgGood, q)
         // 称号轨迹：仅在称号变化的周记录节点（课堂复盘看成长路径）
         let prevTitle = null
@@ -449,8 +448,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const p = pMap[g.uid] || {}
       const gs = rawStates.find(x => x.user_id === g.uid) || {}
       const hist = (gs.state && gs.state.history) || []
-      const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
-      const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+      const q = qualityOf(gs.state)
       let prevT = null
       const nodes = []
       hist.forEach(h => {
@@ -476,8 +474,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const p = pMap[gs.user_id] || {}
       const gname = p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8))
       const hist = (gs.state && gs.state.history) || []
-      const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
-      const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+      const q = qualityOf(gs.state)
       for (const h of hist) {
         const comp = Math.round((h.occupancy || 0) * 0.35 + (h.finalGoodRate || 0) * 0.35 + q * 0.3)
         lines.push([
@@ -702,8 +699,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               const snap = hist.find(h => h.week === liveWeekFilter)
               entries = Object.entries((snap && snap.decisions) || {})
               // 该周综合分（与称号口径一致）：出租率35%+好评率35%+品质30%
-              const lv = (gs.state && gs.state.brand && gs.state.brand.level) || ''
-              const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+              const q = qualityOf(gs.state)
               const comp = snap ? Math.round((snap.occupancy || 0) * 0.35 + (snap.finalGoodRate || 0) * 0.35 + q * 0.3) : null
               srcLabel = `第${liveWeekFilter}周快照${comp != null ? ' · 综合' + comp + '分' : ''}`
             } else {

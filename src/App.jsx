@@ -16,7 +16,7 @@ import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetch
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
-import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta } from './attrs.js'
+import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, qualityOf } from './attrs.js'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -258,7 +258,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
-          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const q = qualityOf(attrs)
           const t = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
           return `${t.icon} ${t.title}`
         })()}</div>
@@ -325,7 +325,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const last = history.length ? history[history.length - 1] : null
           if (!last) return null
           const lv = brand?.level || ''
-          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const q = qualityOf(attrs)
           const tNow = getTitle(last.occupancy, last.finalGoodRate, q)
           const prevH = history.length > 1 ? history[history.length - 2] : null
           const tPrev = prevH ? getTitle(prevH.occupancy, prevH.finalGoodRate, q) : null
@@ -740,7 +740,7 @@ function Report({ report, week, history }) {
 }
 
 // ===== 我的页 =====
-function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename }) {
+function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename, attrs }) {
   const menus = [
     { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
@@ -799,7 +799,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         <div style={{width:56,height:56,borderRadius:'50%',background:(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
-          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const q = qualityOf(attrs)
           const name = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q).title
           return { '标杆酒店': '#FDE68A', '人气名店': '#EDE9FE', '精品酒店': '#DBEAFE', '舒适旅店': '#D1FAE5' }[name] || '#FFF4E0'
         })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}>😊</div>
@@ -819,7 +819,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         {(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
-          const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+          const q = qualityOf(attrs)
           const ti = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
           return (<>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -842,7 +842,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       {/* 称号历程时间线：按周回放晋升/降级，强化"决策→成长"因果 */}
       {history.length > 0 && (() => {
         const lv = brand?.level || ''
-        const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+        const q = qualityOf(attrs)
         const rows = history.map((h, i) => {
           const now = getTitle(h.occupancy, h.finalGoodRate, q)
           const prev = i > 0 ? getTitle(history[i - 1].occupancy, history[i - 1].finalGoodRate, q) : null
@@ -898,7 +898,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
               const gr = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
               const lv = brand?.level || ''
-              const q = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+              const q = qualityOf(attrs)
               const t = getTitle(occ, gr, q)
               return `${t.icon} ${t.title}`
             })()}</span>
@@ -1999,7 +1999,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <FinalResult history={history} user={user} brand={brand} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
+        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
       </div>
     )
   }
@@ -2012,7 +2012,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <WeeklyReport result={report} onClose={handleNextWeek} history={history} brand={brand} />
+        <WeeklyReport result={report} onClose={handleNextWeek} history={history} brand={brand} attrs={attrs} />
       </div>
     )
   }
@@ -2088,7 +2088,7 @@ export default function App() {
       business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} />,
-      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} />,
+      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
     }
     mainPage = pages[tab]
   }

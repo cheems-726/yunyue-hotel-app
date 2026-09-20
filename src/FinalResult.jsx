@@ -4,10 +4,11 @@ import { strategyOf } from './TeacherDashboard.jsx'
 import { EVENT_INFO } from './settlement.js'
 import { fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
+import { qualityOf } from './attrs.js'
 
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
-export default function FinalResult({ history, onRestart, user }) {
+export default function FinalResult({ history, onRestart, user, attrs }) {
   const [copied, setCopied] = React.useState(false)
   const [teacherNote, setTeacherNote] = React.useState(null)
   // 云端用户拉最新教师批注（成绩单引用）
@@ -16,9 +17,8 @@ export default function FinalResult({ history, onRestart, user }) {
       fetchMyNotes(user.uid).then(ns => { if (ns && ns.length) setTeacherNote(ns[0]) }).catch(() => {})
     }
   }, [user?.uid])
-  // 品质分按品牌档次推导（与其他页面同口径）
-  const lv = brand?.level || ''
-  const quality = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : lv.includes('中档') ? 75 : 70
+  // 品质分唯一来源 = 属性池（N2 统一；旧档经 normalizeAttrs 兜底回退 60）
+  const quality = qualityOf(attrs)
   const TOTAL_WEEKS = 12
 
   // 汇总12周经营数据
