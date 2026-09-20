@@ -6,17 +6,20 @@ import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { PG_URL, PG_HINT, PROD_WRITE_OK, PROD_WRITE_HINT, TEST_CREW, TEST_GROUP_KEY } from './testEnv.mjs'
 
 const require2 = createRequire(import.meta.url)
 const { Client } = require2('pg')
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4173
 const BASE = `http://localhost:${PORT}/`
-const PG = 'postgresql://postgres.jgytwxaeeezmdbxfsyvs:Yunyue2026!Hotel%23Teach@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres'
-const GROUP_KEY = '酒管2401|1'
-const CREATOR_UID = 'a0079c63-380e-4ef0-ae8d-e5edbbd966f0' // 20240999，组档原属主
-const B_ID = '20249998'
-const B_PW = '123456'
+const GROUP_KEY = TEST_GROUP_KEY          // 演示组档（可经 SMOKE_GROUP_KEY 覆盖）
+const B_ID = TEST_CREW.id                 // 队友B：测试专用账号，脚本结束自行删除
+const B_PW = TEST_CREW.pw
+
+// 安全闸：本脚本会写线上库（建/删测试账号 + 改写演示组档），必须显式开启
+if (!PROD_WRITE_OK) { console.error(PROD_WRITE_HINT); process.exit(1) }
+if (!PG_URL) { console.error(PG_HINT); process.exit(1) }
 
 const results = []
 function ok(name, cond, extra = '') {
@@ -26,7 +29,7 @@ function ok(name, cond, extra = '') {
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 async function pgQ(sql, params = []) {
-  const c = new Client({ connectionString: PG })
+  const c = new Client({ connectionString: PG_URL })
   await c.connect()
   const r = await c.query(sql, params)
   await c.end()
@@ -144,7 +147,7 @@ try {
   const after = await groupRow()
   console.log('  [after] ', JSON.stringify(after))
   ok('云端已落库（done_cnt 0→1）', Number(after.done_cnt) === Number(before.done_cnt) + 1, `before=${before.done_cnt} after=${after.done_cnt}`)
-  ok('P3：队友写入后 user_id 仍是原属主', after.user_id === CREATOR_UID, `got=${after.user_id}`)
+  ok('P3：队友写入后 user_id 未被改写（= 写入前属主）', after.user_id === before.user_id, `before=${before.user_id} after=${after.user_id}`)
   ok('week 未被误改（仍=5）', Number(after.week) === Number(before.week), `got=${after.week}`)
 
   // ── 6. P1 验证：断网拦截 → 保存失败 → 3s 重试仍失败 → toast 提示 ──

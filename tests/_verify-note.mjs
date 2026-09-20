@@ -1,4 +1,5 @@
 import { chromium } from 'playwright-core'
+import { TEST_TEACHER } from './testEnv.mjs'
 const browser = await chromium.launch({ executablePath: String.raw`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`, headless: true })
 const page = await (await browser.newContext({ viewport: { width: 480, height: 900 } })).newPage()
 page.on('dialog', d => d.accept())
@@ -11,8 +12,8 @@ await click('我是老师'); await new Promise(r => setTimeout(r, 500))
 await page.evaluate(() => {
   const inputs = [...document.querySelectorAll('input')]
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
-  setter.call(inputs[0], 't001'); inputs[0].dispatchEvent(new Event('input', { bubbles: true }))
-  setter.call(inputs[1], '123456'); inputs[1].dispatchEvent(new Event('input', { bubbles: true }))
+  setter.call(inputs[0], TEST_TEACHER.id); inputs[0].dispatchEvent(new Event('input', { bubbles: true }))
+  setter.call(inputs[1], TEST_TEACHER.pw); inputs[1].dispatchEvent(new Event('input', { bubbles: true }))
   const btn = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '登录' && !x.disabled)
   if (btn) btn.click(); else { const r = [...document.querySelectorAll('button')].find(x => x.textContent.includes('注册并登录')); r && r.click() }
 })

@@ -1,5 +1,6 @@
 // 教师端是否同款布局回归（结构证据 + 实测）
 import { chromium } from 'playwright-core'
+import { TEST_TEACHER } from './testEnv.mjs'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 const require2 = createRequire(import.meta.url)
@@ -41,8 +42,8 @@ try {
   await page.evaluate(() => {
     const inputs = [...document.querySelectorAll('input')]
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
-    setter.call(inputs[0], 't001'); inputs[0].dispatchEvent(new Event('input', { bubbles: true }))
-    setter.call(inputs[1], '123456'); inputs[1].dispatchEvent(new Event('input', { bubbles: true }))
+    setter.call(inputs[0], TEST_TEACHER.id); inputs[0].dispatchEvent(new Event('input', { bubbles: true }))
+    setter.call(inputs[1], TEST_TEACHER.pw); inputs[1].dispatchEvent(new Event('input', { bubbles: true }))
     const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '登录' && !x.disabled); b && b.click()
   })
   await sleep(6000)

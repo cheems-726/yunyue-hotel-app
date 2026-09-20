@@ -4,6 +4,7 @@
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { TEST_TEACHER, TEST_STUDENT } from './testEnv.mjs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4173
@@ -381,18 +382,18 @@ try {
     const body = await pg.evaluate(() => document.body.innerText)
     return { pg, body }
   }
-  // 教师 t001
+  // 教师测试账号（见 tests/testEnv.mjs，可用 SMOKE_TEACHER_ID 覆盖）
   {
-    let teacher = await cloudLogin('我是老师', 't001', '123456')
+    let teacher = await cloudLogin('我是老师', TEST_TEACHER.id, TEST_TEACHER.pw)
     let tries = 0
     while (!teacher.body.includes('教师后台') && tries < 2) { // 跨国线路偶发抖动，最多重试2次
       try { await teacher.pg.close() } catch (e) {}
       await sleep(3000)
-      teacher = await cloudLogin('我是老师', 't001', '123456')
+      teacher = await cloudLogin('我是老师', TEST_TEACHER.id, TEST_TEACHER.pw)
       tries += 1
     }
     const { pg, body } = teacher
-    ok('云端教师登录（t001）', body.includes('教师后台'))
+    ok(`云端教师登录（${TEST_TEACHER.id}）`, body.includes('教师后台'))
     // 云端数据拉取可能慢（夜间线路），轮询等待大屏渲染最多10秒
     let liveReady = false
     for (let i = 0; i < 10; i++) {
@@ -466,14 +467,14 @@ try {
 
     await pg.close()
   }
-  // 学生 2025（有存档则进经营页，无则走开店首页，均验证"我的"可达）
+  // 学生测试账号（见 tests/testEnv.mjs）：有存档则进经营页，无则走开店首页，均验证"我的"可达
   {
-    let stu = await cloudLogin('我是学生', '2025', '123456')
+    let stu = await cloudLogin('我是学生', TEST_STUDENT.id, TEST_STUDENT.pw)
     let loggedIn = !stu.body.includes('账号或密码错误') && !stu.body.includes('学生登录')
     if (!loggedIn) { // 跨国网络偶发抖动，重试一次
       try { await stu.pg.close() } catch (e) {}
       await sleep(3000)
-      stu = await cloudLogin('我是学生', '2025', '123456')
+      stu = await cloudLogin('我是学生', TEST_STUDENT.id, TEST_STUDENT.pw)
       loggedIn = !stu.body.includes('账号或密码错误') && !stu.body.includes('学生登录')
     }
     const { pg, body } = stu
@@ -490,7 +491,7 @@ try {
       ok('云端学生"我的"页（fetchMyNotes路径）', me.includes('我的酒店') && !me.includes('页面出了点问题'))
     await assertClean(pg, '云端学生我的页')
     } else {
-      ok('云端学生登录（2025）——账号不存在，已跳过', true)
+      ok(`云端学生登录（${TEST_STUDENT.id}）——账号不存在，已跳过`, true)
     }
     await pg.close()
   }
