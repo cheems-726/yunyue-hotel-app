@@ -1,4 +1,5 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
+import { applyEventToAttrs, normalizeAttrs } from './attrs.js'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -128,7 +129,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
 const s = site || {}
 
@@ -559,6 +560,23 @@ for (let i = 0; i < reviewCount; i++) {
   }
   const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
 
+  // ⑧ 事件 → 属性（规格第六节）：只读取已收集的事件名，纯函数、不消耗 rand（公平红线不破）
+  //    收尾统一处理：不侵入 ~20 个触发点；attrs.js 表里没有的事件名自动视为无影响
+  const attrsBefore = normalizeAttrs(attrsIn)
+  let attrsAfter = attrsBefore
+  const eventAttrEffects = [] // 本周事件对属性的影响（周报展示用）：只含真正产生变化的事件
+  for (const ev of events) {
+    const mid = applyEventToAttrs(attrsAfter, ev.name)
+    const deltas = {}
+    let changed = false
+    for (const k of ['quality', 'reputation', 'morale']) {
+      const d = mid[k] - attrsAfter[k]
+      if (d !== 0) { deltas[k] = d; changed = true }
+    }
+    attrsAfter = mid
+    if (changed) eventAttrEffects.push({ name: ev.name, icon: ev.icon || '', deltas })
+  }
+
   return {
     week,
     occupancy: Math.round(occupancy * 100),
@@ -576,6 +594,9 @@ for (let i = 0; i < reviewCount; i++) {
     marketWave: Math.round(marketWave * 100) / 100,
     insights,
     events,
+    // 属性池：本周事件对属性的影响 + 结算后属性（周报展示用；旧调用方忽略即可）
+    eventAttrEffects,
+    attrsAfter,
     decisions: { ...decisions },
     eventFine,
     weeklyExpenses,
