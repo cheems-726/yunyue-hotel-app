@@ -38,6 +38,12 @@ try {
   const hasInjected = txt.includes('预置流水A')
   console.log(`展开后：显示"暂无流水记录" = ${hasEmpty} | 显示预置流水 = ${hasInjected}`)
   console.log(hasEmpty && !hasInjected ? '❌ 确认 bug：明细列表读到的是永不更新的 flowsRef（组件级 ref 被 effect 内同名变量遮蔽）' : '✅ 明细正常')
+  // 滚动到明细面板再截图（三格在页面中段，明细在其下方）
+  await page.evaluate(() => {
+    const t = [...document.querySelectorAll('div')].find(x => x.textContent.trim() === '今日入账')
+    t && t.scrollIntoView({ block: 'center' })
+  })
+  await sleep(700)
   await page.screenshot({ path: 'tests/_shot-flows.png' })
 } catch (e) { console.error('中断:', e.message) } finally {
   try { await browser?.close() } catch (e) {}

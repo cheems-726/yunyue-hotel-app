@@ -90,7 +90,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
   const [feed, setFeed] = useState([])
   const [flows, setFlows] = useState([]) // 结构化流水明细
   const [detailOpen, setDetailOpen] = useState(false) // 明细展开
-  const flowsRef = React.useRef([]) // 渲染数据源（与 flows 同步）
+  const flowsRef = React.useRef([]) // 流水明细唯一数据源：渲染与持久化都读它（与 flows 同步）
   const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0, guests: Math.round(occupiedRooms * 2 - 3) })
   const statsRef = React.useRef(stats)
   statsRef.current = stats
@@ -123,6 +123,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
     if (!Array.isArray(st.flows)) st.flows = []
     setStats({ checkout: st.checkout, checkin: st.checkin, income: st.income, expense: st.expense, guests: st.guests })
     setFeed(st.feed)
+    flowsRef.current = st.flows // 恢复流水明细（ref 为唯一数据源，重启后不回退）
     let gameMin = st.gameMin || new Date().getHours() * 60 + new Date().getMinutes()
     let pendingClean = st.pendingClean
 
@@ -131,7 +132,6 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
       try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current, flows: flowsRef.current })) } catch (e) {}
     }
     const feedRef = { current: st.feed }
-    const flowsRef = { current: st.flows }
     const pushFeed = (text, amt) => {
       const line = (amt ? (amt > 0 ? ` +${amt}元` : ` ${amt}元`) : '')
       const entry = `${text}${line}`
@@ -154,6 +154,8 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
 
     let timer
     const loop = () => {
+      // 页面不可见时暂停推进（省电）：保持定时器节奏，但跳过时钟推进/状态更新/写盘
+      if (document.hidden) { timer = setTimeout(loop, 2000); return }
       gameMin += 1
       const hm = ((gameMin % 1440) + 1440) % 1440
       const h = Math.floor(hm / 60)
