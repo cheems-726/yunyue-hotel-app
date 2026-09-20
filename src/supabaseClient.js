@@ -47,7 +47,18 @@ export async function updateOwnName(userId, name) {
 }
 
 // 同组队友的经营概况（只读，RLS 限同班同组）
-export async function fetchGroupStates(uids) {
+// 组档模型：一组一行（group_key），队友页共享同一份组快照；未分组回退按个人档 user_id 查
+export async function fetchGroupStates(groupKey, uids = []) {
+  if (groupKey) {
+    const { data, error } = await supabase
+      .from('game_states')
+      .select('state, week, finished, updated_at')
+      .eq('group_key', groupKey)
+      .maybeSingle()
+    if (error) throw error
+    if (!data || !uids.length) return []
+    return uids.map(uid => ({ user_id: uid, state: data.state, week: data.week, finished: data.finished, updated_at: data.updated_at }))
+  }
   if (!uids.length) return []
   const { data, error } = await supabase
     .from('game_states')
@@ -82,19 +93,64 @@ export async function fetchGameState(userId, groupKey = null) {
 }
 
 // 保存：有组键则写组档（一组一档），否则写个人档
+// 组档走「先更新后插入」两步式，更新时不携带 user_id —— 保持原属主，避免"最后写入者变成行属主"
 export async function saveGameState(userId, state, groupKey = null) {
-  const payload = {
-    user_id: userId,
-    group_key: groupKey,
+  const base = {
     state,
     week: state.week || 1,
     finished: !!state.finished,
     updated_at: new Date().toISOString(),
   }
-  const { error } = groupKey
-    ? await supabase.from('game_states').upsert(payload, { onConflict: 'group_key' })
-    : await supabase.from('game_states').upsert(payload)
+  if (groupKey) {
+    const { data, error } = await supabase.from('game_states')
+      .update(base).eq('group_key', groupKey).select('user_id')
+    if (!error && data && data.length) return true
+    // 组档还不存在：插入建档（属主 = 首个写入者）
+    const { error: insErr } = await supabase.from('game_states')
+      .insert({ ...base, group_key: groupKey, user_id: userId })
+    if (!insErr) return true
+    // 并发兜底：队友可能刚建好档，回退为更新
+    const { error: upErr } = await supabase.from('game_states')
+      .update(base).eq('group_key', groupKey)
+    return !upErr
+  }
+  const { error } = await supabase.from('game_states')
+    .upsert({ ...base, group_key: null, user_id: userId })
   return !error
+}
+
+// 离开页面兜底保存（visibilitychange/pagehide 触发）：fetch keepalive 直调 REST 并手动带
+// apikey + Authorization 鉴权头 —— sendBeacon 带不了鉴权头会被 RLS 拒绝，故不用。
+// 只做更新（PATCH），不携带归属字段；行尚不存在时静默放弃，常规防抖路径会补上。
+export function saveGameStateNow(userId, state, groupKey = null) {
+  try {
+    const m = SUPABASE_URL.match(/https:\/\/([^.]+)\./)
+    const raw = m && localStorage.getItem(`sb-${m[1]}-auth-token`)
+    const session = raw && JSON.parse(raw)
+    const token = session?.access_token || session?.currentSession?.access_token
+    if (!token) return Promise.resolve(false)
+    const filter = groupKey
+      ? `group_key=eq.${encodeURIComponent(groupKey)}`
+      : `user_id=eq.${encodeURIComponent(userId)}`
+    return fetch(`${SUPABASE_URL}/rest/v1/game_states?${filter}`, {
+      method: 'PATCH',
+      keepalive: true,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        state,
+        week: state.week || 1,
+        finished: !!state.finished,
+        updated_at: new Date().toISOString(),
+      }),
+    }).then(r => r.ok).catch(() => false)
+  } catch (e) {
+    return Promise.resolve(false)
+  }
 }
 
 

@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, groupKeyOf, fetchMyNotes } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -1233,9 +1233,9 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       if (cancelled) return
       const others = list.filter(m => m.user_id !== user.uid)
       setMembers(others)
-      // 拉组员经营概况（RLS 限同班同组只读）
+      // 拉组员经营概况（RLS 限同班同组只读；组档模型按组键查，一组一份共享快照）
       try {
-        const states = await fetchGroupStates(others.map(m => m.user_id))
+        const states = await fetchGroupStates(groupKeyOf(user.className, user.groupNo), others.map(m => m.user_id))
         if (!cancelled) {
           const map = {}
           states.forEach(gs => {
@@ -1667,16 +1667,41 @@ export default function App() {
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed])
 
-  // 云端同步：真实登录时防抖 1.5s 上传经营状态（教师端可见）
+  // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
   const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed }
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
-    const t = setTimeout(() => {
-      import('./supabaseClient.js').then(({ saveGameState }) =>
-        saveGameState(user.uid, cloudState, groupKeyOf(user.className, user.groupNo)).catch(() => {})
-      )
-    }, 1500)
-    return () => clearTimeout(t)
+    const gk = groupKeyOf(user.className, user.groupNo)
+    let retries = 0, pending = true, retryT = null
+    const doSave = async () => {
+      try {
+        const ok = await saveGameState(user.uid, cloudState, gk)
+        if (ok) return
+        if (retries < 1) { retries++; retryT = setTimeout(doSave, 3000); return }
+        toast('云端同步失败，进度已保存在本机，请检查网络')
+      } catch (e) {
+        if (retries < 1) { retries++; retryT = setTimeout(doSave, 3000); return }
+        toast('云端同步失败，进度已保存在本机，请检查网络')
+      }
+    }
+    const t = setTimeout(() => { pending = false; doSave() }, 800)
+    // 离开页面前强制保存：切后台/刷新/关闭时立即冲刷未上传的改动
+    const flushSave = () => {
+      if (!pending) return
+      pending = false
+      clearTimeout(t)
+      saveGameStateNow(user.uid, cloudState, gk).catch(() => {})
+    }
+    const onVis = () => { if (document.hidden) flushSave() }
+    const onHide = () => flushSave()
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('pagehide', onHide)
+    return () => {
+      clearTimeout(t)
+      clearTimeout(retryT)
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('pagehide', onHide)
+    }
   }, [user?.uid, JSON.stringify(cloudState), restoring])
 
   // 真实时间
