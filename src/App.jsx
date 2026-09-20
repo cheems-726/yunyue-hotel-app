@@ -16,6 +16,7 @@ import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetch
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
+import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs } from './attrs.js'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -1589,6 +1590,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   const [doneDecisions, setDoneDecisions] = useState(saved.doneDecisions || {}) // 已完成的决策
+  // RPG 属性池（品质/声誉/士气）：旧档无 attrs 时用 normalizeAttrs 兜底，保证不 NaN 不报错
+  const [attrs, setAttrs] = useState(() => normalizeAttrs(saved.attrs))
   const [report, setReport] = useState(saved.report || null) // 周报结果
   const [week, setWeek] = useState(saved.week || 1) // 当前经营周
   const [history, setHistory] = useState(saved.history || []) // 历史周报
@@ -1663,12 +1666,12 @@ export default function App() {
   // 状态持久化：本机 localStorage 即时保存
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }))
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs])
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
-  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed }
+  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const gk = groupKeyOf(user.className, user.groupNo)
@@ -1764,6 +1767,7 @@ export default function App() {
           setHistory(cloudSaved.history || [])
           setFinished(!!cloudSaved.finished)
           setWelcomed(!!cloudSaved.welcomed)
+          setAttrs(normalizeAttrs(cloudSaved.attrs)) // 旧云档无 attrs → 回退初值
           // 欢迎回来提示（老档才提示）
           if (cloudSaved.location) toast(`👋 欢迎回来，第 ${cloudSaved.week || 1} 周经营中`)
         } else if (user && user.id !== userInfo.id) {
@@ -1777,6 +1781,7 @@ export default function App() {
     setLocation(null); setBrand(null); setProperty(null); setEstablished(false)
     setDoneDecisions({}); setWelcomed(false); setFinished(false)
     setWeek(1); setHistory([]); setReport(null)
+    setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
   }
   async function handleLogout() {
@@ -1868,7 +1873,11 @@ export default function App() {
     setEstablished(false)
   }
   function handleEstablished(choices) {
-    setEstChoices(choices || { invest: null, supplier: null, opening: [] })
+    const c = choices || { invest: null, supplier: null, opening: [] }
+    // 筹建期"物资采购"是一次性选择（非周决策）：品质养成从这里起步，只应用一次
+    // 用 estChoices 是否已有渠道做幂等保护（重进筹建流程不会重复加分）
+    setAttrs(prev => (estChoices?.supplier ? prev : applyDecisionToAttrs(prev, 'est-supplier', c.supplier)))
+    setEstChoices(c)
     setEstablished(true)
     setTab('business')
   }
@@ -1980,7 +1989,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <FinalResult history={history} user={user} brand={brand} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
+        <FinalResult history={history} user={user} brand={brand} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
       </div>
     )
   }
@@ -2014,6 +2023,12 @@ export default function App() {
           history={history}
           onBack={() => setCurrentDecision(null)}
           onDone={(id, answer) => {
+            // 属性池：先撤销旧答案的增量（学生改答案时不重复累加），再应用新答案
+            const prevAnswer = doneDecisions[id]
+            setAttrs(prev => {
+              const revert = prevAnswer === undefined ? prev : applyDecisionToAttrs(prev, id, prevAnswer, -1)
+              return applyDecisionToAttrs(revert, id, answer)
+            })
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             setCurrentDecision(null)
             const dName = decisions.find(d => d.id === id)?.name || '决策'

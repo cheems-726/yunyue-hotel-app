@@ -119,6 +119,18 @@ function applyDelta(attrs, delta) {
   return out
 }
 
+// 增量缩放：dir=1 应用 / dir=-1 撤销
+// 用途：学生"修改决策"时先撤销旧答案的增量、再应用新答案，避免同一决策反复累加
+function scaleDelta(delta, dir) {
+  if (dir === 1 || !delta) return delta
+  const out = {}
+  for (const k of KEYS) {
+    const d = Number(delta[k])
+    if (Number.isFinite(d) && d !== 0) out[k] = -d
+  }
+  return out
+}
+
 // ───────────────────────── 决策 → 属性（规格 §2.2 / §3.2 / §4.2）─────────────────────────
 // 键 = decisions.js 的决策 id；选项键 = 选项 label 原文（必须与 decisions.js 一致）
 // 说明：每张表只登记规格明确给出的组合，未登记的选项视为无属性变化
@@ -202,16 +214,17 @@ function campaignDelta(answer) {
 }
 
 // 学生确认一项决策时调用：返回新的属性对象（不可变）。
+//   dir = 1（默认）应用增量；dir = -1 撤销该答案的增量（学生改答案时用，防重复累加）
 // 未知决策 / 未知选项 / 答案为空 → 原样返回（规整后的新对象），绝不抛错
-export function applyDecisionToAttrs(attrs, decisionId, answer) {
+export function applyDecisionToAttrs(attrs, decisionId, answer, dir = 1) {
   try {
     if (decisionId === 'energy') {
       const d = energyDelta(answer)
-      return d ? applyDelta(attrs, d) : normalizeAttrs(attrs)
+      return d ? applyDelta(attrs, scaleDelta(d, dir)) : normalizeAttrs(attrs)
     }
     if (decisionId === 'campaign') {
       const d = campaignDelta(answer)
-      return d ? applyDelta(attrs, d) : normalizeAttrs(attrs)
+      return d ? applyDelta(attrs, scaleDelta(d, dir)) : normalizeAttrs(attrs)
     }
     const table = DECISION_EFFECTS[decisionId]
     if (!table) return normalizeAttrs(attrs)
@@ -219,19 +232,19 @@ export function applyDecisionToAttrs(attrs, decisionId, answer) {
     // sort 型（客房质检）：提交即生效
     if (decisionId === 'quality-check') {
       const done = Array.isArray(answer) ? answer.length > 0 : answer != null && answer !== ''
-      return done ? applyDelta(attrs, table) : normalizeAttrs(attrs)
+      return done ? applyDelta(attrs, scaleDelta(table, dir)) : normalizeAttrs(attrs)
     }
 
     // option 型：按 label 原文精确匹配
     if (typeof answer !== 'string') return normalizeAttrs(attrs)
     const delta = table[answer]
-    if (delta) return applyDelta(attrs, delta)
+    if (delta) return applyDelta(attrs, scaleDelta(delta, dir))
 
     // 物资采购的容错匹配（存档里存的是文案，如"供应商 A：华住易购（官方）"）
     if (decisionId === 'est-supplier') {
-      if (answer.includes('华住易购') || /供应商\s*A/.test(answer)) return applyDelta(attrs, table['buy-a'])
-      if (answer.includes('自行采购') || /供应商\s*C/.test(answer)) return applyDelta(attrs, table['buy-c'])
-      if (answer.includes('指定供应商') || /供应商\s*B/.test(answer)) return applyDelta(attrs, table['buy-b'])
+      if (answer.includes('华住易购') || /供应商\s*A/.test(answer)) return applyDelta(attrs, scaleDelta(table['buy-a'], dir))
+      if (answer.includes('自行采购') || /供应商\s*C/.test(answer)) return applyDelta(attrs, scaleDelta(table['buy-c'], dir))
+      if (answer.includes('指定供应商') || /供应商\s*B/.test(answer)) return applyDelta(attrs, scaleDelta(table['buy-b'], dir))
     }
     return normalizeAttrs(attrs)
   } catch (e) {
