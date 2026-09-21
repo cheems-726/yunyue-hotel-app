@@ -1842,7 +1842,7 @@ export default function App() {
       if (saved && saved.week === week - 1) crisisResponse = saved.choice
     } catch (e) {}
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount })
+    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs })
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
@@ -1850,6 +1850,9 @@ export default function App() {
       localStorage.setItem('hotel-sim-reviews', JSON.stringify([...kept, ...result.generatedReviews]))
     } catch (e) {}
     if (crisisResponse) result.crisisChoice = crisisResponse // 危机应对选择存档（学期复盘用）
+    // R0 最后一公里：把引擎返回的属性（含每周自然衰减）写回 state
+    // 没有这行，衰减与属性→经营只存在于引擎内部，玩家不可见、下周也用不上
+    if (result.attrsAfter) setAttrs(result.attrsAfter)
     setReport(result)
   }
   // 结算确认后：进入下一周，清空决策，保存历史
