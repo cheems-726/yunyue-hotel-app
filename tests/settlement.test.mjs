@@ -60,12 +60,15 @@ ok(a.decisions && a.decisions.pricing === '不跟降', '结算结果携带决策
 
 console.log('[7] 事件影响属性（N1 接入）')
 // 1. 公平红线：新增 attrs 入参不得改变随机序列（出租率/利润/事件序列逐一比对）
+// R0 修订：attrs 现在【有意】影响结果，故公平红线改为可观测形式——
+//   ① 中性 attrs 与"无 attrs"完全一致（不额外消耗 rand、不改变既有平衡）
+//   ② 同输入确定性（见 [8] ⑥）；每评价仍只消耗 1 次 rand（见 settlement.js 评价循环注释）
 const sA = settle({ site: SITE, brand: BRAND, decisions: {}, week: 7 })
-const sB = settle({ site: SITE, brand: BRAND, decisions: {}, week: 7, attrs: { quality: 30, reputation: 30, morale: 30 } })
+const sB = settle({ site: SITE, brand: BRAND, decisions: {}, week: 7, attrs: { quality: 60, reputation: 70, morale: 65 } })
 ok(
   sA.occupancy === sB.occupancy && sA.profit === sB.profit &&
   JSON.stringify(sA.events.map(e => e.name)) === JSON.stringify(sB.events.map(e => e.name)),
-  '新增 attrs 入参不消耗 rand（同周结果与事件序列一致）'
+  '中性 attrs 与无 attrs 结果一致（含事件序列）—— attrs 不额外消耗 rand'
 )
 // 2. attrs 缺失 → 兜底等价于初值（旧调用方零改动、不报错不 NaN）
 const noAttrs = settle({ site: SITE, brand: BRAND, decisions: {}, week: 3 })
@@ -113,6 +116,58 @@ ok(
   Array.isArray(anyR.eventAttrEffects) && anyR.eventAttrEffects.every(e => e.name && e.deltas && Object.keys(e.deltas).length > 0),
   'eventAttrEffects 结构正确（仅含真变化事件）'
 )
+
+
+console.log('[8] R0 属性→经营结果（规格 §12）')
+const ATTR_MID = { quality: 60, reputation: 70, morale: 65 }
+const DEC = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', campaign: {}, linen: '自洗' }
+const run = (attrs) => settle({ site: SITE, brand: BRAND, decisions: DEC, week: 6, attrs })
+
+// ① 【最关键】回归零变化：attrs 缺失 == 显式中性值（归一化生效 ⇒ 历史存档与既有平衡不变）
+const noA = settle({ site: SITE, brand: BRAND, decisions: DEC, week: 6 })
+const midA = run(ATTR_MID)
+ok(
+  noA.occupancy === midA.occupancy && noA.profit === midA.profit &&
+  noA.finalGoodRate === midA.finalGoodRate && noA.negativeCount === midA.negativeCount,
+  'attrs 缺失 == 中性值（归一化后系数=1.0，回归零变化）'
+)
+
+// ② 高声誉组出租率 > 低声誉组（声誉→出租率基线）
+const repHi = run({ ...ATTR_MID, reputation: 95 })
+const repLo = run({ ...ATTR_MID, reputation: 25 })
+ok(repHi.occupancy > repLo.occupancy, `高声誉 ${repHi.occupancy}% > 低声誉 ${repLo.occupancy}%`)
+
+// ③ 高品质组出租率 > 低品质组（品质→房价容忍度=客流）
+const qHi = run({ ...ATTR_MID, quality: 95 })
+const qLo = run({ ...ATTR_MID, quality: 25 })
+ok(qHi.occupancy > qLo.occupancy, `高品质 ${qHi.occupancy}% > 低品质 ${qLo.occupancy}%`)
+
+// ④ 高士气组差评 ≤ 低士气组（士气→好评率 + 差评系数双重作用）
+const mHi = run({ ...ATTR_MID, morale: 95 })
+const mLo = run({ ...ATTR_MID, morale: 25 })
+ok(mHi.negativeCount <= mLo.negativeCount, `高士气差评 ${mHi.negativeCount} ≤ 低士气差评 ${mLo.negativeCount}`)
+
+// ⑤ 声誉→获客成本：做活动时，低声誉组的营销支出更高
+const cacHi = run({ ...ATTR_MID, reputation: 95 })
+const cacLo = run({ ...ATTR_MID, reputation: 25 })
+ok(cacHi.totalCost < cacLo.totalCost, `高声誉总成本 ${cacHi.totalCost} < 低声誉 ${cacLo.totalCost}（营销更便宜）`)
+
+// ⑥ 确定性未破（公平红线）：同输入两次结果全等
+const d1 = run({ quality: 33, reputation: 44, morale: 55 })
+const d2 = run({ quality: 33, reputation: 44, morale: 55 })
+ok(JSON.stringify(d1) === JSON.stringify(d2), 'same 输入 → same 输出（固定种子未破）')
+
+// ⑦ 极值不炸：全 100 / 全 20 时结果有限且出租率在合法区间
+const extHi = run({ quality: 100, reputation: 100, morale: 100 })
+const extLo = run({ quality: 20, reputation: 20, morale: 20 })
+ok(
+  Number.isFinite(extHi.profit) && Number.isFinite(extLo.profit) &&
+  extHi.occupancy > 0 && extHi.occupancy <= 98 && extLo.occupancy >= 30 && extLo.occupancy <= 98,
+  `极值区间：hi ${extHi.occupancy}% / lo ${extLo.occupancy}%（均在 [30,98]）`
+)
+
+// ⑧ 差评数不越界（差评 ≤ 评价总数）
+ok(extLo.negativeCount <= extLo.reviewCount, `差评 ${extLo.negativeCount} ≤ 评价 ${extLo.reviewCount}`)
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
 process.exit(fail ? 1 : 0)
