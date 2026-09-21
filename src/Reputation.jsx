@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
 import { guestsRng, makeReview } from './guests.js'
+import { decisions as DEC_CATALOG } from './decisions.js'
 
 // 差评数据（含处理状态）
 const initialReviews = [
@@ -39,6 +40,19 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
   const [replying, setReplying] = useState(null) // 正在回复的评价 { review, isGood }
   const [replyText, setReplyText] = useState('') // 自由输入的话术
   const [showIgnored, setShowIgnored] = useState(false) // 忽略区折叠
+  const [openTrace, setOpenTrace] = useState(null) // 「🔍 关联经营」展开的那张卡（默认折叠：客人不会告诉你为什么）
+
+  // 关联经营反查：这条评价的 cause 来自本组哪项决策、当时选了什么（规格 §5「真实感 × 教学价值」的平衡点）
+  function traceOf(r) {
+    const id = r.relatedDecision
+    if (!id) return null
+    const meta = DEC_CATALOG.find(x => x.id === id)
+    const ans = (decisions || {})[id]
+    return {
+      name: meta ? `${meta.icon} ${meta.name}` : id,
+      ans: Array.isArray(ans) ? ans.join('、') : (ans == null ? '' : String(ans)),
+    }
+  }
   const [feedback, setFeedback] = useState(null)
 
   // 口碑是流动的：处理完一条评价后，有概率有新客人发布评价（好评率越高新好评越多）
@@ -322,11 +336,29 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
                 <div style={{width:36,height:36,borderRadius:'50%',background:r.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
+                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · 🛏 ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
                 <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
               </div>
               <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              {(() => {
+                const tr = traceOf(r)
+                if (!tr) return null
+                const open = openTrace === r.id
+                return (
+                  <>
+                    <button className="btn btn-ghost" style={{fontSize:11,padding:'3px 10px',marginTop:8}}
+                      onClick={() => setOpenTrace(open ? null : r.id)}>
+                      {open ? '🔍 收起关联经营' : '🔍 关联经营'}
+                    </button>
+                    {open && (
+                      <div style={{fontSize:11,color:'#4B5563',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:6,padding:'7px 9px',marginTop:6,lineHeight:1.6}}>
+                        来源：本组「{tr.name}」{tr.ans ? <> 选择了 <b>{tr.ans}</b></> : '（本周未提交）'} —— 客人不会告诉你为什么，这里说给你听。
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               {r.source && (
                 <div style={{fontSize:10,color:'#991B1B',background:'#FEF2F2',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：{r.source.icon} {r.source.name}——这条差评本可避免
@@ -359,7 +391,7 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>✓已解决</span>{r.replyTier && <span style={{fontSize:10,background:r.replyTier==='excellent'?'#ECFDF5':r.replyTier==='good'?'#F0FDF4':'#F9FAFB',color:r.replyTier==='excellent'?'#065F46':r.replyTier==='good'?'#16A34A':'#6B7280',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
-                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
+                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · 🛏 ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
               </div>
               <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
@@ -385,7 +417,7 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
             <div style={{width:36,height:36,borderRadius:'50%',background:'#EFF6FF',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.avatar}</div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-              <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
+              <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · 🛏 ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
             </div>
             <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
           </div>

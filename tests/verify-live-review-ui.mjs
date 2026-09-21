@@ -252,12 +252,21 @@ try {
   await page.evaluate(() => {
     const list = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
     list.push({ id: 'rev-e2e-pending', avatar: '🧑', bg: 'blue', name: '验收测试客 · 剧本', date: '第1周', stars: 1, text: '「空调坏了，一晚上没睡好。」', status: 'pending' })
+    // 第3步展示验收用：带 cause/房型/天数的待处理卡（relatedDecision=shifts，D 段刚提交过"精简省成本"）
+    list.push({ id: 'rev-e2e-card', avatar: '👩', bg: 'blue', name: '展示验收客 · 家庭出游', date: '第1周', stars: 2, text: '「前台排了二十分钟。」', status: 'pending', roomType: '标准双床', nights: 2, cause: 'front_slow', relatedDecision: 'shifts', guest: { gender: 'female', card: '展示验收客 · 家庭出游' } })
     localStorage.setItem('hotel-sim-reviews', JSON.stringify(list))
   })
   await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
   // 结算态（report 已存档）会重载后停在周报页 —— 先点「进入第 N 周」回到带导航的壳
   await page.evaluate(() => { const b = document.querySelector('.btn-confirm'); if (b && /进入第|最终成绩/.test(b.textContent)) b.click() })
   await sleep(1200)
+  // 「关联经营」要能反查到"当时选了什么"：进入下一周会清空 doneDecisions，故此刻补回并二次重载
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    st.doneDecisions = { ...(st.doneDecisions || {}), shifts: '精简省成本' }
+    localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+  })
+  await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
   await clickTab(page, '口碑'); await sleep(900)
   let replyBtn = false
   for (let i = 0; i < 5 && !replyBtn; i++) {
@@ -287,6 +296,20 @@ try {
     await sleep(1000)
     await closeOverlay(page)
   }
+  // 第3步展示：房型/天数行 + 🔍 关联经营（默认折叠 → 展开能反查到本组当周决策）
+  const cardText = await text(page)
+  ok('口碑页卡片显示房型与入住天数（🛏 标准双床 · 入住2天）', cardText.includes('标准双床') && cardText.includes('入住2天'))
+  const traceOk = await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('🔍 关联经营'))
+    if (!b) return 'no-button'
+    b.click()
+    return 'clicked'
+  })
+  await sleep(600)
+  const traced = await text(page)
+  ok('🔍 关联经营默认折叠、点击可展开', traceOk === 'clicked')
+  ok('展开后反查到本组决策与当时选择（前台排班 → 精简省成本）', traced.includes('前台排班') && traced.includes('精简省成本'))
+
   let spawn = null
   for (let i = 0; i < 6 && !spawn; i++) {
     await sleep(2000)
