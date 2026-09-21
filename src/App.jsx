@@ -265,7 +265,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       </div>
 
       {/* 酒店状态面板（RPG属性） */}
-      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} />
+      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions} />
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -1830,10 +1830,17 @@ export default function App() {
     // 读取口碑页差评状态：未处理数压口碑，已整改数给奖励
     let pendingNegatives = 0
     let resolvedCount = 0
+    let liveNegCount = 0
+    let livePosCount = 0
     try {
       const reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       pendingNegatives = reviews.filter(r => r.status === 'pending' || r.status === 'ignored').length
       resolvedCount = reviews.filter(r => r.status === 'resolved').length
+      // 本周实时流水里已经产生过的评价（live 标记）——结算只补差额，
+      // 否则会出现"实时已出 2 条、结算又整批出 4 条"的重复与数字对不上
+      const weekLive = reviews.filter(r => r.live === true && Number(r.liveWeek) === week)
+      liveNegCount = weekLive.filter(r => Number(r.stars) <= 3).length
+      livePosCount = weekLive.filter(r => Number(r.stars) >= 4).length
     } catch (e) {}
     // 好评率跨周延续：用上一周的好评率做基准；上周危机应对选择影响本周
     let crisisResponse = null
@@ -1842,7 +1849,7 @@ export default function App() {
       if (saved && saved.week === week - 1) crisisResponse = saved.choice
     } catch (e) {}
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs })
+    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount })
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { getTitle } from './hotelTitle.js'
-import { normalizeAttrs, ATTR_LABELS } from './attrs.js'
+import { normalizeAttrs, ATTR_LABELS, applyDecisionToAttrs } from './attrs.js'
+import { rollLiveReview } from './liveReview.js'
+import { guestsRng } from './guests.js'
+import { decisions as DEC_CATALOG } from './decisions.js'
 
 // 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
 // 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按"游戏内时间片"（15/30/60分钟）推进
@@ -87,11 +90,19 @@ function genEvent(gameMin, phase, price) {
 const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.012, night: 0.006 }
 const CLEAN_FEE = 25
 
-function LiveFeed({ occupiedRooms, price, week, onStats }) {
+function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisions, onStats }) {
   const [feed, setFeed] = useState([])
   const [flows, setFlows] = useState([]) // 结构化流水明细
   const [detailOpen, setDetailOpen] = useState(false) // 明细展开
   const flowsRef = React.useRef([]) // 流水明细唯一数据源：渲染与持久化都读它（与 flows 同步）
+  // 实时评价上下文：走 ref 读取 —— 属性/决策变化不重启 LiveFeed 定时器（重启会打断流水节奏）
+  const rvCtxRef = React.useRef({ attrs: {}, brandLevel: '', decisions: {} })
+  rvCtxRef.current = { attrs: attrs || {}, brandLevel: brandLevel || '', decisions: decisions || {} }
+  // 实时评价独立随机源：固定种子，绝不消耗结算 rand()、也不去动 Math.random 的事件流
+  const rvRandRef = React.useRef(null)
+  if (!rvRandRef.current) rvRandRef.current = guestsRng(0x5A17A2)
+  // 真实决策写进同一条流水：由定时器副作用把 push/persist 暴露到这里供决策副作用调用
+  const feedApiRef = React.useRef(null)
   const [stats, setStats] = useState({ checkout: 0, checkin: 0, income: 0, expense: 0, guests: Math.round(occupiedRooms * 2 - 3) })
   const statsRef = React.useRef(stats)
   statsRef.current = stats
@@ -127,10 +138,17 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
     flowsRef.current = st.flows // 恢复流水明细（ref 为唯一数据源，重启后不回退）
     let gameMin = st.gameMin || new Date().getHours() * 60 + new Date().getMinutes()
     let pendingClean = st.pendingClean
+    // 实时评价计数（口径②·刷新不归零）：游戏日计数随 LiveFeed 存档走，当周计数用独立键
+    let rvDayNo = st.rvDayNo || ''
+    let rvDayCount = Number(st.rvDayCount) || 0
+    const rvWeekKey = `hotel-review-week-w${week || 1}`
+    let rvWeekCount = 0
+    try { rvWeekCount = Number(localStorage.getItem(rvWeekKey)) || 0 } catch (e) {}
+    const rvToday = new Date().toISOString().slice(0, 10)
 
     const persist = () => {
       const s = statsRef.current
-      try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current, flows: flowsRef.current })) } catch (e) {}
+      try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current, flows: flowsRef.current, rvDayNo, rvDayCount })) } catch (e) {}
     }
     const feedRef = { current: st.feed }
     const pushFeed = (text, amt) => {
@@ -152,6 +170,41 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
         return next
       })
     }
+
+    // ── 实时评价：客人退房 / 住店期间留下评价（评价系统-完整规格 §4.2 实时扩展）──
+    // 口径：退房时段正常概率（主要来源）｜其他时段 ×1/5（"住店期间随手写"）
+    // 概率模型见 reviewRate.js；本函数只掷骰 + 落库，【不改动任何经营数值】
+    const RV_KEY = 'hotel-sim-reviews'   // 与口碑页共用存储（复用现有待处理队列）
+    const readRvList = () => {
+      try { const l = JSON.parse(localStorage.getItem(RV_KEY) || '[]'); return Array.isArray(l) ? l : [] } catch (e) { return [] }
+    }
+    const writeRvList = (l) => { try { localStorage.setItem(RV_KEY, JSON.stringify(l)) } catch (e) {} }
+
+    function tryLiveReview(isCheckout, clockTag, room) {
+      try {   // 实时评价是锦上添花：任何异常都不许打断经营流水
+        if (document.hidden) return
+        const dayNo = String(Math.floor(gameMin / 1440))
+        if (dayNo !== rvDayNo) { rvDayNo = dayNo; rvDayCount = 0 }   // 跨游戏日 → 当日计数归零
+        const list = readRvList()
+        const ctx = rvCtxRef.current
+        const res = rollLiveReview({   // 掷骰与造条在纯核心里（src/liveReview.js）
+          isCheckout, week, clockTag, room, price,
+          rooms, occupancy: rooms > 0 ? occupiedRooms / rooms : 0.6,
+          brandLevel: ctx.brandLevel, attrs: ctx.attrs, decisions: ctx.decisions,
+          dayCount: rvDayCount, weekCount: rvWeekCount,
+          realDayCount: list.filter(r => r.live && r.liveDate === rvToday).length,
+          list, rnd: rvRandRef.current, now: Date.now(), today: rvToday,
+        })
+        if (!res.hit) return
+        writeRvList([...list, res.entry])
+        rvDayCount += 1
+        rvWeekCount += 1
+        try { localStorage.setItem(rvWeekKey, String(rvWeekCount)) } catch (e) {}
+        pushFeed(res.feedText, 0)
+      } catch (e) {}
+    }
+
+    feedApiRef.current = { push: pushFeed, persist }   // 供「真实决策→流水」副作用复用同一存档
 
     let timer
     const loop = () => {
@@ -181,11 +234,13 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
         pendingClean.push({ room, due: gameMin + 15 + Math.floor(Math.random() * 20) })
         apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee })
         pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房），收款 ${fee} 元`, fee)
+        tryLiveReview(true, clockTag, room)   // 退房时段：正常概率（实时评价主要来源）
       } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && s.checkin < Math.round(occupiedRooms * 0.6)) {
         const fee = Math.round(p * (0.85 + Math.random() * 0.3))
         const g = ['商务出差', '家庭出游', '旅行散客', '会议客人'][Math.floor(Math.random() * 4)]
         apply({ checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee })
         pushFeed(`🛎️ [${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人，收房费 ${fee} 元`, fee)
+        tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
         const evs = [
           { t: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
@@ -199,6 +254,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
         if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
         else if (ev.amt < 0) apply({ expense: statsRef.current.expense - ev.amt })
         pushFeed(`🕐 [${clockTag}] ${ev.t}`, ev.amt)
+        tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
         const evs = [
           { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
@@ -207,6 +263,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
         const ev = evs[Math.floor(Math.random() * evs.length)]
         if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
         pushFeed(`🌙 [${clockTag}] ${ev.t}`, ev.amt)
+        tryLiveReview(false, clockTag, room)   // 深夜时段 ×1/5
       }
       persist()
       timer = setTimeout(loop, 2000)
@@ -214,6 +271,43 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
     timer = setTimeout(loop, 1500)
     return () => clearTimeout(timer)
   }, [occupiedRooms, price, week])
+
+  // 真实决策进入流水（老师要的是"通过流动的数据观察决策"）：
+  // 🎯 前缀 + 属性增量，和随机运营事件共用同一条流与同一份持久化；没有决策时原样不动
+  // ⚠️ "已入流水的决策 id"必须持久化：决策面板是全屏替换，经营页（含本组件）会卸载重挂，
+  //    组件内 ref 基线每次挂载都会被清空 → 要么漏推、要么把历史决策当新决策重播（实测踩过）
+  useEffect(() => {
+    const ids = Object.keys(decisions || {})
+    const seenKey = `hotel-dec-feed-w${week || 1}`
+    let seen = null
+    try { const raw = localStorage.getItem(seenKey); seen = raw ? JSON.parse(raw) : null } catch (e) { seen = null }
+    if (!Array.isArray(seen)) {   // 首次：以现状为基线（不重播历史决策），只写基线
+      try { localStorage.setItem(seenKey, JSON.stringify(ids)) } catch (e) {}
+      return
+    }
+    const added = ids.filter(id => !seen.includes(id))
+    if (!added.length) return
+    const api = feedApiRef.current
+    if (!api) return
+    const now = new Date()
+    const tag = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const attrsNow = rvCtxRef.current.attrs
+    const fmtAns = (a) => Array.isArray(a) ? a.join('、') : (a === undefined || a === null ? '' : String(a))
+    // 倒序插入：多条同时到达时，最新的排在最上面
+    added.slice().reverse().forEach(id => {
+      const meta = DEC_CATALOG.find(x => x.id === id)
+      const name = meta ? `${meta.icon} ${meta.name}` : id
+      const next = applyDecisionToAttrs(attrsNow, id, decisions[id])
+      const parts = []
+      for (const k of ['quality', 'reputation', 'morale']) {
+        const d = (next[k] || 0) - (attrsNow[k] || 0)
+        if (d !== 0) parts.push(`${ATTR_LABELS[k]} ${d > 0 ? '+' : ''}${d}`)
+      }
+      api.push(`🎯 [${tag}] 完成「${name}」→ ${fmtAns(decisions[id])}${parts.length ? ' · ' + parts.join('，') : ''}`, 0)
+    })
+    api.persist()
+    try { localStorage.setItem(seenKey, JSON.stringify(ids)) } catch (e) {}
+  }, [decisions])
 
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
@@ -256,7 +350,7 @@ function LiveFeed({ occupiedRooms, price, week, onStats }) {
   )
 }
 
-export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash }) {
+export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
   const profit = history.reduce((s, h) => s + h.profit, 0)
@@ -492,7 +586,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
         <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
       </div>
 
-      <LiveFeed occupiedRooms={occRooms} price={price} week={week} onStats={setLiveStats} />
+      <LiveFeed occupiedRooms={occRooms} price={price} week={week} rooms={rooms} brandLevel={brand?.level} attrs={A} decisions={decisions} onStats={setLiveStats} />
 
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周
