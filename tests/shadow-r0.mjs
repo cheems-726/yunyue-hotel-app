@@ -29,7 +29,9 @@ function run12(engine, decisions, mode) {
   let attrs = { ...ATTR_INIT }
   let prevGood = null, capital = null, rows = [], totalProfit = 0
   for (let w = 1; w <= 12; w++) {
-    const useAttrs = mode === 'new-neutral' ? { quality: 60, reputation: 70, morale: 65 } : attrs
+    const useAttrs = mode === 'new-neutral'
+      ? { quality: 60, reputation: 70, morale: 65 }
+      : (mode === 'new-evolve-decay' ? evolve(attrs, decisions, w, false) : attrs)
     const r = engine === settleOld
       ? settleOld({ site: SITE, brand: BRAND, decisions, week: w, prevGoodRate: prevGood, prevCapital: capital })
       : settleNew({ site: SITE, brand: BRAND, decisions, week: w, prevGoodRate: prevGood, prevCapital: capital, attrs: useAttrs })
@@ -37,7 +39,14 @@ function run12(engine, decisions, mode) {
     capital = r.capital
     totalProfit += r.profit
     rows.push({ w, occ: r.occupancy, profit: r.profit, good: r.finalGoodRate, neg: r.negativeCount, capital: r.capital })
-    if (engine !== settleOld) attrs = evolve(attrs, decisions, w, mode === 'new-evolve-decay')
+    if (engine !== settleOld) {
+      if (mode === 'new-evolve-decay') {
+        // 真实接线后的行为：周内先应用决策效果 → 结算内部应用事件与每周衰减 → 返回 attrsAfter 作为下周输入
+        attrs = r.attrsAfter
+      } else {
+        attrs = evolve(attrs, decisions, w, false)   // 仅决策累计（未接衰减的对照）
+      }
+    }
   }
   return { rows, totalProfit, finalAttrs: engine === settleOld ? null : attrs, endCapital: capital }
 }
@@ -47,7 +56,7 @@ const avg = (arr, k) => Math.round(arr.reduce((s, x) => s + x[k], 0) / arr.lengt
 console.log('════════ R0 影子运行（全季·中档，12 周，固定种子）════════\n')
 
 // ── ① 回归证明：改前 vs 改后（中性属性）必须逐周一致 ──
-console.log('① 回归证明（中性属性）——两者应完全相同')
+console.log('① 单元级回归证明（中性属性钉死、不衰减）——两者应逐周完全相同')
 const oldNeutral = run12(settleOld, STRATEGIES.中间型, 'old')
 const newNeutral = run12(settleNew, STRATEGIES.中间型, 'new-neutral')
 const same = oldNeutral.rows.every((r, i) => r.occ === newNeutral.rows[i].occ && r.profit === newNeutral.rows[i].profit && r.good === newNeutral.rows[i].good)
@@ -56,7 +65,7 @@ console.log(`   累计利润 改前 ${oldNeutral.totalProfit} / 改后 ${newNeut
 
 // ── ② 12 周逐周对比表（改前 vs 改后·属性演变）──
 for (const [name, dec] of Object.entries(STRATEGIES)) {
-  for (const [mode, label] of [['new-evolve', '仅决策累计(当前真实行为)'], ['new-evolve-decay', '决策+周末衰减(规格设计)']]) {
+  for (const [mode, label] of [['new-evolve', '仅决策累计(未接衰减·对照)'], ['new-evolve-decay', '决策+每周衰减(本轮采纳)']]) {
     const before = run12(settleOld, dec, 'old')
     const after = run12(settleNew, dec, mode)
     console.log(`━━━ ${name} · ${label} ━━━`)
@@ -75,7 +84,7 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 // ── ③ 声誉双通道量化 ──
 console.log('━━━ ③ 声誉双通道量化（同一打法，只改声誉）━━━')
 const decQ = STRATEGIES.勤奋型
-const repTraj = run12(settleNew, decQ, 'new-evolve').finalAttrs.reputation
+const repTraj = run12(settleNew, decQ, 'new-evolve-decay').finalAttrs.reputation
 const runWithRep = (rep) => {
   let prevGood = null, capital = null, occs = []
   for (let w = 1; w <= 12; w++) {

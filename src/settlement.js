@@ -1,5 +1,5 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
-import { applyEventToAttrs, normalizeAttrs } from './attrs.js'
+import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs } from './attrs.js'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -22,13 +22,19 @@ const PT_BASE = 0.95   // priceTolerance 中性基准
 const OCC_BASE = 0.9   // occFactor 中性基准
 const CAC_BASE = 1.2   // cacFactor 中性基准
 
-// 品质 → 房价容忍度（客流乘数）：quality 100 → +10.5%，quality 20 → −10.5%
+// 斜率系数（可调）：属性影响幅度 = 规格原幅度 × ATTR_SLOPE
+//   0.5 = 幅度减半（当前采用：差距适中才有"中盘调整"的教学空间；差距过大→省钱型追不回→直接摆烂）
+//   1.0 = 规格原幅度
+// 只作用于两个【客流乘数】(priceTolerance / occFactor)；cacFactor / morale / negFactor 走成本与口碑链，幅度本就温和，不动
+const ATTR_SLOPE = 0.5
+
+// 品质 → 房价容忍度（客流乘数）：斜率减半后 quality 100 → +5.3%，quality 20 → −5.3%
 function priceToleranceOf(quality) {
-  return (0.95 + (quality - 60) / 400) / PT_BASE
+  return 1 + ((0.95 + (quality - 60) / 400) / PT_BASE - 1) * ATTR_SLOPE
 }
-// 声誉 → 出租率基线：reputation 100 → +13.3%，reputation 20 → −22.2%
+// 声誉 → 出租率基线：斜率减半后 reputation 100 → +6.7%，reputation 20 → −11.1%
 function occFactorOf(reputation) {
-  return (0.9 + (reputation - 70) / 250) / OCC_BASE
+  return 1 + ((0.9 + (reputation - 70) / 250) / OCC_BASE - 1) * ATTR_SLOPE
 }
 // 声誉 → 获客成本：reputation 100 → ×0.875（便宜12.5%），reputation 20 → ×1.208（贵20.8%）
 function cacFactorOf(reputation) {
@@ -622,6 +628,10 @@ for (let i = 0; i < reviewCount; i++) {
     if (changed) eventAttrEffects.push({ name: ev.name, icon: ev.icon || '', deltas })
   }
 
+  // ⑨ 每周自然衰减（规格 §7）：品质按品牌档次衰减 / 声誉 -1 + 品质惩罚(<50 按档次放大) / 士气 -1，下限 20
+  //    调用 attrs.js 中已验证的纯函数（不在此重写逻辑）；结果体现在返回的 attrsAfter
+  const attrsAfterDecay = applyWeeklyDecay(attrsAfter, brand && brand.level)
+
   return {
     week,
     occupancy: Math.round(occupancy * 100),
@@ -639,9 +649,10 @@ for (let i = 0; i < reviewCount; i++) {
     marketWave: Math.round(marketWave * 100) / 100,
     insights,
     events,
-    // 属性池：本周事件对属性的影响 + 结算后属性（周报展示用；旧调用方忽略即可）
+    // 属性池：本周事件对属性的影响 + 结算后属性（含每周自然衰减；周报展示用；旧调用方忽略即可）
     eventAttrEffects,
-    attrsAfter,
+    attrsAfter: attrsAfterDecay,
+    attrsAfterEvents: attrsAfter,   // 衰减前的值（便于对照"事件影响 vs 自然衰减"）
     decisions: { ...decisions },
     eventFine,
     weeklyExpenses,

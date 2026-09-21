@@ -1,6 +1,7 @@
 // 结算引擎回归测试：node tests/settlement.test.mjs
 // 夜间自动化改引擎后必跑，任何断言失败 => 阻止推送
 import { settle, EVENT_CONFIG } from '../src/settlement.js'
+import { tierDecay } from '../src/attrs.js'
 
 let pass = 0, fail = 0
 function ok(cond, name) {
@@ -106,9 +107,9 @@ for (let w = 1; w <= 400 && !noEventWeek; w++) {
   if ((r.events || []).length === 0) noEventWeek = r
 }
 ok(
-  !!noEventWeek && JSON.stringify(noEventWeek.attrsAfter) === JSON.stringify({ quality: 60, reputation: 70, morale: 65 }),
-  '无事件触发时属性不变',
-  noEventWeek ? JSON.stringify(noEventWeek.attrsAfter) : '未找到无事件周'
+  !!noEventWeek && JSON.stringify(noEventWeek.attrsAfterEvents) === JSON.stringify({ quality: 60, reputation: 70, morale: 65 }),
+  '无事件触发时属性不变（比对衰减前值；衰减本身见 [8b]）',
+  noEventWeek ? JSON.stringify(noEventWeek.attrsAfterEvents) : '未找到无事件周'
 )
 // 5. eventAttrEffects 结构正确（仅含真变化事件）
 const anyR = settle({ site: SITE, brand: BRAND, decisions: {}, week: 7, attrs: { quality: 60, reputation: 70, morale: 65 } })
@@ -123,7 +124,10 @@ const ATTR_MID = { quality: 60, reputation: 70, morale: 65 }
 const DEC = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', campaign: {}, linen: '自洗' }
 const run = (attrs) => settle({ site: SITE, brand: BRAND, decisions: DEC, week: 6, attrs })
 
-// ① 【最关键】回归零变化：attrs 缺失 == 显式中性值（归一化生效 ⇒ 历史存档与既有平衡不变）
+// ① 【最关键·单元级回归证明】属性【显式钉死中性值】时，公式本身与改前完全一致
+//    （衰减只会改变"下周的输入"，不影响本周结果——故单周对比即可证明"公式没变"）
+//    注：12 周逐周一致的旧证明已由影子脚本（tests/shadow-r0.mjs ①）承担，
+//        接衰减后"连续多周"必然漂移（设计使然，非 bug）
 const noA = settle({ site: SITE, brand: BRAND, decisions: DEC, week: 6 })
 const midA = run(ATTR_MID)
 ok(
@@ -178,6 +182,39 @@ ok(
 
 // ⑧ 差评数不越界（差评 ≤ 评价总数）
 ok(extLo.negativeCount <= extLo.reviewCount, `差评 ${extLo.negativeCount} ≤ 评价 ${extLo.reviewCount}`)
+
+
+console.log('[8b] R0 每周衰减接入')
+// ① 单周：衰减量应等于该品牌档位值（BRAND 为经济型 → 品质 -3）+ 声誉 -1 + 士气 -1（下限 20）
+const DECAY_Q = tierDecay(BRAND.level)
+const decay1 = settle({ site: SITE, brand: BRAND, decisions: {}, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
+ok(
+  decay1.attrsAfterEvents && decay1.attrsAfter &&
+  decay1.attrsAfter.quality === decay1.attrsAfterEvents.quality - DECAY_Q &&
+  decay1.attrsAfter.morale === decay1.attrsAfterEvents.morale - 1,
+  `${BRAND.level} 单周衰减 品质-${DECAY_Q}/士气-1：事件后 ${JSON.stringify(decay1.attrsAfterEvents)} → 衰减后 ${JSON.stringify(decay1.attrsAfter)}`
+)
+// ② 品质 < 50 → 声誉额外惩罚（(50-q)/10 × 档次放大，中档 ×1.0）
+const decayQ = settle({ site: SITE, brand: BRAND, decisions: {}, week: 1, attrs: { quality: 30, reputation: 70, morale: 65 } })
+const extraRepLoss = (decayQ.attrsAfterEvents.reputation - decayQ.attrsAfter.reputation) - 1
+ok(extraRepLoss >= 1.9 && extraRepLoss <= 2.1, `品质30 时声誉额外损失 ≈2（实测 ${extraRepLoss.toFixed(2)}；= (50-30)/10 × 1.0）`)
+// ③ 连续 N 周：属性确实持续下降（把上周 attrsAfter 喂回本周）
+let traj = { quality: 60, reputation: 70, morale: 65 }
+const snaps = []
+for (let w = 1; w <= 12; w++) {
+  const r = settle({ site: SITE, brand: BRAND, decisions: {}, week: w, attrs: traj })
+  traj = r.attrsAfter
+  snaps.push({ ...traj })
+}
+ok(traj.quality < 60 && traj.reputation < 70 && traj.morale < 65, `12 周不投入 → 属性下降：${JSON.stringify(traj)}`)
+ok(snaps.every((s2, idx) => idx === 0 || s2.quality <= snaps[idx - 1].quality), '品质逐周非递增（持续衰减）')
+// ④ 下限 20：24 周仍不破 20
+let low = { quality: 25, reputation: 25, morale: 25 }
+for (let w = 1; w <= 24; w++) low = settle({ site: SITE, brand: BRAND, decisions: {}, week: w, attrs: low }).attrsAfter
+ok(low.quality >= 20 && low.reputation >= 20 && low.morale >= 20, `24 周后仍不低于下限：${JSON.stringify(low)}`)
+// ⑤ attrs 缺失（旧档）→ 走同一衰减路径，不报错
+const noAttr2 = settle({ site: SITE, brand: BRAND, decisions: {}, week: 1 })
+ok(noAttr2.attrsAfter && noAttr2.attrsAfter.quality < 60, `旧档无 attrs：按中性值起算并正常衰减 ${JSON.stringify(noAttr2.attrsAfter)}`)
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
 process.exit(fail ? 1 : 0)
