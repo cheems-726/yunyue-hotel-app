@@ -1,13 +1,15 @@
 -- ============================================================================
 -- 云悦酒店教学系统 · 迁移：decision_log（决策流水表）  ← 【第1批】补做
 -- ============================================================================
--- ⚠️ 需人工执行：本文件不会被自动化执行，也不会由 AI 连接线上库执行。
+-- ✅ 状态：已于 2026-09-21 07:4x 应用到线上库，并只读校验通过：
+--    表存在 / 3 条策略 / 4 个索引 / RLS 已启用 / 已加入 supabase_realtime 发布 / 8 字段齐全 / 0 行
+--    执行器：scripts/apply-decision-log.cjs（读 SUPABASE_PG 环境变量，不含凭据，可重复执行——本文件幂等）
 --
--- 执行方式（二选一）：
+-- 重跑方式（幂等，安全）：
 --   A. Supabase 控制台 → 项目 yunyue-hotel → SQL Editor → 粘贴本文件全文 → Run
---   B. 已有 pg 直连能力时：psql "$SUPABASE_PG" -f supabase-migration-decision-log.sql
+--   B. SUPABASE_PG='postgresql://...' node scripts/apply-decision-log.cjs
 --
--- 【执行后请告知 AI 继续】—— 后续还有两步依赖本表存在（本轮按纪律未做）：
+-- 【下一步 · 写入侧接线（待用户安排）】—— 依赖本表：
 --   ① supabaseClient.js 增加 saveDecisionLog / fetchDecisionLogs / subscribeDecisionLogs
 --   ② App.jsx 在学生确认决策处写入（feedback 用 attrs 的真实变化文案，如「品质 +5（60→65）」）
 --      TeacherDashboard 增加决策流水视图（路线图编号 R8）
