@@ -12,7 +12,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -2047,6 +2047,22 @@ export default function App() {
               if (diff !== 0) flashDelta[k] = diff
             }
             setAttrFlash(Object.keys(flashDelta).length ? { ...flashDelta, nonce: Date.now() } : null)
+            // 决策流水（N6）：平行写入 decision_log —— 仅云端账号；失败静默，绝不打断既有保存流程
+            if (user?.cloud && user?.uid) {
+              const dm = decisions.find(d => d.id === id)
+              const fb = deltaText
+                || (dm && typeof dm.result === 'string' ? dm.result : '')   // 无属性变化 → 决策原有描述
+                || (dm && (dm.desc || dm.tip))                              // 兜底：描述/教学提示
+                || `${dm ? dm.name : id} 已提交`                             // 最终兜底，绝不为空
+              saveDecisionLog({
+                userId: user.uid,
+                groupKey: groupKeyOf(user.className, user.groupNo),
+                week,
+                decisionId: id,
+                answer,
+                feedback: fb,
+              }).catch(() => {})   // 双保险：函数内部已 catch，这里再兜一层
+            }
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             setCurrentDecision(null)
             const dName = decisions.find(d => d.id === id)?.name || '决策'
