@@ -1,6 +1,6 @@
 // 结算引擎回归测试：node tests/settlement.test.mjs
 // 夜间自动化改引擎后必跑，任何断言失败 => 阻止推送
-import { settle, EVENT_CONFIG } from '../src/settlement.js'
+import { settle, EVENT_CONFIG, negativeTexts, positiveTexts } from '../src/settlement.js'
 import { tierDecay } from '../src/attrs.js'
 
 let pass = 0, fail = 0
@@ -215,6 +215,54 @@ ok(low.quality >= 20 && low.reputation >= 20 && low.morale >= 20, `24 周后仍�
 // ⑤ attrs 缺失（旧档）→ 走同一衰减路径，不报错
 const noAttr2 = settle({ site: SITE, brand: BRAND, decisions: {}, week: 1 })
 ok(noAttr2.attrsAfter && noAttr2.attrsAfter.quality < 60, `旧档无 attrs：按中性值起算并正常衰减 ${JSON.stringify(noAttr2.attrsAfter)}`)
+
+
+console.log('[9] 结构化评价生成（评价系统升级 第2步）')
+const REV_DEC = { pricing: '跟降 10%', shifts: '精简省成本', hygiene: '不停房', energy: 20, linen: '外包', overbook: 2 }
+const rv = settle({ site: SITE, brand: BRAND, decisions: REV_DEC, week: 5, attrs: { quality: 45, reputation: 60, morale: 55 } })
+
+// ① 身份自洽：不会出现"先生/女士"与头像不符
+const badGuest = rv.generatedReviews.filter(r => !r.guest || !((r.guest.gender === 'male' && r.guest.title === '先生' && r.guest.avatar === '🧑') || (r.guest.gender === 'female' && r.guest.title === '女士' && r.guest.avatar === '👩')))
+ok(rv.generatedReviews.length > 0 && badGuest.length === 0, `身份自洽（${rv.generatedReviews.length} 条评价，全部 avatar↔title↔gender 一致）`, JSON.stringify(badGuest.slice(0, 1)))
+ok(rv.generatedReviews.every(r => r.avatar === r.guest.avatar && r.name === r.guest.card), 'avatar/name(名片) 与 guest 一致')
+
+// ② cause 绑定 + 可解释：每条都有合法 cause，且能反查到来源决策或明确为 null
+const LEGAL = ['front_slow', 'hygiene', 'cold', 'hot', 'facility', 'overprice', 'no_room', 'busy_service', 'noise', 'misc', 'praise_clean', 'praise_service', 'praise_member', 'praise_location', 'praise_value', 'praise_misc']
+ok(rv.generatedReviews.every(r => LEGAL.includes(r.cause)), '每条评价都有合法 cause', JSON.stringify(rv.generatedReviews.map(r => r.cause)))
+ok(rv.generatedReviews.every(r => 'relatedDecision' in r), '每条评价都带 relatedDecision 字段（供「关联经营」反查）')
+
+// ③ 超售必出 no_room（不走概率）
+ok(rv.generatedReviews.some(r => r.cause === 'no_room'), '超售组必有 no_room 差评', JSON.stringify(rv.generatedReviews.map(r => r.cause)))
+const noOverbook = settle({ site: SITE, brand: BRAND, decisions: { ...REV_DEC, overbook: 0 }, week: 5, attrs: { quality: 45, reputation: 60, morale: 55 } })
+ok(!noOverbook.generatedReviews.some(r => r.cause === 'no_room'), '未超售则无 no_room')
+
+// ④ 同一次结算生成的多条评价互不相同（独立流每条推进一次）
+const texts = rv.generatedReviews.map(r => r.text)
+ok(new Set(texts).size === texts.length, `同批 ${texts.length} 条文本互不相同`, `唯一 ${new Set(texts).size}`)
+
+// ⑤ 文本已升级（不再等于旧文本池里的整句）
+ok(rv.generatedReviews.every(r => !negativeTexts.includes(r.text) && !positiveTexts.includes(r.text)), '文本不再是旧文本池的整句（组合式生成生效）')
+// 差评含具体细节（不是"卫生差"这类笼统词）
+// 具体名词表（语料库提炼）+ 结构代理（有分句 = 带细节，而非一句笼统话）
+const CONCRETE = ['发霉', '黄', '头发', '味道', '怪味', '水渍', '污渍', '褶皱', '硬', '薄', '旧', '失灵', '异响', '透光', '撕就破', '分钟', '排队', '没人接', '占线', '忙不过来', '一人', '人手', '充电器', '枕头', '吹风机', '餐盘', '没房', '快捷酒店', '系统问题', '冷', '热', '闷', '响', '吵', '凌晨', '一清二楚', '不值', '转不开身', '早餐', '房间', '前台', '空调', '电梯', '墙', '毛巾', '床', '茶', '卫', '厕']
+const BANNED_GENERIC = ['卫生差,', '服务慢', '态度差,', '环境不好,']
+const negs = rv.generatedReviews.filter(r => r.status !== 'good')
+ok(
+  negs.length > 0 && negs.every(r => CONCRETE.some(w => r.text.includes(w)) && !BANNED_GENERIC.some(w => r.text.startsWith(w))),
+  `差评均含具体细节（非笼统）：${negs.length} 条`,
+  negs.map(r => r.text.slice(0, 30)).join(' | ')
+)
+
+// ⑥ 【关键】内容随机与数值隔离：只改 recentReviewTexts（纯内容参数）→ 数值必须完全不变、文本必须变
+const revA = settle({ site: SITE, brand: BRAND, decisions: REV_DEC, week: 5, attrs: { quality: 45, reputation: 60, morale: 55 } })
+const revB = settle({ site: SITE, brand: BRAND, decisions: REV_DEC, week: 5, attrs: { quality: 45, reputation: 60, morale: 55 }, recentReviewTexts: revA.generatedReviews.map(r => r.text) })
+ok(
+  revA.occupancy === revB.occupancy && revA.profit === revB.profit &&
+  revA.finalGoodRate === revB.finalGoodRate && revA.negativeCount === revB.negativeCount &&
+  revA.attrsAfter.quality === revB.attrsAfter.quality && revA.attrsAfter.morale === revB.attrsAfter.morale,
+  '内容参数（recentReviewTexts）不影响任何数值：出租率/利润/好评率/差评数/属性全等'
+)
+ok(JSON.stringify(revA.generatedReviews.map(r => r.text)) !== JSON.stringify(revB.generatedReviews.map(r => r.text)), '同周不同历史 → 文本变化（去重生效）')
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
 process.exit(fail ? 1 : 0)

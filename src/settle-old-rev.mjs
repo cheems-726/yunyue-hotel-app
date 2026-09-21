@@ -1,6 +1,5 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs } from './attrs.js'
-import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE } from './guests.js'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -167,7 +166,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [] }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
   // R0：属性 → 经营系数。attrs 缺失/旧档 → normalizeAttrs 兜底为中性值 → 全部系数 = 1.0（零变化）
   const A0 = normalizeAttrs(attrsIn)
@@ -545,90 +544,57 @@ for (let i = 0; i < reviewCount; i++) {
 
   // 15. 生成本周评价（差评回流口碑页；事件性差评优先携带来源标签）
   const generatedReviews = []
-  // ── 结构化评价生成（评价系统升级 第2步）────────────────────────────────
-  // 【随机隔离·关键】上方"评价条数与好/差判定"用到的 rand() 全部保持原位不动 → 数值零变化。
-  //   评价【内容】（客人身份 / 原因 / 文本）改用独立种子流 randReview：
-  //   它位于所有数值计算之后（本段之后无任何 rand 消耗），故不可能影响
-  //   出租率 / 利润 / 好评率 / 差评数 / 属性。
-  //   ⚠️ 并且：本段改前【也用 rand() 取名字/星级/文本】，而"差评潮"分支的判定与 negativeCount
-  //      属于数值口径，其抽取值取决于流位置 → 因此原抽取【次数与顺序必须逐次保留】（占位抽取，
-  //      值不参与任何内容或数值）；内容一律改由 randReview 生成。
-  const randReview = guestsRng(week * 1000 + 137)
-  const keptRand = () => { rand() }   // 占位抽取：仅推进结算随机流，保持与改前一致的流位置
-  const revWeights = causeWeightsOf(
-    decisions,
-    { attrs: A0, occupancy: Math.round(occupancy * 100), price: Math.round(price), overbook, flow: s.客流 },
-    week
-  )
-  // 去重范围：① 批内（同一次结算生成的多条互不重复，必做）
-  //           ② 跨周（由调用方通过 recentReviewTexts 传入历史文本，可选取最近 10 条）
-  const recentTexts = Array.isArray(recentReviewTexts) ? recentReviewTexts.filter(t => typeof t === 'string').slice(-10) : []
-  const mkReview = (stars, forceCause = null) => {
-    const guest = guestOf(randReview)            // 每条推进一次独立流（身份）
-    const cause = forceCause || pickCause(stars >= 4 ? revWeights.positive : revWeights.negative, randReview) || (stars >= 4 ? 'praise_misc' : 'misc')
-    let text = makeReviewText({ cause, persona: guest.persona, stars, rnd: randReview, recent: recentTexts })
-    if (!text) {                                  // 兜底：仍保留旧文本池（极端情况下不出现空文本）
-      const pool = stars >= 4 ? positiveTexts : negativeTexts
-      text = pool[Math.floor(randReview() * pool.length)]
-    }
-    recentTexts.push(text)
-    return {
-      avatar: guest.avatar,
-      name: guest.card,                           // 与旧 UI 兼容：name 即"称呼 · 客群"
-      guest, cause, stars, text,
-      roomType: guest.roomType,
-      nights: guest.nights,
-      relatedDecision: CAUSE_SOURCE[cause] || null,   // 供「🔍 关联经营」反查
-    }
-  }
-  // 超售必出 no_room（不走概率）：第一条差评强制为"到店无房"
-  const forceNoRoom = overbookCompensation > 0
   for (let i = 0; i < Math.min(negativeCount, 3); i++) {
-    keptRand(); keptRand(); keptRand()      // 占位：原 name / stars / text 三次抽取
     generatedReviews.push({
       id: `w${week}-n${i}`,
+      avatar: '🧑',
       bg: 'blue',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
       date: `第${week}周`,
+      stars: rand() < 0.5 ? 1 : 2,
+      text: negativeTexts[Math.floor(rand() * negativeTexts.length)],
       status: 'pending',
       source: negSources[i] || null,
-      ...mkReview(randReview() < 0.5 ? 1 : 2, i === 0 && forceNoRoom ? 'no_room' : null),
     })
   }
-  if (reviewCount - negativeCount > 0 && rand() < 0.6) {   // ← 判定抽取值保留（数值口径）
-    keptRand(); keptRand()                  // 占位：原 name / text 两次抽取
+  if (reviewCount - negativeCount > 0 && rand() < 0.6) {
     generatedReviews.push({
       id: `w${week}-g0`,
+      avatar: '👩',
       bg: 'green',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
       date: `第${week}周`,
+      stars: 5,
+      text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
       status: 'good',
-      ...mkReview(5),
     })
   }
   // RPG 式口碑联动：好评率越高，愿意写评价的客人越多
-  if (goodRate >= 0.8 && rand() < 0.5) {                  // ← 判定抽取值保留
-    keptRand(); keptRand()                  // 占位：原 name / text
+  if (goodRate >= 0.8 && rand() < 0.5) {
     generatedReviews.push({
-      id: `w${week}-g1`, bg: 'green',
-      date: `第${week}周`, status: 'good', surge: '口碑爆发',
-      ...mkReview(5),
+      id: `w${week}-g1`, avatar: '🧑', bg: 'green',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: 5,
+      text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
+      status: 'good', surge: '口碑爆发',
     })
-    if (rand() < 0.5) {                     // ← 判定抽取值保留
-      keptRand(); keptRand()                // 占位：原 name / text
-      generatedReviews.push({
-      id: `w${week}-g2`, bg: 'green',
-      date: `第${week}周`, status: 'good', surge: '口碑爆发',
-      ...mkReview(5),
-      })
-    }
+    if (rand() < 0.5) generatedReviews.push({
+      id: `w${week}-g2`, avatar: '👩', bg: 'green',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: 5,
+      text: positiveTexts[Math.floor(rand() * positiveTexts.length)],
+      status: 'good', surge: '口碑爆发',
+    })
   }
-  if (goodRate <= 0.55 && rand() < 0.4) {                  // ← 判定抽取值保留（含 negativeCount += 1）
-    negativeCount += 1 // 差评潮：口碑差时更多客人倾向于写差评（下周经 pendingNegatives 发酵）—— 口径保持原样
+  if (goodRate <= 0.55 && rand() < 0.4) {
+    negativeCount += 1 // 差评潮：口碑差时更多客人倾向于写差评（下周经 pendingNegatives 发酵）
     negSources.push({ icon: '🌊', name: '差评潮' })
-    keptRand(); keptRand(); keptRand()      // 占位：原 name / stars / text
     generatedReviews.push({
-      id: `w${week}-n9`, bg: 'blue',
-      date: `第${week}周`, status: 'pending', source: { icon: '🌊', name: '差评潮' },
-      ...mkReview(Number(randReview() < 0.5 ? 1 : 2)),
+      id: `w${week}-n9`, avatar: '🧑', bg: 'blue',
+      name: guestNames[Math.floor(rand() * guestNames.length)],
+      date: `第${week}周`, stars: Math.floor(rand() * 2) + 1,
+      text: negativeTexts[Math.floor(rand() * negativeTexts.length)],
+      status: 'pending', source: { icon: '🌊', name: '差评潮' },
     })
   }
 
