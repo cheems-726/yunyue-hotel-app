@@ -26,8 +26,10 @@ export const REVIEW_K = 150             // 放大常量（调参入口；依据�
 //   · K=150 时：中性态 ≈0.55 条/节课（常态几乎不出，符合"评价要低"）
 //                状态很好/很差 ≈2.8 条/节课（由游戏日上限 3 兜住节奏）
 //   调大 K → 更快打到上限；调小 → 更罕见。
-export const CAP_DAY = 3                // 硬保护：单日最多 3 条
-export const CAP_WEEK = 10              // 硬保护：单周最多 10 条
+export const CAP_DAY = 3                // 硬保护：单【游戏日】最多 3 条
+export const CAP_WEEK = 10              // 硬保护：单【游戏周】最多 10 条
+export const CAP_REAL_DAY = 20          // 硬保护：单【真实日】最多 20 条（防"页面挂一整天"把游戏日上限绕开）
+                                        // 由调用方按"今日已产生的实时评价条数"判断；本文件保持纯函数，不碰存储
 export const CROWD_REF = 60             // 客流基准（在店 60 间 = 1.0）
 export const P_MAX = 0.5                // 单次掷骰概率上限（安全阀）
 
