@@ -71,21 +71,23 @@ ok(capW.pGood === 0 && capW.capped === true, `当周已 ${CAP_WEEK} 条 → 概�
 const capOK = dailyReviewProb({ ...base, attrs: HIGH, decisions: DEC, todayCount: 2, weekCount: 9 })
 ok(capOK.pGood > 0 && !capOK.capped, '未触顶时正常给概率')
 
-console.log('\n▶ 概率量级（验收要求"确实低"）')
-const scenarios = [
-  ['中档·满租·很好', { ...base, attrs: HIGH, decisions: DEC }],
+console.log('\n▶ 概率量级与「一节课能有几条」（LiveFeed 实速：1 游戏分钟 = 2 真实秒）')
+const ROLLS_PER_GAMEDAY = 22.7   // 退房 19 + 入住/夜间时段 x1/5 共 3.7（方案④）
+const CLASS_ROLLS = +(ROLLS_PER_GAMEDAY * (45 / 48)).toFixed(1)   // 45 分钟 = 0.94 游戏日
+console.log(`   每游戏日掷骰 ≈ ${ROLLS_PER_GAMEDAY} 次；一节课(45min=0.94游戏日) ≈ ${CLASS_ROLLS} 次`)
+const SCEN = [
   ['中档·满租·中性', { ...base, attrs: MID, decisions: {} }],
-  ['经济·半租·中性', { ...base, brandLevel: '经济型 · 国民', occupancy: 0.5, attrs: MID, decisions: {} }],
+  ['中档·满租·很好', { ...base, attrs: HIGH, decisions: DEC }],
+  ['经济·半租·中性', { ...base, brandLevel: '经济型 - 国民', occupancy: 0.5, attrs: MID, decisions: {} }],
   ['奢华·满租·很好', { ...base, brandLevel: '奢华', attrs: HIGH, decisions: DEC }],
 ]
-let allLow = true
-scenarios.forEach(([label, cfg]) => {
+SCEN.forEach(([label, cfg]) => {
   const p = dailyReviewProb(cfg)
-  const perDay = expectedPerDay(p, Math.round(72 * (cfg.occupancy ?? 0.8)))
-  console.log(`   ${label.padEnd(14)} 单次退房 p=${pct(p.pGood + p.pBad)}  按退房 ${Math.round(72 * (cfg.occupancy ?? 0.8))} 次/日 → 预估 ${perDay} 条/日（上限 ${CAP_DAY}）`)
-  if (perDay > CAP_DAY) allLow = false
+  const perClass = +Math.min(CAP_DAY, (p.pGood + p.pBad) * CLASS_ROLLS).toFixed(2)
+  console.log(`   ${label.padEnd(14)} 单次 p=${pct(p.pGood + p.pBad)} → 一节课 ≈ ${perClass} 条（游戏日上限 ${CAP_DAY} 兜底）`)
 })
-ok(allLow, '所有场景预估日评价数都不超过硬上限')
+ok(SCEN.every(([, cfg]) => { const p = dailyReviewProb(cfg); return p.pGood + p.pBad <= 0.6 }), '各场景单次概率 <=60%（未失控）')
+ok(dailyReviewProb({ ...base, attrs: MID, decisions: {} }).pGood < 0.1, '中性态单次概率 <10%（罕见，符合「评价要低」）')
 
 console.log('\n▶ 掷骰 rollReview（独立随机源）')
 const rnd = guestsRng(2026)

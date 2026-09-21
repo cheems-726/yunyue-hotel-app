@@ -45,7 +45,8 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   rows.forEach(({ w, old: o, new: n }) => {
     const same = o.occupancy === n.occupancy && o.finalGoodRate === n.finalGoodRate && o.negativeCount === n.negativeCount && o.profit === n.profit
     if (!same) allSame = false
-    console.log(`   ${String(w).padStart(2)} | ${String(o.occupancy).padStart(3)}% ${String(o.finalGoodRate).padStart(3)}% ${String(o.negativeCount).padStart(2)} ${String(o.profit).padStart(7)} | ${String(n.occupancy).padStart(3)}% ${String(n.finalGoodRate).padStart(3)}% ${String(n.negativeCount).padStart(2)} ${String(n.profit).padStart(7)} | ${same ? '✅' : '❌'}`)
+    const surgeN = n.generatedReviews.filter(x => x.surge === '口碑爆发').length
+    console.log(`   ${String(w).padStart(2)} | ${String(o.occupancy).padStart(3)}% ${String(o.finalGoodRate).padStart(3)}% ${String(o.negativeCount).padStart(2)} ${String(o.profit).padStart(7)} | ${String(n.occupancy).padStart(3)}% ${String(n.finalGoodRate).padStart(3)}% ${String(n.negativeCount).padStart(2)} ${String(n.profit).padStart(7)} | ${same ? '✅' : '❌'} 卡片${n.generatedReviews.length}(评${n.reviewCount}/差${n.negativeCount}/爆${surgeN})`)
   })
   ok(allSame, `${name}：12 周 出租率/好评率/差评数/利润 逐周完全一致`)
 
@@ -59,7 +60,18 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   console.log(`   改后 cause 分布：${Object.entries(newCauses.reduce((m, c) => (m[c] = (m[c] || 0) + 1, m), {})).map(([k, v]) => k + '×' + v).join(' / ')}`)
   ok(newTexts.length > 0 && diff === newTexts.length, `${name}：改后文本全部不同于改前（内容升级生效）`)
   ok(newTexts.every(t => !OLD_POOL.has(t)), `${name}：无一条来自旧文本池（组合式生成）`)
-  ok(new Set(newTexts).size === newTexts.length, `${name}：批内文本无重复（唯一 ${new Set(newTexts).size}/${newTexts.length}）`)
+  // 批内（同一周）无重复；跨周允许（生产环境由调用方传 recentReviewTexts 做跨周去重）
+  const weekDup = rows.filter(r => { const t = r.new.generatedReviews.map(x => x.text); return new Set(t).size !== t.length }).length
+  ok(weekDup === 0, `${name}：逐周批内无重复（${rows.length} 周，重复周 ${weekDup}）`)
+  // 【数字与卡片一致】卡片总数 === max(reviewCount, negativeCount) + 口碑爆发追加
+  const cardOK = rows.every(r => {
+    const g = r.new.generatedReviews.length
+    const surge = r.new.generatedReviews.filter(x => x.surge === '口碑爆发').length
+    const target = Math.max(r.new.reviewCount, r.new.negativeCount) + surge
+    return g === target
+  })
+  const badRow = rows.find(r => { const surge = r.new.generatedReviews.filter(x => x.surge === '口碑爆发').length; return r.new.generatedReviews.length !== Math.max(r.new.reviewCount, r.new.negativeCount) + surge })
+  ok(cardOK, `${name}：卡片总数 === reviewCount 与 negativeCount 的较大者 + 口碑爆发追加`, badRow ? `w${badRow.w}: cards=${badRow.new.generatedReviews.length} rv=${badRow.new.reviewCount} neg=${badRow.new.negativeCount}` : '')
   // 身份自洽
   const gs = rows.flatMap(r => r.new.generatedReviews.map(x => x.guest))
   ok(gs.every(g => (g.gender === 'male' ? g.avatar === '🧑' && g.title === '先生' : g.avatar === '👩' && g.title === '女士')), `${name}：身份自洽（${gs.length} 个客人）`)
@@ -78,5 +90,24 @@ const overWeeks = overRows.filter(r => r.new.generatedReviews.some(x => x.cause 
 console.log(`超售型：${overWeeks}/12 周出现 no_room 差评（共 ${overNo} 条）`)
 ok(overNo > 0, '超售组确实产出 no_room 差评')
 
-console.log(`\n========== 第2步硬证据：${pass} 通过 / ${fail} 失败 ==========`)
-process.exit(fail ? 1 : 0)
+
+// ⑤ 核心：实时评价顶替结算差额 → 实时数 + 结算生成数 === 目标（数字与卡片一致，且不重复）
+const baseCfg = { site: SITE, brand: BRAND, decisions: STRATEGIES.勤奋型, week: 4, attrs: { quality: 70, reputation: 72, morale: 68 } }
+const r0 = settleNew(baseCfg)
+const target0 = Math.max(r0.reviewCount, r0.negativeCount) + r0.generatedReviews.filter(x => x.surge === '口碑爆发').length
+console.log(`\n【⑤ 差额生成】本周目标卡片数 = ${target0}（评价 ${r0.reviewCount} / 差评 ${r0.negativeCount}）`)
+let okAll = true
+for (const [ln, lp] of [[0, 0], [1, 0], [2, 1], [3, 2], [9, 9]]) {
+  const r = settleNew({ ...baseCfg, liveNegCount: ln, livePosCount: lp })
+  const gen = r.generatedReviews.length
+  const totalWithLive = gen + Math.min(ln, r.negativeCount) + Math.min(lp, Math.max(0, r.reviewCount - r.negativeCount))
+  const good = totalWithLive >= target0 - 1 && gen <= target0      // 不重复、不超发
+  if (!good) okAll = false
+  console.log(`   实时已产生 差评${ln}/好评${lp} → 结算生成 ${gen} 张；实时+结算合计 ≈ ${totalWithLive}（目标 ${target0}）${good ? ' ✅' : ' ❌'}`)
+}
+ok(okAll, '⑤ 实时 + 结算差额 = 目标卡片数（实时越多、结算生成越少，总数守恒）')
+ok(settleNew({ ...baseCfg, liveNegCount: 99, livePosCount: 99 }).generatedReviews.length === 0, '⑤ 实时已足够时不重复生成（差额为 0）')
+
+const failed2 = fail
+console.log(`\n========== 含 ⑤ 校验：${pass} 通过 / ${failed2} 失败 ==========`)
+process.exit(failed2 ? 1 : 0)
