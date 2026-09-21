@@ -251,3 +251,59 @@ export async function setGroupRole(uid, role) {
   const { error } = await supabase.from('profiles').update({ role_in_group: role }).eq('user_id', uid)
   return !error
 }
+
+// ── 决策流水 decision_log（N5）────────────────────────────────────────
+// 表结构（2026-09-21 已建）：id / user_id / group_key / week / decision_id / answer / feedback / created_at
+// 追加型日志：学生只有 insert/select 自己的策略，无 update/delete（fail-closed）
+// 风格对齐本文件既有约定：写入返回布尔、失败不抛；读取失败返回空数组
+
+// 学生确认一项决策时写入一行（feedback = 属性真实变化文案，如「品质 +5（60→65）」）
+// answer 支持字符串或结构化答案（数组/对象会被序列化成可读文本）
+export async function saveDecisionLog({ userId, groupKey = null, week = 1, decisionId, answer, feedback }) {
+  try {
+    const ans = typeof answer === 'string'
+      ? answer
+      : Array.isArray(answer)
+        ? answer.slice(0, 5).join('＞')
+        : (answer && typeof answer === 'object')
+          ? Object.entries(answer).map(([k, v]) => `${k}:${v}`).join('、')
+          : String(answer ?? '')
+    const { error } = await supabase.from('decision_log').insert({
+      user_id: userId,
+      group_key: groupKey,
+      week,
+      decision_id: decisionId,
+      answer: ans,
+      feedback: feedback || '—', // 不允许空反馈（无属性变化时由调用方传决策描述）
+    })
+    return !error
+  } catch (e) {
+    return false
+  }
+}
+
+// 教师端：读最近 N 条（created_at 倒序）
+export async function fetchDecisionLogs(limit = 50) {
+  try {
+    const { data, error } = await supabase
+      .from('decision_log')
+      .select('id, user_id, group_key, week, decision_id, answer, feedback, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data || []
+  } catch (e) {
+    return []
+  }
+}
+
+// 教师端：实时订阅新增记录（新记录通过 onChange 回调交给调用方置顶）
+export function subscribeDecisionLogs(onChange) {
+  const channel = supabase
+    .channel('decision-log-watch')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'decision_log' }, payload => {
+      if (payload && payload.new) onChange(payload.new)
+    })
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}
