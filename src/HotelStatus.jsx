@@ -87,7 +87,9 @@ function genEvent(gameMin, phase, price) {
 // 实时运营流：游戏内时钟连续流动（现实2秒=游戏1分钟），
 // 事件按概率随机触发；流水/统计持久化到 localStorage（按日期+周为键），刷新不回退
 // 退房后进入待清扫队列，到期自动生成清扫事件并扣耗材成本
-const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.012, night: 0.006 }
+// misc 杂项（维修/补货/客诉致歉…）频率已减半：它不参与退房/入住掷骰机会，减半不影响 reviewRate 的 K=150 标定，
+// 只把底噪压下去，让 🎯 真实决策条目在流水里更突出（checkout/checkin/night 一律不动）
+const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.006, night: 0.006 }
 const CLEAN_FEE = 25
 
 function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisions, onStats }) {
