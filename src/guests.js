@@ -300,6 +300,25 @@ export function makeReviewText({ cause, persona = '旅行散客', stars = 3, rnd
   return text
 }
 
+// ── 差评严重度（语气分级）───────────────────────────────────────
+// 规格要求：差评星级必须挂经营状态，不能随机。越差越狠：
+//   品质/士气低、当周差评占比高、欠账（未处理差评）多 → 星级越低 = 语气越重
+//   到店无房（no_room）恒 1 星 —— 真实酒店"到店无房"必给最重差评（规格 §2.1）
+// 返回 1 | 2 | 3（≤3 即差评；3 星 = 轻微不满，语气最轻）
+export function reviewSeverityOf({ quality = 60, morale = 65, negRatio = 0, pending = 0, cause = '' } = {}) {
+  if (cause === 'no_room') return 1
+  const c = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, (n - lo) / (hi - lo))) : 0.5 }
+  const q = c(quality, 20, 100)
+  const m = c(morale, 20, 100)
+  const nr = Math.max(0, Math.min(1, Number(negRatio) || 0))
+  const pd = Math.max(0, Math.min(1, (Number(pending) || 0) / 5))
+  const good = q * 0.5 + m * 0.2 + (1 - nr) * 0.2 + (1 - pd) * 0.1
+  const bad = 1 - good
+  if (bad >= 0.75) return 1
+  if (bad >= 0.30) return 2
+  return 3
+}
+
 // 一条结构化评价（规格 §实施步骤2 要求每条携带的字段）
 export function makeReview({ decisions = {}, state = {}, week = 1, stars = 3, cause = null, rnd, recent = [] } = {}) {
   const r = typeof rnd === 'function' ? rnd : guestsRng(7)

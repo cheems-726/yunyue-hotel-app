@@ -12,7 +12,7 @@
 //    · 真实日 20          —— 本文件判（防"页面挂一整天"把游戏日上限绕过去）
 
 import { dailyReviewProb, rollReview, CAP_REAL_DAY } from './reviewRate.js'
-import { makeReview } from './guests.js'
+import { makeReview, reviewSeverityOf } from './guests.js'
 
 export const LIVE_CHECKOUT_K = 1        // 退房时段：正常概率（实时评价主要来源）
 export const LIVE_OTHER_K = 0.2         // 其他时段 ×1/5（语义："住店期间随手写"）
@@ -36,7 +36,10 @@ export function rollLiveReview({
   const kind = rollReview(p.pGood * k, p.pBad * k, rr)
   if (!kind) return { hit: false, reason: 'miss', p }
 
-  const stars = kind === 'good' ? 5 : (rr() < 0.5 ? 1 : 2)
+  // 星级口径与结算一致：好评 5 星；差评由经营状态定（不再随机）——实时路径无"当周差评占比/欠账"口径，取属性侧
+  const stars = kind === 'good'
+    ? 5
+    : reviewSeverityOf({ quality: attrs.quality, morale: attrs.morale, negRatio: 0, pending: 0 })
   const recent = (list || []).map(r => r.text).slice(-10)   // 去重范围：口碑页现有最近 10 条
   const review = makeReview({
     decisions, state: { attrs, occupancy, price }, week, stars, rnd: rr, recent,

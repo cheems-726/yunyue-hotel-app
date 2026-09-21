@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import {
   guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, makeReview,
-  SURNAMES, PERSONAS, ROOM_TYPES, CAUSE_NEGATIVE, CAUSE_POSITIVE, CAUSE_SOURCE,
+  SURNAMES, PERSONAS, ROOM_TYPES, CAUSE_NEGATIVE, CAUSE_POSITIVE, CAUSE_SOURCE, reviewSeverityOf,
 } from '../src/guests.js'
 
 let pass = 0, fail = 0
@@ -103,5 +103,21 @@ const t1 = makeReviewText({ cause: 'hygiene', persona: '家庭出游', stars: 1,
 const t2 = makeReviewText({ cause: 'hygiene', persona: '家庭出游', stars: 1, rnd: guestsRng(42) })
 ok(t1 === t2, '同种子 → 同文本（可复现）')
 
+// ── 差评严重度（语气分级）：必须挂经营状态、可解释、到店无房最重 ──
+console.log('\n[严重度] reviewSeverityOf')
+{
+  const worst = reviewSeverityOf({ quality: 20, morale: 20, negRatio: 1, pending: 5 })
+  const mid = reviewSeverityOf({ quality: 60, morale: 65, negRatio: 0.2, pending: 0 })
+  const best = reviewSeverityOf({ quality: 100, morale: 100, negRatio: 0, pending: 0 })
+  ok(worst === 1, '差到极点 → 1 星（实测 ' + worst + '）')
+  ok(mid === 2, '中性状态 → 2 星（实测 ' + mid + '）')
+  ok(best === 3, '状态很好 → 3 星（轻微不满，实测 ' + best + '）')
+  ok(worst < mid && mid < best, '严重度随经营状态单调（越差星级越低）')
+  ok(reviewSeverityOf({ cause: 'no_room', quality: 100, morale: 100 }) === 1, '到店无房恒 1 星（不看状态）')
+  ok([1, 2, 3].includes(reviewSeverityOf({})), '缺参兜底也落在 1~3')
+  ok(reviewSeverityOf({ quality: null, morale: undefined }) === mid, '脏数据兜底为中性（不 NaN）')
+  const seq = [[100, 100], [80, 80], [60, 65], [40, 45], [20, 20]].map(([q, m]) => reviewSeverityOf({ quality: q, morale: m, negRatio: 0.1, pending: 1 }))
+  ok(seq.every((s, i) => i === 0 || s <= seq[i - 1]), '属性单调递减：' + seq.join('→'))
+}
 console.log(`\n========== guests 自测：${pass} 通过 / ${fail} 失败 ==========`)
 process.exit(fail ? 1 : 0)

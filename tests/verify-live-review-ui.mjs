@@ -138,7 +138,7 @@ try {
   await seed(6 * 60, 0)
   ok('经营页已恢复', (await text(page)).includes('资金状况'))
   let liveA = []
-  for (let i = 0; i < 20; i++) {   // 最多等 40 秒
+  for (let i = 0; i < 30; i++) {   // 最多等 60 秒（留足流位置波动）
     await sleep(2000)
     liveA = (await reviews(page)).filter(r => r.live)
     if (liveA.length >= 3) break
@@ -177,7 +177,7 @@ try {
   console.log('\n▶ C 下午课时段（14:00，非退房时段）')
   await seed(14 * 60, 0)   // 新的一天 → 日计数归零
   let liveC = 0
-  for (let i = 0; i < 30; i++) {   // 最多等 60 秒（固定随机流第 14 个抽取命中）
+  for (let i = 0; i < 45; i++) {   // 最多等 90 秒（固定随机流命中位置会随命中次数微移）
     await sleep(2000)
     liveC = (await reviews(page)).filter(r => r.live).length
     if (liveC > 3) break

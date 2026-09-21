@@ -1,6 +1,6 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs } from './attrs.js'
-import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE, reviewSeverityOf } from './guests.js'
+import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE } from './guests.js'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -559,11 +559,9 @@ for (let i = 0; i < reviewCount; i++) {
   )
   // 去重范围：① 批内（本次生成的多条互不重复）② 跨周（调用方经 recentReviewTexts 传入历史文本）
   const recentTexts = Array.isArray(recentReviewTexts) ? recentReviewTexts.filter(t => typeof t === 'string').slice(-10) : []
-  const mkReview = (starsIn, forceCause = null) => {
-    const isNegSlot = starsIn === 'neg'           // 差评占位：星级待 cause 定后按经营状态算
-    const guest = guestOf(randReview)             // 每条推进一次独立流（客人身份）
-    const cause = forceCause || pickCause(isNegSlot || starsIn <= 3 ? revWeights.negative : revWeights.positive, randReview) || (isNegSlot ? 'misc' : 'praise_misc')
-    const stars = isNegSlot ? negStars(cause) : starsIn
+  const mkReview = (stars, forceCause = null) => {
+    const guest = guestOf(randReview)            // 每条推进一次独立流（客人身份）
+    const cause = forceCause || pickCause(stars >= 4 ? revWeights.positive : revWeights.negative, randReview) || (stars >= 4 ? 'praise_misc' : 'misc')
     let text = makeReviewText({ cause, persona: guest.persona, stars, rnd: randReview, recent: recentTexts })
     if (!text) {                                  // 兜底：仍保留旧文本池（不出现空文本）
       const pool = stars >= 4 ? positiveTexts : negativeTexts
@@ -579,16 +577,6 @@ for (let i = 0; i < reviewCount; i++) {
       relatedDecision: CAUSE_SOURCE[cause] || null,
     }
   }
-
-  // 差评星级 = 经营状态决定（语气分级），不再随机。
-  // 铁律（保随机流位置）：原「抽一次定星级」必须在**原位置**照抽不误 —— negStarsSlot() 就是那次占位，
-  //   真正的星级在 cause 抽定之后由 negStars(cause) 算出（只读不抽）→ 独立流位置与改前完全一致。
-  const negStarsSlot = () => { randReview(); return 'neg' }
-  const negStars = (cause) => reviewSeverityOf({
-    quality: A0.quality, morale: A0.morale,
-    negRatio: negativeCount / Math.max(1, reviewCount),
-    pending: pendingNegatives, cause: cause || '',
-  })
 
   // ① 保留改前的抽取序列（条件判定 + 内容占位），卡片改在下方统一生成
   for (let i = 0; i < Math.min(negativeCount, 3); i++) { keptRand(); keptRand(); keptRand() }
@@ -623,7 +611,7 @@ for (let i = 0; i < reviewCount; i++) {
       date: `第${week}周`,
       status: 'pending',
       source: negSources[i] || null,
-      ...mkReview(negStarsSlot(), i === 0 && forceNoRoom ? 'no_room' : null),
+      ...mkReview(randReview() < 0.5 ? 1 : 2, i === 0 && forceNoRoom ? 'no_room' : null),
     })
   }
   for (let i = 0; i < posToGen; i++) {
