@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { decisions } from './decisions.js'
+import { decisions, OWNER_LABELS } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
 import { normalizeAttrs, qualityOf } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -406,6 +406,7 @@ export default function TeacherDashboard({ user, onLogout }) {
     }
   }
 
+  const [logs, setLogs] = useState([]) // 决策流水（decision_log，最新在上）
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -413,7 +414,12 @@ export default function TeacherDashboard({ user, onLogout }) {
     })()
     // Realtime：学生结算/存档变化时自动刷新看板（无需手动刷新）
     const unsub = subscribeGameStates(() => { if (!cancelled) loadAll() })
-    return () => { cancelled = true; unsub() }
+    // 决策流水：首次拉取 + Realtime 增量置顶（纯追加，不清空）
+    fetchDecisionLogs(50).then(rows => { if (!cancelled) setLogs(rows) })
+    const unsubLogs = subscribeDecisionLogs(row => {
+      if (!cancelled) setLogs(prev => [row, ...prev].slice(0, 50))
+    })
+    return () => { cancelled = true; unsub(); unsubLogs() }
   }, [])
 
   // 教师改组号/班级（本地即时更新 + 云端写入）
@@ -748,6 +754,46 @@ export default function TeacherDashboard({ user, onLogout }) {
                 ))}
               </div>
               <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
+            </div>
+
+            {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}
+            <div className="card" style={{ background: '#FFFBF5', borderColor: '#FBE3B3' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>🧾 决策流水</div>
+                <span style={{ fontSize: 9, color: logs.length ? '#10B981' : '#9CA3AF', fontWeight: 700 }}>
+                  {logs.length ? `最近 ${Math.min(logs.length, 20)} 条 · ● 实时` : '暂无记录'}
+                </span>
+              </div>
+              {logs.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', padding: '10px 0', lineHeight: 1.7 }}>
+                  学生每提交一项决策，这里会出现一行（时间 / 组 / 学生 / 决策 / 答案 / 属性反馈）
+                </div>
+              ) : (
+                logs.slice(0, 20).map(lg => {
+                  const p = profiles.find(x => x.user_id === lg.user_id) || {}
+                  const d = decisions.find(x => x.id === lg.decision_id) || {}
+                  const role = p.role_in_group && OWNER_LABELS[p.role_in_group] ? OWNER_LABELS[p.role_in_group] : null
+                  const t = lg.created_at ? new Date(lg.created_at) : null
+                  const hh = t ? [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2, '0')).join(':') : '—'
+                  const fb = String(lg.feedback || '')
+                  const fbColor = /[+＋]\d/.test(fb) ? '#16A34A' : /[-－]\d/.test(fb) ? '#DC2626' : '#6B7280'
+                  return (
+                    <div key={lg.id} style={{ padding: '6px 0', borderBottom: '1px solid #F6E7CD', fontSize: 11, lineHeight: 1.6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, color: '#9CA3AF', fontVariantNumeric: 'tabular-nums' }}>{hh}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#1D4ED8' }}>{lg.group_key || '未分组'}</span>
+                        <span style={{ fontWeight: 600 }}>{p.display_name || '—'}</span>
+                        {role && <span style={{ fontSize: 9, background: '#EFF6FF', color: '#1E40AF', borderRadius: 4, padding: '1px 5px' }}>{role.icon} {role.label}</span>}
+                        <span style={{ fontWeight: 600 }}>{d.icon} {d.name || lg.decision_id}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
+                        <span style={{ color: '#374151', flex: 1 }}>选择：{lg.answer || '—'}</span>
+                        <span style={{ color: fbColor, fontWeight: 700, flexShrink: 0 }}>{fb}</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
 
             {/* 各组决策流（最近更新的组排最上） */}
