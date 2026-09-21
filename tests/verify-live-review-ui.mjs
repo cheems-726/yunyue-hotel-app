@@ -115,7 +115,7 @@ try {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
     st.attrs = { quality: 95, reputation: 95, morale: 95, ...(st.attrs || {}) }
     st.attrs = { quality: 95, reputation: 95, morale: 95 }
-    st.history = [{ week: 1, occupancy: 85, occupiedRooms: 60, rooms: 70, price: 230, profit: 8000, goodRate: 90, finalGoodRate: 90, negativeCount: 0, reviewCount: 5, totalCost: 3000, totalExpenses: 0 }]
+    st.history = [{ week: 1, occupancy: 85, occupiedRooms: 60, rooms: 70, price: 230, revenue: 200000, profit: 8000, goodRate: 90, finalGoodRate: 90, negativeCount: 0, reviewCount: 5, totalCost: 3000, totalExpenses: 0 }]
     localStorage.setItem('hotel-sim-state', JSON.stringify(st))
     return st.week || 1
   }).catch(() => 1)
@@ -244,6 +244,61 @@ try {
     const surge = card.length - Number(m[1])
     ok(`【守恒】本周卡片 ${card.length} 张 = 评价数 ${m[1]} + 口碑爆发追加 ${surge}（0~2）`, surge >= 0 && surge <= 2)
     ok('实时卡片未被结算覆盖（仍在库里）', card.some(r => r.live))
+  }
+
+  // ── G. 口碑页即时评价（spawnRelated）也走结构化生成 ──
+  // Math.random 被钉成 0.01 → "处理妥当后 50% 生成新评价"必定触发（确定性）
+  console.log('\n▶ G 口碑页即时评价结构化')
+  await page.evaluate(() => {
+    const list = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+    list.push({ id: 'rev-e2e-pending', avatar: '🧑', bg: 'blue', name: '验收测试客 · 剧本', date: '第1周', stars: 1, text: '「空调坏了，一晚上没睡好。」', status: 'pending' })
+    localStorage.setItem('hotel-sim-reviews', JSON.stringify(list))
+  })
+  await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
+  // 结算态（report 已存档）会重载后停在周报页 —— 先点「进入第 N 周」回到带导航的壳
+  await page.evaluate(() => { const b = document.querySelector('.btn-confirm'); if (b && /进入第|最终成绩/.test(b.textContent)) b.click() })
+  await sleep(1200)
+  await clickTab(page, '口碑'); await sleep(900)
+  let replyBtn = false
+  for (let i = 0; i < 5 && !replyBtn; i++) {
+    replyBtn = await page.evaluate(() => {
+      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('💬 回复'))
+      if (!el) return false
+      el.click(); return true
+    })
+    if (!replyBtn) await sleep(1500)
+  }
+  const repG = await text(page)
+  ok(`口碑页出现可回复的待处理差评（注入卡片可见）`, replyBtn)
+  if (!replyBtn) console.log('    [G 页面] ' + repG.slice(0, 200).replace(/\n/g, ' | '))
+  await sleep(600)
+  let hasTa = await page.evaluate(() => !!document.querySelector('textarea'))
+  if (!hasTa) console.log('    [G 无 textarea] ' + (await text(page)).slice(0, 200).replace(/\n/g, ' | '))
+  ok('回复弹窗已打开（textarea 就绪）', hasTa)
+  if (hasTa) {
+    await page.evaluate(() => {
+      const ta = document.querySelector('textarea')
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+      setter.call(ta, '尊敬的客人您好，非常抱歉给您带来不便。我们已第一时间检修空调并更换配件，同时为您申请了房型升级与补偿，24 小时内会电话回访确认，期待您再次给我们机会。')
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await sleep(400)
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('发送回复')); b && b.click() })
+    await sleep(1000)
+    await closeOverlay(page)
+  }
+  let spawn = null
+  for (let i = 0; i < 6 && !spawn; i++) {
+    await sleep(2000)
+    spawn = (await reviews(page)).find(r => r.source === 'spawn')
+  }
+  ok('处理妥当 → 口碑页即时生成新评价（source=spawn）', !!spawn)
+  if (spawn) {
+    const g = spawn.guest || {}
+    ok('即时评价身份自洽（性别↔头像↔称呼）', spawn.avatar === (g.gender === 'male' ? '🧑' : '👩') && /先生|女士/.test(String(spawn.name)))
+    ok(`即时评价字段齐全（cause=${spawn.cause} / ${spawn.roomType} / ${spawn.nights}晚）`, !!spawn.cause && !!spawn.roomType && spawn.nights >= 1 && !!g.card)
+    ok('即时评价带关联经营来源（可反查决策）', !!spawn.relatedDecision)
+    ok('即时评价文案为组合生成（带「」且够长）', /^「.+」$/.test(String(spawn.text)) && String(spawn.text).length > 12)
   }
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)

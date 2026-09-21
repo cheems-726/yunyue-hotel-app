@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
-import { negativeTexts, positiveTexts, guestNames } from './settlement.js'
+import { guestsRng, makeReview } from './guests.js'
 
 // 差评数据（含处理状态）
 const initialReviews = [
@@ -34,7 +34,7 @@ const quickGoodReplies = [
   '好的，谢谢。',
 ]
 
-export default function Reputation({ report, history }) {
+export default function Reputation({ report, history, week, attrs, decisions }) {
   const [reviews, setReviews] = useState(loadReviews)
   const [replying, setReplying] = useState(null) // 正在回复的评价 { review, isGood }
   const [replyText, setReplyText] = useState('') // 自由输入的话术
@@ -42,21 +42,31 @@ export default function Reputation({ report, history }) {
   const [feedback, setFeedback] = useState(null)
 
   // 口碑是流动的：处理完一条评价后，有概率有新客人发布评价（好评率越高新好评越多）
+  // 口碑页即时评价：与结算/实时同一套结构化生成（身份自洽 + cause 绑定决策 + 房型天数）
+  // 随机源独立（guestsRng，种子含时间）——绝不消耗结算 rand、也不受固定种子约束（这是"当场新发生"）
   function spawnRelated(forceGood) {
     const goodPct = (latest ? latest.finalGoodRate : 70) / 100
     const roll = Math.random()
     const isGood = forceGood || roll < goodPct
-    const name = guestNames[Math.floor(Math.random() * guestNames.length)]
     const now = new Date()
     const hh = String(now.getHours()).padStart(2, '0')
     const mm = String(now.getMinutes()).padStart(2, '0')
-    const nid = 'flow-' + Date.now()
+    const rnd = guestsRng((Date.now() ^ 0x9E3779B9) >>> 0)
+    const occPct = latest && Number.isFinite(Number(latest.occupancy)) ? Number(latest.occupancy) : 70
+    const rv = makeReview({
+      decisions: decisions || {},
+      state: { attrs: attrs || {}, occupancy: occPct, price: (latest && latest.price) || 230 },
+      week: week || 1,
+      stars: isGood ? 5 : 2,                       // 差评星级在「语气分级」一步统一挂经营状态
+      rnd,
+      recent: reviews.map(x => String(x.text || '').replace(/^「|」$/g, '')).slice(-10),
+    })
     setReviews(reviews => [...reviews, {
-      id: nid, avatar: isGood ? '👩' : '🧑', bg: isGood ? 'green' : 'blue',
-      name, date: `刚刚 ${hh}:${mm}`,
-      stars: isGood ? 5 : (Math.random() < 0.5 ? 1 : 2),
-      text: isGood ? positiveTexts[Math.floor(Math.random() * positiveTexts.length)] : negativeTexts[Math.floor(Math.random() * negativeTexts.length)],
-      status: isGood ? 'good' : 'pending',
+      id: 'flow-' + Date.now(), avatar: rv.guest.avatar, bg: isGood ? 'green' : 'blue',
+      name: rv.guest.card, date: `入住${rv.guest.nights}天 · 刚刚 ${hh}:${mm}`,
+      stars: rv.stars, text: `「${rv.text}」`, status: isGood ? 'good' : 'pending',
+      guest: rv.guest, cause: rv.cause, roomType: rv.roomType, nights: rv.nights,
+      relatedDecision: rv.relatedDecision, source: 'spawn',
     }])
   }
 
