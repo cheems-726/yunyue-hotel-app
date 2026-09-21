@@ -13,6 +13,7 @@
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { CAUSE_SOURCE } from '../src/guests.js'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4176
@@ -320,7 +321,11 @@ try {
     const g = spawn.guest || {}
     ok('即时评价身份自洽（性别↔头像↔称呼）', spawn.avatar === (g.gender === 'male' ? '🧑' : '👩') && /先生|女士/.test(String(spawn.name)))
     ok(`即时评价字段齐全（cause=${spawn.cause} / ${spawn.roomType} / ${spawn.nights}晚）`, !!spawn.cause && !!spawn.roomType && spawn.nights >= 1 && !!g.card)
-    ok('即时评价带关联经营来源（可反查决策）', !!spawn.relatedDecision)
+    // 断言口径修正（2026-09-22）：不是"恒有来源"，而是"与 CAUSE_SOURCE 一致"——
+    // misc / praise_location / praise_misc 三类 cause 按设计就是 null（位置来自选址，不是周决策），
+    // 旧口径要求恒非空 → 命中这三类时必假，约 15~20% 概率假红（A5 系统健康总检定位）
+    ok('即时评价的关联经营来源与 CAUSE_SOURCE 一致（可反查时必有，设计上无来源时为 null）',
+      spawn.relatedDecision === (CAUSE_SOURCE[spawn.cause] || null))
     ok('即时评价文案为组合生成（带「」且够长）', /^「.+」$/.test(String(spawn.text)) && String(spawn.text).length > 12)
   }
 } catch (e) {
