@@ -1,7 +1,15 @@
 // 部署云端结算系统
 const { Client } = require('pg');
+
+// ⚠️ 连接串改从环境变量读取（数据库密码已轮换，不再硬编码于仓库）
+// 用法：SUPABASE_PG='postgresql://postgres.<ref>:<新密码>@<host>:5432/postgres' node deploy-cloud-settle.cjs
+if (!process.env.SUPABASE_PG) {
+  console.error("缺少 SUPABASE_PG 环境变量（数据库直连串，含密码故不入库）");
+  process.exit(1);
+}
+const PG_URL = process.env.SUPABASE_PG
 const fs = require('fs');
-const c = new Client({ connectionString: 'postgresql://postgres.jgytwxaeeezmdbxfsyvs:Yunyue2026!Hotel%23Teach@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' });
+const c = new Client({ connectionString: PG_URL });
 const strip = (s) => s.replace(/^--[^\n]*\n/gm, '').trim();
 c.connect().then(async () => {
   const sql = fs.readFileSync(__dirname + '/cloud-settle.sql', 'utf8');

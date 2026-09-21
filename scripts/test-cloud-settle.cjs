@@ -1,7 +1,15 @@
 // 云端结算测试（旗舰版）：单组结算 + 确定性 + 前端JS引擎对齐
 const { Client } = require('pg');
+
+// ⚠️ 连接串改从环境变量读取（数据库密码已轮换，不再硬编码于仓库）
+// 用法：SUPABASE_PG='postgresql://postgres.<ref>:<新密码>@<host>:5432/postgres' node test-cloud-settle.cjs
+if (!process.env.SUPABASE_PG) {
+  console.error("缺少 SUPABASE_PG 环境变量（数据库直连串，含密码故不入库）");
+  process.exit(1);
+}
+const PG_URL = process.env.SUPABASE_PG
 const fs = require('fs');
-const c = new Client({ connectionString: 'postgresql://postgres.jgytwxaeeezmdbxfsyvs:Yunyue2026!Hotel%23Teach@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' });
+const c = new Client({ connectionString: PG_URL });
 const state = JSON.stringify({
   location: { attrs: { "客流": 4, "租金": 3, "竞争": 3, "波动": 2 } },
   brand: { name: "汉庭", price: "180-280元", standard: "客房70间起", level: "经济型 · 国民" },

@@ -1,7 +1,15 @@
 // 组队共管 v1：game_states 归属改为"组"（group_key = 班级+组号），同组共享读写
 // 迁移策略：兼容旧数据——有组的学生把 user_id 档案迁到组档；无组的保持个人档
 const { Client } = require('pg');
-const c = new Client({ connectionString: 'postgresql://postgres.jgytwxaeeezmdbxfsyvs:Yunyue2026!Hotel%23Teach@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' });
+
+// ⚠️ 连接串改从环境变量读取（数据库密码已轮换，不再硬编码于仓库）
+// 用法：SUPABASE_PG='postgresql://postgres.<ref>:<新密码>@<host>:5432/postgres' node group-ownership.cjs
+if (!process.env.SUPABASE_PG) {
+  console.error("缺少 SUPABASE_PG 环境变量（数据库直连串，含密码故不入库）");
+  process.exit(1);
+}
+const PG_URL = process.env.SUPABASE_PG
+const c = new Client({ connectionString: PG_URL });
 c.connect().then(async () => {
   // 1. 加组键列（group_key = class_name|group_no）
   await c.query(`alter table public.game_states add column if not exists group_key text`);
