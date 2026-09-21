@@ -142,10 +142,20 @@ const qHi = run({ ...ATTR_MID, quality: 95 })
 const qLo = run({ ...ATTR_MID, quality: 25 })
 ok(qHi.occupancy > qLo.occupancy, `高品质 ${qHi.occupancy}% > 低品质 ${qLo.occupancy}%`)
 
-// ④ 高士气组差评 ≤ 低士气组（士气→好评率 + 差评系数双重作用）
-const mHi = run({ ...ATTR_MID, morale: 95 })
-const mLo = run({ ...ATTR_MID, morale: 25 })
-ok(mHi.negativeCount <= mLo.negativeCount, `高士气差评 ${mHi.negativeCount} ≤ 低士气差评 ${mLo.negativeCount}`)
+// ④ 高士气组差评更少（士气→好评率 + 差评系数双重作用）
+// 注：单周差评数极小（预期 0.1-0.3 条），单种子比较会被随机噪声翻转 → 按 24 周累计验证
+const sumNeg = (attrs) => {
+  let s = 0
+  for (let w = 1; w <= 24; w++) s += settle({ site: SITE, brand: BRAND, decisions: DEC, week: w, attrs }).negativeCount
+  return s
+}
+const negHi = sumNeg({ ...ATTR_MID, morale: 95 })
+const negLo = sumNeg({ ...ATTR_MID, morale: 25 })
+ok(negHi < negLo, `24 周累计差评：高士气 ${negHi} < 低士气 ${negLo}`)
+// 极值对照（差距足够大，单周也能分辨）
+const negHiX = run({ quality: 100, reputation: 70, morale: 100 })
+const negLoX = run({ quality: 20, reputation: 70, morale: 20 })
+ok(negHiX.negativeCount <= negLoX.negativeCount, `极值单周：全高差评 ${negHiX.negativeCount} ≤ 全低 ${negLoX.negativeCount}`)
 
 // ⑤ 声誉→获客成本：做活动时，低声誉组的营销支出更高
 const cacHi = run({ ...ATTR_MID, reputation: 95 })

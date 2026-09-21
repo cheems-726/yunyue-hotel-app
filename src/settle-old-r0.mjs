@@ -12,37 +12,6 @@ import { applyEventToAttrs, normalizeAttrs } from './attrs.js'
 // 公平原则：固定随机种子——同一经营日全班同一随机结果，决策相同则结果相同
 // v0.29：18项决策全部接入结算；好评率跨周延续；结算差评回流口碑页
 
-// ── R0 属性→经营结果（规格 §12）──────────────────────────────────────
-// 归一化原则（关键）：属性取【中性值】时，所有系数必须 = 1.0
-//   → 未接入属性的历史存档、以及"什么都没做"的默认档，结果与改前【完全一致】（回归零变化）
-//   → 规格原式在中性值上并不等于 1（priceTolerance 0.95 / occFactor 0.9 / cacFactor 1.2），
-//     故统一除以中性基准；属性影响体现为"相对中性值上下浮动"
-const ATTR_NEUTRAL = { quality: 60, reputation: 70, morale: 65 }
-const PT_BASE = 0.95   // priceTolerance 中性基准
-const OCC_BASE = 0.9   // occFactor 中性基准
-const CAC_BASE = 1.2   // cacFactor 中性基准
-
-// 品质 → 房价容忍度（客流乘数）：quality 100 → +10.5%，quality 20 → −10.5%
-function priceToleranceOf(quality) {
-  return (0.95 + (quality - 60) / 400) / PT_BASE
-}
-// 声誉 → 出租率基线：reputation 100 → +13.3%，reputation 20 → −22.2%
-function occFactorOf(reputation) {
-  return (0.9 + (reputation - 70) / 250) / OCC_BASE
-}
-// 声誉 → 获客成本：reputation 100 → ×0.875（便宜12.5%），reputation 20 → ×1.208（贵20.8%）
-function cacFactorOf(reputation) {
-  return (1.2 - (reputation - 70) / 200) / CAC_BASE
-}
-// 士气 → 好评率（加法；中性士气 = 0 加成）：morale 100 → +2.9 个百分点
-function moraleBonusOf(morale) {
-  return (morale - 65) / 12 / 100
-}
-// 品质+士气 → 差评系数（乘性；中性 = 1.0）：quality 20 且 morale 20 → 约 ×1.51
-function negFactorOf(quality, morale) {
-  return (1 - (quality - 60) / 200) * (1 - (morale - 65) / 175)
-}
-
 // 固定随机种子：简单伪随机（同一 seed 同一结果）
 function seededRandom(seed) {
   let s = seed % 2147483647
@@ -162,13 +131,6 @@ export const EVENT_CONFIG = {
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
 export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null }) {
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
-  // R0：属性 → 经营系数。attrs 缺失/旧档 → normalizeAttrs 兜底为中性值 → 全部系数 = 1.0（零变化）
-  const A0 = normalizeAttrs(attrsIn)
-  const fPriceTol = priceToleranceOf(A0.quality)   // 品质 → 客流（房价容忍度）
-  const fOcc = occFactorOf(A0.reputation)          // 声誉 → 客流（出租率基线）
-  const fCac = cacFactorOf(A0.reputation)          // 声誉 → 获客成本
-  const moraleAdd = moraleBonusOf(A0.morale)       // 士气 → 好评率（加法）
-  const fNeg = negFactorOf(A0.quality, A0.morale)  // 品质+士气 → 差评系数
 const s = site || {}
 
   // 1. 城市客流系数（选址"客流"属性 1-5 → 0.5-1.5）
@@ -244,8 +206,6 @@ if (bizMode === 'ota') {
   // 经营投入不足的系统性代价（决策少于一半：服务/维护/营销全面松懈，客人先感知）
   const doneCount = Object.keys(decisions).length
   if (doneCount < 9) goodRate -= 0.02
-  // R0：士气 → 好评率（规格 §4.3；中性士气加 0）——会经下方 reputationFactor 阈值进一步影响客流
-  goodRate += moraleAdd
   goodRate = Math.max(goodRate, 0.3) // 下限 30%
   goodRate = Math.min(goodRate, 0.95) // 上限 95%
   let reputationFactor = goodRate >= 0.85 ? 1.2 : (goodRate >= 0.7 ? 1.0 : (goodRate >= 0.5 ? 0.8 : 0.5))
@@ -261,8 +221,7 @@ if (bizMode === 'ota') {
   const marketWave = (0.85 + rand() * 0.3) * volatility
 
   // 6. 客源强度
-  // R0：品质→房价容忍度、声誉→出租率基线（两个乘数；中性值均为 1.0）
-  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc
+  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6
@@ -455,8 +414,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   if (energy != null) perRoomVariable += (energy - 23) * 2
   let variableCost = occupiedRooms * perRoomVariable
   // 营销成本 = 做活动才有额外支出
-  // R0：声誉 → 获客成本（声誉高→同样营销支出更便宜；中性值 = ×1.0）
-  let marketingCost = decisions.campaign ? Math.round(5000 * fCac) : 0
+  let marketingCost = decisions.campaign ? 5000 : 0
   // OTA 佣金：平台合作模式全营收抽成15%，直营只有投放OTA时才有11%佣金
   const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.11) : 0)
   // 超售赔偿：到店无房按间赔偿（每间赔一晚房价）
@@ -492,10 +450,7 @@ if (isBankrupt) {
 // 11. 评价生成
 const reviewCount = Math.round(occupiedRooms * 0.08)
 for (let i = 0; i < reviewCount; i++) {
-  // R0：差评概率 = (1-好评率) × negFactor
-  // ⚠️ 必须写成 r >= 阈值 的等价形式：fNeg=1 时阈值为 goodRate，与改前【逐位一致】
-  //    （若写成 r < (1-goodRate)*fNeg，概率虽同但同一颗随机数映射的事件变了 = 换随机序列）
-  if (rand() >= 1 - (1 - goodRate) * fNeg) negativeCount++
+  if (rand() >= goodRate) negativeCount++
 }
   // 超售到店无房必招差评
   if (overbookCompensation > 0) {
