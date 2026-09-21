@@ -8,3 +8,7 @@ android/capacitor-cordova-android-plugins/build/
 android/local.properties
 *.apk
 *.keystore
+
+# 备份/临时文件不进仓库（2026-09-22 夜：误提交 12 个 .bak 后补）
+*bak
+*.patch-tmp

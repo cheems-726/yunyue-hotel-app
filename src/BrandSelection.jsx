@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 
 // 华住全部品牌（按档次分组，含加盟费/造价/房价带）

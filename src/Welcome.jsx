@@ -1,4 +1,3 @@
-import React from 'react'
 
 // 欢迎页：首次登录的引导，介绍整个经营流程
 export default function Welcome({ user, onStart }) {

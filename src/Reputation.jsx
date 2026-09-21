@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
 import { guestsRng, makeReview } from './guests.js'

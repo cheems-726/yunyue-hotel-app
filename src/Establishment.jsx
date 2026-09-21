@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 
 // 筹建 4 步（品牌/物业已在前面的选品牌和认领环节完成）

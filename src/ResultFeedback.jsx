@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import RadarChart from './RadarChart.jsx'
 
 // 通用结果反馈卡片：展示"你的选择会带来什么结果"（6秒自动收起，点击立即关）

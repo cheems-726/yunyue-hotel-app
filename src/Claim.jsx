@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 
 // 加盟 6 步流程（来自华住真实加盟流程）

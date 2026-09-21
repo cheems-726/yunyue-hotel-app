@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'

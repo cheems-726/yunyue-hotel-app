@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { decisions, OWNER_LABELS } from './decisions.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, setGroupRole, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
 import { normalizeAttrs, qualityOf } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）

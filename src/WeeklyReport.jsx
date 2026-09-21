@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getTitle } from './hotelTitle.js'
 import { decisions as ALL_DECISIONS } from './decisions.js'
 import { qualityOf } from './attrs.js'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
