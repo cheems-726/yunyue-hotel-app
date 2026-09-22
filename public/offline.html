@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>加载线上服务失败 · 云悦酒店</title>
+  <style>
+    :root { --brand:#E8940F; --ink:#111827; --muted:#6B7280; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:24px 18px 40px; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+           background:#F7F8FA; color:var(--ink); line-height:1.7; }
+    .card { background:#fff; border:1px solid #E5E7EB; border-radius:16px; padding:18px; margin-bottom:14px; }
+    h1 { font-size:17px; margin:0 0 6px; }
+    .sub { font-size:12px; color:var(--muted); }
+    .big { font-size:15px; font-weight:700; color:#B45309; }
+    code, .mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; word-break:break-all; }
+    .kv { display:flex; gap:8px; font-size:12px; color:#374151; margin-top:4px; }
+    .kv b { color:#111827; font-weight:600; flex:0 0 74px; }
+    button, a.btn { display:block; width:100%; text-align:center; text-decoration:none; border:0; border-radius:12px;
+           padding:13px 0; font-size:15px; font-weight:700; margin-top:10px; }
+    .primary { background:var(--brand); color:#fff; }
+    .ghost { background:#fff; color:var(--ink); border:1px solid #E5E7EB; }
+    ol { margin:6px 0 0 18px; padding:0; font-size:12px; color:#374151; }
+    li { margin-bottom:3px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>⚠️ 加载线上服务失败</h1>
+    <div class="sub">这个提示来自 App 的兜底页 —— 说明壳没能连上线上网页，<b>不是你的操作问题</b>。</div>
+    <div class="big" id="retryTip" style="margin-top:10px">10 秒后自动重试…</div>
+    <button class="primary" id="retry">立即重试</button>
+    <a class="btn ghost" href="index.html">先用「内嵌版本」应急（可离线演示，但功能是旧版）</a>
+  </div>
+
+  <div class="card">
+    <h1>给老师/管理员看的信息</h1>
+    <div class="kv"><b>目标地址</b><span class="mono" id="target">-</span></div>
+    <div class="kv"><b>当前时间</b><span id="now">-</span></div>
+    <div class="kv"><b>网络状态</b><span id="online">-</span></div>
+    <div class="kv"><b>WebView</b><span class="mono" id="ua">-</span></div>
+    <div class="kv"><b>App 版本</b><span>v0.48（兜底页 v1）</span></div>
+  </div>
+
+  <div class="card">
+    <h1>排查建议（按顺序）</h1>
+    <ol>
+      <li>确认手机能上网：用手机浏览器打开 <span class="mono">https://www.2026911301.xyz</span></li>
+      <li>能打开 → 是 App/WebView 问题：把上面「WebView」整行发给管理员</li>
+      <li>打不开 → 是网络/域名问题：换 WiFi 或流量再试一次</li>
+      <li>仍不行 → 先用上面「内嵌版本」应急，不影响上课</li>
+    </ol>
+  </div>
+
+  <script>
+    var TARGET = 'https://www.2026911301.xyz/'
+    document.getElementById('target').textContent = TARGET
+    document.getElementById('now').textContent = new Date().toLocaleString('zh-CN')
+    document.getElementById('online').textContent = navigator.onLine ? '已联网' : '无网络'
+    document.getElementById('ua').textContent = navigator.userAgent
+    function go () { location.replace(TARGET) }
+    document.getElementById('retry').addEventListener('click', go)
+    var left = 10
+    var t = setInterval(function () {
+      left -= 1
+      if (left <= 0) { clearInterval(t); go(); return }
+      document.getElementById('retryTip').textContent = left + ' 秒后自动重试…'
+    }, 1000)
+  </script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   "server": {
     "url": "https://www.2026911301.xyz",
     "cleartext": false,
-    "errorPath": "index.html"
+    "errorPath": "offline.html"
   },
   "android": {
     "allowMixedContent": false
