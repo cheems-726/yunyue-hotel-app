@@ -169,16 +169,16 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>本周成本构成（共 {result.totalExpenses.toLocaleString()} 元）</div>
               {(() => {
-                const rooms = result.rooms || 70
-                const occupied = result.occupiedRooms || 0
-                const items = [
-                  { name: '固定成本', val: rooms * 65, color: '#818CF8' },
-                  { name: '人员工资', val: occupied * (result.decisions?.shifts === '满编保服务' ? 30 : result.decisions?.shifts === '精简省成本' ? 20 : 25), color: '#F472B6' },
-                  { name: '物料水电', val: occupied * 25, color: '#FBBF24' },
-                  { name: 'OTA佣金', val: result.decisions?.ota ? Math.round(result.revenue * 0.11) : 0, color: '#34D399' },
-                  { name: '营销推广', val: result.decisions?.campaign ? 5000 : 0, color: '#60A5FA' },
-                  { name: '维修/罚款', val: (result.eventFine || 0) + (result.overbookCompensation || 0), color: '#F87171' },
-                ].filter(x => x.val > 0)
+                // 🔴 口径修正（2026-09-22）：改读**引擎权威** weeklyExpenses（settlement.js 生成）
+                //   原先前端按 65/30/25 元硬编码重算，与引擎公式不符、且漏掉「维修保养」；
+                //   卡片头的总额本就来自引擎 ⇒ 拆解与总额必须同源，否则学生对不上账。
+                const EXP_COLOR = {
+                  人员工资: '#F472B6', 物料消耗: '#FBBF24', 水电能耗: '#38BDF8', 维修保养: '#A78BFA',
+                  营销推广: '#60A5FA', OTA佣金: '#34D399', 超售赔偿: '#FB923C', 事件罚款: '#F87171',
+                }
+                const items = Object.entries(result.weeklyExpenses || {})
+                  .map(([name, val]) => ({ name, val, color: EXP_COLOR[name] || '#94A3B8' }))
+                  .filter(x => x.val > 0)
                 return items.map(item => (
                   <div key={item.name} style={{ marginBottom: 4 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9CA3AF' }}>

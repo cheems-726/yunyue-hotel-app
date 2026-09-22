@@ -108,6 +108,19 @@ ok(t1 === t2, '同种子 → 同文本（可复现）')
 
 // ── 差评严重度（语气分级）：必须挂经营状态、可解释、到店无房最重 ──
 // ── T4：随机源纪律（源码级）——评价相关模块不得偷偷用全局 Math.random ──
+// ── ② 回归：occupancy 单位必须是 0-100（HotelStatus 曾传 0-1 → "满负荷服务跟不上"类原因永远命不中）──
+{
+  const lean = { shifts: '精简省成本' }
+  const S1 = { occupancy: 95, price: 230, attrs: { quality: 60, reputation: 70, morale: 65 } }
+  const S2 = { occupancy: 0.95, price: 230, attrs: { quality: 60, reputation: 70, morale: 65 } }
+  const hi = causeWeightsOf(lean, S1), bug = causeWeightsOf(lean, S2)
+  console.log('\n[单位口径] occupancy 0-100 vs 0-1')
+  ok((hi.negative.busy_service || 0) > 0, `满负荷(95) + 精简排班 → busy_service 权重 > 0（实测 ${(hi.negative.busy_service || 0).toFixed(1)}）`)
+  // 实测（2026-09-22）：传 0.95 不会归零，而是把权重压到 1/4（4.0 → 1.0）—— 症状是该类原因很难出现而非永不出现
+  ok((bug.negative.busy_service || 0) < (hi.negative.busy_service || 0) * 0.5,
+    `误传 0.95（单位串线）→ busy_service 权重显著偏低（${(bug.negative.busy_service || 0).toFixed(1)} vs 正确 ${(hi.negative.busy_service || 0).toFixed(1)}）= 修复前症状`)
+}
+
 console.log('\n[随机源纪律] 评价相关模块不得依赖 Math.random')
 {
   const read = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')

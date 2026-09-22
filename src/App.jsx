@@ -1888,8 +1888,14 @@ export default function App() {
     let liveNegCount = 0
     let livePosCount = 0
     try {
-      pendingNegatives = reviews.filter(r => r.status === 'pending' || r.status === 'ignored').length
-      resolvedCount = reviews.filter(r => r.status === 'resolved').length
+      // 🔴 口径（2026-09-22 审计后修）：欠账与整改【只统计结算生成的卡片】（id 形如 w<周>-n0）
+      //   排除 ① 口碑页演示初值（数字 id，会每周白扣 0.06 好评率）
+      //       ② 实时评价卡（出现时机取决于"学生开着 App 多久"，是设备/时长相关 →
+      //          若计入欠账会破坏"不同在线时长、同决策 → 同结果"的公平性红线）
+      //   教学语义不变：结算生成的差评同样是"欠着不处理会发酵"，且完全确定性。
+      const settleCards = reviews.filter(r => /^w\d+-/.test(String(r.id)))
+      pendingNegatives = settleCards.filter(r => r.status === 'pending' || r.status === 'ignored').length
+      resolvedCount = settleCards.filter(r => r.status === 'resolved').length
       // 本周实时流水里已经产生过的评价（live 标记）——结算只补差额，
       // 否则会出现"实时已出 2 条、结算又整批出 4 条"的重复与数字对不上
       const weekLive = reviews.filter(r => r.live === true && Number(r.liveWeek) === week)

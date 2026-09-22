@@ -175,7 +175,11 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
 
     // ── 实时评价：客人退房 / 住店期间留下评价（评价系统-完整规格 §4.2 实时扩展）──
     // 口径：退房时段正常概率（主要来源）｜其他时段 ×1/5（"住店期间随手写"）
-    // 概率模型见 reviewRate.js；本函数只掷骰 + 落库，【不改动任何经营数值】
+    // 概率模型见 reviewRate.js；本函数只掷骰 + 落库。
+    // 🔴 2026-09-22 更正（原注释写"不改动任何经营数值"，是错的）：
+    //   实时差评卡会进入口碑页；而 doSettle 的 pendingNegatives 只统计**结算生成的卡片**（id w<周>-*），
+    //   实时卡不计入欠账 ⇒ 实时层对下周年限的数值影响为**零**，但"实时评价会不会被看到/处理"仍影响观感。
+    //   这样既保住教学语义（结算差评欠着会发酵），又守住公平性红线（不同在线时长、同决策 → 同结果）。
     const RV_KEY = 'hotel-sim-reviews'   // 与口碑页共用存储（复用现有待处理队列）
     const readRvList = () => {
       try { const l = JSON.parse(localStorage.getItem(RV_KEY) || '[]'); return Array.isArray(l) ? l : [] } catch (e) { return [] }
@@ -191,7 +195,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         const ctx = rvCtxRef.current
         const res = rollLiveReview({   // 掷骰与造条在纯核心里（src/liveReview.js）
           isCheckout, week, clockTag, room, price,
-          rooms, occupancy: rooms > 0 ? occupiedRooms / rooms : 0.6,
+          rooms, occupancy: rooms > 0 ? (occupiedRooms / rooms) * 100 : 60,   // 🔴 口径修正：guests.js 期望 0-100（原先传 0-1 → "满负荷服务跟不上"类原因永远命不中）
           brandLevel: ctx.brandLevel, attrs: ctx.attrs, decisions: ctx.decisions,
           dayCount: rvDayCount, weekCount: rvWeekCount,
           realDayCount: list.filter(r => r.live && r.liveDate === rvToday).length,
@@ -427,7 +431,9 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const roomsCell = [
     { l: '今日已退房', v: (liveStats ? liveStats.checkout : checkoutDone) + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
     { l: '今日已入住', v: liveStats ? liveStats.checkin + ' 间' : (dayProgress >= 14 ? checkinDone + ' 间' : '未开始'), c: '#16A34A', sub: '14:00 开办入住' },
-    { l: '在店客人', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 人', c: '#1D4ED8', live: true },
+    // 🔴 口径修正（2026-09-22）：原来把"由间合成的人数"直接标成「在店客人 N 人」，且同屏房型在店数是另一套口径，
+    //    学生看到「63 人」与房型 36+21+6=63 会以为是同一件事（实际是巧合）。现在间与人分列、并标明"估算"。
+    { l: '在店客房', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 间', c: '#1D4ED8', live: true },
     { l: '明日预抵', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280' },
   ]
 
