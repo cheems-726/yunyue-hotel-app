@@ -1,5 +1,13 @@
 {
   "appId": "com.yunyue.hotelsim",
   "appName": "云悦酒店",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://www.2026911301.xyz",
+    "cleartext": false,
+    "errorPath": "index.html"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
 }

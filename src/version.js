@@ -1,3 +1,3 @@
 // 由 build.py 自动生成
-export const APP_VERSION = '0.46'
-export const APP_VERSION_CODE = 46
+export const APP_VERSION = '0.47'
+export const APP_VERSION_CODE = 47

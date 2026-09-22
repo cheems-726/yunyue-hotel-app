@@ -37,6 +37,17 @@ GRADLE = r"D:\教学app\apk打包\gradle\gradle-8.13\bin\gradle.bat"
 JAVA_HOME = r"D:\教学app\java 21\jdk-21.0.12.1-hotspot"
 
 
+def write_web_version(vn, vc):
+    """把版本同步写进前端 src/version.js（🔴 2026-09-22 补：以前只涨 gradle，
+    界面显示的 APP_VERSION 一直停在 0.46，导致"版本可见"不可信）"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "version.js")
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write("// 由 build.py 自动生成\n")
+        f.write("export const APP_VERSION = '%s'\n" % vn)
+        f.write("export const APP_VERSION_CODE = %d\n" % vc)
+    print("  已同步前端版本号 -> src/version.js (%s / %s)" % (vn, vc))
+
+
 def read_version():
     with open(GRADLE_FILE, encoding="utf-8") as f:
         content = f.read()
