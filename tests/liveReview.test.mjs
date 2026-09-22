@@ -147,7 +147,10 @@ head('5. 与结算差额联动')
   const cls = simulateClass(attrs, { seed: 33 })
   const neg = cls.list.filter(e => e.stars <= 3).length
   const pos = cls.list.filter(e => e.stars >= 4).length
-  ok(neg + pos === cls.n, `实时条数可按星级拆分（差 ${neg} + 好 ${pos} = ${cls.n}）← App 传给 settle 的 liveNeg/livePos`)
+  ok(cls.n > 0 && neg + pos === cls.n, `实时条数可按星级拆分（差 ${neg} + 好 ${pos} = ${cls.n}）← App 传给 settle 的 liveNeg/livePos`)
+  // 交叉校验：App 用 stars 判 liveNeg/livePos，而卡片 status 也必须同口径（否则两处会自相矛盾）
+  ok(cls.list.every(e => (Number(e.stars) <= 3) === (e.status === 'pending')),
+    '星级与状态口径一致（≤3 星 ⇔ pending / ≥4 星 ⇔ good）')
   ok(cls.list.every(e => Number.isFinite(Number(e.stars))), '每条都有可解析的星级（App 用 Number(r.stars) 统计，不依赖 status）')
 }
 

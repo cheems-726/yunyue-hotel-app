@@ -45,8 +45,11 @@ ok(texts.every(t => DETAIL_WORDS.some(w => t.includes(w))), '每条都含具体�
 ok(!texts.some(t => /卫生差|服务慢|态度不好$/.test(t)), '不含笼统套话')
 const lens = texts.map(t => t.length)
 ok(Math.max(...lens) - Math.min(...lens) >= 15, `长度不一（最短 ${Math.min(...lens)} / 最长 ${Math.max(...lens)} 字）`)
-const personaHit = new Set(texts.map((_, i) => i)).size
-ok(personaHit === 10, '10 条均成功生成')
+// 🔴 原写法 `new Set(texts.map((_, i) => i)).size === 10` 是恒真式（下标集大小必为 10）——
+//    见《测试质量审计》附录"假绿 + 功能失效互相掩护"典型案例。改成真有判别力的校验：
+const genBad = texts.filter(t => typeof t !== 'string' || t.length < 12 || /undefined|NaN|\[object/.test(t))
+ok(texts.length === 10 && genBad.length === 0,
+  `10 条均真实生成且无脏内容（条数 ${texts.length}，脏 ${genBad.length}，最短 ${Math.min(...texts.map(t => String(t).length))} 字）`)
 
 console.log('\n▶ ③ 精简排班 → front_slow 权重显著高于其他')
 const baseDec = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', energy: 23 }
@@ -104,6 +107,22 @@ const t2 = makeReviewText({ cause: 'hygiene', persona: '家庭出游', stars: 1,
 ok(t1 === t2, '同种子 → 同文本（可复现）')
 
 // ── 差评严重度（语气分级）：必须挂经营状态、可解释、到店无房最重 ──
+// ── T4：随机源纪律（源码级）——评价相关模块不得偷偷用全局 Math.random ──
+console.log('\n[随机源纪律] 评价相关模块不得依赖 Math.random')
+{
+  const read = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
+  const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  // 口径（2026-09-22 实测）：guests.js / liveReview.js = 0 处；reviewRate.js 允许 1 处，
+  // 且必须只出现在 `typeof rnd === 'function' ? rnd() : Math.random()` 的兜底分支
+  const countRandom = (src) => (codeOnly(src).match(/Math\.random/g) || []).length
+  const g = read('guests.js'), rr = read('reviewRate.js'), lr = read('liveReview.js')
+  ok(countRandom(g) === 0, `guests.js 无 Math.random（实测 ${countRandom(g)} 处，自带 guestsRng 独立流）`)
+  ok(countRandom(lr) === 0, `liveReview.js 无 Math.random（实测 ${countRandom(lr)} 处，未传 rnd 时用常量兜底）`)
+  const rrLines = codeOnly(rr).split('\n').filter(l => /Math\.random/.test(l))
+  ok(countRandom(rr) <= 1 && rrLines.every(l => /typeof\s+rnd\s*===\s*'function'/.test(l)),
+    `reviewRate.js 的 Math.random 仅在 rnd 兜底分支（实测 ${countRandom(rr)} 处）`)
+}
+
 console.log('\n[严重度] reviewSeverityOf')
 {
   const worst = reviewSeverityOf({ quality: 20, morale: 20, negRatio: 1, pending: 5 })

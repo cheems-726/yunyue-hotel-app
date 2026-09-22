@@ -64,7 +64,9 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
     `${name}：星级确实由状态改写（与改前随机口径不同）`)
   // 到店无房恒 1 星
   const noRoom = neg.filter(x => x.cause === 'no_room')
-  ok(noRoom.every(x => x.stars === 1), `${name}：到店无房差评恒 1 星（${noRoom.length} 条）`)
+  // 🔴 原写法对空数组恒真（实测 3 组里 2 组"0 条"空转通过）→ 改为"真有才断言，没有就明说跳过"
+  if (noRoom.length) ok(noRoom.every(x => x.stars === 1), `${name}：到店无房差评恒 1 星（${noRoom.length} 条）`)
+  else console.log(`     （${name} 本季无 no_room 卡 → 该断言跳过，不计入通过数）`)
   const hist = {}
   neg.forEach(x => { hist[x.stars] = (hist[x.stars] || 0) + 1 })
   starHist[name] = hist
