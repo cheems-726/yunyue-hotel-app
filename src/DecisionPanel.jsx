@@ -179,7 +179,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               max={decision.max}
               value={sliderVal}
               onChange={e => setSliderVal(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#E8940F' }}
+              onTouchMove={e => e.stopPropagation()}
+              style={{ width: '100%', accentColor: '#E8940F', touchAction: 'pan-y' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
               <span>{decision.min}{decision.unit}</span>

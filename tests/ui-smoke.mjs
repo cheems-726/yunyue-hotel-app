@@ -72,6 +72,26 @@ async function assertClean(pg, label) {
   return bad
 }
 
+// P1 护栏：页面不可横向滚动 + 没有元素越出视口（拖动误触发返回的根因就是横向溢出）
+async function assertNoHorizOverflow(pg, label) {
+  const r = await pg.evaluate(() => {
+    const vw = window.innerWidth
+    const de = document.documentElement
+    const over = []
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.offsetParent === null && el.style.position !== 'fixed') continue
+      const b = el.getBoundingClientRect()
+      if (b.width === 0 || b.height === 0) continue
+      if (b.right > vw + 1 || b.left < -1) over.push((el.className || el.tagName) + ':' + Math.round(b.left) + '~' + Math.round(b.right))
+      if (over.length >= 3) break
+    }
+    return { scrollW: de.scrollWidth, clientW: de.clientWidth, vw, over }
+  })
+  ok(`横向无溢出【${label}】(scrollW=${r.scrollW} clientW=${r.clientW} 视口=${r.vw})`, r.scrollW <= r.clientW + 1)
+  ok(`无元素越出视口【${label}】${r.over.length ? '→ ' + r.over.join(' / ') : ''}`, r.over.length === 0)
+  return r
+}
+
 async function assertLayout(pg, label) {
   const r = await pg.evaluate(() => {
     const tb = document.querySelector('.tabbar')
@@ -237,6 +257,7 @@ try {
   ok('经营页：资金卡+18决策+结算按钮', biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周结算'))
   // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
   await assertLayout(page, '学生经营页')
+  await assertNoHorizOverflow(page, '学生经营页')
   // 职业置顶断言：注入 groupRole=lobby → 大堂经理职责决策应置顶且带"我的职责"徽章（防回归）
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')

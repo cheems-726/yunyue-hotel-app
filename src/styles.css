@@ -26,7 +26,8 @@
   --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.10);
 }
 
-html, body, #root { height: 100%; }
+/* P1：禁用横向 overscroll —— Android/Edge 的边缘横滑"后退"手势靠这个压制 */
+html, body, #root { height: 100%; width: 100%; overscroll-behavior-x: none; }
 
 body {
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -274,11 +275,16 @@ body {
 .cost-box.warn { background: var(--red-bg); color: #991B1B; }
 .cost-box .cost-title { font-weight: 700; margin-bottom: 3px; }
 
+/* P1：滑块只吃横向手势、不吃页面级滑动；滚动容器只允许纵向手势 */
+input[type=range] { touch-action: pan-y; }
+.content { touch-action: pan-y; }
+
 /* 弹窗遮罩 */
 .modal-mask {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.45); z-index: 100;
   display: flex; align-items: center; justify-content: center; padding: 0 32px;
+  overflow-x: hidden;          /* P1：横向绝不溢出（纵向不动，长弹窗照常可滚） */
   animation: fadeIn 0.2s ease-out;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

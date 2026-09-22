@@ -448,7 +448,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
                 <span
                   className="float-num"
                   key={`${a.key}-${flash[a.key]}-${flash.nonce}`}
-                  style={{ '--delay': '0s', position: 'absolute', right: '100%', top: -14, marginRight: 4, fontSize: 12, fontWeight: 800, color: flash[a.key] > 0 ? '#16A34A' : '#DC2626', background: '#fff', border: '1px solid ' + (flash[a.key] > 0 ? '#BBF7D0' : '#FECACA'), borderRadius: 999, padding: '1px 8px', boxShadow: '0 2px 6px rgba(16,24,40,0.10)', pointerEvents: 'none', whiteSpace: 'nowrap' }}
+                  style={{ '--delay': '0s', position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -14, fontSize: 12, fontWeight: 800, color: flash[a.key] > 0 ? '#16A34A' : '#DC2626', background: '#fff', border: '1px solid ' + (flash[a.key] > 0 ? '#BBF7D0' : '#FECACA'), borderRadius: 999, padding: '1px 8px', boxShadow: '0 2px 6px rgba(16,24,40,0.10)', pointerEvents: 'none', whiteSpace: 'nowrap' }}
                 >
                   {ATTR_LABELS[a.key]} {flash[a.key] > 0 ? '+' : ''}{flash[a.key]}
                 </span>
