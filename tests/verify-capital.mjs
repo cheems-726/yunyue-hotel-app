@@ -119,12 +119,25 @@ try {
   const profit = mProfit ? Number(mProfit[1].replace(/,/g, '')) : null
   ok(`结算后资金 = 500000 + 本周利润（${st2.capital} vs ${profit}）`, profit != null && st2.capital === 500000 + profit)
 
+  // ── P5 对账：周报「期末资金」=== 权威 state（精确）=== 资金卡显示（容差 ±500，显示为 x.x 万）──
+  let wrCap = null
+  {
+    const mCap = wr.match(/💰 期末资金\s*([\d,]+)\s*元/)
+    ok(`周报显示「期末资金」（${mCap ? mCap[1] : '未匹配'}）`, !!mCap)
+    if (mCap) {
+      wrCap = Number(mCap[1].replace(/,/g, ''))
+      ok(`周报期末资金 === 权威 state（${wrCap} vs ${st2.capital}）`, wrCap === st2.capital)
+    }
+  }
+
   // ── ④ 进入下一周 → 资金卡显示累积值（不再是每周重置的 50 万+本周）──
   await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
   const st3 = await state(page)
   const card2 = await readCardCap()
   // 卡片显示格式为 (cap/10000).toFixed(1) 万 → 容差 ±500（显示精度，不是精度差）
   ok(`第 2 周资金卡仍显示累积值（显示 ${card2} ≈ 权威 ${st3.capital}）`, card2 != null && Math.abs(card2 - st3.capital) <= 500 && st3.capital > 500000)
+  // P5 对账（卡片可见时才比）：资金卡显示 === 上一份周报的「期末资金」（容差 ±500 = x.x 万显示精度）
+  if (wrCap != null) ok(`资金卡显示 ≈ 周报期末资金（${card2} vs ${wrCap}）`, card2 != null && Math.abs(card2 - wrCap) <= 500)
 
   // ── ⑤ 旧档平滑迁移：有 history 但无 capital → 500000 + Σ历史利润 ──
   await page.evaluate(() => {

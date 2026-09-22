@@ -162,6 +162,8 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           <div>💵 平均房价 {result.price} 元/间</div>
           <div>💰 成本 {result.totalCost} 元</div>
           <div>⭐ 好评率 {result.goodRate}% → {result.finalGoodRate}%</div>
+          {/* P5：资金唯一权威 = settle 返回的 capital（资金卡同源，可对账） */}
+          {typeof result.capital === 'number' && <div>💰 期末资金 {result.capital.toLocaleString()} 元</div>}
           <div>💬 本周 {result.reviewCount} 条评价，{result.negativeCount} 条差评</div>
           {result.totalExpenses > 0 && (
             <div style={{ marginTop: 8 }}>
