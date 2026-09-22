@@ -264,5 +264,20 @@ ok(
 )
 ok(JSON.stringify(revA.generatedReviews.map(r => r.text)) !== JSON.stringify(revB.generatedReviews.map(r => r.text)), '同周不同历史 → 文本变化（去重生效）')
 
+console.log('\n[10] 触发条件回归：18 项决策全做完且答案一致（曾被 TDZ 崩掉）')
+{
+  // 触发条件只能靠【垃圾输入】构造：18 项答案字符串完全相同就不可能每项都合法
+  const ids = ['pricing', 'shifts', 'overbook', 'hygiene', 'linen', 'energy', 'campaign', 'ota',
+    'member-convert', 'member-threshold', 'corporate', 'reputation', 'hr-optimize', 'renovation',
+    'quality-check', 'service', 'breakfast', 'parking']
+  const same = {}
+  ids.forEach(k => { same[k] = '统一答案' })
+  let r = null, err = null
+  try { r = settle({ site: SITE, brand: BRAND, decisions: same, week: 1 }) } catch (e) { err = e }
+  ok(!err, '18 项同答案 → settle 不抛异常（TDZ 修复回归）' + (err ? ' 实际：' + err.message : ''))
+  ok(!!r && Array.isArray(r.insights) && r.insights.some(x => String(x.text).includes('决策模式异常一致')),
+    '防作弊提醒照常产出（insights 含决策模式异常一致）')
+}
+
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
 process.exit(fail ? 1 : 0)
