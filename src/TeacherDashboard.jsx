@@ -667,7 +667,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
-                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { close(); onGoDecision && onGoDecision(id) }} />}
+                {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { setExpandedUid(null); onGoDecision && onGoDecision(id) }} />}
               </div>
               )
             })}
@@ -916,7 +916,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
-              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { close(); onGoDecision && onGoDecision(id) }} />}
+              {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { setExpandedUid(null); onGoDecision && onGoDecision(id) }} />}
               </div>
             ))}
           </div>
