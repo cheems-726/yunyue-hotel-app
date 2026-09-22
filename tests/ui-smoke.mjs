@@ -2,7 +2,7 @@
 // 运行：先 npm run build，再 node tests/ui-smoke.mjs（脚本自动起 preview 服务器）
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { TEST_TEACHER, TEST_STUDENT } from './testEnv.mjs'
 
@@ -62,6 +62,16 @@ const sleep = ms => page.waitForTimeout(ms)
 //       导致潜伏到 9-20 真机才暴露。本函数就是那次的防线。
 // 注意：checkVisibility() 只反映 display/visibility/opacity，**不反映被 overflow 裁切**（本 bug 正是裁切），
 //       所以真正承载判定的是 rect 断言与"滚到底后末元素是否进入视口"断言。
+// 渲染整洁断言：页面文本不得出现插值残留/undefined/NaN/错误边界文案
+// （🔴 已知教训：ErrorBoundary 白屏只走 console.error，单看 pageerror 会漏判 → 必须同时查页面文本）
+async function assertClean(pg, label) {
+  const t = await pg.evaluate(() => document.body.innerText)
+  const bad = ['undefined', 'NaN', '[object Object]', '页面出了点问题'].filter(x => t.includes(x))
+  ok(`渲染整洁【${label}】（无 undefined/NaN/错误边界）`, bad.length === 0 && t.trim().length > 20)
+  if (bad.length) console.log('    [命中] ' + bad.join(' / '))
+  return bad
+}
+
 async function assertLayout(pg, label) {
   const r = await pg.evaluate(() => {
     const tb = document.querySelector('.tabbar')
@@ -504,5 +514,5 @@ const failed = results.filter(r => !r.pass)
 console.log('\n========== 结果: ' + (results.length - failed.length) + ' 通过 / ' + failed.length + ' 失败 ==========')
 for (const f of failed) console.log('  ✗ ' + f.name)
 try { await browser?.close() } catch (e) {}
-try { if (server?.pid) process.platform === 'win32' ? require('node:child_process').execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' }) : server.kill('SIGTERM') } catch (e) {}
+try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' }); else server.kill('SIGTERM') } } catch (e) {}
 process.exit(failed.length ? 1 : 0)

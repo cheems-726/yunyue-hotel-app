@@ -483,6 +483,8 @@ let capital = prevCapital != null ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0
 const isWarning = !isBankrupt && capital < 50000
+// 决策复盘容器（必须在使用前声明：本文件下方多处 push，含"决策模式异常一致"的防作弊提醒）
+const insights = []
 // 防作弊：全部决策选相同模式→可疑警告
 const doneKeys = Object.keys(decisions).filter(k => !k.startsWith('__'))
 if (doneKeys.length === 18) {
@@ -519,8 +521,7 @@ for (let i = 0; i < reviewCount; i++) {
   // 13. 最终好评率
   const finalGoodRate = reviewCount > 0 ? (reviewCount - negativeImpact) / reviewCount : goodRate
 
-  // 14. 决策复盘（对关键决策给出评价）
-  const insights = []
+  // 14. 决策复盘（对关键决策给出评价；insights 已在文件上方声明）
   // 未完成决策提醒（教学：不作为也是一种决策）
   if (doneCount < 18) {
     const undone = DECISION_IDS.filter(id => !(id in decisions))

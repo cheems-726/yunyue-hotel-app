@@ -11,7 +11,7 @@
 //    再配合高位属性（p 大）与高入住（crowd=1），让"命中时刻"可预期。
 
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { CAUSE_SOURCE } from '../src/guests.js'
 
@@ -333,6 +333,11 @@ try {
 } finally {
   console.log(`\n========== 结果: ${results.filter(r => r.pass).length} 通过 / ${results.filter(r => !r.pass).length} 失败 ==========`)
   try { await browser.close() } catch (e) {}
-  try { process.kill(-server.pid) } catch (e) {}
+  try {
+    if (server?.pid) {
+      if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' })
+      else server.kill('SIGTERM')
+    }
+  } catch (e) {}
 }
 process.exit(results.some(r => !r.pass) ? 1 : 0)
