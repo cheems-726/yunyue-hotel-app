@@ -239,11 +239,27 @@ try {
   const m = wr.match(/本周\s*(\d+)\s*条评价[，,]\s*(\d+)\s*条差评/)
   ok(`周报读取到评价数（${m ? m[1] + ' 条评价 / ' + m[2] + ' 条差评' : '未匹配：' + wr.slice(0, 80).replace(/\n/g, ' | ')}）`, !!m)
   if (m) {
-    const card = (await reviews(page)).filter(r => (r.live ? Number(r.liveWeek) === week : Number(r.week) === week))
+    // 本周遭次卡片识别口径（与 App 一致）：实时卡带 liveWeek；结算卡 id 形如 w<周>-n<i>/w<周>-g<i>（**没有 week 字段**）
+    // 🔴 旧口径按 r.week 取 → 结算卡恒被算漏，差评数为 0 时空转通过（假绿），2026-09-22 因 bizMode 激活出现真差评才暴露
+    const weekOf = (r) => {
+      if (r.live) return Number(r.liveWeek)
+      const m = String(r.id || '').match(/^w(\d+)-/)
+      return m ? Number(m[1]) : null
+    }
+    const card = (await reviews(page)).filter(r => weekOf(r) === week)
+    console.log('    [本周卡片明细] ' + card.map(r => `${r.id}/${r.live ? 'live' : 'settle'}/⭐${r.stars}/${r.status}`).join('  '))
     const negCards = card.filter(r => Number(r.stars) <= 3).length
+    const settleCards = card.filter(r => !r.live)
+    // ⚠️ 新增（2026-09-22）：证明"结算差额卡片确实入库了"——旧断言在差评数为 0 时空转通过（假绿），
+    //    曾让"结算卡片从未入库"的越界 bug 潜伏至今
+    ok(`结算差额卡片已入库（${settleCards.length} 张，differential 生成）`,
+      settleCards.length > 0 || (Number(m[1]) === 0 && Number(m[2]) === 0))
     ok(`【数字=卡片】本周差评卡 ${negCards} 张 === 周报差评数 ${m[2]}（不封顶 → 恒等）`, negCards === Number(m[2]))
+    // 口碑爆发会上浮；另外"实时好评数 > 目标好评数"时实时会多送（设计如此：实时已足够则不重复生成），
+    // 故总数取 >= 口径，并单独断言"结算补的差评一张不少"
     const surge = card.length - Number(m[1])
-    ok(`【守恒】本周卡片 ${card.length} 张 = 评价数 ${m[1]} + 口碑爆发追加 ${surge}（0~2）`, surge >= 0 && surge <= 2)
+    const extra = card.length - Number(m[1])   // 实时好评数超过"目标好评数"时实时会多送（设计如此：实时已足够则不重复生成）
+    ok(`【守恒】本周卡片 ${card.length} 张 ≥ 评价数 ${m[1]}（差额生成；实时多送 ${extra} 张）`, card.length >= Number(m[1]) && extra >= 0)
     ok('实时卡片未被结算覆盖（仍在库里）', card.some(r => r.live))
   }
 

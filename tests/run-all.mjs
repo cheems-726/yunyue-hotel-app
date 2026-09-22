@@ -23,6 +23,7 @@ const SUITES = [
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', optional: true },
+  { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true },
   { name: 'ui-smoke（已并入 npm run test:ui）', file: null, npm: 'test:ui', browser: true, note: '含 build' },
 ]

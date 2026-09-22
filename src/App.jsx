@@ -217,7 +217,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -375,7 +375,10 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
 
       {/* 资金状态 + 主力客群显示条 */}
       {(() => {
-        const cap = 500000 - history.reduce((a, h) => a + (h.totalExpenses || 0), 0) + history.reduce((a, h) => a + (h.profit || 0), 0)
+        // 资金唯一权威 = state.capital（由 settle 返回写回）。
+        // 🔴 原式 500000 − ΣtotalExpenses + Σprofit 属双重扣成本：profit 已扣除 totalCost（含 weeklyExpenses），
+        //    再减一次 totalExpenses → 学生看到的资金被系统性低估（实测第1周差 6,981 = 当周 totalExpenses）
+        const cap = capital
         const expenses = report?.totalExpenses || 0
         const isLow = cap < 100000
         const isCritical = cap < 50000
@@ -1636,7 +1639,12 @@ export default function App() {
   }
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
-  const [capital, setCapital] = useState(500000) // 初始资金50万
+  // 资金唯一权威（settle 返回后写回）；旧档无该字段时按"50万 + 历史累计利润"平滑起算
+  const [capital, setCapital] = useState(
+    typeof saved.capital === 'number' ? saved.capital : 500000 + (saved.history || []).reduce((a, h) => a + (h.profit || 0), 0)
+  )
+  // 经营模式：认领页选择（direct 自主直营 / ota 平台合作）。旧档缺省 direct —— 与当前引擎默认一致，老班成绩零变化
+  const [bizMode, setBizMode] = useState(saved.bizMode === 'ota' ? 'ota' : 'direct')
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
 
@@ -1673,9 +1681,9 @@ export default function App() {
   // 状态持久化：本机 localStorage 即时保存
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode }))
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
 
   // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
   useEffect(() => {
@@ -1685,7 +1693,7 @@ export default function App() {
   }, [attrFlash])
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
-  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs }
+  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode }
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const gk = groupKeyOf(user.className, user.groupNo)
@@ -1776,6 +1784,8 @@ export default function App() {
           setEstablished(!!cloudSaved.established)
           setEstChoices(cloudSaved.estChoices || null)
           setDoneDecisions(cloudSaved.doneDecisions || {})
+          if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
+          if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
           setReport(cloudSaved.report || null)
           setWeek(cloudSaved.week || 1)
           setHistory(cloudSaved.history || [])
@@ -1831,13 +1841,18 @@ export default function App() {
   }
   function doSettle() {
     const site = location?.attrs || { 客流: 3 }
+    // 口碑页数据读一次，供本函数全程使用。
+    // 🔴 历史 bug：原先 reviews 声明在下方第一个 try 内部，而"结算卡片入库"那段在另一个 try 里引用它
+    //    → ReferenceError 被自己的 catch(e){} 吞掉 → **结算生成的评价卡片从未写进口碑页**（潜伏已久，
+    //    2026-09-22 因 bizMode 激活后出现真差评、断言才暴露）。作用域提到函数顶层，杜绝复发。
+    let reviews = []
+    try { reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]') } catch (e) { reviews = [] }
     // 读取口碑页差评状态：未处理数压口碑，已整改数给奖励
     let pendingNegatives = 0
     let resolvedCount = 0
     let liveNegCount = 0
     let livePosCount = 0
     try {
-      const reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       pendingNegatives = reviews.filter(r => r.status === 'pending' || r.status === 'ignored').length
       resolvedCount = reviews.filter(r => r.status === 'resolved').length
       // 本周实时流水里已经产生过的评价（live 标记）——结算只补差额，
@@ -1853,7 +1868,9 @@ export default function App() {
       if (saved && saved.week === week - 1) crisisResponse = saved.choice
     } catch (e) {}
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount })
+    // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
+    //     + bizMode（否则认领页选的"平台合作"在引擎侧永远走不到，帮助页承诺的 15% 佣金与流量加成失效）
+    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode })
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
@@ -1864,6 +1881,7 @@ export default function App() {
     // R0 最后一公里：把引擎返回的属性（含每周自然衰减）写回 state
     // 没有这行，衰减与属性→经营只存在于引擎内部，玩家不可见、下周也用不上
     if (result.attrsAfter) setAttrs(result.attrsAfter)
+    if (typeof result.capital === 'number') setCapital(result.capital)   // 资金唯一权威：引擎返回即权威
     setReport(result)
   }
   // 结算确认后：进入下一周，清空决策，保存历史
@@ -1893,7 +1911,8 @@ export default function App() {
     setEstablished(false)
   }
   function handleClaimComplete(result) {
-    setProperty(result.property)
+    if (result.property) setProperty(result.property)          // 完成认领（第二步）
+    if (result.mode) setBizMode(result.mode === 'ota' ? 'ota' : 'direct')  // 认领第一步选的经营模式（此前被丢弃 → B5 根因）
     setEstablished(false)
   }
   function handleEstablished(choices) {
@@ -2115,7 +2134,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
