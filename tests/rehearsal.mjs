@@ -174,6 +174,16 @@ for (const { key, rows } of all) {
 }
 ok(cardBad.length === 0, `卡片数 === max(好评数, 差评数) + 口碑爆发追加（${all.length * WEEKS} 周全对，共 ${cardTotal} 张卡）${cardBad.length ? ' → ' + cardBad.slice(0, 3).join('；') : ''}`)
 
+// ── ④b 口径自洽（P4）：差评数 ≤ 评价数、好评率 ≥ 0 ──
+{
+  const bad = []
+  for (const { key, rows } of all) for (const r of rows) {
+    if (r.negativeCount > r.reviewCount) bad.push(`${key} 第${r.w}周 差评${r.negativeCount} > 评价${r.reviewCount}`)
+    if (r.goodRate < 0) bad.push(`${key} 第${r.w}周 好评率 ${r.goodRate}% < 0`)
+  }
+  ok(bad.length === 0, `差评数 ≤ 评价数 且 好评率 ≥ 0（${all.length * WEEKS} 周）${bad.length ? ' → ' + bad.slice(0, 3).join('；') : ''}`)
+}
+
 // ── ⑤ 属性区间 + 衰减痕迹 ──
 let rangeBad = 0
 for (const { rows } of all) for (const r of rows) {

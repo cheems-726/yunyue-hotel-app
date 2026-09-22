@@ -519,7 +519,13 @@ for (let i = 0; i < reviewCount; i++) {
   }
 
   // 13. 最终好评率
-  const finalGoodRate = reviewCount > 0 ? (reviewCount - negativeImpact) / reviewCount : goodRate
+  // 🔴 P4（2026-09-22）：好评率不得为负。
+  //   机制：negativeCount 会被「差评潮」「超售」推高到 reviewCount 之上（差评潮的 +1 在**本行之后**才发生，
+  //   所以"先夹 negativeCount 再算"在这里做不到），于是 (reviewCount − negativeImpact)/reviewCount 变负，
+  //   学生在周报看到"好评率 83% → -100%"。修法：公式内夹取（分子不低于 0），reviewCount=0 时也不低于 0。
+  const finalGoodRate = reviewCount > 0
+    ? (reviewCount - Math.min(negativeImpact, reviewCount)) / reviewCount
+    : Math.max(0, goodRate)
 
   // 14. 决策复盘（对关键决策给出评价；insights 已在文件上方声明）
   // 未完成决策提醒（教学：不作为也是一种决策）
@@ -605,6 +611,13 @@ for (let i = 0; i < reviewCount; i++) {
     negSources.push({ icon: '🌊', name: '差评潮' })
     keptRand(); keptRand(); keptRand()
   }
+
+  // 🔴 P4（2026-09-22）：差评数不可能超过评价数，但「差评潮」「超售」会在此之上额外 +1，
+  //    使 finalGoodRate = (reviewCount − negativeImpact)/reviewCount 出现负值
+  //    （实测 −100%/−50%，学生会看到"好评率 X% → -100%"这种无意义数字）。
+  //    夹取后两个口径同时自洽：差评数 ≤ 评价数、好评率 ≥ 0；差评卡目标随之用夹取后的数量，
+  //    卡片数与周报数字仍然严格一致（守恒不破）。
+  if (negativeCount > reviewCount) negativeCount = reviewCount
 
   // ② 卡片生成：目标 − 本周实时已产生 = 差额（数字与卡片严格一致）
   //    差评卡目标 = negativeCount（全展示，不封顶 —— 封顶会让"5 条差评只见 3 张"，痛感被截断）

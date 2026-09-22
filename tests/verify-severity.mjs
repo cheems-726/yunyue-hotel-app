@@ -42,8 +42,13 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   const rows = dualRun(dec)
   // ① 数值完全一致
   const numKeys = ['occupancy', 'finalGoodRate', 'negativeCount', 'reviewCount', 'profit', 'capital']
-  const numDiff = rows.filter(r => numKeys.some(k => JSON.stringify(r.old[k]) !== JSON.stringify(r.new[k])))
-  ok(numDiff.length === 0, `${name}：12 周数值逐周完全一致（出租率/好评率/差评数/条数/利润/资金）`)
+  // 🔴 P4（2026-09-22）口径：好评率被夹取到 ≥0，且经 prevGoodRate 跨周传导
+  //    ⇒ 断言 = 【首次夹取周之前必须逐周完全一致】；夹取周及其后为预期差异
+  const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
+  const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
+  const numDiff = rows.filter(r => r.w < firstClamp && numKeys.some(k => JSON.stringify(r.old[k]) !== JSON.stringify(r.new[k])))
+  ok(numDiff.length === 0,
+    `${name}：首次夹取周(${firstClamp === Infinity ? '—' : 'w' + firstClamp})之前数值逐周完全一致；夹取周 ${clampWeeks.length} 周`)
 
   // ② 星级相同的卡片，文本必须逐字一致（证明独立流位置没被改动）
   //    星级被状态改写的那部分，文本随之改语气（这正是语气分级要的）

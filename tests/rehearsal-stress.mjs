@@ -155,6 +155,11 @@ health(harsh, '激进作死')
   ok(harsh.every(r => Number.isFinite(r.profit)), '作死到底利润仍为有限数（不会 NaN/崩溃）')
 }
 
+// ── P4 口径自洽：夹取后差评数不得超过评价数（否则差评卡会多于"评价数"）──
+ok([...long, ...ob, ...empty, ...harsh, ...(typeof low !== 'undefined' ? low : []), ...(typeof high !== 'undefined' ? high : [])]
+  .every(r => r.negativeCount <= r.reviewCount),
+  '全部压力场景：差评数 ≤ 评价数（P4 夹取生效）')
+
 // ── 全局结论 ──
 console.log('')
 ok(crashes.length === 0, `五个场景全程无异常抛出${crashes.length ? ' → ' + crashes.slice(0, 3).join('；') : ''}`)

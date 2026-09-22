@@ -48,7 +48,17 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
     const surgeN = n.generatedReviews.filter(x => x.surge === '口碑爆发').length
     console.log(`   ${String(w).padStart(2)} | ${String(o.occupancy).padStart(3)}% ${String(o.finalGoodRate).padStart(3)}% ${String(o.negativeCount).padStart(2)} ${String(o.profit).padStart(7)} | ${String(n.occupancy).padStart(3)}% ${String(n.finalGoodRate).padStart(3)}% ${String(n.negativeCount).padStart(2)} ${String(n.profit).padStart(7)} | ${same ? '✅' : '❌'} 卡片${n.generatedReviews.length}(评${n.reviewCount}/差${n.negativeCount}/爆${surgeN})`)
   })
-  ok(allSame, `${name}：12 周 出租率/好评率/差评数/利润 逐周完全一致`)
+  // 🔴 P4（2026-09-22）后口径微调：好评率被夹取到 ≥0（旧引擎会算出 −100%/−50%）。
+  //    因此只在【旧引擎好评率为负】的周允许差异 —— 其余周必须仍然逐周完全一致（证明改动是外科手术式的）。
+  const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
+  // 好评率会经 prevGoodRate 跨周传导 ⇒ 夹取的影响从首周起向后传递；
+  // 因此断言口径 = 【首次夹取的那一周之前，必须逐周完全一致】（改动是外科手术式的）+ 之后允许传导差异。
+  const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
+  const unexpected = rows.filter(r => r.w < firstClamp &&
+    !(r.old.occupancy === r.new.occupancy && r.old.finalGoodRate === r.new.finalGoodRate &&
+      r.old.negativeCount === r.new.negativeCount && r.old.profit === r.new.profit)).map(r => r.w)
+  ok(unexpected.length === 0,
+    `${name}：首次夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前逐周完全一致；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
 
   // 内容对比
   const oldTexts = rows.flatMap(r => r.old.generatedReviews.map(x => x.text))
