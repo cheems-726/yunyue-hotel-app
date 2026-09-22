@@ -275,6 +275,12 @@ body {
 .cost-box.warn { background: var(--red-bg); color: #991B1B; }
 .cost-box .cost-title { font-weight: 700; margin-bottom: 3px; }
 
+/* P1-补：左边缘 24px 触摸拦截层（仅弹层/决策面板打开时渲染）——透明、不可见，只吃手势 */
+.edge-guard {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 24px;
+  z-index: 400; background: transparent; touch-action: none;
+}
+
 /* P1：滑块只吃横向手势、不吃页面级滑动；滚动容器只允许纵向手势 */
 input[type=range] { touch-action: pan-y; }
 .content { touch-action: pan-y; }

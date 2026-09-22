@@ -1585,6 +1585,28 @@ export default function App() {
   // 手机侧滑返回：关一层界面（子页/决策面板→回经营tab），永不直接退出站点
   const navRef = React.useRef({})
   navRef.current = { openPage, currentDecision, tab, close: () => { setOpenPage(null); setCurrentDecision(null) }, setTab }
+  // P1-补：左边缘 24px 触摸拦截层 —— 仅在【弹层/决策面板打开时】启用，避免挡住正常左侧交互。
+  // 目的：把"左边缘右滑"在应用内消化掉，不让它被系统/浏览器解释成返回。
+  // ⚠️ 真机预期（如实记录）：Android 的【系统】返回手势由 OS 在网页之前处理，网页通常拦不住；
+  //    本层至少能挡住浏览器级的边缘滑动/横滚，并让"面板打开时左边缘拖动"不产生副作用。
+  //    必须用原生 addEventListener({passive:false})：React 的合成 touch 监听是被动的，preventDefault 无效。
+  const edgeGuardRef = React.useRef(null)
+  const anyLayerOpen = !!(openPage || currentDecision)
+  React.useEffect(() => {
+    const el = edgeGuardRef.current
+    if (!el || !anyLayerOpen) return
+    const stop = (e) => { e.preventDefault(); e.stopPropagation() }
+    const opts = { passive: false }
+    el.addEventListener('touchstart', stop, opts)
+    el.addEventListener('touchmove', stop, opts)
+    el.addEventListener('touchend', stop, opts)
+    return () => {
+      el.removeEventListener('touchstart', stop)
+      el.removeEventListener('touchmove', stop)
+      el.removeEventListener('touchend', stop)
+    }
+  }, [anyLayerOpen])
+
   React.useEffect(() => {
     try { window.history.pushState({ app: 1 }, '') } catch (e) {}
     const onPop = () => {
@@ -2168,6 +2190,9 @@ export default function App() {
           </div>
         ))}
       </div>
+      {/* P1-补：左边缘手势拦截层（仅弹层/决策面板打开时渲染） */}
+      {anyLayerOpen && <div ref={edgeGuardRef} className="edge-guard" aria-hidden="true" />}
+
       <div className="tabbar">
         {tabs.map(t => (
           <button className={`tab ${tab === t.key && !openPage ? 'active' : ''}`} key={t.key} onClick={() => { setTab(t.key); close() }}>
