@@ -20,6 +20,7 @@ const SUITES = [
   { name: 'liveReview（实时评价纯核心）', file: 'tests/liveReview.test.mjs' },
   { name: 'shadow-reviews（改前vs改后·逐周一致）', file: 'tests/shadow-reviews.mjs' },
   { name: 'verify-severity（语气分级）', file: 'tests/verify-severity.mjs' },
+  { name: 'dayEngine（日引擎·一期D1）', file: 'tests/dayEngine.test.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', optional: true },
