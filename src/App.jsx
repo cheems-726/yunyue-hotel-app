@@ -1582,9 +1582,20 @@ export default function App() {
   const [tab, setTab] = useState('business')
   const [openPage, setOpenPage] = useState(null) // { title, icon }
   const [currentDecision, setCurrentDecision] = useState(null) // 当前决策
-  // 手机侧滑返回：关一层界面（子页/决策面板→回经营tab），永不直接退出站点
+  // 手机侧滑返回 / 安卓返回键的统一处理（**纯网页方案，iOS Safari 与安卓浏览器都走这条**）
+  // 规则（用户 2026-09-22 定·选项2）：
+  //   · 子页(openPage) → 关闭它
+  //   · 非经营 tab    → 切回经营
+  //   · **决策面板(currentDecision) 不注册为历史层**：面板打开时返回键/边缘手势【什么都不做】
+  //     理由：边缘手势两端通治，且教学场景里"误滑退出决策页"比"返回键关不掉"更烦人；面板自带「‹ 返回」
+  // 三条保障不变：① 子页仍可被返回关闭 ② 非经营 tab 仍回经营 ③ 永不退出站点（每次处理完立刻再 pushState）
   const navRef = React.useRef({})
-  navRef.current = { openPage, currentDecision, tab, close: () => { setOpenPage(null); setCurrentDecision(null) }, setTab }
+  navRef.current = {
+    openPage, currentDecision, tab,
+    close: () => { setOpenPage(null); setCurrentDecision(null) },
+    closePage: () => setOpenPage(null),
+    setTab,
+  }
   // P1-补：左边缘 24px 触摸拦截层 —— 仅在【弹层/决策面板打开时】启用，避免挡住正常左侧交互。
   // 目的：把"左边缘右滑"在应用内消化掉，不让它被系统/浏览器解释成返回。
   // ⚠️ 真机预期（如实记录）：Android 的【系统】返回手势由 OS 在网页之前处理，网页通常拦不住；
@@ -1612,7 +1623,7 @@ export default function App() {
     const onPop = () => {
       const nav = navRef.current
       try {
-        if (nav.openPage || nav.currentDecision) nav.close()
+        if (nav.openPage) nav.closePage()                                  // 选项2：只看子页，不看决策面板
         else if (nav.tab !== 'business') nav.setTab('business')
       } catch (e) {}
       try { window.history.pushState({ app: 1 }, '') } catch (e) {}
