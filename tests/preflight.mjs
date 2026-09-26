@@ -27,10 +27,10 @@ if (!KW) {
 
 // ★ 别名表：中文概念 → 代码里的实际标识符
 //   血案：搜"职位体系"→ 代码里写的是 role_in_group → 报"无命中"→ 会重做已完成的功能
-//   🔴 P0-3：抽到 tests/_alias.mjs 单一来源（docs-staleness 同步共享），本文件只 import；
-//      合并了本表与旧 docs-staleness 表的差异（补 批注打分/资金/防作弊 三键）
+//   🔴 P0-3：抽到 tests/_alias.mjs 单一来源（docs-staleness 同步共享），本文件只 import
 import { ALIAS, expandTerms } from './_alias.mjs'
-const terms = [KW, ...expandTerms(KW).filter(t => ALIAS[KW]?.includes(t) || KW === t || (ALIAS[KW] || []).length === 0)]
+// 展开为字符串数组（兼容本文件既有的 terms 用法）
+const terms = [KW, ...expandTerms(KW).map(e => e.id)]
 const isAliased = terms.length > 1
 
 // ── 工具 ──────────────────────────────────────────────────────────

@@ -1,46 +1,58 @@
 // M3 · 文档过期自检（报告模式：只报告，不自动改文档，不阻塞门禁）
 // 运行：node tests/docs-staleness.mjs
-// 原理：扫"进度类文档"里的【疑似未完成】标记行 → 提取关键词 → 在代码里搜
+// 原理：扫"进度类文档"里的【疑似未完成】标记行 → 提取关键词 → 在代码语料里搜
 //       代码有命中 = 疑似过期（文档说没做、代码里有）
-// 🔴 P0-1（BL-3 整改）：搜代码用【Node 原生 fs 遍历】，不用 execFileSync('grep')——
-//    grep 在部分 Windows 环境（cmd.exe 直接跑）不存在 → 异常被 catch 吞掉 → 永远报 0 处 = 假绿。
-//    修复后必须报出 ≥6 处（任务包 P0-1 验收）。
+//
+// P0-1：搜索用 Node 原生 fs（不用 execFileSync('grep')——部分 Windows 无 grep → 假绿，BL-3）
+// P1-1：三类假阳性对策
+//   a 自指过滤：M3 自身正则文本 / 本脚本名 / 现行包的"批次数"行 → 一律跳过（不再逐行硬编码行号）
+//   b 别名拆细：_alias.mjs 的条目带 kind（feature/wired/concept）——
+//       wired = 必须被【非测试文件】import/调用才算命中（"文件在、没接线"不再误报）
+//       concept = 宽概念，命中降 low 置信度
+//   c 死代码清理：walk() 的两分支 undefined / 恒真判定已重写；preflight 的 _localAliasBackup 已删
+// P1-2：输出分【高/中/低】三档置信度 + "跳过 N 处自指"统计
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { ALIAS, expandTerms } from './_alias.mjs'
 
 const SRC_DIR = 'D:/教学app/hotel-app/src'
 const DOC_DIRS = ['D:/教学app/1-总纲与进度', 'D:/教学app/2-任务包/现行']
+const SELF_DOC = '总任务包-设计落地与数据补全.md'
 const MARK_RE = /(❌|⬜|未完成|未开始|未做|未实施|待录入|待实施|还没做|尚未做)/
 const KEYWORD_STRIP = /[:,，。；'"「」『』（）()、\s｜|]/g
 
-// ── 代码语料：一次性读入全部 src/**（Node 原生，无外部命令）──
-// 每个文件存"剥注释后的非空行"数组；命中判定 = 非注释行里真的出现该词
+// ── 代码语料：一次性读入 src/**（Node 原生遍历）──
 const corpus = []
 function walk(dir) {
   for (const f of readdirSync(dir)) {
     const p = join(dir, f)
+    if (!/\.(js|jsx|mjs)$/.test(f)) continue            // 只收源码（src 根下无子目录，Engine 模块都在根）
     if (/settle-old-|\.bak$/.test(f)) continue          // 测试夹具/备份的命中不算"功能已实现"
-    const st = existsSync(p) && readdirSync(dir).includes(f) ? undefined : undefined
-    let isDir = false
-    try { isDir = readdirSync(p).length >= 0 && !/\.(js|jsx|mjs|json|ts|css|html)$/.test(f) } catch (e) { isDir = false }
-    if (isDir) { walk(p); continue }
-    if (!/\.(js|jsx|mjs)$/.test(f)) continue
     let body = ''
     try { body = readFileSync(p, 'utf8') } catch (e) { continue }
     const lines = body.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, ''))
       .map(l => l.trim()).filter(l => l.length > 0)
-    corpus.push({ file: 'src/' + f, lines })
+    corpus.push({ file: relative(SRC_DIR, p).split('\\').join('/'), lines, raw: body })
   }
 }
 walk(SRC_DIR)
 
-// 关键词 → 命中文件列表（强命中：非注释行包含该词）
-function grepSrc(keyword) {
-  return corpus.filter(c => c.lines.some(l => l.includes(keyword))).map(c => c.file)
+// wired 判定：目标标识符必须被【非定义文件、非测试夹具】的文件以 import/调用方式引用
+function isWired(id, definingFiles) {
+  const importers = corpus.filter(c => {
+    if (definingFiles.some(d => c.file === d || c.file.startsWith(d))) return false
+    return c.lines.some(l => new RegExp("(import[^\\n]*[\\s{]|from\\s*['\"])[^\\n]*" + id.replace(/\$/g, '\\$')) .test(l) || new RegExp('\\b' + id.replace(/\$/g, '\\$') + '\\s*\\(').test(l))
+  })
+  return importers.length > 0
+}
+// 关键词 → 命中文件（kind 影响：wired 要查接线；concept 命中也只标 low）
+function grepSrc(keyword, kind, id) {
+  const files = corpus.filter(c => c.lines.some(l => l.includes(keyword))).map(c => c.file)
+  if (kind === 'wired' && !isWired(id, files.length ? files : ['src/' + id])) return { files, wired: false }
+  return { files, wired: true }
 }
 
-let stale = [], checked = 0
+let stale = [], checked = 0, skippedSelf = 0
 for (const dir of DOC_DIRS) {
   if (!existsSync(dir)) continue
   for (const f of readdirSync(dir).filter(x => x.endsWith('.md'))) {
@@ -48,10 +60,11 @@ for (const dir of DOC_DIRS) {
     const lines = readFileSync(path, 'utf8').split(/\r?\n/)
     lines.forEach((line, i) => {
       if (!MARK_RE.test(line)) return
-      if (line.includes('已加顶部标注') || line.includes('文档过期清单') || line.includes('★') && line.includes('过期')) return
-      if (/^#{1,4}\s*(⬜|❌)?\s*未完成/.test(line.trim())) return   // 纯章节标题不算条目
-      if (f === '总任务包-设计落地与数据补全.md' && i === 372) return   // M3 自身正则文本（自指）
-      if (line.includes('docs-staleness') || line.includes('MARK_RE')) return
+      // P1-1a 自指过滤（规则化，不再硬编码行号）：
+      if (f === SELF_DOC) { skippedSelf++; return }                                   // 现行包的"未完成"= 本任务包台账，由 §十二 管
+      if (line.includes('docs-staleness') || line.includes('MARK_RE')) { skippedSelf++; return }
+      if (line.includes('已加顶部标注') || line.includes('文档过期清单')) return
+      if (/^#{1,4}\s*(⬜|❌)?\s*未完成/.test(line.trim())) return                      // 纯章节标题
       // 提取关键词：优先反引号/「」/加粗；取不到取表格第二列或最长中文段（≥3字）
       let kw = null
       const cand = line.match(/`([^`]{2,24})`|「([^」]{2,24})」|\*\*([^*]{2,24})\*\*/)
@@ -67,31 +80,52 @@ for (const dir of DOC_DIRS) {
       }
       if (!kw) return
       checked++
-      // ALIAS：关键词【包含】别名键即展开（"班级分组职位体系"含"职位体系"）
+      // P1-1b：ALIAS 展开（带 kind）；kw 包含别名键即展开
       const terms = expandTerms(kw)
-      let hits = [], usedKw = kw
-      for (const t of terms) { const h = grepSrc(t); if (h.length) { hits = h; usedKw = t + (t !== kw ? '（别名命中）' : ''); break } }
-      if (hits.length) stale.push({ doc: f + ':' + (i + 1), kw: usedKw, line: line.trim().slice(0, 70), hits: hits.slice(0, 3) })
+      let hits = [], usedKw = kw, confidence = null, wired = null
+      for (const t of terms) {
+        const res = grepSrc(t.id, t.kind, t.id)
+        if (res.files.length) {
+          hits = res.files
+          usedKw = t.id + (t.id !== kw ? `（别名命中·来自「${t.key}」）` : '')
+          wired = t.kind === 'wired' ? res.wired : null
+          confidence = t.kind === 'concept' ? 'low' : (t.kind === 'wired' ? (res.wired ? 'high' : 'low') : 'high')
+          break
+        }
+      }
+      // 无别名 → 纯中文关键词直搜（命中给 medium：可能是文案巧合）
+      if (!hits.length && terms.length === 0) {
+        const h = grepSrc(kw)
+        if (h.length) { hits = h; usedKw = kw; confidence = 'medium' }
+      }
+      if (hits.length) stale.push({ doc: f + ':' + (i + 1), kw: usedKw, confidence, wired, line: line.trim().slice(0, 70), hits: hits.slice(0, 3) })
     })
   }
 }
 
-console.log('▶ M3 文档过期自检（报告模式 · Node 原生实现）')
+// P1-2：三档置信度输出
+const CONF_ORDER = { high: '🔴 高置信', medium: '🟡 中置信', low: '⚪ 低置信' }
+const bucket = { high: [], medium: [], low: [] }
+const seen = new Set()
+for (const s of stale) {
+  if (seen.has(s.doc + s.kw)) continue
+  seen.add(s.doc + s.kw)
+  bucket[s.confidence || 'medium'].push(s)
+}
+
+console.log('▶ M3 文档过期自检（报告模式 · Node 原生 · 三档置信度）')
 console.log(`  代码语料：${corpus.length} 个文件（剥注释非空行）`)
-console.log(`  扫描：${DOC_DIRS.join(' , ')} · 带"未完成"标记的关键词条目 ${checked} 条`)
-if (!stale.length) {
-  console.log('  ✅ 未发现"文档说没做、代码里有"的过期项')
-} else {
-  console.log(`  ⚠️ 疑似过期 ${stale.length} 处（文档说没做 / 代码里有命中）：`)
-  const seen = new Set()
-  for (const s of stale) {
-    if (seen.has(s.doc)) continue
-    seen.add(s.doc)
+console.log(`  扫描：${DOC_DIRS.join(' , ')} · 带"未完成"标记的关键词条目 ${checked} 条 · 跳过自指 ${skippedSelf} 处`)
+for (const lvl of ['high', 'medium', 'low']) {
+  const items = bucket[lvl]
+  console.log(`\n${CONF_ORDER[lvl]}（${items.length} 处）${lvl === 'high' ? '—— 条条应可人工确认为真过期' : lvl === 'medium' ? '—— 无别名命中、靠词面匹配，需人工判读' : '—— 宽概念/未接线，仅提示'}`)
+  for (const s of items) {
     console.log(`   · [${s.kw}] ${s.doc}`)
     console.log(`     原话：${s.line}`)
     console.log(`     代码命中：${s.hits.join(', ')}`)
-    console.log(`     建议：人工确认后改标注为 ✅ 或移入归档（本脚本不自动改）`)
+    if (lvl === 'low') console.log(`     备注：低置信——可能是"文件在但未接线"或宽概念部分覆盖，不算定论`)
   }
 }
-console.log(`\n结果: ${stale.length === 0 ? checked : stale.length} 通过 / 0 失败（报告模式，不阻塞门禁）`)
+console.log(`\n结果: ${bucket.high.length} 高 + ${bucket.medium.length} 中 + ${bucket.low.length} 低 / 0 失败（报告模式，不阻塞门禁；自指跳过 ${skippedSelf}）`)
+console.log(`验收口径：最高置信项（high）条条为真——抽查请逐条看 high 档`)
 process.exit(0)
