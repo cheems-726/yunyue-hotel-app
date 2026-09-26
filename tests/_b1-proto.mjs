@@ -75,6 +75,7 @@ const LOG = [
   { day: 20, item: 'reputation', to: '道歉+赔偿' },
 ]
 
+export function runDemo() {
 console.log('▶ B1 原型：三种在线模式终值一致性（28 天 = 4 周）')
 const a = runMode({ log: LOG, classId: 'CLASS-A', mode: 'always' })
 const b = runMode({ log: LOG, classId: 'CLASS-A', mode: 'every2' })
@@ -91,3 +92,6 @@ console.log('\n  附加断言：seedOf 确定性 & 天间独立性')
 console.log('  seedOf(CLASS-A, 5) 两次：', seedOf('CLASS-A', 5), seedOf('CLASS-A', 5), seedOf('CLASS-A', 5) === seedOf('CLASS-A', 5) ? '相同 ✓' : '不同 ✗')
 console.log('  不同天 seed 不同：', seedOf('CLASS-A', 5) !== seedOf('CLASS-A', 6) ? '✓' : '✗')
 console.log('  不同班 seed 不同：', seedOf('CLASS-A', 5) !== seedOf('CLASS-B', 5) ? '✓' : '✗')
+}
+// 直接运行本文件时执行演示；被 import 时只导出纯函数
+if (import.meta.url === 'file://' + process.argv[1].split('\\').pop()) runDemo()
