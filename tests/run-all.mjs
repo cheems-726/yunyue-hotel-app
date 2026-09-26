@@ -22,8 +22,9 @@ const SUITES = [
   { name: 'verify-severity（语气分级）', file: 'tests/verify-severity.mjs' },
   { name: 'dayEngine（日引擎·一期D1）', file: 'tests/dayEngine.test.mjs' },
   { name: 'fairness（B5 公平性形式化）', file: 'tests/fairness.test.mjs' },
-  // dataDict（B6+M2 术语断言）暂移出门禁：M2 修复前按规格【预期报红 3 条】（RevPAR÷7/ADR实收/GOP），
-  //  第1批 T1.4 完成后挂回（任务包 §四 M2 验收：修复前红→修复后绿）。报告模式期间可单独跑：node tests/dataDict.check.mjs
+  // dataDict（B6+M2 术语断言）：P0-2 挂回门禁，expectedFail —— 修复前按规格【预期红 3 条】
+  //（RevPAR÷7/ADR实收/GOP），T1.3+T1.4 完成后自动变绿；expectedFail 语义：红=符合预期不算失败，绿=通过
+  { name: 'dataDict（B6 口径 + M2 术语·预期红）', file: 'tests/dataDict.check.mjs', expectedFail: true },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
@@ -75,6 +76,14 @@ for (const s of SUITES) {
     continue
   }
   const r = run('node', [s.file], s.name)
+  // expectedFail：当前预期失败（如 M2 修复前红）；红→记「预期红」不算失败，绿→记「已转绿」
+  if (s.expectedFail) {
+    const state = r.code === 0 ? '✅ 已转绿' : '⏳ 预期红'
+    if (r.code === 0) console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)`)
+    else console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败（T1.3/T1.4 完成后转绿）' : ''} (${r.secs}s)`)
+    rows.push({ name: s.name, state, pass: r.pass ?? '-', fail: r.fail ?? '-', secs: r.secs, out: r.out })
+    continue
+  }
   const state = r.code === 0 ? '✓' : '✗'
   if (r.code !== 0) failed++
   console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)`)
