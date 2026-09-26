@@ -22,11 +22,20 @@ function summarize(gs, profile) {
   const avgOcc = history.length ? Math.round(history.reduce((a, h) => a + h.occupancy, 0) / history.length) : 0
   const avgGood = history.length ? Math.round(history.reduce((a, h) => a + h.finalGoodRate, 0) / history.length) : 0
   const totalNeg = history.reduce((a, h) => a + (h.negativeCount || 0), 0)
+  // A4：真差评处理率（与 FinalResult 同口径；旧档无快照回退原口径）
+  const handleWeeks = history.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
+  const avgHandleRate = handleWeeks.length
+    ? handleWeeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / handleWeeks.length
+    : null
   const totalRev = history.reduce((a, h) => a + (h.revenue || 0), 0)
   const profitScore = totalProfit >= 50000 ? 100 : totalProfit >= 30000 ? 85 : totalProfit >= 10000 ? 70 : totalProfit >= 0 ? 55 : 40
   const repScore = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
   const occScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
-  const negScore = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
+  const negScore = totalNeg === 0
+    ? 100
+    : avgHandleRate != null
+      ? (avgHandleRate >= 0.9 ? 95 : avgHandleRate >= 0.7 ? 85 : avgHandleRate >= 0.5 ? 70 : avgHandleRate >= 0.3 ? 55 : 40)
+      : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)
   const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
   // 上周分数（去掉最后一周的历史再算一次）→ 用于排名行显示周环比
   let scorePrev = null
@@ -1010,7 +1019,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               { label: '利润', weight: 40, rule: '累计利润 ≥5万=100分 / ≥3万=85 / ≥1万=70 / ≥0=55 / 亏损=40' },
               { label: '口碑', weight: 25, rule: '平均好评率 ≥90%=95分 / ≥85%=85 / ≥75%=70 / ≥60%=55 / <60%=40' },
               { label: '出租率', weight: 20, rule: '平均出租率 ≥75%=95分 / ≥65%=80 / ≥55%=65 / ≥45%=50 / <45%=40' },
-              { label: '差评处理', weight: 15, rule: '0条差评=100分 / ≤5条=80 / ≤10条=65 / >10条=50' },
+              { label: '差评处理', weight: 15, rule: '按各周处理率平均：≥90%=95 / ≥70%=85 / ≥50%=70 / ≥30%=55 / >0%=40；零差评=100' },
             ].map(d => (
               <div key={d.label} style={{ padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ fontSize: 12, fontWeight: 700 }}>{d.label} <span style={{ color: '#E8940F' }}>权重{d.weight}%</span></div>

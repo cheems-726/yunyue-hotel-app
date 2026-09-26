@@ -1923,6 +1923,10 @@ export default function App() {
     // 没有这行，衰减与属性→经营只存在于引擎内部，玩家不可见、下周也用不上
     if (result.attrsAfter) setAttrs(result.attrsAfter)
     if (typeof result.capital === 'number') setCapital(result.capital)   // 资金唯一权威：引擎返回即权威
+    // A4（2026-09-22）：把当周"差评处理口径"快照进周报对象（随 history 持久化/云端同步）。
+    //   🔴 前置坑：口碑页 kept 过滤只留当周卡 ⇒ 期末拿不到全学期处理率，必须逐周快照。
+    //   只数结算生成的卡片（id 以 w<周>- 开头），与 pendingNegatives 同一规则（确定性）。
+    result.handleStats = { pending: pendingNegatives, resolved: resolvedCount }
     setReport(result)
   }
   // 结算确认后：进入下一周，清空决策，保存历史

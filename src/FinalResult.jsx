@@ -26,6 +26,11 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   const avgOccupancy = history.length ? Math.round(history.reduce((s, h) => s + h.occupancy, 0) / history.length) : 0
   const avgGoodRate = history.length ? Math.round(history.reduce((s, h) => s + h.finalGoodRate, 0) / history.length) : 0
   const totalNegative = history.reduce((s, h) => s + h.negativeCount, 0)
+  // A4：差评处理率（每快照周 resolved/(pending+resolved)）；旧档无 handleStats → 该周不计入平均（回退不惩罚）
+  const handleWeeks = history.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
+  const avgHandleRate = handleWeeks.length
+    ? handleWeeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / handleWeeks.length
+    : null
 
   // 四维评分（简化：按表现打分 0-100）
   // 利润得分：累计利润越高越好
@@ -34,8 +39,13 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   const reputationScore = avgGoodRate >= 90 ? 95 : avgGoodRate >= 85 ? 85 : avgGoodRate >= 75 ? 70 : avgGoodRate >= 60 ? 55 : 40
   // 出租率得分
   const occupancyScore = avgOccupancy >= 75 ? 95 : avgOccupancy >= 65 ? 80 : avgOccupancy >= 55 ? 65 : avgOccupancy >= 45 ? 50 : 40
-  // 差评处理率（简化：无差评满分，有差评看处理情况）
-  const negativeScore = totalNegative === 0 ? 100 : totalNegative <= 5 ? 80 : totalNegative <= 10 ? 65 : 50
+  // A4：15% 维度 = 真差评处理率（有差评的周取平均；全学期零差评 → 100，不惩罚；
+  //     旧档无快照 → 按原"差评条数"口径回退，不惩罚历史档）
+  const negativeScore = totalNegative === 0
+    ? 100
+    : avgHandleRate != null
+      ? (avgHandleRate >= 0.9 ? 95 : avgHandleRate >= 0.7 ? 85 : avgHandleRate >= 0.5 ? 70 : avgHandleRate >= 0.3 ? 55 : 40)
+      : (totalNegative <= 5 ? 80 : totalNegative <= 10 ? 65 : 50)
 
   // 加权总分
   const finalScore = Math.round(profitScore * 0.4 + reputationScore * 0.25 + occupancyScore * 0.2 + negativeScore * 0.15)
