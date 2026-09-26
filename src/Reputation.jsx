@@ -210,7 +210,12 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
 
       {/* 口碑构成拆解：三指标联动关系 + 当前值（课堂讲解口碑体系用） */}
       {(() => {
-        const satisfaction = goodRatePct != null ? Math.min(100, Math.round(goodRatePct * 1.1)) : null
+        // 🔴 A2（2026-09-22）：原「满意度 = 好评率 × 1.1」是无依据的派生（与经营页 RPG 属性的注释自相矛盾——
+        //    那边已声明"满意度"被三属性替代）。本卡是教学图解（处理率→好评率→客人体验 三联），保留三联但
+        //    第三格改为【客人体验】= 好评率 + 士气/4（士气 65 中性 ≈ +16，封顶 100）—— 口径可解释、且真正用上属性池。
+        const satisfaction = goodRatePct != null
+          ? Math.min(100, Math.round(goodRatePct + (Number(attrs?.morale) || 65) / 4))
+          : null
         const goodColor = goodRatePct == null ? '#9CA3AF' : goodRatePct >= 80 ? '#16A34A' : goodRatePct >= 60 ? '#E8940F' : '#DC2626'
         const handleColor = handleRate >= 80 ? '#16A34A' : handleRate >= 50 ? '#E8940F' : '#DC2626'
         const box = (label, val, color) => (
@@ -233,10 +238,10 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
                 <span style={{ fontSize: 12, color: '#A96407' }}>➜</span>
                 <span style={{ fontSize: 8, color: '#9CA3AF' }}>衍生出</span>
               </div>
-              {box('满意度', satisfaction != null ? satisfaction + '%' : '—', goodColor)}
+              {box('客人体验', satisfaction != null ? satisfaction + '%' : '—', goodColor)}
             </div>
             <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, lineHeight: 1.7 }}>
-              欠着差评不处理 → 好评率被拖下水 → 满意度跟着跌 → 客流流失。<b>处理率是口碑的源头活水</b>：处理一条，三个指标一起止血。
+              欠着差评不处理 → 好评率被拖下水 → 客人体验跟着跌 → 客流流失。<b>处理率是口碑的源头活水</b>：处理一条，三个指标一起止血。
             </div>
           </div>
         )

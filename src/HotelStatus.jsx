@@ -373,6 +373,17 @@ export default function HotelStatus({ report, brand, property, week, history, at
 
   // 房型结构（大床50% / 双床35% / 套房15%，套房溢价最高）
   const types = useMemo(() => roomTypes(rooms, price), [rooms, price])
+  // A1：把真实在店间数 occRooms 按房型总间数比例分摊（最大余数法 ⇒ Σ 各房型在店 === occRooms 严格守恒）
+  const occByType = useMemo(() => {
+    const totals = types.map(t => t.total)
+    const sumT = totals.reduce((a, b) => a + b, 0) || 1
+    const raw = totals.map(t => (occRooms * t) / sumT)
+    const out = raw.map(v => Math.floor(v))
+    let rest = occRooms - out.reduce((a, b) => a + b, 0)
+    const order = raw.map((v, i) => [v - Math.floor(v), i]).sort((a, b) => (b[0] - a[0]) || (a[1] - b[1]))
+    for (let k = 0; k < rest; k++) out[order[k % order.length][1]] += 1
+    return out
+  }, [types, occRooms])
 
   // 时钟驱动状态：在店人数沿时段曲线浮动
   const [clock, setClock] = useState(new Date())
@@ -583,7 +594,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
       <div style={{ marginTop: 4 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>🛏️ 房型结构（共 {rooms} 间）</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-          {types.map(tp => (
+          {types.map((tp, idx) => (
             <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{tp.name}</div>
               <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700 }}>{tp.price}元/晚</div>
