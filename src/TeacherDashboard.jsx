@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { decisions, OWNER_LABELS } from './decisions.js'
+import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
@@ -531,6 +532,13 @@ export default function TeacherDashboard({ user, onLogout }) {
       <div className="header">
         <div className="row1"><span className="hotel-name">教师后台</span></div>
         <div className="sub">
+        {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出；★ 不参与任何平均值分母（只展示，不回写 history） */}
+        {missingWeeks(history).length > 0 && (
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+            {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
+            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+          </div>
+        )}
           {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${groups.length} 组已开档` : '云端不可用，显示演示数据'}
         </div>
       </div>

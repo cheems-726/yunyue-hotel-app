@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getTitle } from './hotelTitle.js'
+import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { decisions as ALL_DECISIONS } from './decisions.js'
 import { qualityOf } from './attrs.js'
 
@@ -112,6 +113,13 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
       <div className="header">
         <span className="step-tag">📊 周结算</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>第 {result.week} 周经营结果</h1>
+        {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出；★ 不参与任何平均值分母（只展示，不回写 history） */}
+        {missingWeeks(history).length > 0 && (
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+            {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
+            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+          </div>
+        )}
         <div className="sub">决策 → 结果 → 复盘</div>
       </div>
 

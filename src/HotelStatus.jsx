@@ -4,6 +4,7 @@ import { parseRooms } from './settlement.js'
 import { normalizeAttrs, ATTR_LABELS, applyDecisionToAttrs } from './attrs.js'
 import { rollLiveReview } from './liveReview.js'
 import { guestsRng } from './guests.js'
+import { teachingDayKey, teachingDayOfMonth } from './teachingClock.mjs'
 import { decisions as DEC_CATALOG } from './decisions.js'
 
 // 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
@@ -112,7 +113,8 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
 
   useEffect(() => {
     const p = price || 230
-    const dateKey = new Date().toISOString().slice(0, 10)
+    // T2.3/E1：统一走教学日历时钟（教学日 08:00 换日）—— 不再直接读设备墙钟的 UTC 日期
+    const dateKey = teachingDayKey()
     const storeKey = `hotel-live-${dateKey}-w${week || 1}`
     // 恢复（刷新不回退）；无存档则按当前时刻回放估算
     let st
@@ -147,7 +149,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     const rvWeekKey = `hotel-review-week-w${week || 1}`
     let rvWeekCount = 0
     try { rvWeekCount = Number(localStorage.getItem(rvWeekKey)) || 0 } catch (e) {}
-    const rvToday = new Date().toISOString().slice(0, 10)
+    const rvToday = teachingDayKey()   // T2.3/E1：与 dateKey 同源，避免各自读墙钟后脱钩
 
     const persist = () => {
       const s = statsRef.current
@@ -372,7 +374,8 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const rooms = report?.rooms || parseRooms(brand?.standard) || 70
   const occRooms = report?.occupiedRooms || (history.length ? history[history.length - 1].occupiedRooms : 0) || Math.round(rooms * occupancy / 100)
   const price = report?.price || 230
-  const seed = week * 7 + (new Date().getDate())
+  // T2.3/E1：种子同步教学日历（原读 getDate() 是设备本地日，08:00 前会与教学日错位）
+  const seed = week * 7 + teachingDayOfMonth()
 
   // 房型结构（大床50% / 双床35% / 套房15%，套房溢价最高）
   const types = useMemo(() => roomTypes(rooms, price), [rooms, price])

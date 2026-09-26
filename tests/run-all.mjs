@@ -25,6 +25,8 @@ const SUITES = [
   // dataDict（B6+M2 术语断言）：🔴 T1.4 已完成（RevPAR÷7 / ADR实收 / GOP 三修）⇒ 摘掉 expectedFail，按【全绿】要求
   { name: 'dataDict（B6 口径 + M2 术语）', file: 'tests/dataDict.check.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
+  { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
+  { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },

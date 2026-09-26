@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { strategyOf } from './TeacherDashboard.jsx'
+import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { EVENT_INFO } from './settlement.js'
 import { fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
@@ -69,6 +70,13 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         <span className="step-tag">🏆 学期总结</span>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>12 周经营成绩</h1>
         <div className="sub">你的酒店经营成果总结</div>
+        {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出；★ 不参与任何平均值分母（只展示，不回写 history） */}
+        {missingWeeks(history).length > 0 && (
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+            {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
+            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+          </div>
+        )}
       </div>
 
       {/* 总成绩 */}
