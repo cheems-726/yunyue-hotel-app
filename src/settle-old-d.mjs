@@ -1,9 +1,6 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs } from './attrs.js'
 import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE, reviewSeverityOf } from './guests.js'
-// 🔴 Phase D/C2：把周值拆成 7 天（一期：周值已知 → 按确定性权重分摊；二期替换为逐日独立计算）
-//    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
-import { simulateWeek } from './dayEngine.js'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -713,25 +710,6 @@ for (let i = 0; i < reviewCount; i++) {
   //    调用 attrs.js 中已验证的纯函数（不在此重写逻辑）；结果体现在返回的 attrsAfter
   const attrsAfterDecay = applyWeeklyDecay(attrsAfter, brand && brand.level)
 
-  // 🔴 Phase D/C2 · D1：周值 → simulateWeek 拆 7 天（整数分摊 + 余数补偿 ⇒ Σ7天 === 周值，逐项精确）
-  //    天数据【不持久化】：算完即弃，不进存档（用户 2026-09-22 约束②）
-  //    seed 用 week ⇒ 同周同权重（确定性）；不参与任何数值计算，纯派生
-  //    checkins/checkouts：本引擎按【周】建模、未拆到天 ⇒ 传 0（不臆造）。二期逐日计算时自然产生
-  const dailySnapshots = simulateWeek({
-    decisions,
-    state: { price: Math.round(price) },
-    seed: week,
-    weekTotals: {
-      revenue,
-      cost: totalCost,
-      checkins: 0,
-      checkouts: 0,
-      occupied: occupiedRooms,
-      reviews: reviewCount,
-      cashDelta: profit,
-    },
-  })
-
   return {
     week,
     occupancy: Math.round(occupancy * 100),
@@ -768,9 +746,6 @@ for (let i = 0; i < reviewCount; i++) {
     generatedReviews,
     weeklyExpenses,
     totalExpenses,
-    // 🔴 Phase D/C2 · D2：7 天快照（供第 3 批日报用）；纯派生字段，不参与任何计算、不入存档
-    //    ΣdailySnapshots[].revenue === revenue 等逐项成立（dayEngine.splitExact 保证）
-    dailySnapshots,
   }
 }
 

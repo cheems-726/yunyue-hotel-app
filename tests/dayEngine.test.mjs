@@ -77,5 +77,50 @@ console.log('\n[6] 一期状态标记：临时实现必须写明"二期替换"')
   ok(/不持久化/.test(src), '文件头写明"一期天数据不持久化"（用户约束②）')
 }
 
+// ── Phase D/C2 · 接线后的恒等式与零变化（settlement 内部已调用 simulateWeek）──
+console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变化')
+{
+  const { settle } = await import('../src/settlement.js')
+  const { settle: settleOld } = await import('../src/settle-old-d.mjs')
+  const { applyDecisionToAttrs, normalizeAttrs, ATTR_INIT } = await import('../src/attrs.js')
+  const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+  const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
+  const STRATEGIES = {
+    勤奋型: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' },
+    省钱型: { pricing: '跟降 10%', shifts: '精简省成本', hygiene: '不停房', linen: '外包', 'hr-optimize': '裁员1人', 'member-convert': '强调优惠', reputation: '模板回复', energy: 20 },
+    超售型: { pricing: '降价 20% 抢客', shifts: '精简省成本', hygiene: '不停房', overbook: 3, linen: '外包' },
+  }
+  const strip = (x) => { const y = { ...x }; delete y.dailySnapshots; return JSON.stringify(y) }
+  let idBad = 0, zeroBad = 0, idCases = 0
+  for (const [name, dec] of Object.entries(STRATEGIES)) {
+    let attrs = { ...ATTR_INIT }, pg = null, cap = null, pn = 0, rs = 0
+    for (let w = 1; w <= 12; w++) {
+      let a = attrs
+      for (const [id, ans] of Object.entries(dec)) a = applyDecisionToAttrs(a, id, ans)
+      const r = settle({ site: SITE, brand: BRAND, decisions: dec, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
+      const o = settleOld({ site: SITE, brand: BRAND, decisions: dec, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
+      // ① 接线后恒等式：Σ7天 === 该周周值（逐项）
+      const ds = r.dailySnapshots
+      const pairs = [['revenue', r.revenue], ['cost', r.totalCost], ['occupied', r.occupiedRooms], ['reviews', r.reviewCount], ['cashDelta', r.profit]]
+      idCases++
+      if (!ds || ds.length !== DAYS_PER_WEEK) { idBad++; console.error(`   ✗ ${name} w${w}：dailySnapshots 缺失或非 7 天`) }
+      else for (const [k, v] of pairs) {
+        const sum = ds.reduce((a, d) => a + (d[k] || 0), 0)
+        if (sum !== v) { idBad++; console.error(`   ✗ ${name} w${w} Σ${k}=${sum} ≠ 周值 ${v}`) }
+      }
+      // ② 零变化：剥掉新字段后必须【逐字节相同】
+      if (strip(r) !== strip(o)) { zeroBad++; console.error(`   ✗ ${name} w${w}：剥 dailySnapshots 后与接线前不同`) }
+      pg = r.finalGoodRate; cap = r.capital
+      const negCards = r.generatedReviews.filter(x => Number(x.stars) <= 3).length
+      rs = Math.ceil(negCards * 0.5); pn = Math.max(0, pn + negCards - rs)
+      attrs = normalizeAttrs(r.attrsAfter)
+    }
+  }
+  ok(idBad === 0, `接线后 Σ7天 === 周值（逐项）：3 策略 × 12 周 = ${idCases} 周全部成立`)
+  ok(zeroBad === 0, '接线零变化：剥掉 dailySnapshots 后与接线前【逐字节相同】（36 周）')
+  // ③ 天数据不持久化：dailySnapshots 不得出现在任何存档写入路径
+  ok(!/dailySnapshots/.test(readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')), 'dailySnapshots 未进 App 存档路径（一期天数据不持久化）')
+}
+
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
 process.exit(fail ? 1 : 0)
