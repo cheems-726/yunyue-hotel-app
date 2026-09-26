@@ -16,7 +16,14 @@ import { join, relative } from 'node:path'
 import { ALIAS, expandTerms } from './_alias.mjs'
 
 const SRC_DIR = 'D:/教学app/hotel-app/src'
-const DOC_DIRS = ['D:/教学app/1-总纲与进度', 'D:/教学app/2-任务包/现行']
+// 🔴 P2（D18 治本）：扫描范围收窄到【进度陈述类】白名单 4 个文档。
+//   排除记录/清单/报告类（决策登记册/现行任务包/审计报告）——它们"本质含问题原文"，扫了必然假阳性（BL-5）
+const DOC_WHITELIST = [
+  'D:/教学app/1-总纲与进度/需求要点统合-现状对照.md',
+  'D:/教学app/1-总纲与进度/交接文档-新会话必读.md',
+  'D:/教学app/1-总纲与进度/项目进度总纲.md',
+  'D:/教学app/1-总纲与进度/App现状全景评估.md',
+]
 const SELF_DOC = '总任务包-设计落地与数据补全.md'
 const MARK_RE = /(❌|⬜|未完成|未开始|未做|未实施|待录入|待实施|还没做|尚未做)/
 const KEYWORD_STRIP = /[:,，。；'"「」『』（）()、\s｜|]/g
@@ -53,10 +60,11 @@ function grepSrc(keyword, kind, id) {
 }
 
 let stale = [], checked = 0, skippedSelf = 0
-for (const dir of DOC_DIRS) {
-  if (!existsSync(dir)) continue
-  for (const f of readdirSync(dir).filter(x => x.endsWith('.md'))) {
-    const path = join(dir, f)
+// 🔴 P2（D18 治本）：只扫白名单 4 文档（进度陈述类）；排除记录/清单/报告类（BL-5 根因）
+for (const path of DOC_WHITELIST) {
+  if (!existsSync(path)) { console.log('  ⚠️ 白名单文档不存在：' + path); continue }
+  const f = path.split('/').pop()
+  {
     const lines = readFileSync(path, 'utf8').split(/\r?\n/)
     lines.forEach((line, i) => {
       if (!MARK_RE.test(line)) return
@@ -96,7 +104,7 @@ for (const dir of DOC_DIRS) {
       // 无别名 → 纯中文关键词直搜（命中给 medium：可能是文案巧合）
       if (!hits.length && terms.length === 0) {
         const h = grepSrc(kw)
-        if (h.length) { hits = h; usedKw = kw; confidence = 'medium' }
+        if (h.files.length) { hits = h.files; usedKw = kw; confidence = 'medium' }
       }
       if (hits.length) stale.push({ doc: f + ':' + (i + 1), kw: usedKw, confidence, wired, line: line.trim().slice(0, 70), hits: hits.slice(0, 3) })
     })
@@ -115,7 +123,7 @@ for (const s of stale) {
 
 console.log('▶ M3 文档过期自检（报告模式 · Node 原生 · 三档置信度）')
 console.log(`  代码语料：${corpus.length} 个文件（剥注释非空行）`)
-console.log(`  扫描：${DOC_DIRS.join(' , ')} · 带"未完成"标记的关键词条目 ${checked} 条 · 跳过自指 ${skippedSelf} 处`)
+console.log(`  扫描：D18 白名单 4 文档 · 带"未完成"标记的关键词条目 ${checked} 条 · 跳过自指 ${skippedSelf} 处`)
 for (const lvl of ['high', 'medium', 'low']) {
   const items = bucket[lvl]
   console.log(`\n${CONF_ORDER[lvl]}（${items.length} 处）${lvl === 'high' ? '—— 条条应可人工确认为真过期' : lvl === 'medium' ? '—— 无别名命中、靠词面匹配，需人工判读' : '—— 宽概念/未接线，仅提示'}`)
