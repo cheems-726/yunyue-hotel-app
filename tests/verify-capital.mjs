@@ -102,8 +102,9 @@ try {
   })
   const cardCap = await readCardCap()
   ok(`资金卡 = 权威值 ${st1.capital}（实测 ${cardCap}）`, cardCap === st1.capital)
-  const wrongOld = 500000 - 0 + 0   // 首周：旧式 = 500000 − ΣtotalExpenses + Σprofit；此处只需断言等于权威值即可
-  ok('资金卡不再用 500000−ΣtotalExpenses+Σprofit 的旧式', cardCap !== wrongOld || st1.capital === 500000)
+  // 🔴 T1.1：起始资金 50万 → 350万（口径 ×7）
+  const wrongOld = 3500000 - 0 + 0   // 首周：旧式 = 起始资金 − ΣtotalExpenses + Σprofit；此处只需断言等于权威值即可
+  ok('资金卡不再用「起始资金−ΣtotalExpenses+Σprofit」的旧式', cardCap !== wrongOld || st1.capital === 3500000)
 
   // ── ③ 做一项决策 + 结算 → 资金必须累积（= 上一周 + 本周利润）──
   await page.evaluate(() => { const c = [...document.querySelectorAll('.task-card')].find(x => x.textContent.includes('前台排班')); c && c.click() }); await sleep(700)
@@ -117,7 +118,7 @@ try {
   ok('周报已出（含利润）', !!mProfit)
   const st2 = await state(page)
   const profit = mProfit ? Number(mProfit[1].replace(/,/g, '')) : null
-  ok(`结算后资金 = 500000 + 本周利润（${st2.capital} vs ${profit}）`, profit != null && st2.capital === 500000 + profit)
+  ok(`结算后资金 = 3500000 + 本周利润（${st2.capital} vs ${profit}）`, profit != null && st2.capital === 3500000 + profit)
 
   // ── P5 对账：周报「期末资金」=== 权威 state（精确）=== 资金卡显示（容差 ±500，显示为 x.x 万）──
   let wrCap = null
@@ -135,7 +136,7 @@ try {
   const st3 = await state(page)
   const card2 = await readCardCap()
   // 卡片显示格式为 (cap/10000).toFixed(1) 万 → 容差 ±500（显示精度，不是精度差）
-  ok(`第 2 周资金卡仍显示累积值（显示 ${card2} ≈ 权威 ${st3.capital}）`, card2 != null && Math.abs(card2 - st3.capital) <= 500 && st3.capital > 500000)
+  ok(`第 2 周资金卡仍显示累积值（显示 ${card2} ≈ 权威 ${st3.capital}）`, card2 != null && Math.abs(card2 - st3.capital) <= 500 && st3.capital > 3500000)
   // P5 对账（卡片可见时才比）：资金卡显示 === 上一份周报的「期末资金」（容差 ±500 = x.x 万显示精度）
   if (wrCap != null) ok(`资金卡显示 ≈ 周报期末资金（${card2} vs ${wrCap}）`, card2 != null && Math.abs(card2 - wrCap) <= 500)
 
@@ -148,7 +149,9 @@ try {
   })
   await page.reload(); await sleep(1600)
   const card3 = await readCardCap()
-  ok(`旧档（无 capital 字段）平滑迁移 = 500000+Σ利润 = 519134（显示 ${card3}，容差 ±500）`, card3 != null && Math.abs(card3 - (500000 + 12345 + 6789)) <= 500)
+  // 🔴 T1.1：起始资金 ×7；旧档 history 的利润是【一晚口径】算出来的 → 迁移时利润也 ×7
+  const expect3 = 3500000 + (12345 + 6789) * 7
+  ok(`旧档（无 capital 字段）平滑迁移 = 350万+Σ利润×7 = ${expect3}（显示 ${card3}，容差 ±500）`, card3 != null && Math.abs(card3 - expect3) <= 500)
   ok('无 JS 异常', true)
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)

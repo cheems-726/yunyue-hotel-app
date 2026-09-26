@@ -162,9 +162,17 @@ const negLoX = run({ quality: 20, reputation: 70, morale: 20 })
 ok(negHiX.negativeCount <= negLoX.negativeCount, `极值单周：全高差评 ${negHiX.negativeCount} ≤ 全低 ${negLoX.negativeCount}`)
 
 // ⑤ 声誉→获客成本：做活动时，低声誉组的营销支出更高
+// 🔴 T1.1（D16）口径修正：原断言比的是 totalCost（总成本），但总成本不是"获客成本"的代理量 ——
+//    ×7 后变动成本随出租率同步放大（高声誉 occ 68% vs 低声誉 58% → 变动成本多出约 7×78×7），
+//    而营销只省下约 1459，故总成本必然反超；这是设计因果，不是 bug。
+//    ⇒ 按本节标题本意改为直接断言【营销支出】这个科目（营销推广 = 获客成本）。
 const cacHi = run({ ...ATTR_MID, reputation: 95 })
 const cacLo = run({ ...ATTR_MID, reputation: 25 })
-ok(cacHi.totalCost < cacLo.totalCost, `高声誉总成本 ${cacHi.totalCost} < 低声誉 ${cacLo.totalCost}（营销更便宜）`)
+ok(cacHi.weeklyExpenses.营销推广 < cacLo.weeklyExpenses.营销推广,
+  `高声誉营销支出 ${cacHi.weeklyExpenses.营销推广} < 低声誉 ${cacLo.weeklyExpenses.营销推广}（获客成本更低）`)
+// 同轮钉住上述因果（防止有人"顺手"把断言改回总成本）：
+ok(cacHi.occupancy > cacLo.occupancy && cacHi.totalCost > cacLo.totalCost,
+  `（口径说明）高声誉出租率 ${cacHi.occupancy}% > ${cacLo.occupancy}% ⇒ 变动成本更多、总成本反超属预期`)
 
 // ⑥ 确定性未破（公平红线）：同输入两次结果全等
 const d1 = run({ quality: 33, reputation: 44, morale: 55 })

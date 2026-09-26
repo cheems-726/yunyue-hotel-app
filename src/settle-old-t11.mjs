@@ -441,14 +441,11 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // 8. 营收（房量 × 出租率 × 房价）
   const rooms = brand ? parseRooms(brand.standard) : 70
   let occupiedRooms = Math.round(rooms * occupancy)
-  // 🔴 T1.1（D16 拍板）：revenue 是【一晚】口径 → ×7 扩为【一周】
-  //   依据：华住样例 100间×90%×200元×365 = 657万/年（详见 3-设计文档/科目时间口径表.md §v2）
-  const revenue = Math.round(occupiedRooms * price) * 7
+  const revenue = Math.round(occupiedRooms * price)
 
   // 9. 成本（真实酒店成本结构）
   // 固定成本 = 可售房 × 单房固定（含租金、折旧、基础人工分摊），单房成本由选址"租金"属性决定
-  // 🔴 T1.1（D16 拍板）：fixedCost 同为【一晚】口径（rentCost 65 元 ≈ 华住租金 52.5 元/间/天量级）→ ×7
-  let fixedCost = rooms * rentCost * 7
+  let fixedCost = rooms * rentCost
   // 报表诊断选"成本相关" → 压降固定成本
   if (decisions['report-diagnosis'] === '解决成本相关') fixedCost = Math.round(fixedCost * 0.95)
   // 人力优化：裁员立即降本，培训成本不变
@@ -463,8 +460,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   else if (decisions.shifts === '精简省成本') perRoomVariable -= 12
   // 能耗管控：温度设低省电、设高耗电
   if (energy != null) perRoomVariable += (energy - 23) * 2
-  // 🔴 T1.1（D16 拍板）：variableCost 同为【一晚】口径 → ×7
-  let variableCost = occupiedRooms * perRoomVariable * 7
+  let variableCost = occupiedRooms * perRoomVariable
   // 营销成本 = 做活动才有额外支出
   // R0：声誉 → 获客成本（声誉高→同样营销支出更便宜；中性值 = ×1.0）
   let marketingCost = decisions.campaign ? Math.round(5000 * fCac) : 0
@@ -482,23 +478,11 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const profit = revenue - totalCost
 
 // [10.5] 资金真实扣减 + 破产判定
-// 🔴 T1.1（D20 原则一：改口径不改教学难度）：三个"资金相关绝对数"随口径同步 ×7。
-//    判据 = 资金曲线形状一致。实测（tests/_t11-capital.mjs，6 组 × 12 周）：
-//      · 触发时点差异：A/C 两变体 6 组均未触发 → 差异 0 周 ≤ 1 周 ✅
-//      · 阈值相对位置：预警 = 初始资金的 10%（改前后同为 10%）→ 触发形状不变
-//      · 资金/初始资金 比值曲线：与改前偏差 ≤0.138（激进型），根因见下 —— 属口径必然结果，非参数失配
-//    残差根因（已用恒等式证实，tests/_t11-residual.mjs）：
-//      profit_新 = 7×profit_旧 + 6×other_旧（±3，OTA 佣金独立取整），其中 other = 每周科目(营销)
-//      + 单次科目(超售赔偿/事件罚款)。按 W9 定稿这些【不参与 ×7】⇒ 其相对权重降到 1/7，
-//      资金曲线因此略高于改前 —— 这是砍掉"一晚/一周混口径"的必然算术后果，不许调参凑。
-const initialCapital = 3500000
+const initialCapital = 500000
 let capital = prevCapital != null ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0
-const isWarning = !isBankrupt && capital < 350000
-// ⚠️ 任务包 §五·步骤3 原文写"预警线 < 100000"，但代码实际是 < 50000（规格行号 :481/:484 也已偏移）
-//    ⇒ 以代码为准取 50000×7 = 350000（= 初始资金的 10%，与改前同比例）；
-//      若按规格的 100000 取 700000 则变 20%，"相对位置不变"这条判据反而破坏。
+const isWarning = !isBankrupt && capital < 50000
 // 决策复盘容器（必须在使用前声明：本文件下方多处 push，含"决策模式异常一致"的防作弊提醒）
 const insights = []
 // 防作弊：全部决策选相同模式→可疑警告

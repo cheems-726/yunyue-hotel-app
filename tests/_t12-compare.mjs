@@ -43,7 +43,7 @@ function score(h) {
   const totalNeg = h.reduce((s, x) => s + x.negativeCount, 0)
   const hw = h.filter(x => x.handleStats && (x.handleStats.pending + x.handleStats.resolved) > 0)
   const rate = hw.length ? hw.reduce((s, x) => s + x.handleStats.resolved / (x.handleStats.pending + x.handleStats.resolved), 0) / hw.length : null
-  const p = totalProfit >= 50000 ? 100 : totalProfit >= 30000 ? 85 : totalProfit >= 10000 ? 70 : totalProfit >= 0 ? 55 : 40
+  const p = totalProfit >= 350000 ? 100 : totalProfit >= 210000 ? 85 : totalProfit >= 70000 ? 70 : totalProfit >= 0 ? 55 : 40   // 🔴 T1.1：分段同步 ×7（与 FinalResult/TeacherDashboard 同口径）
   const rep = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
   const occ = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
   const neg = totalNeg === 0 ? 100 : rate != null ? (rate >= 0.9 ? 95 : rate >= 0.7 ? 85 : rate >= 0.5 ? 70 : rate >= 0.3 ? 55 : 40) : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)

@@ -20,6 +20,7 @@ export const DATA_DICT = [
 
 // ── 静态检查：找"绕过权威来源自己算"的残留 ──
 import { readFileSync, readdirSync } from 'node:fs'
+import { settle } from '../src/settlement.js'   // 华住 B 分项要在真引擎上验 RevPAR 恒等式
 
 const VIOLATION_PATTERNS = [
   { id: 'V1', desc: '本地重算资金（双重扣成本旧公式）', re: /500000\s*-\s*history\.reduce/g, whitelist: [] },
@@ -110,6 +111,56 @@ const termFindings = []
   }
 }
 
+// ── 华住分项对拍（§五·步骤5 / D16 修正版）────────────────────────────────
+// 参照模型（华住官网收益模型）：100 间 / 出租率 90% / ADR 200 元 / 3500 ㎡ / 租金 1.5 元/㎡/天 / 365 天
+// ★ 只对拍【可对拍】分项。明确【不对拍】：现金流率 20.8% 与毛利率 55%
+//   —— 我们缺【部门成本】模型（variableCost 仅占营收约 19%，华住 55% 毛利率已扣部门成本），
+//   属模型范围差异、不是失败；不许为凑 20.8% 调参。放 P3《加盟经济模型》。
+export const HUAZHU_BENCH = {
+  rooms: 100, occ: 0.9, adr: 200, area: 3500, rentPerSqmDay: 1.5, days: 365,
+  费率常量: { 管理费: 0.05, CRS: 0.08, 官方渠道上限: 0.035 },
+  参考值: { 年租金: 1916250, RevPAR: 180, 年营收: 6570000, 特许费: 328500, 单房造价: 71800, 华住单房造价: 61000 },
+}
+const SAME_ORDER = (a, b) => a / b >= 0.5 && a / b <= 2.0   // 同量级判定：0.5×~2.0×
+const hzFindings = [], hzNotes = []
+{
+  const H = HUAZHU_BENCH
+  const genSrc = codeOnly(readFileSync('src/settlement.js', 'utf8'))
+  // A · 租金公式 = 面积 × 单价 × 天数
+  const annualRent = H.area * H.rentPerSqmDay * H.days
+  if (annualRent !== H.参考值.年租金) hzFindings.push({ rule: '华住A(租金公式)', ctx: `面积×单价×天数 = ${annualRent}，参考值 ${H.参考值.年租金}`, expect: '3500×1.5×365 = 1,916,250 元 = 191.625 万' })
+  // A · 引擎侧对拍：rentCost 推导式实读源码，避免"文档说 65 但代码改过"
+  const mRent = /const rentCost = (\d+) \+ \(s\.租金 \|\| 3\) \* (\d+)/.exec(genSrc)
+  if (!mRent) hzFindings.push({ rule: '华住A(引擎侧)', ctx: 'settlement.js 找不到 rentCost 推导式（35 + 租金档×10）', expect: '正例模式必须存在' })
+  else {
+    const rentCost = Number(mRent[1]) + 3 * Number(mRent[2])                    // 租金档 3
+    const hzPerRoomDay = annualRent / H.days / H.rooms                          // 华住 52.5 元/间/天
+    if (!SAME_ORDER(rentCost, hzPerRoomDay)) hzFindings.push({ rule: '华住A(量级)', ctx: `引擎 rentCost=${rentCost} 元/间/天 vs 华住 ${hzPerRoomDay} 元/间/天 不同量级`, expect: '0.5×~2.0×' })
+    else hzNotes.push(`A 租金：引擎 ${rentCost} 元/间/天 ÷ 华住 ${hzPerRoomDay} 元/间/天 = ${(rentCost / hzPerRoomDay).toFixed(2)}× ✅ 同量级（100 间年租金 ${(H.rooms * rentCost * 365 / 10000).toFixed(2)} 万 vs 华住 191.625 万）`)
+  }
+  // B · RevPAR = ADR × OCC（引擎侧恒等式；★ 这是 T1.1 的回归守卫：÷7 前会差 7 倍）
+  if (H.adr * H.occ !== H.参考值.RevPAR) hzFindings.push({ rule: '华住B(RevPAR)', ctx: `ADR×OCC = ${H.adr * H.occ} ≠ ${H.参考值.RevPAR}`, expect: '200 × 0.9 = 180' })
+  try {
+    const r = settle({ site: { 客流: 5, 房价: 5, 租金: 3, 竞争: 3, 人力: 4, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房100间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿', energy: 23, overbook: 0 }, week: 1, attrs: { quality: 80, reputation: 80, morale: 80 } })
+    const implied = r.revenue / (r.rooms * 7)                 // 周营收 ÷(房量×7) = 每间每晚营收
+    const identity = r.price * (r.occupiedRooms / r.rooms)    // ADR × OCC
+    if (Math.abs(implied - identity) > 1) hzFindings.push({ rule: '华住B(引擎侧恒等式)', ctx: `revenue/(rooms×7)=${implied.toFixed(2)} vs ADR×OCC=${identity.toFixed(2)}`, expect: '差 ≤1 元（÷7 口径正确）' })
+    else hzNotes.push(`B RevPAR：引擎 revenue/(rooms×7)=${implied.toFixed(2)} === ADR×OCC=${identity.toFixed(2)}（差 ${Math.abs(implied - identity).toFixed(3)}）✅ 恒等式成立 ⇒ ÷7 口径正确（改前会差 7 倍）`)
+  } catch (e) {
+    hzFindings.push({ rule: '华住B(引擎侧恒等式)', ctx: '跑 settle 失败：' + e.message, expect: '引擎可运行' })
+  }
+  // C · 费率常量登记（不对拍：引擎的 OTA 佣金是【平台抽成】，与"官方渠道上限 3.5%"不是同一科目）
+  hzNotes.push(`C 费率常量：管理费 5% / CRS 8% / 官方渠道上限 3.5% ✅ 已登记；引擎侧 OTA 佣金（平台合作 15% / 直营投放 11%）是 OTA 平台抽成，不同科目 → 不对拍`)
+  // D · 特许费 = 营收 × 5%
+  const franchise = H.参考值.年营收 * H.费率常量.管理费
+  if (franchise !== H.参考值.特许费) hzFindings.push({ rule: '华住D(特许费)', ctx: `${H.参考值.年营收} × 5% = ${franchise} ≠ ${H.参考值.特许费}`, expect: '657 万 × 5% = 32.85 万' })
+  if (!/特许费|franchise/i.test(genSrc)) hzNotes.push('D 特许费：参考模型 657万×5% = 32.85 万 ✅ 算术自洽；⚠️ 引擎无【特许费】科目（与 GOP 同批）→ P3')
+  // E · 投资额量级
+  if (!SAME_ORDER(H.参考值.单房造价 * H.rooms, H.参考值.华住单房造价 * H.rooms)) hzFindings.push({ rule: '华住E(投资额)', ctx: '单房造价×房量 与华住不同量级', expect: '同量级' })
+  else hzNotes.push(`E 投资额：单房造价 7.18万×100 = 718 万 vs 华住 6.1万×100 = 610 万 ⇒ ${(H.参考值.单房造价 / H.参考值.华住单房造价).toFixed(2)}× ✅ 同量级；⚠️ 引擎无【投资额/capex】科目 → P3`)
+  hzNotes.push('❌ 不对拍（模型范围差异）：现金流率 20.8% / 毛利率 55% —— 缺部门成本模型，放 P3；不许调参凑')
+}
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop())) {
   console.log('▶ B6 数据字典口径检查 + M2 术语公式断言')
   console.log(`  字典条目：${DATA_DICT.length} 项`)
@@ -120,5 +171,8 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop(
   }
   console.log(`  术语断言：${termFindings.length === 0 ? '✅ 全绿（RevPAR÷7 / ADR实收 / GOP变量 / 字典实现齐全）' : '✗ ' + termFindings.length + ' 条未兑现：'}`)
   termFindings.forEach(t => console.log(`   [${t.rule}] ${t.file}:${t.line} — ${t.ctx}\n     期望：${t.expect}`))
-  process.exit((violations.length || termFindings.length) ? 1 : 0)
+  console.log(`\n  华住分项对拍（§五·步骤5 · D16 修正版）：${hzFindings.length === 0 ? '✅ A~E 全过' : '✗ ' + hzFindings.length + ' 项不符'}`)
+  hzNotes.forEach(n => console.log('   ' + n))
+  hzFindings.forEach(t => console.log(`   ✗ [${t.rule}] ${t.ctx}\n     期望：${t.expect}`))
+  process.exit((violations.length || termFindings.length || hzFindings.length) ? 1 : 0)
 }

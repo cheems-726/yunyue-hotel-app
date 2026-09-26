@@ -1,7 +1,9 @@
 // severity 语气分级 · 硬证据（改前引擎 vs 改后）
 //   ① 评价文本【逐字一致】 ← 因为原「星级抽取」保留为占位抽取 → 独立流位置不变
 //   ② 差评星级改为【经营状态驱动】← 本任务的目的：越差越狠，不再 50/50 随机
-//   ③ 数值（出租率/好评率/差评数/利润）必须仍然完全一致
+//   ③ 结构不变量（出租率/在店房数/好评率/评价条数）必须 12 周完全一致；
+//      钱改用【×7 精确算式】核对（T1.1/D16：revenue/fixed/variable 由一晚 ×7 为一周）：
+//      revenue' = 7×revenue_old 且 profit' − 7×profit_old = 6×otherOld
 // 运行：node tests/verify-severity.mjs
 // 前置：git show HEAD:src/settlement.js > src/settle-old-sev.mjs（HEAD=接入 severity 之前的那一版）
 import { settle as settleNew } from '../src/settlement.js'
@@ -40,15 +42,30 @@ console.log('▶ severity 语气分级 · 改前(HEAD) vs 改后')
 const starHist = {}
 for (const [name, dec] of Object.entries(STRATEGIES)) {
   const rows = dualRun(dec)
-  // ① 数值完全一致
-  const numKeys = ['occupancy', 'finalGoodRate', 'negativeCount', 'reviewCount', 'profit', 'capital']
-  // 🔴 P4（2026-09-22）口径：好评率被夹取到 ≥0，且经 prevGoodRate 跨周传导
-  //    ⇒ 断言 = 【首次夹取周之前必须逐周完全一致】；夹取周及其后为预期差异
+  // ①-a 结构不变量：12 周全程完全一致（×7 不得碰经营结构 / 星级改动不得碰随机流）
+  const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
+  const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
+  ok(structDiff.length === 0,
+    `${name}：结构不变量（出租率/在店房数/好评率/评价条数）12 周全程完全一致${structDiff.length ? '（不符周 ' + structDiff.join('/w') + '）' : ''}`)
+  // ①-b ×7 精确算式（T1.1/D16）
+  const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
+  const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
+  const moneyBad = rows.filter(r => {
+    const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
+      (dec.renovation === '投150万改造' ? RENOVATION : 0)
+    return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld
+  })
+  ok(moneyBad.length === 0,
+    `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目）`,
+    moneyBad.slice(0, 2).map(r => `w${r.w} rev ${r.old.revenue}→${r.new.revenue} prof ${r.old.profit}→${r.new.profit}`).join(' | '))
+  // ①-c P4 夹取口径：好评率被夹取到 ≥0，且经 prevGoodRate 跨周传导
+  //    ⇒ 断言 = 【首次夹取周之前的 好评率/差评数 必须逐周完全一致】；夹取周及其后为预期差异
   const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
   const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
-  const numDiff = rows.filter(r => r.w < firstClamp && numKeys.some(k => JSON.stringify(r.old[k]) !== JSON.stringify(r.new[k])))
-  ok(numDiff.length === 0,
-    `${name}：首次夹取周(${firstClamp === Infinity ? '—' : 'w' + firstClamp})之前数值逐周完全一致；夹取周 ${clampWeeks.length} 周`)
+  const floatDiff = rows.filter(r => r.w < firstClamp &&
+    (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w)
+  ok(floatDiff.length === 0,
+    `${name}：夹取周(${firstClamp === Infinity ? '—' : 'w' + firstClamp})之前的 好评率/差评数 逐周完全一致；夹取周 ${clampWeeks.length} 周`)
 
   // ② 星级相同的卡片，文本必须逐字一致（证明独立流位置没被改动）
   //    星级被状态改写的那部分，文本随之改语气（这正是语气分级要的）

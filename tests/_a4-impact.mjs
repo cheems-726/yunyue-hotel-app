@@ -52,7 +52,7 @@ function scores(history) {
   const totalNeg = history.reduce((s, h) => s + h.negativeCount, 0)
   const hw = history.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
   const rate = hw.length ? hw.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / hw.length : null
-  const profitScore = totalProfit >= 50000 ? 100 : totalProfit >= 30000 ? 85 : totalProfit >= 10000 ? 70 : totalProfit >= 0 ? 55 : 40
+  const profitScore = totalProfit >= 350000 ? 100 : totalProfit >= 210000 ? 85 : totalProfit >= 70000 ? 70 : totalProfit >= 0 ? 55 : 40   // 🔴 T1.1：分段同步 ×7（与 FinalResult/TeacherDashboard 同口径）
   const repScore = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
   const occScore = occTier(avgOcc)
   const negOld = oldNeg(totalNeg)

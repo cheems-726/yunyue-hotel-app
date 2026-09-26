@@ -52,8 +52,11 @@ console.log('\n[3] 与 shadow-reviews 基线口径比对')
   let a0 = { quality: 60, reputation: 70, morale: 65 }
   for (const [id, ans] of Object.entries(DILIGENT_SHADOW)) a0 = applyDecisionToAttrs(a0, id, ans)
   const r = settle({ site: SITE, brand: BRAND, decisions: DILIGENT_SHADOW, week: 1, attrs: a0 })
-  // shadow-reviews 勤奋型第 1 周基线（当前版本）：出租 68% 利润 9650（评审时曾误引超售型的 76/11058）
-  ok(r.occupancy === 68 && r.profit === 9650, `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/9650）`)
+  // shadow-reviews 勤奋型第 1 周基线（当前版本）：出租 68% / 利润 67550
+  // 🔴 T1.1（D16）：revenue/fixedCost/variableCost 由【一晚】×7 为一周 ⇒ 利润 = 旧基线 9650 × 7 = 67550
+  //    （出租率 68% 未变 —— 这是"×7 未碰经营结构"的第二处独立佐证）
+  ok(r.occupancy === 68 && r.profit === 67550,
+    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/67550 = 68/(9650×7)）`)
 }
 
 // ── 步骤4 · dayEngine 的 Node 可运行性（C2 前置）──

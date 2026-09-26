@@ -1,6 +1,8 @@
 // 第2步硬证据：改前 vs 改后（同一份存档、同一决策、同一属性轨迹）
-//   ① 逐周数值必须【完全一致】：出租率 / 好评率 / 差评数 / 利润  ← 证明随机流未被污染
-//   ② 评价文本/客人身份必须【不同】                            ← 证明内容升级了
+//   ① 结构不变量 12 周【完全一致】：出租率 / 在店房数 / 好评率 / 评价条数 ← 证明随机流与经营结构未被污染
+//   ② 钱用【精确算式】核对（T1.1/D16 后 money 必然变，不再用"相等"）：revenue' = 7×revenue_old
+//      且 profit' − 7×profit_old = 6×otherOld（otherOld = 未被 ×7 的科目：营销/OTA佣金/超售赔偿/改造/事件罚款）
+//   ③ 评价文本/客人身份必须【不同】                            ← 证明内容升级了
 import { settle as settleNew, negativeTexts, positiveTexts } from '../src/settlement.js'
 import { settle as settleOld } from '../src/settle-old-rev.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, applyWeeklyDecay } from '../src/attrs.js'
@@ -43,22 +45,35 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   console.log('   周 |  改前 出租/好评/差评/利润      |  改后 出租/好评/差评/利润      | 一致')
   let allSame = true
   rows.forEach(({ w, old: o, new: n }) => {
-    const same = o.occupancy === n.occupancy && o.finalGoodRate === n.finalGoodRate && o.negativeCount === n.negativeCount && o.profit === n.profit
-    if (!same) allSame = false
+    // 表格里的"一致"列 = 结构不变量（钱已由下方 ×7 精确算式单独核对）
+    const same = o.occupancy === n.occupancy && o.occupiedRooms === n.occupiedRooms && o.reviewCount === n.reviewCount
     const surgeN = n.generatedReviews.filter(x => x.surge === '口碑爆发').length
     console.log(`   ${String(w).padStart(2)} | ${String(o.occupancy).padStart(3)}% ${String(o.finalGoodRate).padStart(3)}% ${String(o.negativeCount).padStart(2)} ${String(o.profit).padStart(7)} | ${String(n.occupancy).padStart(3)}% ${String(n.finalGoodRate).padStart(3)}% ${String(n.negativeCount).padStart(2)} ${String(n.profit).padStart(7)} | ${same ? '✅' : '❌'} 卡片${n.generatedReviews.length}(评${n.reviewCount}/差${n.negativeCount}/爆${surgeN})`)
   })
-  // 🔴 P4（2026-09-22）后口径微调：好评率被夹取到 ≥0（旧引擎会算出 −100%/−50%）。
-  //    因此只在【旧引擎好评率为负】的周允许差异 —— 其余周必须仍然逐周完全一致（证明改动是外科手术式的）。
+  // 🔴 T1.1（D16）口径：revenue/fixedCost/variableCost 由【一晚】×7 扩为【一周】→ 钱一定变，不再用"相等"断言。
+  //    拆三组：(甲) 结构不变量 全程一致  (乙) 钱用精确算式  (丙) 夹取周及其后的 float 允许 P4 差异
+  //    P4（2026-09-22）：好评率被夹取到 ≥0（旧引擎会算出 −100%/−50%），并经 prevGoodRate 跨周传导。
+  const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
+  const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
+  ok(structDiff.length === 0,
+    `${name}：结构不变量（出租率/在店房数/好评率/评价条数）12 周全程完全一致${structDiff.length ? '（不符周 ' + structDiff.join('/w') + '）' : ''}`)
   const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
-  // 好评率会经 prevGoodRate 跨周传导 ⇒ 夹取的影响从首周起向后传递；
-  // 因此断言口径 = 【首次夹取的那一周之前，必须逐周完全一致】（改动是外科手术式的）+ 之后允许传导差异。
   const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
-  const unexpected = rows.filter(r => r.w < firstClamp &&
-    !(r.old.occupancy === r.new.occupancy && r.old.finalGoodRate === r.new.finalGoodRate &&
-      r.old.negativeCount === r.new.negativeCount && r.old.profit === r.new.profit)).map(r => r.w)
-  ok(unexpected.length === 0,
-    `${name}：首次夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前逐周完全一致；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
+  const floatDiff = rows.filter(r => r.w < firstClamp &&
+    (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w)
+  ok(floatDiff.length === 0,
+    `${name}：夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前的 好评率/差评数 逐周完全一致；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
+  // (乙) ×7 精确算式：收入恒 7 倍；利润差额 = 6 × 【未被 ×7 的科目】
+  const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
+  const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
+  const moneyBad = rows.filter(r => {
+    const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
+      (dec.renovation === '投150万改造' ? RENOVATION : 0)
+    return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld
+  })
+  ok(moneyBad.length === 0,
+    `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目）`,
+    moneyBad.slice(0, 2).map(r => `w${r.w} rev ${r.old.revenue}→${r.new.revenue} prof ${r.old.profit}→${r.new.profit}`).join(' | '))
 
   // 内容对比
   const oldTexts = rows.flatMap(r => r.old.generatedReviews.map(x => x.text))
