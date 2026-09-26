@@ -234,14 +234,15 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
           你完成了 12 周经营。累计利润 {totalProfit >= 0 ? '+' : ''}{(totalProfit / 10000).toFixed(2)} 万，
           平均出租率 {avgOccupancy}%，平均好评率 {avgGoodRate}%。
           {(() => {
-            // RevPAR（每间可售房收入）= 总营收 ÷ (房量 × 周数)，与筹建投资测算的教学口径呼应
+            // 🔴 T1.4/B1：RevPAR（每间可售房【每天】收入）= 总营收 ÷ (房量 × 周数 × 7)
+            //   行业标准口径是"每天"；周营收必须 ÷7（缺口表 A3）
             const roomsArr = history.map(h => h.rooms).filter(Boolean)
             if (!roomsArr.length) return null
             const avgRooms = Math.round(roomsArr.reduce((a, b) => a + b, 0) / roomsArr.length)
             const totalRevSum = history.reduce((a, h) => a + (h.revenue || 0), 0)
-            const revpar = Math.round(totalRevSum / (avgRooms * (history.length || 1)))
+            const revpar = Math.round(totalRevSum / (avgRooms * (history.length || 1) * 7))
             if (!revpar || revpar <= 0) return null
-            return <div>单房收益（RevPAR）：<b>{revpar}</b> 元/间·周</div>
+            return <div>单房收益（RevPAR）：<b>{revpar}</b> 元/间·天</div>
           })()}
           {finalScore >= 80 && ' 经营出色，展现了优秀的酒店管理能力！'}
           {finalScore >= 60 && finalScore < 80 && ' 经营稳健，还有提升空间，注意成本和口碑的平衡。'}

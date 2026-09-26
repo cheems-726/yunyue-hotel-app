@@ -632,8 +632,14 @@ function Report({ report, week, history }) {
           {/* 真实 KPI（带上周环比箭头） */}
           {(() => {
             const prev = history.length ? history[history.length - 1] : null
-            const rev = Math.round(report.revenue / report.rooms)
-            const prevRev = prev ? Math.round(prev.revenue / prev.rooms) : null
+            // 🔴 T1.4/B1·B2 术语口径（周营收 ⇒ 都要 ÷7 才是"每天"）：
+            //   ADR     = 实收房价 = 周客房收入 ÷ 售出间夜 = revenue ÷ (occupiedRooms × 7)
+            //   RevPAR  = 周营收 ÷ (房量 × 7) = ADR × 出租率
+            //   ⚠️ ADR 不再用 report.price —— 那是【定价】，非实收（缺口表 B2）
+            const adr = report.occupiedRooms > 0 ? Math.round(report.revenue / (report.occupiedRooms * 7)) : 0
+            const rev = report.rooms > 0 ? Math.round(report.revenue / (report.rooms * 7)) : 0
+            const prevAdr = prev && prev.occupiedRooms > 0 ? Math.round(prev.revenue / (prev.occupiedRooms * 7)) : null
+            const prevRev = prev && prev.rooms > 0 ? Math.round(prev.revenue / (prev.rooms * 7)) : null
             return (<>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
@@ -641,12 +647,12 @@ function Report({ report, week, history }) {
               <div style={{fontSize:16,fontWeight:700}}>{report.occupancy}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>%</span><KpiDelta cur={report.occupancy} prev={prev?.occupancy ?? null} unit="pt" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>ADR</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.price}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={report.price} prev={prev?.price ?? null} unit="元" /></div>
+              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>ADR<span style={{fontWeight:400,color:'#C4C4C4'}}>（实收）</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{adr}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元/间·天</span><KpiDelta cur={adr} prev={prevAdr} unit="元" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
               <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>RevPAR</div>
-              <div style={{fontSize:16,fontWeight:700}}>{rev}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={rev} prev={prevRev} unit="元" /></div>
+              <div style={{fontSize:16,fontWeight:700}}>{rev}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元/间·天</span><KpiDelta cur={rev} prev={prevRev} unit="元" /></div>
             </div>
           </div>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>

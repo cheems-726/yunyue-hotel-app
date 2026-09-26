@@ -22,9 +22,9 @@ const SUITES = [
   { name: 'verify-severity（语气分级）', file: 'tests/verify-severity.mjs' },
   { name: 'dayEngine（日引擎·一期D1）', file: 'tests/dayEngine.test.mjs' },
   { name: 'fairness（B5 公平性形式化）', file: 'tests/fairness.test.mjs' },
-  // dataDict（B6+M2 术语断言）：P0-2 挂回门禁，expectedFail —— 修复前按规格【预期红 3 条】
-  //（RevPAR÷7/ADR实收/GOP），T1.3+T1.4 完成后自动变绿；expectedFail 语义：红=符合预期不算失败，绿=通过
-  { name: 'dataDict（B6 口径 + M2 术语·预期红）', file: 'tests/dataDict.check.mjs', expectedFail: true },
+  // dataDict（B6+M2 术语断言）：🔴 T1.4 已完成（RevPAR÷7 / ADR实收 / GOP 三修）⇒ 摘掉 expectedFail，按【全绿】要求
+  { name: 'dataDict（B6 口径 + M2 术语）', file: 'tests/dataDict.check.mjs' },
+  { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },

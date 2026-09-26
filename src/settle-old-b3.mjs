@@ -446,16 +446,13 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const revenue = Math.round(occupiedRooms * price) * 7
 
   // 9. 成本（真实酒店成本结构）
-  // 🔴 T1.4/B3：租金【单独列示】—— GOP（经营毛利）口径【不含】租金/加盟费/利息（术语表 §B1），
-  //    所以必须先把它从 fixedCost 里拆出来，否则 GOP 会被少算一笔租金。
-  //    租金 = 可售房 × 单房日租 × 7 天（单房日租由选址"租金"属性决定；65 元 ≈ 华住 52.5 元/间/天量级）
-  let rentCostWeekly = rooms * rentCost * 7
-  // 报表诊断选"成本相关" → 压降租金支出（谈判降租/换租约）
-  if (decisions['report-diagnosis'] === '解决成本相关') rentCostWeekly = Math.round(rentCostWeekly * 0.95)
+  // 固定成本 = 可售房 × 单房固定（含租金、折旧、基础人工分摊），单房成本由选址"租金"属性决定
+  // 🔴 T1.1（D16 拍板）：fixedCost 同为【一晚】口径（rentCost 65 元 ≈ 华住租金 52.5 元/间/天量级）→ ×7
+  let fixedCost = rooms * rentCost * 7
+  // 报表诊断选"成本相关" → 压降固定成本
+  if (decisions['report-diagnosis'] === '解决成本相关') fixedCost = Math.round(fixedCost * 0.95)
   // 人力优化：裁员立即降本，培训成本不变
-  if (decisions['hr-optimize'] === '裁员1人') rentCostWeekly = Math.round(rentCostWeekly * 0.9)
-  // 除租金外的固定成本（折旧 / 基础人工分摊）：当前模型未单列 ⇒ 恒 0，留出科目位
-  const fixedCost = 0
+  if (decisions['hr-optimize'] === '裁员1人') fixedCost = Math.round(fixedCost * 0.9)
   // 变动成本 = 入住数 × 单房变动（布草、易耗品、水电）
   // 布草自洗单件便宜（前提投入已在筹建期）；外包贵
   let perRoomVariable = 60
@@ -479,16 +476,10 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
-  const totalCost = fixedCost + rentCostWeekly + variableCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
+  const totalCost = fixedCost + variableCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
 
   // 10. 利润
   const profit = revenue - totalCost
-  // 🔴 T1.4/B3：GOP（经营毛利）= 营收 −（变动成本 + 营销 + OTA佣金 + 其他部门成本）
-  //    口径【不含】租金 / 加盟费 / 利息（术语表 §B1）；"其他部门成本"本模型尚未建模 ⇒ 记 0。
-  //    ⚠️ 因此本项目的 GOP 率会高于华住真实口径 —— 属【模型范围差异】，不是算错（见 §〇.9）。
-  const gopDeptCost = 0
-  const gop = revenue - (variableCost + marketingCost + otaCommission + gopDeptCost)
-  const gopRate = revenue > 0 ? gop / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
 // 🔴 T1.1（§十七 A3 预授权规则 · 改口径不改教学难度）：资金相关绝对数按【实测缩放系数 m】同步调整，
@@ -718,9 +709,6 @@ for (let i = 0; i < reviewCount; i++) {
     price: Math.round(price),
     revenue,
     totalCost,
-    rentCost: rentCostWeekly,   // 🔴 T1.4/B3：租金独立科目（GOP 口径不含它）
-    gop,                        // 🔴 T1.4/B3：经营毛利（不含租金/加盟费/利息）
-    gopRate,                    // 0-1
     profit,
     goodRate: Math.round(goodRate * 100),
     finalGoodRate: Math.round(finalGoodRate * 100),

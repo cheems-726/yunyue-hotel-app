@@ -159,8 +159,15 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
         <div className="card-title">经营明细</div>
         <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.8 }}>
           <div>🏨 房量 {result.rooms} 间 · 入住 {result.occupiedRooms} 间</div>
-          <div>💵 平均房价 {result.price} 元/间</div>
-          <div>💰 成本 {result.totalCost} 元</div>
+          {/* 🔴 T1.4/B2：平均房价改【实收】= 周客房收入 ÷ 售出间夜（原显示 result.price 是定价） */}
+          <div>💵 平均房价（实收）{result.occupiedRooms > 0 ? Math.round(result.revenue / (result.occupiedRooms * 7)) : 0} 元/间·天</div>
+          {/* 🔴 T1.4/B3：GOP 口径【不含】租金/加盟费/利息；本模型"其他部门成本"未建模 ⇒ GOP 率偏高属模型范围差异 */}
+          {typeof result.gopRate === 'number' && (
+            <div title="GOP（经营毛利）= 营收 −（变动成本 + 营销 + OTA佣金 + 其他部门成本）；不含租金/加盟费/利息">
+              📊 GOP 率 {(result.gopRate * 100).toFixed(1)}%<span style={{ color: '#9CA3AF', fontSize: 11 }}>（经营毛利，不含租金）</span>
+            </div>
+          )}
+          <div>💰 成本 {result.totalCost} 元<span style={{ color: '#9CA3AF', fontSize: 11 }}>（含租金 {typeof result.rentCost === 'number' ? result.rentCost.toLocaleString() : '—'} 元）</span></div>
           <div>⭐ 好评率 {result.goodRate}% → {result.finalGoodRate}%</div>
           {/* P5：资金唯一权威 = settle 返回的 capital（资金卡同源，可对账） */}
           {typeof result.capital === 'number' && <div>💰 期末资金 {result.capital.toLocaleString()} 元</div>}

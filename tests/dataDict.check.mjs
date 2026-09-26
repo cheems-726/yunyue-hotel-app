@@ -15,6 +15,9 @@ export const DATA_DICT = [
   { key: 'guests(在店)',    中文名: '在店规模',      单位: '间（客房）与 人（估算）严格分列', 权威来源: 'occRooms（间）；fullGuests（人，标注"估算"）', 允许用途: '实时面板（带单位标签）', 禁止用途: '把"间"标成"人"（审计问题①已修）' },
   { key: 'liveReviews',     中文名: '实时评价',      单位: '条（live 标记）',      权威来源: 'liveReview 掷骰（独立流 0x5A17A2）', 允许用途: '口碑页展示/流水', 禁止用途: '计入 pendingNegatives（口径批③：欠账只数结算卡，公平性红线）' },
   { key: 'weeklyExpenses',  中文名: '周成本构成',    单位: '元（分项）',           权威来源: 'settle().weeklyExpenses', 允许用途: '周报成本条形图', 禁止用途: '前端按 65/30/25 元硬编码重算（已修）' },
+  { key: 'gop/gopRate',     中文名: '经营毛利/GOP率', 单位: '元 / 0-1',             权威来源: 'settle().gop/gopRate（= 营收 −(变动+营销+OTA佣金+其他部门成本)）', 允许用途: '周报经营明细', 禁止用途: '把租金算进 GOP（口径错）；当利润率用' },
+  { key: 'rentCost',        中文名: '租金（独立科目）',单位: '元/周',               权威来源: 'settle().rentCost（房量 × 单房日租 × 7）', 允许用途: '周报成本行 / GOP 口径', 禁止用途: '并回 fixedCost（GOP 口径即错）' },
+  { key: 'confidence',      中文名: '数据来源分级',  单位: 'red/yellow/green',     权威来源: 'src/siteLocations.mjs 的 confidence', 允许用途: '选址页角标', 禁止用途: '把「人工分级」当统计数据引用' },
   { key: 'keptRand/guestsRng', 中文名: '随机流',     单位: '—',                    权威来源: '结算 rand（全班同种子）/ guestsRng 独立流 / liveReview 0x5A17A2', 允许用途: '各自领域', 禁止用途: '交叉调用（污染随机序列=破坏全班可比性）' },
 ]
 
@@ -154,7 +157,7 @@ const hzFindings = [], hzNotes = []
   // D · 特许费 = 营收 × 5%
   const franchise = H.参考值.年营收 * H.费率常量.管理费
   if (franchise !== H.参考值.特许费) hzFindings.push({ rule: '华住D(特许费)', ctx: `${H.参考值.年营收} × 5% = ${franchise} ≠ ${H.参考值.特许费}`, expect: '657 万 × 5% = 32.85 万' })
-  if (!/特许费|franchise/i.test(genSrc)) hzNotes.push('D 特许费：参考模型 657万×5% = 32.85 万 ✅ 算术自洽；⚠️ 引擎无【特许费】科目（与 GOP 同批）→ P3')
+  if (!/特许费|franchise/i.test(genSrc)) hzNotes.push('D 特许费：参考模型 657万×5% = 32.85 万 ✅ 算术自洽；⚠️ 引擎仍无【特许费】科目（GOP 已于 T1.4/B3 落地，特许费仍缺）→ P3')
   // E · 投资额量级
   if (!SAME_ORDER(H.参考值.单房造价 * H.rooms, H.参考值.华住单房造价 * H.rooms)) hzFindings.push({ rule: '华住E(投资额)', ctx: '单房造价×房量 与华住不同量级', expect: '同量级' })
   else hzNotes.push(`E 投资额：单房造价 7.18万×100 = 718 万 vs 华住 6.1万×100 = 610 万 ⇒ ${(H.参考值.单房造价 / H.参考值.华住单房造价).toFixed(2)}× ✅ 同量级；⚠️ 引擎无【投资额/capex】科目 → P3`)

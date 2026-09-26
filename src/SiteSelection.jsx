@@ -6,6 +6,19 @@ import RadarChart from './RadarChart.jsx'
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
 
+// 🔴 T1.4/B5：数据来源分级 —— siteLocations 的 confidence 字段此前【全项目无人读取、界面看不到】，
+//    本处把它显式化，让学生能分辨"有公开来源的数字"与"人工分级"。
+//    语义（据《数据层盘点与补全清单》§confidence 三级分布推断）：
+//      green  = 有公开来源 + 带具体数字（可溯源统计）
+//      yellow = 部分来源支撑
+//      red    = 定性描述，人工分级，非统计数据
+const CONFIDENCE_BADGE = {
+  green:  { text: '有据可查', cls: 'tag-tour', title: '该区县数据有公开来源支撑（含具体数字，可课堂引用）' },
+  yellow: { text: '部分有据', cls: 'tag-county', title: '部分数据有公开来源支撑' },
+  red:    { text: '人工分级', cls: 'tag-ind', title: '人工分级，非统计数据（定性判断，无公开来源）' },
+}
+const PERSONA_SOURCE_TIP = '人工分级，非统计数据 —— 客群占比按区县典型结构人工估算，非统计口径'
+
 // 客群主特性一句话（hover/列表行共用）
 const DOMINANT_LABEL = { business: '商务客为主', tourist: '游客为主', family: '家庭客为主' }
 function personaLine(city, name) {
@@ -153,6 +166,14 @@ export default function SiteSelection({ onConfirm }) {
             <div className="district-head">
               <span className="district-name">{d.name}</span>
               <span className={`district-tag ${d.tagCls}`}>{d.tag}</span>
+              {(() => {
+                const cb = CONFIDENCE_BADGE[d.confidence]
+                if (!cb) return null
+                return (
+                  <span className={`district-tag ${cb.cls}`} title={cb.title}
+                    style={{ opacity: 0.85, marginLeft: 4 }}>{cb.text}</span>
+                )
+              })()}
             </div>
 
             {Object.entries(d.attrs).map(([k, val]) => (
@@ -174,6 +195,7 @@ export default function SiteSelection({ onConfirm }) {
             {personaLine(currentCity, d.name) && (
               <div style={{ marginTop: 6, fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
                 👥 客群画像：{personaLine(currentCity, d.name)}
+                <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: '#6B7280' }}>ⓘ</span>
               </div>
             )}
             <div style={{ marginTop: 6, fontSize: 11, color: '#A96407' }}>
