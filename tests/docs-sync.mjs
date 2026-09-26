@@ -109,19 +109,21 @@ const FACTS = [
     docs: ['1-总纲与进度/需求要点统合-现状对照.md'],
   },
   {
-    name: 'dayEngine 尚未接线（一期不接线是预期）',
+    // 🔴 Phase D/C2（2026-09-27）：dayEngine 已接进 settlement（周值拆 7 天，零变化）。
+    //    本守卫原为"尚未接线"（expect:true），其注释写明"若变 false → 文档要更新" ⇒ 本夜按新事实翻转期望。
+    name: 'dayEngine 已接线（Phase D/C2 起 · settlement → simulateWeek）',
     actual: () => {
       const files = walk(path.join(APP, 'src'), ['.js', '.jsx'])
       for (const f of files) {
         if (path.basename(f) === 'dayEngine.js') continue
         const t = readIf(f)
-        if (t && /(from|require\()\s*['"].*dayEngine/.test(t)) return false
+        if (t && /(from|require\()\s*['"].*dayEngine/.test(t)) return true
       }
-      return true
+      return false
     },
-    docSays: '（此为预期状态，勿"顺手接上"）',
+    docSays: 'settlement 内部已调用 simulateWeek（Phase D/C2）',
     docs: [],
-    expect: true,   // 期望为 true：若变 false，说明已被接线 → 文档要更新
+    expect: true,   // 期望为 true：若变 false，说明接线被回退 → 需说明原因
   },
 ]
 
