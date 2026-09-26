@@ -14,9 +14,9 @@ const claimSteps = [
 // 候选物业（按品牌标准给出，含商圈类型）
 const properties = {
   经济型: [
-    { name: '社区旁物业', type: '社区型', area: '2600㎡', rooms: '72间', rent: '中等', match: '高' },
-    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', rooms: '80间', rent: '低', match: '高' },
-    { name: '商务区物业', type: '商圈型', area: '2800㎡', rooms: '75间', rent: '高', match: '中' },
+    { name: '社区旁物业', type: '社区型', area: '2600㎡', rooms: '72间', rent: '中等', match: '高', note: '可排客房按品牌标准（约50-80间）' },
+    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', rooms: '80间', rent: '低', match: '高', note: '可排客房按品牌标准（约50-80间）' },
+    { name: '商务区物业', type: '商圈型', area: '2800㎡', rooms: '75间', rent: '高', match: '中', note: '可排客房按品牌标准（约50-80间）' },
   ],
   中档: [
     { name: '商圈核心物业', type: '商圈型', area: '3500㎡', rooms: '85间', rent: '高', match: '高' },

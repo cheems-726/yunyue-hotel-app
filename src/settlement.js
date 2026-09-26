@@ -728,7 +728,7 @@ function parsePrice(priceStr) {
 }
 
 // 解析房量（"客房70间起" → 70）
-function parseRooms(standardStr) {
+export function parseRooms(standardStr) {   // A3：导出供界面复用（房量唯一权威 = 品牌标准口径）
   const m = standardStr && standardStr.match(/(\d+)间/)
   return m ? Number(m[1]) : 70
 }

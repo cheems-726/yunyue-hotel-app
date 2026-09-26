@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { getTitle } from './hotelTitle.js'
+import { parseRooms } from './settlement.js'
 import { normalizeAttrs, ATTR_LABELS, applyDecisionToAttrs } from './attrs.js'
 import { rollLiveReview } from './liveReview.js'
 import { guestsRng } from './guests.js'
@@ -366,7 +367,9 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const quality = A.quality // 称号综合分沿用「出租率35%+好评率35%+品质30%」口径，品质改由属性池驱动
 
   // 模拟日历 + 时钟驱动的入住情况
-  const rooms = report?.rooms || (property?.rooms && Number(property.rooms.match(/(\d+)/)?.[1])) || 70
+  // A3：房量唯一权威 = 引擎 parseRooms(brand.standard)（与结算同源）。原先结算前用 property.rooms
+  //  （72-95 的"建筑面积"话术）、结算后用引擎值 → 「共 X 间」跳变。物业匹配记为二期教学点。
+  const rooms = report?.rooms || parseRooms(brand?.standard) || 70
   const occRooms = report?.occupiedRooms || (history.length ? history[history.length - 1].occupiedRooms : 0) || Math.round(rooms * occupancy / 100)
   const price = report?.price || 230
   const seed = week * 7 + (new Date().getDate())

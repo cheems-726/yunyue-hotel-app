@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
 
 // 筹建 4 步（品牌/物业已在前面的选品牌和认领环节完成）
@@ -140,7 +141,7 @@ export default function Establishment({ brand, property, onComplete }) {
             changes: (() => {
               const lv = brand?.level || ''
               const quality = lv.includes('经济') ? 60 : lv.includes('中高档') || lv.includes('精选') ? 85 : lv.includes('高档') ? 90 : lv.includes('奢华') ? 95 : 75
-              const rooms = (property?.rooms && Number(property.rooms.match(/(\d+)/)?.[1])) || 70
+              const rooms = parseRooms(brand?.standard) || 70   // A3：与结算同源（品牌口径）
               const midPrice = (brand?.price && Number(brand.price.match(/(\d+)-(\d+)/)?.[1]) + Number(brand.price.match(/(\d+)-(\d+)/)?.[2])) / 2 / 1 || 300
               return [
                 { label: '酒店状态', value: '已开业', dir: 'up' },
