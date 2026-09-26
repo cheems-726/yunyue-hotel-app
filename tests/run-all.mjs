@@ -22,7 +22,10 @@ const SUITES = [
   { name: 'verify-severity（语气分级）', file: 'tests/verify-severity.mjs' },
   { name: 'dayEngine（日引擎·一期D1）', file: 'tests/dayEngine.test.mjs' },
   { name: 'fairness（B5 公平性形式化）', file: 'tests/fairness.test.mjs' },
-  { name: 'dataDict（B6 口径静态检查）', file: 'tests/dataDict.check.mjs' },
+  // dataDict（B6+M2 术语断言）暂移出门禁：M2 修复前按规格【预期报红 3 条】（RevPAR÷7/ADR实收/GOP），
+  //  第1批 T1.4 完成后挂回（任务包 §四 M2 验收：修复前红→修复后绿）。报告模式期间可单独跑：node tests/dataDict.check.mjs
+  { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
+  { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', optional: true },

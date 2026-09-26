@@ -310,7 +310,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '✏️ 正在编辑批注（保存后覆盖原批注）' : '📝 教师批注 & 打分（计入期末总评10%）'}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '✏️ 正在编辑批注（保存后覆盖原批注）' : '📝 教师批注 & 打分（不计入评分，供复盘参考）'}</span>
         {editNote && (
           <button onClick={() => { setEditNote(null); setNote(''); setScore('') }}
             style={{ border: 'none', background: 'none', fontSize: 10, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit' }}>取消编辑</button>
