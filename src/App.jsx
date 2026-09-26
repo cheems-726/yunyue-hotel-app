@@ -378,8 +378,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         //    再减一次 totalExpenses → 学生看到的资金被系统性低估（实测第1周差 6,981 = 当周 totalExpenses）
         const cap = capital
         const expenses = report?.totalExpenses || 0
-        const isLow = cap < 700000
-        const isCritical = cap < 350000
+        // 🔴 T1.1：随资金口径按 m 缩放（可变黄 = IC×0.2 = 100.4 万；变红 = IC×0.1 = 50.2 万）
+        const isLow = cap < 1004000
+        const isCritical = cap < 502000
         return (
           <div className="card" title="点击查看实时流水明细"
             onClick={() => { contentRef.current && contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -1171,9 +1172,9 @@ function HelpPage({ onBack }) {
       <div className="card">
         <div className="card-title">💰 资金管理指南</div>
         <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
-          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡，初始 350 万，每周结算后自动增减。</div>
+          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡，初始约 502 万，每周结算后自动增减。</div>
           <div><b>每周扣什么：</b>固定成本（约 65 元/间）+ 人员工资（按入住量与排班 20-30 元/间）+ 物料水电 + 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
-          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>70 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>35 万</b> 变红「🚨 破产预警」。</div>
+          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 100.4 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 50.2 万</b> 变红「🚨 破产预警」。</div>
           <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
         </div>
@@ -1418,8 +1419,8 @@ function ScoreDetail({ history, onBack }) {
     const avgOcc = arr.length ? Math.round(arr.reduce((s, h) => s + h.occupancy, 0) / arr.length) : 0
     const avgGood = arr.length ? Math.round(arr.reduce((s, h) => s + h.finalGoodRate, 0) / arr.length) : 0
     const totalNeg = arr.reduce((s, h) => s + h.negativeCount, 0)
-    // 🔴 T1.1：与 FinalResult.jsx 同口径 ×7（本处是成绩单文案用的第三套副本，规格未点到，一并同步）
-    const pS = totalProfit >= 350000 ? 100 : totalProfit >= 210000 ? 85 : totalProfit >= 70000 ? 70 : totalProfit >= 0 ? 55 : 40
+    // 🔴 T1.1：与 FinalResult.jsx 同口径（旧阈值 × m 取整到万位；本处是成绩单文案用的第三套副本，规格未点到，一并同步）
+    const pS = totalProfit >= 500000 ? 100 : totalProfit >= 300000 ? 85 : totalProfit >= 100000 ? 70 : totalProfit >= 0 ? 55 : 40
     const rS = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
     const oS = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
     const nS = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
@@ -1675,11 +1676,11 @@ export default function App() {
   }
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
-  // 资金唯一权威（settle 返回后写回）；旧档无该字段时按"350万 + 历史累计利润×7"平滑起算
-  // 🔴 T1.1（D20）：起始资金随口径 ×7（50万→350万）。旧档 history 里的利润是【一晚口径】算出来的，
-  //    比新口径小 7 倍，故迁移时 ×7 才能保住它相对起始资金的位置（新旧档不同起跑线会不公平）。
+  // 资金唯一权威（settle 返回后写回）；旧档无该字段时按"502万 + 历史累计利润×m"平滑起算
+  // 🔴 T1.1（§十七 A3）：起始资金 50万 → 502万（×m=10.0483）。旧档 history 里的利润是【旧口径】算出来的，
+  //    比新口径小约 m 倍，故迁移时 ×m 才能保住它相对起始资金的位置（新旧档不同起跑线会不公平）。
   const [capital, setCapital] = useState(
-    typeof saved.capital === 'number' ? saved.capital : 3500000 + (saved.history || []).reduce((a, h) => a + (h.profit || 0) * 7, 0)
+    typeof saved.capital === 'number' ? saved.capital : 5020000 + (saved.history || []).reduce((a, h) => a + (h.profit || 0) * 10.0483, 0)
   )
   // 经营模式：认领页选择（direct 自主直营 / ota 平台合作）。旧档缺省 direct —— 与当前引擎默认一致，老班成绩零变化
   const [bizMode, setBizMode] = useState(saved.bizMode === 'ota' ? 'ota' : 'direct')

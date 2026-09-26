@@ -1,6 +1,6 @@
 // T1.1 步骤3 · 资金三数对比表（改前 vs 改后）
 //
-// 三变体：
+// 三变体（C 已按 §十七 A3 的 m 规则定稿：IC=5,020,000 / 预警线=1,004,000）：
 //   A 改前   ：HEAD 引擎（一晚口径）           + 旧三数（IC 500,000 / 预警 50,000 / 破产 0）
 //   B 改后·不调：×7 引擎                        + 旧三数        ← 若不做任何调整会怎样
 //   C 改后·×7 ：×7 引擎                        + ×7 三数（IC 3,500,000 / 预警 350,000 / 破产 0）← 建议值
@@ -68,7 +68,7 @@ function runGroup(g, engine, IC) {
 const VARIANTS = [
   { id: 'A 改前', engine: settleOld, IC: 500000, warn: 50000, bank: 0 },
   { id: 'B 改后·不调三数', engine: settleNew, IC: 500000, warn: 50000, bank: 0 },
-  { id: 'C 改后·三数×7', engine: settleNew, IC: 3500000, warn: 350000, bank: 0 },
+  { id: 'C 改后·三数×m', engine: settleNew, IC: 5020000, warn: 1004000, bank: 0 },
 ]
 
 console.log('════════ T1.1 步骤3 · 资金三数对比表（6 组 × 12 周）════════')

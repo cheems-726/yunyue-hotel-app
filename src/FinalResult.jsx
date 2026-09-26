@@ -34,12 +34,10 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
 
   // 四维评分（简化：按表现打分 0-100）
   // 利润得分：累计利润越高越好
-  // 🔴 T1.1（D20 原则二）：口径 ×7 ⇒ 分段同步 ×7（50000/30000/10000/0 → 350000/210000/70000/0）。
+  // 🔴 T1.1（§十七 A4 预授权规则）：新阈值 = 旧阈值 × m（m=10.0483），取整到万位。
   //    必要性：不重标定则 6 组里 5 组并列 100，本维度区分度归零。
-  //    实测（tests/_t11-profit-score.mjs）：4/6 组档位与改前一致；4躺平型 55→70、5激进型 40→85 上移，
-  //    根因 = 营销等「每周科目」不参与 ×7、相对权重降 1/7（激进型赛季利润 −37878 → +218269 符号翻转）。
-  //    ★ 该两组的变化属【口径迁移的必然结果】，已上报决策端；未调参凑回。
-  const profitScore = totalProfit >= 350000 ? 100 : totalProfit >= 210000 ? 85 : totalProfit >= 70000 ? 70 : totalProfit >= 0 ? 55 : 40
+  //    自检（tests/_t11-impact.mjs）：6 组评级分布 ACBDDC vs ACBDDC【一致】✅（档位 4/6 逐组一致）
+  const profitScore = totalProfit >= 500000 ? 100 : totalProfit >= 300000 ? 85 : totalProfit >= 100000 ? 70 : totalProfit >= 0 ? 55 : 40
   // 口碑得分：平均好评率
   const reputationScore = avgGoodRate >= 90 ? 95 : avgGoodRate >= 85 ? 85 : avgGoodRate >= 75 ? 70 : avgGoodRate >= 60 ? 55 : 40
   // 出租率得分
