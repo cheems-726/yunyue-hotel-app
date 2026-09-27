@@ -1532,7 +1532,7 @@ function ScoreDetail({ history, onBack }) {
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
         <div className="card-title">📖 怎么涨分</div>
         <div style={{ fontSize: 12, color: '#1E40AF', lineHeight: 1.8 }}>
-          利润（40%）：收入减成本的差额，累计≥3万到85分档<br />
+          利润（40%）：收入减成本的差额，累计≥50万=满分、≥30万=85 分档<br />
           口碑（25%）：差评及时回复、卫生质检是关键<br />
           出租率（20%）：调价和营销平衡，55%-75%是舒适区<br />
           差评处理（15%）：差评总数越少分越高
