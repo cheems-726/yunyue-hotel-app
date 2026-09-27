@@ -36,6 +36,10 @@ const SUITES = [
   { name: 'engineBarrel（引擎统一出口 T3.1·批次 B2）', file: 'tests/engineBarrel.test.mjs' },
   { name: 'dbLayer（数据层职责抽查 T3.5·批次 B2）', file: 'tests/dbLayer.test.mjs' },
   { name: 'nullGuardPattern（!= null 模式守门·批次 B2.5）', file: 'tests/nullGuardPattern.test.mjs' },
+  // —— Wave 1（服务端自动结算）——
+  { name: 'serverTick（服务端逐日推进·W1-3 D7 证据）', file: 'tests/serverTick.test.mjs' },
+  { name: 'antiCheat（防作弊三件套·W1-4）', file: 'tests/antiCheat.test.mjs' },
+  { name: 'progressLag（老师端进度提示·W1-5）', file: 'tests/progressLag.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },

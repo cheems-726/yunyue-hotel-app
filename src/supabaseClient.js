@@ -194,6 +194,16 @@ export async function fetchClassWeek() {
   return data.current_week || 0
 }
 
+// 🔴 W1-5（T3.7）：classDay 的唯一权威在服务端（class_day_now()，见 migrations/20260927_server_tick.sql）。
+//   函数不存在（迁移未应用）时返回 0，由调用方走降级路径 —— 不抛异常、不阻塞教师端。
+export async function fetchClassDay() {
+  try {
+    const { data, error } = await supabase.rpc('class_day_now')
+    if (error) return 0
+    return Number(data) || 0
+  } catch (e) { return 0 }
+}
+
 export async function setClassWeek(week) {
   const { error } = await supabase
     .from('class_state')

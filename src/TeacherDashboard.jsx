@@ -3,8 +3,9 @@ import { decisions, OWNER_LABELS } from './decisions.js'
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
 import { restoreFromCloud } from './stateMigration.mjs'
+import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { normalizeAttrs, qualityOf } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -17,7 +18,7 @@ const demoGroups = [
 ]
 
 // 从游戏状态 JSON 汇总出一组的经营摘要 + 四维评分（与学生端 FinalResult 同口径）
-function summarize(gs, profile) {
+function summarize(gs, profile, classDay = 0) {
   const s = gs?.state || {}
   const history = s.history || []
   const totalProfit = history.reduce((a, h) => a + (h.profit || 0), 0)
@@ -40,6 +41,10 @@ function summarize(gs, profile) {
       ? (avgHandleRate >= 0.9 ? 95 : avgHandleRate >= 0.7 ? 85 : avgHandleRate >= 0.5 ? 70 : avgHandleRate >= 0.3 ? 55 : 40)
       : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)
   const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
+  // 🔴 W1-5（T3.7）：进度落后提示 —— 服务端 classDay（唯一权威） vs 该组算到第几天。
+  //   lastComputedDay 的口径：该组 history 覆盖的游戏天数（每周 7 天）；旧档无该字段时用 history.length×7 推。
+  const lastComputedDay = Number(s.__lastComputedDay) || (history.length * 7)
+  const lag = classDay > 0 ? progressLag({ classDay, lastComputedDay, lastDecisionAt: s.__lastDecisionAt || null }) : null
   // 上周分数（去掉最后一周的历史再算一次）→ 用于排名行显示周环比
   let scorePrev = null
   if (history.length > 1) {
@@ -73,6 +78,7 @@ function summarize(gs, profile) {
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
     score, scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,
+    lag,   // W1-5：{ lagDays, lagWeeks, level, label, sinceLabel } 或 null
     updated: gs.updated_at,
   }
 }
@@ -375,6 +381,9 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
   const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
+  // 🔴 W1-5：classDay（服务端权威）。取不到（迁移未应用/离线）时保持 0，
+  //   此时进度提示降级为"按教学周推算的近似值"，并在 UI 上标明是近似。
+  const [classDay, setClassDay] = useState(0)
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
   const [newChips, setNewChips] = useState({}) // uid -> Set(决策id)：最近一次刷新新增/变化的决策（高亮）
@@ -412,7 +421,11 @@ export default function TeacherDashboard({ user, onLogout }) {
         return r.migrated ? { ...gs, state: r.state } : gs
       })
       const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
-      const list = states.map(gs => summarize(gs, pMap[gs.user_id]))
+      // ★ 修复：原先这里写了不存在的标识符 `classDayState` ⇒ 在 try/catch 内会静默吞掉
+      //   ReferenceError，导致教师端【整片数据加载失败】却毫无提示（假绿同族）。
+      //   现在用真实 state：优先服务端 classDay；取不到则按教学周推算并标记为近似。
+      const effClassDay = classDay || (classWeek ? classWeek * 7 : 0)
+      const list = states.map(gs => summarize(gs, pMap[gs.user_id], effClassDay))
       list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
@@ -420,6 +433,8 @@ export default function TeacherDashboard({ user, onLogout }) {
       fetchTeacherNotes().then(ns => { setNotedUids(new Set(ns.map(n => n.student_uid))); setAllNotes(ns) }).catch(() => {})
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
+      // W1-5：一并取服务端 classDay（失败静默回 0，不影响其余加载）
+      fetchClassDay().then(d => { if (d) setClassDay(d) }).catch(() => {})
       setCloudOk(true)
     } catch (e) {
       setGroups(demoGroups); setCloudOk(false)
@@ -645,6 +660,37 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
             )
           })()}
+          {/* 🔴 W1-5（T3.7）：进度落后提示 —— 服务端 classDay vs 各组算到第几天
+              验收口径：构造"3 天没提交决策"的组 → 这里必须明确列出来 */}
+          {(() => {
+            const behind = visibleGroups.filter(g => g.lag && g.lag.level === 'behind')
+            const watch = visibleGroups.filter(g => g.lag && g.lag.level === 'watch')
+            if (!behind.length && !watch.length) {
+              return classDay > 0 ? (
+                <div style={{ margin: '0 20px 12px', fontSize: 12, color: '#10B981', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '6px 10px' }}>
+                  ✅ 全班进度正常（服务端第 {classDay} 天，各组均已跟上）
+                </div>
+              ) : null
+            }
+            return (
+              <div style={{ margin: '0 20px 12px', fontSize: 12, background: behind.length ? '#FEF0EF' : '#FFF4E0', border: `1px solid ${behind.length ? '#FECACA' : '#FDE68A'}`, borderRadius: 8, padding: '8px 10px', lineHeight: 1.8 }}>
+                <div style={{ fontWeight: 700, color: behind.length ? '#DC2626' : '#A96407', marginBottom: 2 }}>
+                  {behind.length ? `⚠ ${behind.length} 组进度落后` : `· ${watch.length} 组需留意`}
+                  <span style={{ fontWeight: 400, color: '#9CA3AF' }}>
+                    （服务端第 {classDay} 天{classDay ? '' : '· 按教学周推算'}）
+                  </span>
+                </div>
+                {[...behind, ...watch].slice(0, 8).map(g => (
+                  <div key={g.uid} style={{ color: '#374151' }}>
+                    · {g.name || g.uid}：<b>{g.lag.label}</b>
+                    {g.lag.sinceLabel && <span style={{ color: '#9CA3AF' }}>（{g.lag.sinceLabel}）</span>}
+                  </div>
+                ))}
+                {[...behind, ...watch].length > 8 && <div style={{ color: '#9CA3AF' }}>…另有 {[...behind, ...watch].length - 8} 组</div>}
+              </div>
+            )
+          })()}
+
           {/* 班级整体统计条 */}
             {visibleGroups.length > 0 && (() => {
               const withData = visibleGroups.filter(g => g.historyCount > 0)

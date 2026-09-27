@@ -2,7 +2,7 @@
 //
 // ── 为什么要有它 ────────────────────────────────────────────────
 // 同一个引擎要跑在【两端】：浏览器（学生端 App / 教师端 Dashboard）与 Node（门禁测试 / 长跑脚本）。
-// 原先两端各自 `import ... from '../src/某文件.js'`，谁多引一个模块都容易漏 ——
+// 原先两端各自 `import ... from './src/某文件.js'`，谁多引一个模块都容易漏 ——
 // 出问题时的表现是"两端结果不一致"，而这类 bug 最难查（M4 同构验证就是为它设的）。
 // 现在统一从 `src/engine/index.js` 取，两端 import 面收敛成一处。
 //
@@ -19,27 +19,27 @@
 //   参考资料：franchiseModel（纯数据，不参与计算）
 
 // 核心计算
-export * from '../settlement.js'
-export * from '../dayEngine.js'
-export * from '../attrs.js'
-export * from '../guests.js'
-export * from '../reviewRate.js'
-export * from '../liveReview.js'
+export * from './settlement.js'
+export * from './dayEngine.js'
+export * from './attrs.js'
+export * from './guests.js'
+export * from './reviewRate.js'
+export * from './liveReview.js'
 
 // 派生展示
-export * from '../dailyReport.mjs'
-export * from '../missingWeeks.mjs'
-export * from '../teachingClock.mjs'
-export * from '../hotelTitle.js'
+export * from './dailyReport.mjs'
+export * from './missingWeeks.mjs'
+export * from './teachingClock.mjs'
+export * from './hotelTitle.js'
 
 // 存档口径
-export * from '../stateMigration.mjs'
+export * from './stateMigration.mjs'
 
 // 防作弊（哈希链 / 异常模式）
-export * from '../decisionLogIntegrity.mjs'
+export * from './decisionLogIntegrity.mjs'
 
 // 参考资料（纯数据）
-export * from '../franchiseModel.mjs'
+export * from './franchiseModel.mjs'
 
 // 站点数据（选址/客群/竞品）—— 引擎消费它，两端也要读同一份
-export * from '../siteLocations.mjs'
+export * from './siteLocations.mjs'
