@@ -171,6 +171,19 @@ export const EVENT_CONFIG = {
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
 export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0 }) {
+  // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
+  //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
+  //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
+  //   ⇒ "修一处漏一处"的根因是【逐处补】；改为【入口一次性归一化】后，下游无论怎么写都不会再收到非有限值。
+  //   语义：null / undefined / '' → 用缺省值（表示"没有该数据"）；能转成有限数 → 取数；其余（NaN/Infinity/'abc'）
+  //         → 也用缺省值。★ 对合法数值【零行为变化】（含数字类字符串，原写法靠隐式转换，结果一致）。
+  const numOr = (v, d) => (v === null || v === undefined || v === '' ? d : (Number.isFinite(Number(v)) ? Number(v) : d))
+  pendingNegatives = numOr(pendingNegatives, 0)
+  resolvedCount = numOr(resolvedCount, 0)
+  prevGoodRate = numOr(prevGoodRate, null)
+  prevCapital = numOr(prevCapital, null)
+  liveNegCount = numOr(liveNegCount, 0)
+  livePosCount = numOr(livePosCount, 0)
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
   // R0：属性 → 经营系数。attrs 缺失/旧档 → normalizeAttrs 兜底为中性值 → 全部系数 = 1.0（零变化）
   const A0 = normalizeAttrs(attrsIn)
@@ -224,7 +237,9 @@ if (bizMode === 'ota') {
   if (decisions.renovation === '投150万改造') { price *= 1.08; renovationCost = 2000 }
 
   // 3. 口碑影响（好评率 → 1.2/1.0/0.8/0.5），好评率跨周延续
-  let goodRate = prevGoodRate != null ? prevGoodRate / 100 : (brand && brand.name ? 0.85 : 0.82)
+  // 🔴 B2.5：B2 漏掉的同写法实例（用户抽查指出）—— `prevGoodRate != null ? prevGoodRate / 100 : ...`
+  //   NaN / 100 = NaN ⇒ goodRate 变 NaN。入口已归一化，此处再用 Number.isFinite 作第二层防御。
+  let goodRate = Number.isFinite(prevGoodRate) ? prevGoodRate / 100 : (brand && brand.name ? 0.85 : 0.82)
   if (decisions['hygiene'] === '停房深清洁') goodRate += 0.03
   if (decisions['quality-check']) {
     // 质检排序：隔音/卫生排进前5 → 口碑提升
@@ -244,7 +259,11 @@ if (bizMode === 'ota') {
   else if (crisisResponse === '不理会') { goodRate -= 0.02; crisisInsight = { good: false, text: '上周危机选择了不理会，口碑持续受损——危机不应对就是最差应对' } }
   if (decisions['hr-optimize'] === '裁员1人') goodRate -= 0.02
   // 能耗管控走极端 → 舒适度差招差评
-  const energy = decisions.energy
+  // 🔴 B2.5：energy 同样在入口归一化 —— 原写法 `if (energy != null) perRoomVariable += (energy - 23) * 2`
+  //   在 energy = NaN/Infinity/'abc' 时会把 NaN 灌进 variableCost → totalCost → profit → capital（实测 4 个字段）
+  const energyRaw = decisions.energy
+  const energy = (energyRaw === null || energyRaw === undefined || energyRaw === '') ? null
+    : (Number.isFinite(Number(energyRaw)) ? Number(energyRaw) : null)
   if (energy != null && (energy <= 21 || energy >= 25)) goodRate -= 0.02
   // 会员门槛适中（4-6晚）→ 会员体验好
   const threshold = decisions['member-threshold']
@@ -507,8 +526,10 @@ const initialCapital = 5020000
 // 🔴 B2-1 故障注入抓到：原先写 `prevCapital != null ? prevCapital : initialCapital`，
 //   而 `typeof NaN === 'number'`、`Infinity` 也是 number ⇒ 脏入参会让 capital 直接变 NaN 并外传。
 //   改用 Number.isFinite：合法数值行为【完全不变】，只把 NaN/Infinity/null 归到起始资金。
-//   （同类输入已逐个探过：pendingNegatives / resolvedCount / prevGoodRate / attrs 均有既有守卫，
-//     不会传播；本处是唯一漏网的。）
+//   ⚠️ 更正（B2.5）：原注释写"同类输入已逐个探过，本处是唯一漏网的"——【该结论是错的】。
+//     错在【探测方式】：探的是"想到的输入"，而不是"全库同一种写法"。
+//     按写法扫后共发现 3 处：prevGoodRate:227（除法）、pendingNegatives:253（乘法）、energy:471（加减乘）。
+//     处置已改为【入口统一归一化】（见函数开头 numOr），并留下常驻守门 tests/nullGuardPattern.test.mjs。
 let capital = Number.isFinite(prevCapital) ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0

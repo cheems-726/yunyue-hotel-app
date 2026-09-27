@@ -286,7 +286,7 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           if ((result.negativeCount || 0) > 0) forecasts.push({ icon: '🔥', text: `本周新增 ${result.negativeCount} 条差评，欠着不处理会触发"差评发酵"（口碑额外受损），优先去口碑页处理` })
           // 🔴 P3-1：阈值口径同步（T1.1 后起始资金 502 万、预警线 100.4 万）——
           //    原写 < 100000 ⇒ 资金预警几乎永不触发，直接违反 D20 原则一"改口径不改教学难度"
-          if (result.capital != null && result.capital < 1004000) forecasts.unshift({ icon: '🚨', text: `资金 ${Math.round(result.capital / 10000)} 万已接近预警线（约 100.4 万），下周优先控成本：排班随出租率浮动、砍低投产比投放` })
+          if (Number.isFinite(result.capital) && result.capital < 1004000)   // B2.5：`!= null` 拦不住 NaN，而这里要做除法 forecasts.unshift({ icon: '🚨', text: `资金 ${Math.round(result.capital / 10000)} 万已接近预警线（约 100.4 万），下周优先控成本：排班随出租率浮动、砍低投产比投放` })
           if (forecasts.length === 0) {
             if (cur < 0.95) forecasts.push({ icon: '🧘', text: '市场偏冷的窗口适合练内功：品质投入和口碑积累，等热度回来时接得住' })
             else if (cur > 1.05) forecasts.push({ icon: '🔥', text: '市场偏热，客流是白送的——此时满编保服务的边际收益最高' })

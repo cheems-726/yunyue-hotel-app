@@ -322,10 +322,10 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
 
       <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',textAlign:'center',padding:18}}>
         <div style={{fontSize:40,fontWeight:700,color:'#A96407'}}>
-          {goodRatePct != null ? (goodRatePct / 20).toFixed(1) : '—'}
+          {Number.isFinite(goodRatePct) ? (goodRatePct / 20).toFixed(1) : '—'}
         </div>
         <div key={goodRatePct} className="stars-big stars-pop" style={{fontSize:20,letterSpacing:2,marginTop:4}}>
-          {goodRatePct != null ? '★'.repeat(Math.max(1, Math.round(goodRatePct / 20))) + '☆'.repeat(5 - Math.max(1, Math.round(goodRatePct / 20))) : '☆☆☆☆☆'}
+          {Number.isFinite(goodRatePct) ? '★'.repeat(Math.max(1, Math.round(goodRatePct / 20))) + '☆'.repeat(5 - Math.max(1, Math.round(goodRatePct / 20))) : '☆☆☆☆☆'}
         </div>
         <div style={{fontSize:12,color:'#A96407',marginTop:6}}>
           {goodRatePct != null ? `${goodRatePct}% 好评率` : '完成首次结算后显示好评率'} · 差评处理率 {handleRate}%

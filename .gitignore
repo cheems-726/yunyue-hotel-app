@@ -12,3 +12,7 @@ android/local.properties
 # 备份/临时文件不进仓库（2026-09-22 夜：误提交 12 个 .bak 后补）
 *bak
 *.patch-tmp
+
+# 测试运行自动重写的截图（ui-smoke 每次跑都覆盖，属生成物不是源码）
+tests/_s3-report.png
+tests/_s3-rep.png

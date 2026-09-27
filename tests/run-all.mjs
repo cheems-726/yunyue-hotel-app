@@ -35,6 +35,7 @@ const SUITES = [
   { name: 'dailyReport（日报 T3.3/T3.4·批次 B2）', file: 'tests/dailyReport.test.mjs' },
   { name: 'engineBarrel（引擎统一出口 T3.1·批次 B2）', file: 'tests/engineBarrel.test.mjs' },
   { name: 'dbLayer（数据层职责抽查 T3.5·批次 B2）', file: 'tests/dbLayer.test.mjs' },
+  { name: 'nullGuardPattern（!= null 模式守门·批次 B2.5）', file: 'tests/nullGuardPattern.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
