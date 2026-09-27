@@ -31,7 +31,7 @@ console.log('\n[1] 口径层：每个数字都能追到已有口径')
   ok(q.rooms === rooms && rooms > 0, `房量 = parseRooms(品牌标准) = ${rooms}（与结算同源）`)
   const 年租金 = rooms * rentPerRoomDay(区县.租金) * 365
   ok(q.lines.find(l => l.label === '年租金').value === 年租金,
-    `年租金 = 房量 × (35+租金档×10) × 365 = ${年租金}（引擎租金口径，settlement.js:202 同式）`)
+    `年租金 = 房量 × rentPerRoomDay(租金档) × 365 = ${年租金}（A-1 起与引擎同源，25+档×5）`)
   const 单价 = 年租金 / 2600 / 365
   const line单价 = q.lines.find(l => l.label === '租金单价')
   ok(Math.abs(line单价.value - 单价) < 1e-9 && line单价.status === STATUS.DERIVED,
@@ -104,8 +104,8 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   ok(JSON.stringify(物业) === frozen, '不改动入参对象（无副作用）')
   // 引擎锚点：确定性单配置（与批次报告一致）—— 若有人把报价单接进结算，这里会红
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
-  ok(r.revenue === 126140 && r.totalCost === 85753 && r.netProfit === 40387,
-    '引擎锚点未变：单配置 revenue 126140 / totalCost 85753 / netProfit 40387', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
+  ok(r.revenue === 126140 && r.totalCost === 71753 && r.netProfit === 54387,
+    '引擎锚点（A-1 重基线）：单配置 revenue 126140 / totalCost 71753 / netProfit 54387', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

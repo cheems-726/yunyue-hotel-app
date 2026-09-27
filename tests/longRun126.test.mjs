@@ -115,7 +115,7 @@ console.log('\n[3] ⑤ 18 项决策所有周都能结算')
   let threw = 0, nan = 0
   for (let w = 1; w <= WEEKS; w++) {
     try {
-      const r = settle({ site: SITE, brand: BRAND, decisions: { ...FULL18, ...NUMERIC }, week: w, prevCapital: 5020000, attrs: { quality: 60, reputation: 70, morale: 65 } })
+      const r = settle({ site: SITE, brand: BRAND, decisions: { ...FULL18, ...NUMERIC }, week: w, prevCapital: SCALE.IC_NEW, attrs: { quality: 60, reputation: 70, morale: 65 } })
       if (!isNum(r.profit) || !isNum(r.capital)) nan++
     } catch (e) { threw++; console.log(`     ✗ w${w} 抛异常：${e.message}`) }
   }
@@ -190,6 +190,20 @@ console.log('\n[6] 故障注入：脏输入不得崩溃、不得污染数值')
     } catch (e) { bad++; console.log(`     ✗ ${name}：抛异常 ${e.message}`) }
   }
   ok(bad === 0, `10 种脏输入全部不崩溃且关键数值有限（异常 ${bad} 种）`)
+}
+
+// ── --report：打印【落文档用】的表格 ────────────────────────────────
+// 🔴 A-2（2026-09-27）：本标志原先【只声明、没实现】（写了 WANT_REPORT 却无人消费 —— BL-13"声明≠实现"），
+//    重列期末资金证据时补实现：表格与《18周（126天）长跑报告.md》§二 同列，便于逐格替换。
+if (WANT_REPORT) {
+  console.log('\n══════ 落文档用表格（--report）══════')
+  console.log('| 组别 | 期末资金 | 好评率 | 属性（品质/声誉/士气） |')
+  console.log('|---|---|---|---|')
+  for (const [name, r] of Object.entries(runs)) {
+    const e = r.weeks[WEEKS - 1]
+    console.log(`| ${name} | ${e.capital.toLocaleString()} | ${e.goodRate}% | ${e.attrs.quality} / ${e.attrs.reputation} / ${e.attrs.morale} |`)
+  }
+  console.log(`\n（起始资金 = SCALE.IC_NEW = ${SCALE.IC_NEW.toLocaleString()} 元 · WEEKS=${WEEKS}）`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

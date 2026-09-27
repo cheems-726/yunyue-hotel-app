@@ -62,10 +62,10 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   const 未给 = settle({ ...BASE })
   const ota = settle({ ...BASE, bizMode: 'ota' })
   // 自营锚点 = 各批次报告引用的"单配置"（与 W2/W3 报告同源）
-  ok(direct.revenue === 126140 && direct.totalCost === 85753 && direct.netProfit === 40387,
+  ok(direct.revenue === 126140 && direct.totalCost === 71753 && direct.netProfit === 54387,   // A-1 重基线
     `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（与文档锚点一致）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')
-  ok(ota.revenue === 168980 && ota.totalCost === 119920 && ota.netProfit === 49060,
+  ok(ota.revenue === 168980 && ota.totalCost === 105920 && ota.netProfit === 63060,   // A-1 重基线
     `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（各自锚点，与自营不同属正常）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
     `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}（模式差异只由此产生）`)

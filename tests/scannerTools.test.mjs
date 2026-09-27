@@ -49,8 +49,12 @@ console.log('\n[2] --since 限定范围（且结果 ⊆ 全量）')
     `scope 记录 since 与改动清单（${(j2.scope.sinceFiles || []).length} 个文件）`)
   ok(j2.scope.scannedFiles < j2.scope.totalFiles,
     `过滤真的发生：只扫 ${j2.scope.scannedFiles} / 共 ${j2.scope.totalFiles}（HEAD~2 之后改动过的）`)
-  ok((j2.scope.sinceFiles || []).length === j2.scope.scannedFiles,
-    'scannedFiles 恰等于改动文件数（不是"扫了但没记"）')
+  // 🔴 2026-09-28（夜间 N-0）：本等式原先没做**与扫描器同一套排除**（settle-old-* 快照按设计不扫），
+  //   于是 一旦某提交带入 src/settle-old-*.mjs（如 A-1 校准基线 settle-old-a1.mjs），本自检就假红。
+  //   修法：把 sinceFiles 先按同一前缀过滤再比 —— 判据没放宽（"扫了但没记"仍会被抓），只是口径对齐。
+  const 该扫 = (j2.scope.sinceFiles || []).filter(f => !f.startsWith('settle-old'))
+  ok(该扫.length === j2.scope.scannedFiles,
+    `scannedFiles 恰等于【该扫的】改动文件数（${该扫.length} 个；已按扫描器同口径排除 settle-old-*）`)
   // ⊆：--since 的真残留集合必须是全量的子集（按 file:line）
   if (full) {
     const key = (h) => h.rule + '|' + h.file + '|' + h.line

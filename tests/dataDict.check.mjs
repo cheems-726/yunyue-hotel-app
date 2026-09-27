@@ -25,7 +25,7 @@ export const DATA_DICT = [
 
 // ── 静态检查：找"绕过权威来源自己算"的残留 ──
 import { readFileSync, readdirSync } from 'node:fs'
-import { settle } from '../src/settlement.js'   // 华住 B 分项要在真引擎上验 RevPAR 恒等式
+import { settle, rentPerRoomDay } from '../src/settlement.js'   // 华住 B 分项要在真引擎上验 RevPAR 恒等式
 import { runSeason6 } from './_season6.mjs'      // W2-4：六组赛季聚合（与 W14 同一份场景，避免两处口径漂移）
 
 const VIOLATION_PATTERNS = [
@@ -185,13 +185,25 @@ const hzFindings = [], hzNotes = []
   const annualRent = H.area * H.rentPerSqmDay * H.days
   if (annualRent !== H.参考值.年租金) hzFindings.push({ rule: '华住A(租金公式)', ctx: `面积×单价×天数 = ${annualRent}，参考值 ${H.参考值.年租金}`, expect: '3500×1.5×365 = 1,916,250 元 = 191.625 万' })
   // A · 引擎侧对拍：rentCost 推导式实读源码，避免"文档说 65 但代码改过"
-  const mRent = /const rentCost = (\d+) \+ \(s\.租金 \|\| 3\) \* (\d+)/.exec(genSrc)
-  if (!mRent) hzFindings.push({ rule: '华住A(引擎侧)', ctx: 'settlement.js 找不到 rentCost 推导式（35 + 租金档×10）', expect: '正例模式必须存在' })
-  else {
+  //    🔴 A-1（2026-09-27）：曲线改 25+档×5，且【唯一表达式】收在 settlement.js 的 rentPerRoomDay
+  //      —— W3-2 的报价单原来自带一份 `35+档×10` 副本，A-1 改曲线时它静默漂移（BL-7 同族）
+  //      ⇒ 本断言钉【定义式 + 结算调用点 + 报价单引用】三件事，缺一即红（防"改了引擎漏了展示层"）。
+  const mRent = /export const rentPerRoomDay = \(档, 兜底 = 3\) => (\d+) \+ \(Number\.isFinite\(档\) \? 档 : 兜底\) \* (\d+)/.exec(genSrc)
+  const 调用点 = /const rentCost = rentPerRoomDay\(s\.租金 \|\| 3\)/.test(genSrc)
+  const pqSrc = readFileSync('src/propertyQuote.mjs', 'utf8')
+  const 报价单引用 = /import \{[^}]*rentPerRoomDay[^}]*\} from '\.\/settlement\.js'/.test(pqSrc)
+  if (!mRent || !调用点 || !报价单引用) {
+    hzFindings.push({ rule: '华住A(引擎侧)', ctx: `租金【单源表达式】不成链：定义=${!!mRent} 结算调用点=${调用点} 报价单引用=${报价单引用}`, expect: 'rentPerRoomDay 由 settlement.js 定义 + 被 settle 调用 + 被 propertyQuote 引用（不得自带副本）' })
+  } else {
     const rentCost = Number(mRent[1]) + 3 * Number(mRent[2])                    // 租金档 3
     const hzPerRoomDay = annualRent / H.days / H.rooms                          // 华住 52.5 元/间/天
     if (!SAME_ORDER(rentCost, hzPerRoomDay)) hzFindings.push({ rule: '华住A(量级)', ctx: `引擎 rentCost=${rentCost} 元/间/天 vs 华住 ${hzPerRoomDay} 元/间/天 不同量级`, expect: '0.5×~2.0×' })
-    else hzNotes.push(`A 租金：引擎 ${rentCost} 元/间/天 ÷ 华住 ${hzPerRoomDay} 元/间/天 = ${(rentCost / hzPerRoomDay).toFixed(2)}× ✅ 同量级（100 间年租金 ${(H.rooms * rentCost * 365 / 10000).toFixed(2)} 万 vs 华住 191.625 万）`)
+    else hzNotes.push(`A 租金：引擎 ${rentCost} 元/间/天 ÷ 华住 ${hzPerRoomDay} 元/间/天 = ${(rentCost / hzPerRoomDay).toFixed(2)}× ✅ 同量级（100 间年租金 ${(H.rooms * rentCost * 365 / 10000).toFixed(2)} 万 vs 华住 191.625 万）· A-1 单源链完整（引擎↔报价单）`)
+    // ★ A-1 曲线【逐档钉】：把标定结果本身钉住（否则"改回旧曲线"只会被别处的数值锚点间接抓到，报错信息也说不清）
+    //   档1-5 ⇒ 30/35/40/45/50 元/间·天 · 依据：成都住建局住宅类 40–46 元/㎡/月（档3 ≈ 40 元/㎡/月 同量级）
+    const 实测 = [1, 2, 3, 4, 5].map(k => rentPerRoomDay(k))
+    if (实测.join(',') !== '30,35,40,45,50') hzFindings.push({ rule: 'A-1(租金曲线)', ctx: `档1-5 实测 ${实测.join('/')}，期望 30/35/40/45/50`, expect: '25 + 档×5（A-1 · D47-e 标定值；改它=改教学难度基准，须成套重基线）' })
+    else hzNotes.push('A-1 租金曲线逐档钉：档1-5 = 30/35/40/45/50 元/间·天 ✅（死亡选址 12/52 = 23.1%，落 20–30% 目标带）')
   }
   // B · RevPAR = ADR × OCC（引擎侧恒等式；★ 这是 T1.1 的回归守卫：÷7 前会差 7 倍）
   if (H.adr * H.occ !== H.参考值.RevPAR) hzFindings.push({ rule: '华住B(RevPAR)', ctx: `ADR×OCC = ${H.adr * H.occ} ≠ ${H.参考值.RevPAR}`, expect: '200 × 0.9 = 180' })
@@ -255,7 +267,7 @@ const hzFindings = [], hzNotes = []
     hzFindings.push({ rule: 'F3(差异归因)', ctx: `现金流率差 ${(cfoGap * 100).toFixed(2)}pp vs 租金项差 ${(rentGap * 100).toFixed(2)}pp ⇒ 残差 ${(resid * 100).toFixed(2)}pp 无法归因`, expect: '差额应且仅应由租金项解释（残差 ≤1pp）' })
   } else {
     hzNotes.push(`F3 差异归因成立：现金流率 我们 ${(usCfoRate * 100).toFixed(2)}% vs 华住 ${(hzCfoRate * 100).toFixed(2)}% ⇒ 差 ${(cfoGap * 100).toFixed(2)}pp，租金项即贡献 ${(rentGap * 100).toFixed(2)}pp，残差 ${(resid * 100).toFixed(2)}pp ✅`)
-    hzNotes.push(`   ▸ 租金项为何更高：引擎 65 元/间/天 × 低出租组拉薄 RevPAR（华住样例 52.5 元/间/天 ÷ RevPAR180 = ${(hzRentRate * 100).toFixed(2)}%）；属【租金档位/出租结构】差异，不是成本模型算错`)
+    hzNotes.push(`   ▸ 租金项为何有差：引擎 ${rentPerRoomDay(3)} 元/间/天（A-1 后曲线，档3）÷ 低出租组拉薄后的 RevPAR ⇒ 我们租金率 ${(us.rentRate * 100).toFixed(2)}% vs 华住样例 ${(hzRentRate * 100).toFixed(2)}%（52.5 ÷ RevPAR180）；属【租金档位/出租结构】差异，不是成本模型算错。★ A-1 前我们租金率约 39%（高于华住），A-1 后降到 24%（低于华住）⇒ 现金流率差的方向随租金曲线改动一起翻转，符合预期`)
     hzNotes.push(`   ▸ 如实记录（不调参）：引擎【无特许费科目】⇒ 上式代入华住同费率 5%；我们的 净利率(含租金净额) ${(us.netRate * 100).toFixed(1)}%`)
   }
 }

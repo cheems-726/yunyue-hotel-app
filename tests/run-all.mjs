@@ -44,6 +44,10 @@ const SUITES = [
   { name: 'noDuplicateKeys（重复键守门·D-1）', file: 'tests/noDuplicateKeys.test.mjs' },
   // Wave 3 · W3-1/W3-5：一页钱账（口径 (b) 本店实测）+ 回本周期（外推）
   { name: 'onePageLedger（一页钱账+回本·W3-1/W3-5）', file: 'tests/onePageLedger.test.mjs' },
+  // 二期 · E1：唯一账本守门（聚合/评分只许来自 metricDefs + Σ7天链 + 界面三量取数同源）
+  { name: 'ledgerSingleSource（E1 唯一账本）', file: 'tests/ledgerSingleSource.test.mjs' },
+  // 2026-09-27 选址数据任务：竞品/人流/经济数据纪律 + district 传递链（死功能回归守卫）
+  { name: 'locationData（选址数据·竞品与district链）', file: 'tests/locationData.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
@@ -65,13 +69,18 @@ const SUITES = [
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
   // ⏳ 已知红（平衡性待决 · A 级 · 2026-09-27 用户拍板 D39）：本套件的断言【一个字没改】——
-  //    它在真实 45% 完整部门成本下报「死亡选址过多 24/52（>15%）」，属【教学平衡问题】：
-  //    低出租率选址在按可售房摊的固定部门成本下真亏。目标值（门槛 or 租金曲线）已进待决策队列，
-  //    等用户拍板；**不许调阈值、不许调租金曲线来变绿**。
+  //    它在真实 45% 完整部门成本下报「死亡选址过多（>15%）」，属【教学平衡问题】。
+  //    A-1（D47-e）已按授权调租金曲线 35+档×10 → 25+档×5，实测 12/52 = 23.1%（落进 20–30% 目标）；
+  //    ★ 但门禁阈值仍是「成本结构改动之前」的旧标准 ≤15% ⇒ 依旧红，且 23.1% > 15% ⇒ 调了也绿不了，
+  //      所以本项【不是"调参数变绿"】，是改教学难度基准。阈值对齐与否待用户拍板（见 reason）。
   //    ⇒ 门禁把它显示为「⏳ 已知红」并写明理由，不计入失败数，但【仍在门禁内、仍然会跑】。
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', knownRed: {
-      reason: '平衡性待决：真实 45% 部门成本下低出租选址真亏（24/52 > 15% 阈值）；目标值待拍板',
-      since: '2026-09-27', decision: 'D39', owner: '用户（待决策队列）',
+      reason: '★ 2026-09-27 选址数据任务后【真实路径】实测 21/52 = 40.4%：'
+        + '① A-1 的 23.1% 是在"竞品/客群失效"的路径上量的（前端只传 attrs、丢了 district ⇒ 竞品压力恒 0）'
+        + '② 修好 district 传递链 + 补上 121 家真实竞品后，13 个原本无竞品的区位首次产生竞争压力 ⇒ 死亡选址回升'
+        + '③ 门禁阈值仍是旧标准 ≤15% ⇒ 依旧红（40.4% > 15%，调了也绿不了）'
+        + '★ 是否再调租金曲线把真实路径压回 20–30% ⇒ 教学难度基准变更，待用户拍板（不许为过断言调参）',
+      since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true },
@@ -157,7 +166,10 @@ if (knownReds.length) {
     console.log(`    理由：${r.knownRed.reason}`)
     console.log(`    拍板：${r.knownRed.decision}（${r.knownRed.since}）· 归属：${r.knownRed.owner}`)
   })
-  console.log('  ★ 纪律：不许调阈值 / 不许调租金曲线来让它变绿 —— 目标值待拍板')
+  // 🔴 A-1（2026-09-27）：本行原写「不许调阈值 / 不许调租金曲线来变绿」——D39 冻结期的措辞。
+  //    D47-e 已授权调租金曲线（且**调了也不绿**：23.1% > 15%）=改教学难度基准，不是"变绿"；
+  //    门禁标准本身（≤15%）待用户在 (i)/(ii) 中拍板 ⇒ 纪律改成"不许为了让门禁变绿而改标准/参数"。
+  console.log('  ★ 纪律：不许为了让门禁变绿而改标准或改参数（改教学基准 ≠ 变绿，须留痕 + 重基线）—— 门禁标准待拍板')
 }
 
 // ── 机器可读的"最近一次门禁记录"（A1 / BL-13 对策）──────────────────────

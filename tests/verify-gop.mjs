@@ -48,8 +48,9 @@ for (const [name, dec] of Object.entries(CASES)) {
     if (!(n.rentCost > 0)) rentOK = false
     // ② 零变化：既有三个数值必须与"改前引擎"逐项一致（T1.1 的 ×7 已由 shadow/severity 证明，这里只钉 B3 的拆租金动作）
     // B 类重基线：结构不变量（营收/租金/房价/房量/出租率）必须零漂移；成本差额必须恰为 deptCost
-    const drifted = ['revenue', 'rentCost', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
-    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost || n.profit !== o.profit - n.deptCost) {
+    const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
+    const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
+    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent || n.profit !== o.profit - n.deptCost - Δrent) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital
@@ -60,7 +61,7 @@ for (const [name, dec] of Object.entries(CASES)) {
   ok(idOK, `${name}：GOP 恒等式 12 周全成立（gop = 营收 −(变动+营销+OTA)）`, rows.slice(0, 2).join(' | '))
   ok(rateOK, `${name}：gopRate === gop/revenue`)
   ok(rentOK, `${name}：租金科目已独立列示且 > 0`)
-  ok(zeroOK, `${name}：结构不变量零漂移 + Δcost === deptCost + profit = 旧profit−deptCost（W2 重基线）`, rows.slice(0, 2).join(' | '))
+  ok(zeroOK, `${name}：结构不变量零漂移 + Δcost === deptCost+Δrent（A-1 重基线）`, rows.slice(0, 2).join(' | '))
 }
 
 // ③ 租金量级对拍（华住 52.5 元/间/天）

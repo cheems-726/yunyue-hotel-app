@@ -3,6 +3,17 @@
 import { simulateDay, simulateWeek, splitExact, dayWeights, DAYS_PER_WEEK } from '../src/dayEngine.js'
 import { readFileSync } from 'node:fs'
 
+// A-1 重基线用：旧租金曲线的历史周租（旧公式 35 + 档×10 元/间·天；档位 3）
+//   旧引擎把租金并入 fixedCost，返回值里没有 rentCost ⇒ 作为「历史常量」在此显式写出，
+//   来源 = 旧公式本身（与 SCALE_STEPS 记历史跳同法，不是猜的数）
+const 旧租周 = (r, decisions = {}) => {
+  let w = (r.rooms || 0) * (35 + 3 * 10) * 7            // 旧曲线 35+档×10（本套件档位 3）
+  // 决策修正与引擎同序同系数（settlement.js:485/487）—— 照抄，不另立一套
+  if (decisions['report-diagnosis'] === '解决成本相关') w = Math.round(w * 0.95)
+  if (decisions['hr-optimize'] === '裁员1人') w = Math.round(w * 0.9)
+  return w
+}
+
 let pass = 0, fail = 0
 const ok = (cond, name) => { if (cond) { pass++; console.log('  ✓ ' + name) } else { fail++; console.error('  ✗ FAIL: ' + name) } }
 
@@ -110,9 +121,14 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
         if (sum !== v) { idBad++; console.error(`   ✗ ${name} w${w} Σ${k}=${sum} ≠ 周值 ${v}`) }
       }
       // ② W2 重基线：结构不变量零漂移 + 成本差额恰为 deptCost
-      const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'finalGoodRate', 'reviewCount', 'negativeCount', 'revenue', 'rentCost', 'price', 'rooms']
+      // 🔴 A-1：rentCost 移出结构不变量（见上）
+  // 🔴 A-1（2026-09-27）：rentCost 移出结构不变量 —— 租金曲线已按教学口径调整（35+档×10 → 25+档×5），
+  //   它本就该变；差额恒等式改在下方单独加【历史周租差】项（Δcost === deptCost + Δ租）。
+  const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'finalGoodRate', 'reviewCount', 'negativeCount', 'revenue', 'price', 'rooms']
       const drifted = STRUCT.filter(k => r[k] !== o[k])
-      if (drifted.length || r.totalCost - o.totalCost !== r.deptCost || r.profit !== o.profit - r.deptCost) {
+      // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加【历史周租差】（旧引擎不暴露 rentCost）
+  const Δ租 = r.rentCost - 旧租周(r, dec)
+  if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 || r.profit !== o.profit - r.deptCost - Δ租) {
         zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
       }
       pg = r.finalGoodRate; cap = r.capital

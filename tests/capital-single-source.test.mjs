@@ -11,6 +11,7 @@
 //     以后改 IC，只要 SCALE 一处改对，文案/阈值/守门自动跟随；谁再硬编码，这里就红。
 import { readFileSync, readdirSync } from 'node:fs'
 import { SCALE } from '../src/stateMigration.mjs'
+import { settle } from '../src/settlement.js'   // A-2：行为边界断言（资金起点/预警线）
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -71,9 +72,10 @@ console.log('\n[3] 全库扫：旧量级字面量（按写法扫，不按"想到
   // 旧量级字面量：1004000（旧黄线）· 5020000（旧 IC）· 502000（旧红线）· 100.4/502/50.2 万文案
   const OLD = /(1004000|5020000|502000|100\.4 ?万|502 ?万|50\.2 ?万)/
   // 白名单：逐处 + 理由（不许整文件放行）
+  // 🔴 A-2（2026-09-27 · D47-f）：原第 2 条（豁免 settlement.js 的 `initialCapital = 5020000`）已【删除】——
+  //   该写法已随 A-2 单源化消失。留着它就是"白名单腐烂"（BL-11 族），故本套件同时加【死条目自检】。
   const ALLOW = [
     { file: 'stateMigration.mjs', re: /IC_NEW: 5020000|IC_OLD: 5020000/, why: 'v1→v2 跳的历史基准值（D25 公式要它做换算），不是"残留旧口径"' },
-    { file: 'settlement.js', re: /initialCapital = 5020000|capital < 502000/, why: '★ A 级已入待决策队列（引擎三数仍是 v2 值）；未擅改，等拍板 —— 见 4-审计与报告/待决策队列.md' },
   ]
   const hits = []
   for (const f of files) {
@@ -89,6 +91,35 @@ console.log('\n[3] 全库扫：旧量级字面量（按写法扫，不按"想到
   真.slice(0, 5).forEach(h => console.log(`     · ${h.file}:${h.line}  ${h.text}`))
   // 白名单质量：理由必须实质（防"凑数放行"）
   ok(ALLOW.every(a => a.why && a.why.length >= 20 && a.file && a.re), '白名单每条都有文件/正则/实质理由（≥20 字）')
+  // ★ 死条目自检（与 _scan-stale-scale 同族）：声明了却一次都没命中 = 白名单腐烂，必须有人看见
+  const 死 = ALLOW.map(a => ({ a, n: hits.filter(h => h.allowed && h.file === a.file).length })).filter(x => x.n === 0)
+  ok(死.length === 0, `白名单无死条目（每条都至少命中一次）`, 死.map(x => x.a.file).join(','))
+}
+
+// ── ④ A-2：引擎资金三数单源 —— 静态 + 【行为】双证（BL-13 通则在资金侧的落点）──
+console.log('\n[4] A-2 引擎侧：initialCapital / isWarning 真的取自 SCALE（不是"看起来像"）')
+{
+  const s = code('settlement.js')
+  ok(/import \{ SCALE \} from '\.\/stateMigration\.mjs'/.test(s) && /const initialCapital = SCALE\.IC_NEW/.test(s),
+    'settlement.js：initialCapital === SCALE.IC_NEW（单源；不再自带一份副本）')
+  ok(/const isWarning = !isBankrupt && capital < SCALE\.变红线/.test(s),
+    'settlement.js：isWarning 线 === SCALE.变红线（旧写法 `capital < 502000` 已消失）')
+  // 行为证：不带 prevCapital 跑一周 ⇒ 资金必须以 IC 为起点（写死旧值则此断言必红）
+  const 站点 = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+  const 品牌 = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
+  const 决策 = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }
+  const 属性 = { quality: 60, reputation: 70, morale: 65 }
+  const mk = (extra) => settle({ site: 站点, brand: 品牌, decisions: 决策, week: 1, attrs: 属性, ...extra })
+  const 基线 = mk({})
+  ok(基线.capital === SCALE.IC_NEW + 基线.profit,
+    `行为锚点：无 prevCapital ⇒ capital ${基线.capital} === IC ${SCALE.IC_NEW} + 本周利润 ${基线.profit}`)
+  // 预警线【边界】：<变红线 才算预警（严格小于，含等于时不预警）
+  const 等于 = mk({ prevCapital: SCALE.变红线 - 基线.profit })          // capital === 变红线
+  const 低一 = mk({ prevCapital: SCALE.变红线 - 基线.profit - 1 })      // capital === 变红线 − 1
+  ok(等于.capital === SCALE.变红线 && 等于.isWarning === false,
+    `边界：capital === 变红线(${SCALE.变红线}) ⇒ 不预警（严格小于）`)
+  ok(低一.capital === SCALE.变红线 - 1 && 低一.isWarning === true,
+    `边界：capital === 变红线−1 ⇒ 预警（线和 SCALE 同一处，写死旧值必红）`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

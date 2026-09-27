@@ -5,6 +5,13 @@ import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SO
 //    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
 import { simulateWeek } from './dayEngine.js'
 import { deptCostWeekly, DEPT_COST_PER_ROOM_DAY } from './deptCosts.mjs'
+// 🔴 A-2：资金三数【单源】—— 引擎不再自带一份起始资金/预警线常量（曾落后界面对一个口径版本）
+import { SCALE } from './stateMigration.mjs'
+
+// 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
+//   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
+//   （报价单的年租金会比引擎高 25%），正是 BL-7"两套算法算出两个数"的同族。
+export const rentPerRoomDay = (档, 兜底 = 3) => 25 + (Number.isFinite(档) ? 档 : 兜底) * 5
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -193,13 +200,30 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   const fCac = cacFactorOf(A0.reputation)          // 声誉 → 获客成本
   const moraleAdd = moraleBonusOf(A0.morale)       // 士气 → 好评率（加法）
   const fNeg = negFactorOf(A0.quality, A0.morale)  // 品质+士气 → 差评系数
-const s = site || {}
+// 🔴 选址数据任务（2026-09-27 · 重大修复）：site 在两条路径上有【两种历史形状】，各自断一半 ——
+//   ① 前端 App：传的是 `location.attrs`（六维齐全，但**丢了 district**）⇒ 竞品表/客群表永远查不到（键=''）
+//   ② 服务端 serverTick：传的是 `src.location` 原对象（**有 district，但六维散在 .attrs 里**）
+//      ⇒ `s.客流`/`s.租金`… 全是 undefined ⇒ 全部落 `|| 3` 默认档（选址六维在服务端被忽略）
+//   ⇒ 在引擎【入口统一归一化】：有 `.attrs` 就摊平 + 保留 district。两端从此同一形状（D8 同构）。
+//   ★ 影响面：只有"带 district 或带 .attrs 嵌套"的调用方会变（前端/服务端/模拟真实路径的测试）；
+//     只传六维平铺对象的调用方（engine-parity / 六组赛季）**逐字节不变**。
+const s = (site && typeof site.attrs === 'object' && site.attrs)
+  ? { ...site.attrs, district: site.district || site.name }
+  : (site || {})
 
   // 1. 城市客流系数（选址"客流"属性 1-5 → 0.5-1.5）
   const cityFlow = 0.5 + (s.客流 || 3) * 0.2
 
-  // 1.5 租金成本（选址"租金"属性 1-5 → 单房固定成本 35-85 元）
-  const rentCost = 35 + (s.租金 || 3) * 10
+  // 1.5 租金成本（选址"租金"属性 1-5 → 单房 30-50 元/间·天）
+  //   🔴 A-1（2026-09-27 · D47-e）：曲线由 35+档×10（45-85）改为 25+档×5（30-50）
+  //   【标定依据】15 档候选扫描（实测值见批次报告-二期批次A）：
+  //     旧曲线死亡选址 24/52 = 46.2%（目标 20–30%）· 30+档×5 ⇒ 32.7% · **25+档×5 ⇒ 23.1% ✅**
+  //     20+档×5 ⇒ 19.2%（略低）· 统一 30 元 ⇒ 11.5%（过低：选址失去分量）
+  //   【为什么这个取值还算得住】档3 = 40 元/间·天 ≈ 40 元/㎡/月（按约 30㎡/间折算），
+  //     与成都住建局《租赁住房平均租金水平信息》的住宅类 40–46 元/㎡/月同量级；
+  //     旧的 65（≈65 元/㎡/月）明显高于市场 ⇒ 本次是【向真实租金回归】，不是为过断言调参。
+  //   ★ 门禁仍保持 ⏳ 已知红：阈值 ≤15% 与教学目标 20–30% 互不相容（见待决策队列 A-1(i)/(ii)）。
+  const rentCost = rentPerRoomDay(s.租金 || 3)
 
   // 1.6 竞争强度（选址"竞争"属性 1-5 → 客流折减）
   const competition = 1.15 - (s.竞争 || 3) * 0.05 // 竞争越大，客流越被分走
@@ -519,16 +543,16 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const netProfitRate = revenue > 0 ? netProfit / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
-// 🔴 T1.1（§十七 A3 预授权规则 · 改口径不改教学难度）：资金相关绝对数按【实测缩放系数 m】同步调整，
-//    【不许直接 ×7】（周级/单次科目不参与 ×7 ⇒ m≠7）。实测 tests/_t11-impact.mjs：
-//      改前 6组12周利润总和 238549 → 改后 2397014  ⇒  m = 10.0483
-//      （m 高于逐组典型倍数 ~7.2，因「5激进型」利润符号翻转 −37878→+218269、
-//        「4躺平型」被 ×41 拉高；二者同源于"每周/单次科目不参与 ×7"，记入待决策清单）
-//    A3 规则 3：initialCapital_new = round(500000 × m / 10000) × 10000 = 5,020,000
-//    A3 规则 4：warnLine = initialCapital × 0.2 = 1,004,000（= UI 变黄「资金偏低」线）
-//    引擎 isWarning 沿用代码既有 0.1 比例 = 502,000（= UI 变红「破产预警」线）
-//    自检：① 预警/破产触发周次 vs 改前差异 0 周 ≤1 周 ✅  ② 评级分布 ACBDDC vs ACBDDC 一致 ✅
-const initialCapital = 5020000
+// 🔴 A-2（2026-09-27 · D47-f）：资金三数改【单源】—— 从 stateMigration 的 SCALE 取，引擎里不再写死。
+//    历史（为什么这里曾写 502 万）：T1.1 按 m=10.0483 抬到 5,020,000（SCALE_STEPS ①），
+//      W2-1 部门成本落地后又 ×0.2970 ⇒ 1,490,000（SCALE_STEPS ②）。
+//    ★ 病灶：引擎停在【v2 的 502 万】，落后界面对一个口径版本 —— isWarning 线 502,000 实际等于
+//      起始资金的 33.7%，而界面「破产预警」线早已是 14.9 万（10%）⇒ 同一条"预警"引擎/界面差一个量级。
+//    单源后：initialCapital = SCALE.IC_NEW（1,490,000）· isWarning 线 = SCALE.变红线（149,000）
+//    ⚠️ 比例【不动】：仍是代码既有的 0.1×IC。任务包 §五·步骤3 把"预警线"记作 0.2×IC，而 0.2 那一档
+//      是 UI 变黄线（SCALE.变黄线）—— 改比例会改破产判定时机，属 A 级 ⇒ 留队列，不擅改。
+//    历史自检（T1.1 期，记录用）：① 预警/破产触发周次 vs 改前差异 0 周 ✅ ② 评级分布一致 ✅
+const initialCapital = SCALE.IC_NEW
 // 🔴 B2-1 故障注入抓到：原先写 `prevCapital != null ? prevCapital : initialCapital`，
 //   而 `typeof NaN === 'number'`、`Infinity` 也是 number ⇒ 脏入参会让 capital 直接变 NaN 并外传。
 //   改用 Number.isFinite：合法数值行为【完全不变】，只把 NaN/Infinity/null 归到起始资金。
@@ -539,10 +563,10 @@ const initialCapital = 5020000
 let capital = Number.isFinite(prevCapital) ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0
-const isWarning = !isBankrupt && capital < 502000
-// ⚠️ 与任务包的差异（已记入待决策清单）：任务包 §五·步骤3 / §十七 A3 把"预警线"记为 100000（0.2×IC），
-//    但代码里 100000 是【UI 变黄线】，引擎 isWarning 实际在 50000（0.1×IC）。
-//    本处按【代码既有的 0.1 比例】取 502000；0.2 那一档在 App.jsx 的 isLow（变黄线）上，取 1,004,000。
+const isWarning = !isBankrupt && capital < SCALE.变红线
+// ⚠️ 与任务包的差异（已记入待决策清单，A-2 起只更新数值不改比例）：任务包把"预警线"记为 0.2×IC，
+//    但代码里 0.2 那一档是【UI 变黄线】（SCALE.变黄线 = 29.8 万），引擎 isWarning 实际是 0.1×IC。
+//    本处按【代码既有的 0.1 比例】取 SCALE.变红线（14.9 万）。
 // 决策复盘容器（必须在使用前声明：本文件下方多处 push，含"决策模式异常一致"的防作弊提醒）
 const insights = []
 // 防作弊：全部决策选相同模式→可疑警告

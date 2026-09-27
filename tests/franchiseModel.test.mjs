@@ -70,9 +70,11 @@ console.log('\n[4] ★ 未碰业务代码：结算输出零变化')
   // 它们不影响既有数值 —— 因此判据 = 每个既有键逐字节相同
   const o = settleOld({ site: SITE, brand: BRAND, decisions: DEC, week: 1, attrs: A })
   // B 类：被 W2 有意改动的是成本/利润派生字段；结构字段与租金必须零漂移，成本差额必须恰为 deptCost
-  const STRUCT = ['revenue', 'rentCost', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount', 'negativeCount', 'goodRate', 'finalGoodRate']
+  // 🔴 A-1：rentCost 移出结构不变量（租金曲线已按教学口径调整，本就该变）
+  const STRUCT = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount', 'negativeCount', 'goodRate', 'finalGoodRate']
   const drifted = STRUCT.filter(k => r[k] !== o[k])
-  const money = r.totalCost - o.totalCost === r.deptCost && r.profit === o.profit - r.deptCost
+  const Δrent = r.rentCost - o.rentCost   // 🔴 A-1：由实测值推导，不写死
+  const money = r.totalCost - o.totalCost === r.deptCost + Δrent && r.profit === o.profit - r.deptCost - Δrent
   ok(drifted.length === 0 && money,
     `结构字段零漂移（${STRUCT.length} 项）且 Δcost === deptCost（${r.totalCost - o.totalCost} === ${r.deptCost}）（W2 重基线）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
   // 同时钉住 T1.1 的口径恒等式（收入 = 在店间数 × 房价 × 7）

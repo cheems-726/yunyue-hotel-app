@@ -6,7 +6,8 @@
 // ── 设计原则（三条，都是本项目的血泪）────────────────────────────
 //   ① 每个数字都要能追到【已有口径】，不新造口径：
 //        房量   = parseRooms(brand.standard)        （A3：房量唯一权威，与结算同源）
-//        年租金 = 房量 × (35 + 租金档×10) × 365      （引擎租金口径 settlement.js:202）
+//        年租金 = 房量 × rentPerRoomDay(租金档) × 365（★ A-1 起【直接引用】引擎的租金表达式，
+//                不再自带一份副本 —— 原先副本是 35+档×10，A-1 改曲线时它静默漂移了）
 //        费率   = src/franchiseModel.mjs 的三件套    （加盟费/保证金/单房造价/筹备费/PMS）
 //   ② 缺数据一律返回「待补」（status: 'missing'），界面显示"待补" —— **不许编造**
 //      （franchiseModel 目前只有 汉庭 / 汉庭快捷 两个品牌；其余品牌的经济条款 = 待补）
@@ -16,7 +17,7 @@
 //   本模块【不】计算：出租率 / ADR / 年现金流 / 回收期 —— 那些需要"用哪套 ADR·OCC 口径"的拍板
 //   （属 A7 教学口径），已写进待决策队列；报价单只做【投资侧】的加减乘除。
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'
-import { parseRooms } from './settlement.js'
+import { parseRooms, rentPerRoomDay } from './settlement.js'
 
 export const STATUS = { OK: 'ok', DERIVED: 'derived', MISSING: 'missing' }
 
@@ -25,8 +26,8 @@ export function brandTerms(brandName) {
   return (brandName && FRANCHISE_MODEL[brandName]) || null
 }
 
-// 引擎租金口径（元/间可售房/天）—— 与 settlement.js:202 同式，单源取数避免两边漂移
-export const rentPerRoomDay = (租金档) => 35 + (Number.isFinite(租金档) ? 租金档 : 3) * 10
+// 🔴 A-1：租金口径【不再在本文件定义】—— 直接复用引擎的 rentPerRoomDay（单源；此处 re-export 保持旧引用可用）
+export { rentPerRoomDay }
 
 const 待补 = (label, why) => ({ label, status: STATUS.MISSING, note: why })
 const 元 = (v) => (Number.isFinite(v) ? Math.round(v) : null)
@@ -65,7 +66,7 @@ export function propertyQuote(brand, property, districtAttrs) {
     { label: '租金单价', value: 租金单价, unit: '元/㎡·天', fmt: 'fixed2', status: 租金单价 ? STATUS.DERIVED : STATUS.MISSING,
       note: 租金单价 ? '由引擎租金口径反推（年租金 ÷ 面积 ÷ 365）' : '缺面积 ⇒ 无法反推' },
     { label: '年租金', value: 年租金, unit: '元/年', fmt: 'wan', status: 年租金 ? STATUS.OK : STATUS.MISSING,
-      note: `引擎口径：房量 × (35 + 租金档 ${Number.isFinite(租金档) ? 租金档 : 3}×10) 元/间·天 × 365` },
+      note: `引擎口径（A-1 单源）：房量 × rentPerRoomDay(租金档 ${Number.isFinite(租金档) ? 租金档 : 3}) × 365` },
     { label: '单房造价', value: 单房造价, unit: '元/间', fmt: 'wan', status: 单房造价 ? STATUS.OK : STATUS.MISSING,
       note: 单房造价 ? '新建标准（franchiseModel 三件套）' : `${brand?.name || '该品牌'} 的经济条款暂无来源数据` },
     { label: '加盟费', value: 加盟费, unit: '元', fmt: 'wan', status: 加盟费 ? STATUS.OK : STATUS.MISSING,

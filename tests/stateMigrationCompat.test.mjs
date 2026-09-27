@@ -107,7 +107,7 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 
   // 跨结构差异本身要可解释：新周利润 = 同周旧结构利润 − 部门成本（差额恒等式，D38-B 的统一手法）
   const preW2 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: rowsM[0].week, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
-  ok(direct.profit === preW2.profit - direct.deptCost,
+  ok(direct.profit === preW2.profit - direct.deptCost - (direct.rentCost - preW2.rentCost),   // 🔴 A-1：加租金项
     `${name}：差额恒等式 新周利润 ${direct.profit} === 旧结构利润 ${preW2.profit} − 部门成本 ${direct.deptCost}`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）

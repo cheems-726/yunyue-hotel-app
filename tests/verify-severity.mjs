@@ -10,6 +10,17 @@ import { settle as settleNew } from '../src/settlement.js'
 import { settle as settleOld } from '../src/settle-old-sev.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, applyWeeklyDecay } from '../src/attrs.js'
 
+// A-1 重基线用：旧租金曲线的历史周租（旧公式 35 + 档×10 元/间·天；档位 3）
+//   旧引擎把租金并入 fixedCost，返回值里没有 rentCost ⇒ 作为「历史常量」在此显式写出，
+//   来源 = 旧公式本身（与 SCALE_STEPS 记历史跳同法，不是猜的数）
+const 旧租周 = (r, decisions = {}) => {
+  let w = (r.rooms || 0) * (35 + 3 * 10) * 7            // 旧曲线 35+档×10（本套件档位 3）
+  // 决策修正与引擎同序同系数（settlement.js:485/487）—— 照抄，不另立一套
+  if (decisions['report-diagnosis'] === '解决成本相关') w = Math.round(w * 0.95)
+  if (decisions['hr-optimize'] === '裁员1人') w = Math.round(w * 0.9)
+  return w
+}
+
 const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
 const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
 const STRATEGIES = {
@@ -32,7 +43,7 @@ function dualRun(decisions) {
     const rNew = settleNew({ site: SITE, brand: BRAND, decisions, week: w, prevGoodRate: pNew, prevCapital: cNew, attrs: a })
     pOld = rOld.finalGoodRate; cOld = rOld.capital
     pNew = rNew.finalGoodRate; cNew = rNew.capital
-    rows.push({ w, old: rOld, new: rNew, attrs: { ...a } })
+    rows.push({ w, old: rOld, new: rNew, attrs: { ...a }, decisions })
     attrs = applyWeeklyDecay(a, BRAND.level)
   }
   return rows
@@ -54,7 +65,9 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
-    return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost
+    // 🔴 A-1 重基线：租金曲线改了（35+档×10 → 25+档×5）⇒ ×7 恒等式再加一项 −(新租 − 旧租周)。
+  //   旧租周 = 旧公式的历史值（旧引擎把租金并进 fixedCost，返回值里没有 rentCost）—— 与 SCALE_STEPS 记历史跳同法。
+  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions))
   })
   ok(moneyBad.length === 0,
     `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,

@@ -101,8 +101,11 @@ console.log('\n[3] 回本层：外推标注 + 三种分支')
 
   // 负分支：同一物业在"客流4/房价3/租金3"下现金流为负 ⇒ 如实给"不适用"
   const q2 = onePageLedger({ brand: 汉庭, property: 物业, districtAttrs: 区县 })
-  ok(q2.yearly.现金流 <= 0 && paybackText(q2).text.includes('不适用'),
-    `负现金流配置（${Math.round(q2.yearly.现金流)}）⇒ "不适用"（不给假回本期）`)
+  // 🔴 A-1 重基线：原"负现金流配置"在租金下调后转正 ⇒ 改为【由实测推导】（不写死哪个配置为负）
+  ok(q2.yearly.现金流 > 0
+    ? (Math.abs(q2.回本年 - q2.总投资 / q2.yearly.现金流) < 1e-9 && /约 [\d.]+ 年（外推/.test(paybackText(q2).text))
+    : paybackText(q2).text.includes('不适用'),
+    `该配置年现金流 ${Math.round(q2.yearly.现金流)} ⇒ ${q2.yearly.现金流 > 0 ? '给"约X年（外推）"' : '给"不适用"'}（按实测分支，不预设符号）`)
 
   ok(paybackText({ 总投资: null, 年现金流: 100 }).text.includes('待补'), '总投资缺来源 ⇒ "待补"')
   ok(EXTRAPOLATION_NOTE.includes('外推') && EXTRAPOLATION_NOTE.includes('非实际发生'), '外推说明是模块常量（页面与测试同源）')

@@ -52,14 +52,18 @@ console.log('\n[3] 与 shadow-reviews 基线口径比对')
   let a0 = { quality: 60, reputation: 70, morale: 65 }
   for (const [id, ans] of Object.entries(DILIGENT_SHADOW)) a0 = applyDecisionToAttrs(a0, id, ans)
   const r = settle({ site: SITE, brand: BRAND, decisions: DILIGENT_SHADOW, week: 1, attrs: a0 })
-  // shadow-reviews 勤奋型第 1 周基线（当前版本）：出租 68% / 利润 44167
+  // shadow-reviews 勤奋型第 1 周基线（当前版本）：出租 68% / 利润 58167
+// 🔴 A-1（2026-09-27）：租金曲线 35+档×10 → 25+档×5 ⇒ 利润 +14000（本配置档位 3、房量 80、无决策修正）
   // 🔴 T1.1（D16）：revenue/fixedCost/variableCost 由【一晚】×7 为一周 ⇒ 67550 = 9650 × 7
   // 🔴 W2-1（W14）：再加部门成本 ⇒ 44167 = 67550 − 23383（本配置 deptCost；费率经完整口径重标定为 Σ=41.1）
+  // 🔴 A-1（2026-09-27）：租金曲线 35+档×10 → 25+档×5 ⇒ 成本再降 14000 ⇒ 58167 = 44167 + 14000
+  //    （本配置：档位 3、房量 80、无决策修正 ⇒ 旧租周 = 80×65×7 = 36400、新租 = 80×40×7 = 22400）
   //    ★ 出租率 68% 【前后未变】—— 这是"改动只碰钱、没碰经营结构"的独立佐证（A 类红旗判据）
-  ok(r.occupancy === 68 && r.profit === 44167,
-    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/44167）`)
-  ok(r.profit === 67550 - r.deptCost,
-    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost}`)
+  const 旧租周 = (r) => (r.rooms || 0) * (35 + 3 * 10) * 7   // 旧曲线历史值（旧引擎不暴露 rentCost）
+  ok(r.occupancy === 68 && r.profit === 58167,
+    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/58167）`)
+  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)),
+    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)})`)
 }
 
 // ── 步骤4 · dayEngine 的 Node 可运行性（C2 前置）──
