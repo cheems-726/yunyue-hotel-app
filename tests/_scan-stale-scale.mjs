@@ -37,6 +37,7 @@ const WHITELIST = [
   { rule: 'R6', file: 'src/FinalResult.jsx', why: '成绩单金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/HotelStatus.jsx', why: '经营页金额显示为"万" —— 纯展示换算' },
   { rule: 'R5', file: 'src/App.jsx', why: 'isLow/isCritical 已同步为 1004000/502000（T1.1），命中是定义处本身' },
+  { rule: 'R3', file: 'src/stateMigration.mjs', allow: /IC_OLD/, why: 'D25 迁移公式自带常量 IC_old = 500,000 —— 它【必须】是旧起始资金本身（公式就是 capital_new = IC_new + (capital_old − IC_old) × m）。这不是"残留的旧口径"，恰恰是用来做换算的基准值' },
   { rule: 'R4', file: 'src/siteLocations.mjs', allow: /./, why: '区县统计文案里的"万"（120万㎡ / 608万游客 / 34万人口 / 3-5万游客 等）—— 与酒店资金量级无关，是区位调研数据的量词' },
   { rule: 'R4', file: 'src/TeacherDashboard.jsx', allow: /50万|30万|10万/, why: 'P3-2 修正后的正确分段文案（≥50万=100分 / ≥30万=85 / ≥10万=70）' },
   { rule: 'R4', file: 'src/WeeklyReport.jsx', allow: /100\.4 万/, why: 'P3-1 修正后的正确预警线文案（约 100.4 万）' },
