@@ -39,7 +39,7 @@ export const SCALE_STEPS = [
 export const SCALE = {
   IC_OLD: 500000,        // 最旧档起始资金（文档/断言引用）
   IC_NEW: 1490000,       // 当前起始资金（W2-2 落值）
-  m: 2.9843,             // 累计缩放 = 10.0483 × 0.2970
+  m: SCALE_STEPS.reduce((a, st) => a * st.m, 1),   // ★ 累计缩放【由各跳推导】，不手写 —— 避免与跳表漂移
   VERSION_LEGACY: 1,
   VERSION_CURRENT: 3,
 }

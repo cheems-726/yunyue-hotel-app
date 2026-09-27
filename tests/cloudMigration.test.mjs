@@ -38,7 +38,7 @@ console.log('\n[1] ② 读取侧：restoreFromCloud（旧云档按 D25 迁移）
   ok(r.migrated === true, `旧云档被识别并迁移（${r.reason}）`)
   const capOld = raw.capital
   const expectCap = Math.round(SCALE.IC_NEW + (capOld - SCALE.IC_OLD) * SCALE.m)
-  ok(r.state.capital === expectCap, `capital 按 D25：${capOld} → ${r.state.capital}（期望 ${expectCap}）`)
+  ok(Math.abs(r.state.capital - expectCap) <= 2, `capital 按 D25 按跳迁移：${capOld} → ${r.state.capital}（期望 ${expectCap}，两跳各取整 ⇒ 容差 2 元）`)
   ok(r.state.capital !== Math.round(capOld * SCALE.m), `≠ 错误写法 capital×m = ${Math.round(capOld * SCALE.m)}`)
   ok(r.state.history.length === raw.history.length, `history 长度不变（${r.state.history.length}）`)
   ok(r.state.history[0].profit === Math.round(raw.history[0].profit * SCALE.m), `history[].profit ×m（${raw.history[0].profit} → ${r.state.history[0].profit}）`)
@@ -55,8 +55,11 @@ console.log('\n[2] ② 读取侧边界：null / 空对象 / v2 / 未来版本')
 {
   ok(restoreFromCloud(null).state === null, 'null → state=null（云端无档）')
   ok(restoreFromCloud(undefined).state === null, 'undefined → state=null')
+  // 🔴 W2-2：v2（T1.1 期）不再是当前版本 —— 它要再迁一跳（v2→v3，×0.2970）
   const v2 = restoreFromCloud({ scaleVersion: 2, capital: 5020000 })
-  ok(v2.migrated === false && v2.state.capital === 5020000, 'v2 云档 → 原样返回')
+  ok(v2.migrated === true && v2.state.capital !== 5020000, `v2 云档 → 再迁一跳：5020000 → ${v2.state.capital}`)
+  const vCur = restoreFromCloud({ scaleVersion: SCALE.VERSION_CURRENT, capital: 5020000 })
+  ok(vCur.migrated === false && vCur.state.capital === 5020000, '已是当前版本的云档 → 原样返回')
   const v3 = restoreFromCloud({ scaleVersion: 3, capital: 5020000 })
   ok(v3.state.capital === 5020000, 'v3（未来版本）→ 不降级、不改数值')
 }
@@ -100,7 +103,8 @@ console.log('\n[5] ★ 复现"修复前失败"：语义闭环验证')
   // 把修复【从语义上】回退：写档不带戳 ⇒ 下次恢复把新档当旧档再迁一次
   const savedWithoutStamp = { capital: SCALE.IC_NEW, history: [], attrs: {} }   // ← 这就是"修复前"写出去的档
   const re = restoreFromCloud(savedWithoutStamp)
-  ok(re.migrated === true && re.state.capital > SCALE.IC_NEW * 9,
+  // 🔴 W2-2：倍数改为【累计缩放】相对（原写死 9 倍是单跳 ×10 时代的界）
+  ok(re.migrated === true && re.state.capital > SCALE.IC_NEW * (SCALE.m - 0.2) && re.state.capital < SCALE.IC_NEW * (SCALE.m + 0.2),
     `无戳档被再迁一次：${SCALE.IC_NEW} → ${re.state.capital}（涨 ${(re.state.capital / SCALE.IC_NEW).toFixed(1)} 倍）`)
   // 正确路径：写（盖戳）→ 读（restore）→ 数值恒定
   let cur = { capital: SCALE.IC_NEW, history: [], attrs: {} }
@@ -115,7 +119,7 @@ console.log('\n[5] ★ 复现"修复前失败"：语义闭环验证')
   bad = firstMigration.state
   for (let i = 0; i < 4; i++) bad = restoreFromCloud(bad).state
   const factor = bad.capital / SCALE.IC_NEW
-  ok(firstMigration.migrated === true && factor > 9.9 && factor < 10.1,
+  ok(firstMigration.migrated === true && factor > SCALE.m - 0.2 && factor < SCALE.m + 0.2,
     `对照：无戳档被【恰好多迁一次】→ ${SCALE.IC_NEW} → ${bad.capital}（${factor.toFixed(2)}×，之后自愈稳定）`)
 }
 

@@ -47,7 +47,10 @@ console.log('\n[2] ② 同一实现：出口取到的函数 === 直接 import �
   ok(barrel.simulateWeek === simulateWeekDirect, 'simulateWeek：同一个')
   ok(barrel.migrateSave === migrateSaveDirect, 'migrateSave：同一个')
   ok(barrel.buildDailyReport === buildDailyReportDirect, 'buildDailyReport：同一个')
-  ok(barrel.SCALE.m === 10.0483 && barrel.SCALE.IC_NEW === 5020000, 'SCALE 常量值正确（m=10.0483 / IC_new=5020000）')
+  // 🔴 W2-2 重基线：不再贴死数字 —— 校验【内部自洽】（累计倍数 === 各跳之积）
+  const cum = barrel.SCALE_STEPS.reduce((a, st) => a * st.m, 1)
+  ok(Math.abs(barrel.SCALE.m - cum) < 1e-6 && barrel.SCALE.IC_NEW > 0 && barrel.SCALE.VERSION_CURRENT === barrel.SCALE_STEPS[barrel.SCALE_STEPS.length - 1].to,
+    'SCALE 自洽：m === 各跳之积（' + cum.toFixed(4) + '）· IC_new=' + barrel.SCALE.IC_NEW + ' · 当前版本 v' + barrel.SCALE.VERSION_CURRENT)
 }
 
 console.log('\n[3] ② 行为一致：用出口与直接 import 各跑一次，结果逐字节相同')

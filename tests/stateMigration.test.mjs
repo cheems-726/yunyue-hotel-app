@@ -4,7 +4,15 @@
 //   ① 幂等（跑两次结果逐字节相同） ② 量级合理（capital ∈ [251万, 1004万]）
 //   ③ history 长度不变 ④ 已迁移档再读 → 数值不变
 // 另加：D25 公式正确性（不许写成 capital × m）· 缩放边界（price/gopRate 不乘）· 不删字段
-import { migrateSave, SCALE, SCALED_KEYS_DOC } from '../src/stateMigration.mjs'
+import { migrateSave, SCALE, SCALE_STEPS, SCALED_KEYS_DOC } from '../src/stateMigration.mjs'
+// ★ W2-2 重基线：期望从【版本序表】推导（镜像实现的按跳变换），不再贴死数字 ——
+//   口径以后再变，只要 SCALE_STEPS 加一行，本套件无需再改。
+const CUM = SCALE_STEPS.reduce((a, st) => a * st.m, 1)   // 累计倍数 = 10.0483 × 0.2970
+function applySteps(capOld, fromVer) {
+  let cap = capOld
+  for (const st of SCALE_STEPS.filter(x => x.from >= fromVer)) cap = Math.round(st.IC_NEW + (cap - st.IC_OLD) * st.m)
+  return cap
+}
 import { readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -50,14 +58,15 @@ console.log('\n[1] D25 公式正确性（★ 不许写成 capital × m）')
   const r = migrateSave(s)
   ok(r.migrated === true, `识别为旧档并迁移（${r.reason}）`)
   const capOld = s.capital
-  const expect = Math.round(SCALE.IC_NEW + (capOld - SCALE.IC_OLD) * SCALE.m)
-  ok(r.save.capital === expect, `capital = IC_new + (capital_old − IC_old)×m = ${expect}（实得 ${r.save.capital}）`)
-  // 反证 1：若错写成 capital × m，结果会明显不同
-  const wrong = Math.round(capOld * SCALE.m)
-  ok(r.save.capital !== wrong, `≠ 错误写法 capital×m = ${wrong}（差 ${wrong - r.save.capital}）`)
-  // 反证 2：开局档（capital ≈ IC_old）应迁到 ≈ IC_new，而不是 IC_old × m
+  const expect = applySteps(capOld, 1)   // 按跳推导（两跳各取整一次 ⇒ 与单式相差 ≤2 元）
+  ok(Math.abs(r.save.capital - expect) <= 2,   // 两跳各取整一次 ⇒ 容差 2 元
+    `capital = 按跳迁移（${SCALE_STEPS.length} 跳）= ${expect}（实得 ${r.save.capital}）`)
+  // 反证 1：若错写成 capital × 累计倍数，结果会明显不同（D25 只放大相对起点的盈亏）
+  const wrong = Math.round(capOld * CUM)
+  ok(r.save.capital !== wrong, `≠ 错误写法 capital×累计倍数 = ${wrong}（差 ${wrong - r.save.capital}）`)
+  // 反证 2：开局档（capital ≈ IC_old）应迁到 ≈ IC_new，而不是 IC_old × 累计倍数
   const fresh = migrateSave({ ...mkOldSave(0), capital: SCALE.IC_OLD, history: [] })
-  ok(fresh.save.capital === SCALE.IC_NEW, `空档（capital=IC_old）→ IC_new = ${fresh.save.capital}（若用 ×m 会得到 ${Math.round(SCALE.IC_OLD * SCALE.m)}）`)
+  ok(fresh.save.capital === SCALE.IC_NEW, `空档（capital=IC_old）→ IC_new = ${fresh.save.capital}（若用累计乘法会得到 ${Math.round(SCALE.IC_OLD * CUM)}）`)
   // 反证 3：亏损档应保留亏损方向
   const losing = migrateSave({ ...mkOldSave(0), capital: 450000, history: [] })
   ok(losing.save.capital < SCALE.IC_NEW, `亏损档（capital=45万）→ ${losing.save.capital} < IC_new（亏损方向保留）`)
@@ -89,12 +98,13 @@ console.log('\n[3] ② 量级合理：capital ∈ [251万, 1004万] —— ★ �
   //     上界精确值 10,044,150（≈1004.42万）vs 规格 1004万
   //   ⇒ 断言按【精确界】写，并把规格的取整值一并打印（不改判据、不放宽，只是把圆的界写准）
   const CAP_OLD_LO = 250000, CAP_OLD_HI = 1000000
-  const BOUND_LO = Math.round(SCALE.IC_NEW + (CAP_OLD_LO - SCALE.IC_OLD) * SCALE.m)
-  const BOUND_HI = Math.round(SCALE.IC_NEW + (CAP_OLD_HI - SCALE.IC_OLD) * SCALE.m)
+  const BOUND_LO = Math.round(SCALE.IC_NEW + (CAP_OLD_LO - SCALE.IC_OLD) * CUM)
+  const BOUND_HI = Math.round(SCALE.IC_NEW + (CAP_OLD_HI - SCALE.IC_OLD) * CUM)
   console.log(`     精确界：[${BOUND_LO}, ${BOUND_HI}]（≈${(BOUND_LO/10000).toFixed(2)}万 ~ ${(BOUND_HI/10000).toFixed(2)}万）`)
-  console.log(`     规格写：[251万, 1004万] —— 取整近似，两端各差 ${Math.abs(2510000-BOUND_LO)} / ${Math.abs(BOUND_HI-10040000)} 元`)
-  const capOldAtLower = Math.round((2510000 - SCALE.IC_NEW) / SCALE.m + SCALE.IC_OLD)
-  ok(Math.abs(capOldAtLower - CAP_OLD_LO) <= 1000, `反解：规格下界 251万 ⇔ cap_old=${capOldAtLower}（≈25万）`)
+  console.log(`     当前精确界由【累计倍数 ×${CUM.toFixed(4)}】反解（规格的 251万/1004万 是 T1.1 期的界，已随 W2-2 下移）`)
+  const capOldAtLower = Math.round((BOUND_LO - SCALE.IC_NEW) / CUM + SCALE.IC_OLD)
+  ok(Math.abs(capOldAtLower - CAP_OLD_LO) <= 20000,   // 累计倍数下界反解的容差
+    `反解自洽：当前下界 ${BOUND_LO} ⇔ cap_old≈${capOldAtLower}（≈25万）`)
 
   // 在【前提区间内】取 5 个代表点，全部必须落在精确界内
   const cases = [
@@ -148,12 +158,12 @@ console.log('\n[6] 缩放边界：乘哪些 / 不乘哪些')
   const s = mkOldSave(2)
   const h0 = s.history[0], m0 = migrateSave(s).save.history[0]
   // 乘的
-  ok(m0.revenue === Math.round(h0.revenue * SCALE.m), `revenue ×m（${h0.revenue} → ${m0.revenue}）`)
-  ok(m0.totalCost === Math.round(h0.totalCost * SCALE.m), `totalCost ×m`)
-  ok(m0.profit === Math.round(h0.profit * SCALE.m), `profit ×m`)
-  ok(m0.rentCost === Math.round(h0.rentCost * SCALE.m), `rentCost ×m`)
-  ok(m0.gop === Math.round(h0.gop * SCALE.m), `gop ×m`)
-  ok(m0.totalExpenses === Math.round(h0.totalExpenses * SCALE.m), `totalExpenses ×m`)
+  ok(m0.revenue === Math.round(h0.revenue * CUM), `revenue ×累计（${h0.revenue} → ${m0.revenue}）`)
+  ok(m0.totalCost === Math.round(h0.totalCost * CUM), `totalCost ×累计`)
+  ok(m0.profit === Math.round(h0.profit * CUM), `profit ×累计`)
+  ok(m0.rentCost === Math.round(h0.rentCost * CUM), `rentCost ×累计`)
+  ok(m0.gop === Math.round(h0.gop * CUM), `gop ×累计`)
+  ok(m0.totalExpenses === Math.round(h0.totalExpenses * CUM), `totalExpenses ×累计`)
   ok(m0.weeklyExpenses.人员工资 === Math.round(h0.weeklyExpenses.人员工资 * SCALE.m), `weeklyExpenses.* ×m`)
   ok(m0.dailySnapshots[0].revenue === Math.round(h0.dailySnapshots[0].revenue * SCALE.m), `dailySnapshots[].revenue ×m`)
   // 不乘的（★ 边界）
@@ -174,9 +184,13 @@ console.log('\n[7] 边界输入：null / 空对象 / 无 history / 已是 v2')
   ok(migrateSave({}).save.scaleVersion === SCALE.VERSION_CURRENT, '空对象迁移后 scaleVersion = 2')
   const noHist = migrateSave({ capital: 500000 }).save
   ok(Array.isArray(noHist.history) && noHist.history.length === 0, '无 history → 迁移后为 []（不抛异常）')
-  const v2 = migrateSave({ scaleVersion: 2, capital: 999 }).save
-  ok(v2.capital === 999, 'scaleVersion=2 → 数值一动不动')
-  const v3 = migrateSave({ scaleVersion: 3, capital: 999 })
+  const vCur = migrateSave({ scaleVersion: SCALE.VERSION_CURRENT, capital: 999 }).save
+  ok(vCur.capital === 999, '已是当前版本 → 数值一动不动')
+  // ★ 版本序表的关键能力：v2 档（T1.1 期）也能迁到当前版本
+  const v2r = migrateSave({ scaleVersion: 2, capital: 5020000, history: [] })
+  ok(v2r.migrated === true && v2r.save.scaleVersion === SCALE.VERSION_CURRENT, 'v2 档被迁到当前版本（' + v2r.reason + '）')
+  ok(v2r.save.capital === applySteps(5020000, 2), 'v2 档 capital 按跳迁移：5020000 → ' + v2r.save.capital)
+  const v3 = migrateSave({ scaleVersion: SCALE.VERSION_CURRENT + 1, capital: 999 })
   ok(v3.migrated === false && v3.save.capital === 999, 'scaleVersion>2（未来版本）→ 不降级、不迁移')
 }
 
@@ -211,7 +225,7 @@ console.log('\n[9] ★ 回归锁：App 写档路径必须带 scaleVersion（否�
   ok(migrateSave(v2).migrated === false, '带 scaleVersion 的档再读 → 不再迁移（幂等闭环）')
   const bad = { capital: SCALE.IC_NEW, history: [] }
   const re = migrateSave(bad).save.capital
-  ok(migrateSave(bad).migrated === true && re > SCALE.IC_NEW * 9,
+  ok(migrateSave(bad).migrated === true && re > SCALE.IC_NEW * (CUM - 0.2) && re < SCALE.IC_NEW * (CUM + 0.2),
     `反证：去掉 scaleVersion 会被再迁移一次（${SCALE.IC_NEW} → ${re}，涨 ${(re / SCALE.IC_NEW).toFixed(1)} 倍）`)
 }
 

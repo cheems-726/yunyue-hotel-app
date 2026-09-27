@@ -116,7 +116,9 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   console.log(`  ❌ 反证·不迁移：第${rowsNo[0].week}周后 capital=${rowsNo[0].capitalAfter}（仅起始资金的 ${(cliff * 100).toFixed(1)}%）`)
   ok(cliff < 0.5,
     `${name}：不迁移会出现混口径悬崖（capital 掉到起始资金的 ${(cliff * 100).toFixed(1)}% ⇒ "50万本金 + 10倍利润"）`)
-  ok(rowsNo[0].capitalAfter < mig.save.capital * 0.2,
+  // 🔴 W2-2 重基线：悬崖倍率 = 累计缩放倍数（原写死 0.2 是单跳 ×10 时代的界）
+  const CUM_W2 = (await import('../src/stateMigration.mjs')).SCALE.m
+  ok(rowsNo[0].capitalAfter < mig.save.capital / (CUM_W2 * 0.5),
     `${name}：不迁移 vs 迁移的资金差距 ${rowsNo[0].capitalAfter} vs ~${mig.save.capital}（≈${(mig.save.capital / rowsNo[0].capitalAfter).toFixed(1)}×）⇒ 迁移必要`)
 }
 
