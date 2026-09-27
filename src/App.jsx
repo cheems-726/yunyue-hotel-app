@@ -21,6 +21,9 @@ import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, quali
 // 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
 //   （本文件原有三处自算：组员概况 Σocc/Σprofit、积分明细页的【第三套评分副本】）
 import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
+// 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
+import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal } from './weeklyAuto.mjs'
+import { teachingDayNo } from './teachingClock.mjs'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -221,7 +224,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -300,7 +303,8 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           </div>
         ) : (
           <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '16px 0' }}>
-            完成决策后点击结算，查看本周经营结果
+            {/* 🔴 E2：手动结算已退场 ⇒ 文案不得再让学生去点一个不存在的按钮 */}
+            本周经营中：到第 7 个游戏日<b>自动出周报</b>（不看也在跑）
           </div>
         )}
         {pendingReviewCount > 0 && (
@@ -343,10 +347,21 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             </div>
           )
         })()}
-        <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14, opacity: settling ? 0.5 : 1, ...(Object.keys(doneDecisions).length === 18 && !settling ? { animation: 'pulseBorder 1.5s ease-in-out infinite', border: '2px solid #E8940F' } : {}) }} disabled={settling}
-          onClick={() => { setSettling(true); setTimeout(() => { setSettling(false); onSettle() }, 350) }}>
-          {settling ? '⏳ 结算中…' : Object.keys(doneDecisions).length === 18 ? '🎉 18项决策已完成，立即结算！' : '🔄 本周结算（查看经营结果）'}
-        </button>
+        {/* 🔴 E2：手动「本周结算」按钮已退场 —— 周报由"7 个游戏日满"自动产生（不看也在跑）。
+            保留的只有【只读】入口「查看本周周报」；无死按钮（没成报时显示进度状态，不给按钮）。 */}
+        {report ? (
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14 }}
+            onClick={() => onGoReport()}>
+            📄 查看本周周报（第 {report.week} 周）
+          </button>
+        ) : (
+          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#F9FAFB', border: '1px dashed #E5E7EB', fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+            ⏳ 本周经营中 · 第 <b>{classDayIndex ?? 1}/7</b> 天
+            <div style={{ color: '#9CA3AF', fontSize: 11 }}>
+              到第 7 天<b>自动出周报</b>（不用点结算）· 已决策 {Object.keys(doneDecisions).length}/18
+            </div>
+          </div>
+        )}
         {history.length > 0 && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 6, fontSize: 12 }}
             onClick={() => onGoRecords()}>
@@ -363,7 +378,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         return (
           <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: '#FEF0EF', border: '1px solid #FECACA', borderRadius: 10, fontSize: 12, color: '#991B1B', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ flexShrink: 0 }}>🔔</span>
-            <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周结算</span>
+            <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周经营结果</span>
           </div>
         )
       })()}
@@ -1130,7 +1145,7 @@ function OperationRecords({ history, onBack }) {
 function HelpPage({ onBack }) {
   const sections = [
     { icon: '🎯', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
-    { icon: '📅', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 点「本周结算」看结果 → 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
+    { icon: '📅', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
     { icon: '⚡', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
     { icon: '🏆', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
     { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
@@ -1143,7 +1158,7 @@ function HelpPage({ onBack }) {
   const faqs = [
     { q: '网页打不开怎么办？', a: '优先用安卓App；正式版会更换为国内直连域名，以老师通知的网址为准。' },
     { q: '之前做的进度还在吗？', a: '在。进度自动存云端，用同一学号登录自动恢复；也可在「我的」页导出备份文件双重保险。' },
-    { q: '本周结算按钮是灰的/被拦了？', a: '老师设置了全班统一周，你的进度已超前——等老师推进后即可结算。' },
+    { q: '周报怎么还没出？', a: '周报按【游戏日】自动产生：本周 7 个游戏日跑满就出（不用点任何按钮）。若老师设置了全班统一周，你超前的进度会等老师推进 —— 被拦的是「进入下一周」，不是周报本身。' },
     { q: '为什么全班同一周的市场结果一样？', a: '结算用固定随机种子：同一周全班的市场波动、事件概率完全相同。这是刻意的公平设计——比的是「同样的市场条件下，谁的决策更好」，而不是谁的运气好。你唯一能控制的是决策。' },
     { q: '组队之后差评谁来处理？', a: '回复入口全组都能用，建议分工：大堂经理主笔回复（回复按诚意得分，敷衍的回复客人会更生气且差评继续挂着）；要不要补偿、补多少由店长拍板（补偿成本计入周结算）；其他成员负责在结算后一起复盘差评来源。差评超过 2 条不处理会发酵成危机。' },
     { q: '好评也要回复吗？', a: '要。真诚的感谢（+欢迎再来/小惊喜）会让好评客人变成回头客，甚至带来「朋友推荐而来」的新好评——口碑就是这么滚起来的。只回一个「好的」，客人的热情就被泼了冷水。' },
@@ -1708,6 +1723,15 @@ export default function App() {
   const [bizMode, setBizMode] = useState(saved.bizMode === 'ota' ? 'ota' : 'direct')
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
+  // 🔴 E2：自动周报相关状态（全部进存档）
+  //   openDayNo    = 首次进入经营时的【教学日历日序号】—— 用来把本地日期换算成 classDay（T9：客户端只做本地等效显示，不判定归属）
+  //   decisionChanges = 本周决策改动流水（第几天改了什么）⇒ 周报「本周变更记录」
+  //   autoSettled  = 已自动成报的幂等键（同一天/同一周不重复成报）
+  const [openDayNo, setOpenDayNo] = useState(Number.isFinite(saved.openDayNo) ? saved.openDayNo : null)
+  const [decisionChanges, setDecisionChanges] = useState(Array.isArray(saved.decisionChanges) ? saved.decisionChanges : [])
+  const [autoSettled, setAutoSettled] = useState(Array.isArray(saved.__autoSettled) ? saved.__autoSettled : [])
+  // 🔴 E2：周报出现后是否展开（允许「稍后再看」⇒ 学生可以先接着做决策，不被周报页锁住）
+  const [reportOpen, setReportOpen] = useState(true)
 
   // 启动时恢复 Supabase 会话（真实登录过的用户不用重新输密码）
   useEffect(() => {
@@ -1745,7 +1769,7 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode })))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
 
@@ -1758,7 +1782,7 @@ export default function App() {
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
   // 🔴 批次 B1.5：云端上传 payload 也必须盖版本戳（原先直接漏掉了 scaleVersion）
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode })
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const gk = groupKeyOf(user.className, user.groupNo)
@@ -1914,7 +1938,9 @@ export default function App() {
       doSettle()
     }
   }
-  function doSettle() {
+  // 🔴 E2：自动/手动【同一条路径】—— 自动成报就是调用本函数（参数只多一个 meta），
+  //   所以「自动成报 === 手动结算」是结构保证，不是靠两处实现碰巧一致。
+  function doSettle(meta = {}) {
     // 🔴 选址数据任务（2026-09-27 · 重大修复）：原写法只传 `location.attrs` ⇒ 引擎拿不到 district，
     //   于是 `COMPETITORS[site.district]` 与 `CUSTOMER_PERSONAS[site.district]` 永远命中空键 ——
     //   **竞品机制（周报「周边竞品动态」卡 + 竞品压力压出租率）与客群匹配从未生效**（121 家竞品数据白接）。
@@ -1971,12 +1997,59 @@ export default function App() {
     //   🔴 前置坑：口碑页 kept 过滤只留当周卡 ⇒ 期末拿不到全学期处理率，必须逐周快照。
     //   只数结算生成的卡片（id 以 w<周>- 开头），与 pendingNegatives 同一规则（确定性）。
     result.handleStats = { pending: pendingNegatives, resolved: resolvedCount }
+    // 🔴 E2：周报附「本周变更记录」（第几天改了什么 + 生效日 = 提交日+1，T11）
+    if (Array.isArray(decisionChanges) && decisionChanges.length) {
+      result.changeLog = decisionChanges.map(c => ({ ...c, week }))
+      result.changeLogLines = changeLogLines(result.changeLog)
+    }
+    if (meta.auto) {
+      // 自动成报：记幂等键（同一天/同一周不重复成报）
+      result.__auto = true
+      if (meta.key) setAutoSettled(prev => (prev.includes(meta.key) ? prev : [...prev, meta.key]))
+    }
     setReport(result)
   }
+  // 🔴 E2：本地等效 classDay（T9：服务端 classDay 才是唯一权威；本地只用【教学日历日序号】做等效显示与触发）
+  //   旧档无 openDayNo ⇒ 用"已结算周数"反推（history.length*7），保证不跳变、不 NaN
+  const classDayLocal = (() => {
+    const today = teachingDayNo()
+    const first = Number.isFinite(openDayNo) ? openDayNo : (today - (Array.isArray(history) ? history.length : 0) * 7)
+    return classDayFromLocal(first, today)
+  })()
+  const autoInfo = !established || !brand || finished
+    ? { due: false, reason: '未进入经营' }
+    : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, classDayLocal, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
+
+  // 🔴 E2：决策改动 → 本周流水（第几天改了什么）。只记【改动】，不记首次填写（首次填写不算"改"）
+  const prevDecisionsRef = React.useRef(null)
+  React.useEffect(() => {
+    if (!established || !brand) return
+    const day = dayToWeekDay(classDayLocal).dayIndex
+    const prev = prevDecisionsRef.current
+    if (prev == null) { prevDecisionsRef.current = doneDecisions; return }
+    const rows = diffDecisions(prev, doneDecisions, { day })
+    prevDecisionsRef.current = doneDecisions
+    if (rows.length) setDecisionChanges(list => [...list, ...rows])
+  }, [doneDecisions, established, brand, classDayLocal])
+
+  // 🔴 E2 自动成报：7 个游戏日满 ⇒ 自动出周报（学生不用点任何按钮）
+  React.useEffect(() => {
+    if (!autoInfo.due) return
+    if (report) return
+    doSettle({ auto: true, key: autoInfo.key })
+  }, [autoInfo.due, autoInfo.key, report])
+
+  // 首次进入经营页时记下"开学教学日序号"（自动周报的本地基准；只写一次）
+  React.useEffect(() => {
+    if (established && brand && !Number.isFinite(openDayNo)) setOpenDayNo(teachingDayNo())
+  }, [established, brand, openDayNo])
+
   // 结算确认后：进入下一周，清空决策，保存历史
   function handleNextWeek() {
     const newHistory = [...history, report]
     setHistory(newHistory)
+    setDecisionChanges([])          // 🔴 E2：本周流水已进周报 ⇒ 清空，下周重新记
+    prevDecisionsRef.current = {}   // 新一周：首次填写不算"改动"
     if (week >= 12) {
       // 12周经营结束，出最终成绩
       setFinished(true)
@@ -2127,14 +2200,14 @@ export default function App() {
   }
 
   // 如果有周报，显示周报
-  if (report) {
+  if (report && reportOpen) {
     return (
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <WeeklyReport result={report} onClose={handleNextWeek} history={history} brand={brand} attrs={attrs} />
+        <WeeklyReport result={report} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} />
       </div>
     )
   }
@@ -2223,7 +2296,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(classDayLocal).dayIndex} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,

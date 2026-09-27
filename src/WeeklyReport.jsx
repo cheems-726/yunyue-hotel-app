@@ -85,7 +85,7 @@ function CrisisCard({ event, week }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, history = [], brand = {}, attrs }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs }) {
   const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
   // 🔴 W2-3：牌位值读【净利润】权威字段（netProfit；旧档回退 profit —— 引擎恒等式保证同值）
   const netP = Number.isFinite(result.netProfit) ? result.netProfit : result.profit
@@ -430,6 +430,19 @@ ${after.icon} 当前称号：${after.title}${evText}
         {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>✅ 已复制，去微信粘贴吧</div>}
       </div>
 
+      {/* 🔴 E2：本周变更记录（第几天改了什么 + 次日生效）—— 与 E3 的"次日生效"互为证据 */}
+      {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (
+        <div className="card">
+          <div className="card-title">📝 本周变更记录</div>
+          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+            {result.changeLogLines.map((t, i) => <div key={i}>· {t}</div>)}
+          </div>
+          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+            决策【次日生效】：第 N 天提交的改动，第 N+1 天起算（当日已发生的不可回溯）
+          </div>
+        </div>
+      )}
+
       {/* 竞品动态 */}
       {result.competitors && result.competitors.length > 0 && (
         <div className="card">
@@ -480,6 +493,13 @@ ${after.icon} 当前称号：${after.title}${evText}
         <button className="btn-confirm" onClick={onClose}>
           {result.week >= 12 ? '🏁 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`}
         </button>
+        {/* 🔴 E2：周报是【自动】产生的 —— 允许"先不处理，回去接着做决策"，
+            经营页保留只读回看入口「📄 查看本周周报」（不允许这里再改任何数值） */}
+        {onLater && (
+          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, fontSize: 12 }} onClick={onLater}>
+            ⏸ 稍后再看（返回经营页，先继续做决策）
+          </button>
+        )}
       </div>
     </div>
   )

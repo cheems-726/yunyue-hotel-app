@@ -270,7 +270,9 @@ try {
 
   // 6. 经营页
   const biz = await text(page)
-  ok('经营页：资金卡+18决策+结算按钮', biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周结算'))
+  // 🔴 E2（N-2）：手动「本周结算」已退场 —— 经营页改为显示【本周经营中 · 第 X/7 天 · 自动出周报】
+  ok('经营页：资金卡+18决策+自动周报状态（无手动结算按钮）',
+    biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周经营中') && /第 \d\/7 天/.test(biz) && biz.includes('自动出周报') && !biz.includes('本周结算'))
   // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
   await assertLayout(page, '学生经营页')
   await assertNoHorizOverflow(page, '学生经营页')
@@ -313,17 +315,18 @@ try {
   }); await sleep(900)
   await closeOverlay(page)
 
-  // 7. 结算（重试一次，防浮层遮挡）
+  // 7. ★ E2：周报【自动】产生 —— 把"开学教学日"设为 6 天前 ⇒ 今天是第 7 游戏日 ⇒ 进经营页即自动成报
+  //    （不再点任何"结算"按钮；这也顺带证明"不看也在跑"的本地等效路径成立）
   await clickText(page, '🏠经营'); await sleep(500)
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('本周结算')); b && b.click() }); await sleep(1800)
-  if (!(await text(page)).includes('周经营结果')) {
-    await closeOverlay(page)
-    await clickText(page, '🏠经营'); await sleep(600)
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('本周结算')); b && b.click() }); await sleep(2000)
-  }
-  if (!(await text(page)).includes('周经营结果')) {
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('本周结算')); b && b.click() }); await sleep(2200)
-  }
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    const d = new Date(Date.now() - 8 * 3600 * 1000)
+    const today = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000)
+    st.openDayNo = today - 6
+    localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+  })
+  await page.reload(); await sleep(2600)
+  for (let i = 0; i < 8 && !(await text(page)).includes('周经营结果'); i++) await sleep(1500)
   const rep = await text(page)
   ok('周报渲染（评级/事件/预测）', rep.includes('周经营结果') && rep.includes('本周经营事件') && rep.includes('下周市场预测'))
   // 🔴 W2-3（W10 正名）：周报必须【同时】显示净利润与 GOP（Wave 2 验收：两指标界面可见）

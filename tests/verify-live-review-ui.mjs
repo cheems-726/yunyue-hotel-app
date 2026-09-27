@@ -231,7 +231,19 @@ try {
   // ── F. 结算：数字与卡片一致 ──
   console.log('\n▶ F 结算后数字与卡片一致（严谨版差额）')
   await clickTab(page, '经营'); await sleep(1000)
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('本周结算')); if (b) b.click() })
+  // 🔴 E2（N-2）：手动「本周结算」已退场 ⇒ 走【自动成报】路径。
+  //   注意：本套件此前的流程已让第 1 周成报（history 里有 week 1）⇒ 自动成报对它正确地【不再重复生成】，
+  //   所以这里把日历推到【第 2 周第 7 天】（classDay 14）⇒ 自动生成第 2 周周报，再对账。
+  const 世界里有第1周 = await page.evaluate(() => ((JSON.parse(localStorage.getItem('hotel-sim-state') || '{}').history || []).some(h => Number(h.week) === 1)))
+  await page.evaluate((带第1周) => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    const d = new Date(Date.now() - 8 * 3600 * 1000)
+    const today = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000)
+    st.openDayNo = today - (带第1周 ? 13 : 6)     // 有第 1 周 ⇒ 推到 classDay 14（第 2 周第 7 天）
+    localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+  }, 世界里有第1周)
+  await page.reload(); await sleep(2600)
+  for (let i = 0; i < 8 && !(await text(page)).includes('周经营结果'); i++) await sleep(1500)
   await sleep(1200)
   await clickText(page, '确认'); await sleep(1200)
   let wr = await text(page)

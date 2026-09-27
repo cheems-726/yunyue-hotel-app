@@ -36,6 +36,7 @@ const MODULES = [
   'franchiseModel.mjs',
   'siteLocations.mjs',
   'serverTick.mjs',
+  'weeklyAuto.mjs',   // E2（N-2）：自动周报纯核心（serverTick 依赖它 ⇒ 必须一起组装）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]

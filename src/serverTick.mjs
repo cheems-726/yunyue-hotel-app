@@ -16,6 +16,7 @@
 // 幂等键 tickKey(classDay, groupKey)。同一天重复触发：若该周已在 history 里，直接返回既有结果、
 // 不再结算（advanced=false）⇒ 结果逐字节相同。
 import { settle, DAYS_PER_WEEK, buildDailyReport } from './engine/index.js'
+import { dayToWeekDay } from './weeklyAuto.mjs'   // E2：周↔天换算唯一来源（本文件不再自己算）
 export { DAYS_PER_WEEK }   // W1-5：进度口径需要它（周↔天换算），属 tick 的公开面
 // W1-4：哈希链抽到独立模块（单一实现，避免 serverTick 与防作弊模块各写一份）
 import { fnv1a, entryIdOf, chainHash } from './decisionLogIntegrity.mjs'
@@ -96,10 +97,9 @@ export function tickKey(classDay, groupKey) {
 }
 
 // 游戏日 → { week, dayIndex }
-export function dayToWeekDay(classDay) {
-  const d = Math.max(1, Math.round(Number(classDay) || 1))
-  return { week: Math.ceil(d / DAYS_PER_WEEK), dayIndex: ((d - 1) % DAYS_PER_WEEK) + 1 }
-}
+// 🔴 E2（N-2 夜跑）：实现搬到 src/weeklyAuto.mjs（客户端自动周报与服务端逐日推进【同一份口径】），
+//   本处只 re-export —— 否则"客户端第几天"与"服务端第几天"迟早各写一份（BL-7 同族）。
+export { dayToWeekDay } from './weeklyAuto.mjs'
 
 /**
  * ★ 服务端推进该组的 1 天（核心）。纯函数：不改入参、不写库。

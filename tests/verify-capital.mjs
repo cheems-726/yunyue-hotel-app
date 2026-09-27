@@ -113,8 +113,16 @@ try {
   await page.evaluate(() => { const c = [...document.querySelectorAll('.task-card')].find(x => x.textContent.includes('前台排班')); c && c.click() }); await sleep(700)
   await page.evaluate(() => { const o = [...document.querySelectorAll('div, button')].reverse().find(x => x.textContent.includes('精简省成本') && x.children.length <= 2); o && o.click() }); await sleep(400)
   await page.evaluate(() => { const b = document.querySelector('.btn-confirm'); if (b && !b.disabled) b.click() }); await sleep(1000)
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('本周结算')); if (b) b.click() }); await sleep(1200)
-  await clickText(page, '确认'); await sleep(1500)
+  // 🔴 E2（N-2）：手动「本周结算」已退场 ⇒ 用【自动成报】路径：把开学教学日设为 6 天前，今天=第 7 游戏日
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
+    const d = new Date(Date.now() - 8 * 3600 * 1000)
+    const today = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000)
+    st.openDayNo = today - 6
+    localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+  })
+  await page.reload(); await sleep(2600)
+  for (let i = 0; i < 8 && !(await text(page)).includes('周经营结果'); i++) await sleep(1500)
   let wr = await text(page)
   for (let i = 0; i < 5 && !wr.includes('周经营结果'); i++) { await sleep(2000); wr = await text(page) }
   const mProfit = wr.match(/利润[^\d-]*(-?[\d,]+)\s*元/)

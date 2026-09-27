@@ -48,6 +48,8 @@ const SUITES = [
   { name: 'ledgerSingleSource（E1 唯一账本）', file: 'tests/ledgerSingleSource.test.mjs' },
   // 2026-09-27 选址数据任务：竞品/人流/经济数据纪律 + district 传递链（死功能回归守卫）
   { name: 'locationData（选址数据·竞品与district链）', file: 'tests/locationData.test.mjs' },
+  // 二期 E2（N-2）：自动周报 —— 自动===手动 · 幂等 · 旧档 · 归属日 · 跨端同源
+  { name: 'weeklyAuto（E2 自动周报）', file: 'tests/weeklyAuto.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

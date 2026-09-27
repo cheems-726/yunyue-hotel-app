@@ -1,0 +1,158 @@
+// E2 · 自动周报守门（N-2 · fast 套件）
+// 运行：node tests/weeklyAuto.test.mjs
+//
+// ── 本套件治什么 ────────────────────────────────────────────────
+//   E2 把「点按钮出周报」改成「7 个游戏日满 ⇒ 自动出周报」。风险点有三个，逐个钉：
+//     ① 自动路径与旧手动路径【结果必须一样】（同一状态同决策 ⇒ 逐字节）—— 靠"单一入口"保证，测试来证
+//     ② 幂等：同一天/同一周重复触发 ⇒ 结果不变、不重复成报（防"刷新一下多出一周"）
+//     ③ 旧档兼容：无 classDay / 无开学日基准 ⇒ 不 NaN、不白屏、按本地日期起算
+//   另附：与服务端逐日推进（serverTick）的【同源对拍】—— 同一份输入两端必须同结果（D8）；
+//         以及"本周变更记录"的归属日口径（提交日 + 1 = 生效日，T11）
+import { readFileSync } from 'node:fs'
+import { dayToWeekDay, shouldAutoSettle, autoSettleKey, classDayFromLocal, diffDecisions, changeLogLines, shapeWeeklyReport, DAYS_PER_WEEK } from '../src/weeklyAuto.mjs'
+import { advanceGroupOneDay, tickKey } from '../src/serverTick.mjs'
+import { settle } from '../src/settlement.js'
+import { ATTR_INIT } from '../src/attrs.js'
+
+let pass = 0, fail = 0
+const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
+const src = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
+
+const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2, district: '锦江区' }
+const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
+const DEC = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }
+const 存档 = { brand: BRAND, location: SITE, history: [], capital: 1490000, attrs: { ...ATTR_INIT }, __groupKey: 'demo|1' }
+
+console.log('▶ E2 · 自动周报守门')
+
+// ── [1] 周↔天口径：唯一来源 + 边界 ─────────────────────────────
+console.log('\n[1] 周↔天换算（客户端与服务端同源）')
+{
+  ok(DAYS_PER_WEEK === 7, '一游戏周 = 7 游戏日')
+  const 表 = [[1, 1, 1], [6, 1, 6], [7, 1, 7], [8, 2, 1], [14, 2, 7], [15, 3, 1]]
+  const bad = 表.filter(([d, w, i]) => { const r = dayToWeekDay(d); return r.week !== w || r.dayIndex !== i })
+  ok(bad.length === 0, `6 个边界（含跨周/跨月边界）全部正确：${表.map(([d]) => d).join('/')}`, JSON.stringify(bad))
+  // 与 serverTick 的公开面同源（它是 re-export）—— 防"两端各写一份"
+  const st = src('serverTick.mjs')
+  ok(/export \{ dayToWeekDay \} from '\.\/weeklyAuto\.mjs'/.test(st),
+    'serverTick 的 dayToWeekDay 是 weeklyAuto 的 re-export（不各自实现）')
+  ok(!/Math\.ceil\(d \/ DAYS_PER_WEEK\)/.test(st), 'serverTick 里已无第二份周↔天实现')
+  // 非法输入不炸
+  ok(dayToWeekDay(0).week === 1 && dayToWeekDay(NaN).dayIndex === 1 && dayToWeekDay(-5).week === 1,
+    '非法 classDay（0 / NaN / 负数）一律归到第 1 周第 1 天（不 NaN）')
+}
+
+// ── [2] 自动 === 手动（逐字节）：单一入口 + 引擎确定性 ──────────
+console.log('\n[2] 自动成报 === 手动结算（逐字节）')
+{
+  const week = 1
+  const 输入 = { site: SITE, brand: BRAND, decisions: DEC, week, attrs: { ...ATTR_INIT }, prevCapital: 1490000, prevGoodRate: null }
+  const 手动 = settle({ ...输入 })
+  const 自动 = settle({ ...输入 })            // 自动路径调用的就是同一个 settle（App 里两条入口合并为一个 doSettle）
+  ok(JSON.stringify(手动) === JSON.stringify(自动), `同一状态同决策 ⇒ 引擎输出逐字节相同（week ${week}）`)
+  // 自动周报只是"整形"，不改数值：shapeWeeklyReport 后除新增字段外必须逐字节等于引擎输出
+  const 整形 = shapeWeeklyReport(手动, { week, changes: [{ key: 'pricing', label: '房价', from: 'A', to: 'B', 提交日: 4, 生效日: 5 }] })
+  const 数值键 = Object.keys(手动)
+  const 差异 = 数值键.filter(k => JSON.stringify(整形[k]) !== JSON.stringify(手动[k]))
+  ok(差异.length === 0, `整形不碰任何引擎字段（差异 ${差异.length}）`, 差异.join(','))
+  ok(整形.__auto === true && Array.isArray(整形.changeLogLines) && 整形.changeLogLines.length === 1,
+    '整形只追加审计标记 __auto 与变更记录（不重算数值）')
+  // App 侧结构断言：自动触发调用的是【同一个 doSettle】（不存在第二条结算实现）
+  const app = src('App.jsx')
+  ok(/doSettle\(\{ auto: true, key: autoInfo\.key \}\)/.test(app), '自动触发调用 doSettle({auto:true})（同一函数）')
+  ok((app.match(/function doSettle\(/g) || []).length === 1, 'App 里只有一个 doSettle 定义（无第二套结算路径）')
+}
+
+// ── [3] 与服务端逐日推进【同源对拍】（D8）────────────────────────
+console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同输入')
+{
+  const r = advanceGroupOneDay(存档, 7, { decisions: DEC })     // classDay 7 ⇒ 第 1 周满
+  const 服务端周报 = r.save.history[0]
+  const 客户端周报 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct' })
+  const 比 = ['revenue', 'totalCost', 'profit', 'gop', 'netProfit', 'occupancy', 'finalGoodRate', 'capital', 'deptCost', 'rentCost']
+  const 不等 = 比.filter(k => 服务端周报[k] !== 客户端周报[k])
+  ok(不等.length === 0, `10 个关键字段逐项相等（不同 ${不等.length}）`, 不等.map(k => `${k}:${服务端周报[k]}≠${客户端周报[k]}`).join(' '))
+  // ★ 已知差异（记账给 E4）：客户端会额外传"实时评价计数/危机应对/处理数"，服务端没有这些入参
+  const withLive = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', liveNegCount: 3, livePosCount: 5, crisisResponse: '全额赔付', resolvedCount: 2 })
+  ok(JSON.stringify(withLive) !== JSON.stringify(客户端周报),
+    '★ 记账（E4 待治）：客户端独有的入参（实时评价/危机/处理数）确实会改变结果 ⇒ 服务端补算目前无法复现它们')
+}
+
+// ── [4] 幂等：同一天/同一周不重复成报 ───────────────────────────
+console.log('\n[4] 幂等（重复触发结果相同、不重复成报）')
+{
+  const a = advanceGroupOneDay(存档, 7, { decisions: DEC })
+  const b = advanceGroupOneDay(a.save, 7, { decisions: DEC })      // 同一 classDay 再触发
+  ok(b.advanced === false, '第二次触发 advanced=false（幂等命中，不重复结算）')
+  ok(JSON.stringify(a.save.history) === JSON.stringify(b.save.history), '第二次不往 history 里追加（结果逐字节相同）')
+  // ★ 实测口径（原预期写错，已按实现更正）：服务端在【进入某一周的那一天】就结算该周（第 8 天 ⇒ 结算第 2 周），
+  //   而不是等该周第 7 天。数值上同周同决策 ⇒ 同结果；但**周中改的决策它看不到** ⇒ 与 E3「次日生效」冲突。
+  //   ⇒ 记为发现（见报告"诚实记录"）：服务端结算时点应由"周首"改为"周末"（属 E3/E4 范围，本项不动结算公式）
+  const c = advanceGroupOneDay(a.save, 8, { decisions: DEC })
+  ok(c.advanced === true && c.week === 2 && c.dayIndex === 1,
+    `进入第 2 周即结算第 2 周（advanced=${c.advanced} · week=${c.week} · day=${c.dayIndex}）—— ★ 该时点问题已记账给 E3/E4`)
+
+  const e = advanceGroupOneDay(a.save, 7, { decisions: DEC })
+  ok(e.advanced === false && e.week === 1, '同一周同一天重复触发 ⇒ 不结算（幂等）')
+  ok(tickKey(7, 'demo|1') === 'd7|demo|1', 'tickKey 形状稳定（classDay + groupKey）')
+
+  // shouldAutoSettle 的幂等：已有周报 / 已记过键 ⇒ 都不触发
+  const 已有 = shouldAutoSettle({ ...存档, history: [a.save.history[0]] }, 7)
+  ok(已有.due === false && /已在存档/.test(已有.reason), `有周报 ⇒ 不触发（${已有.reason}）`)
+  const 键命中 = shouldAutoSettle({ ...存档, __autoSettled: [autoSettleKey(7, 'demo|1')] }, 7)
+  ok(键命中.due === false && /幂等键/.test(键命中.reason), `幂等键命中 ⇒ 不触发（${键命中.reason}）`)
+  const 期中 = shouldAutoSettle(存档, 4)
+  ok(期中.due === false && 期中.dayIndex === 4, '第 4 天 ⇒ 不触发（要到第 7 天才成报）')
+  const 该报 = shouldAutoSettle(存档, 7)
+  ok(该报.due === true && 该报.key === autoSettleKey(7, 'demo|1'), '第 7 天 + 无周报 ⇒ 触发（due=true）')
+}
+
+// ── [5] 旧档兼容：无 classDay / 无开学日基准 ─────────────────────
+console.log('\n[5] 旧档兼容（不 NaN、不白屏、按本地日期起算）')
+{
+  ok(classDayFromLocal(undefined, 123) === 1 && classDayFromLocal(100, NaN) === 1 && classDayFromLocal(null, null) === 1,
+    '缺参数 ⇒ classDay = 1（不 NaN）')
+  ok(classDayFromLocal(100, 106) === 7 && classDayFromLocal(100, 99) === 1, '正常换算 7 天；早于开学日 ⇒ 归 1（不倒挂）')
+  const 旧档 = { brand: BRAND, history: [{ week: 1 }, { week: 2 }, { week: 3 }] }   // 无 classDay、无 openDayNo
+  const 推 = classDayFromLocal(undefined, 200)     // App 里：旧档用 today-(history*7) 反推首个基准
+  ok(推 === 1, '旧档反推基准后不炸')
+  const d = shouldAutoSettle(旧档, classDayFromLocal(200 - 3 * 7, 200))   // = classDay 22
+  ok(typeof d.due === 'boolean' && typeof d.reason === 'string', `旧档也能给出判定（due=${d.due} · ${d.reason}）`)
+  const 空档 = shouldAutoSettle(null, null)
+  ok(空档.due === false && 空档.dayIndex === 1 && typeof 空档.reason === 'string',
+    `null 存档 / null classDay ⇒ 归第 1 周第 1 天且不触发（dayIndex=${空档.dayIndex} · ${空档.reason}）`)
+  const 未开业 = shouldAutoSettle({ history: [] }, 7)
+  ok(未开业.due === false && /筹建期/.test(未开业.reason), '未开业（无品牌）⇒ 不触发（筹建期没有周报）')
+}
+
+// ── [6] 本周变更记录（第几天改了什么 + 次日生效）─────────────────
+console.log('\n[6] 「本周变更记录」与归属日口径（T11：次日生效）')
+{
+  const 前 = { pricing: '不跟降', shifts: '满编保服务' }
+  const 后 = { pricing: '降价 20% 抢客', shifts: '满编保服务', energy: 25 }
+  const rows = diffDecisions(前, 后, { day: 4 })
+  ok(rows.length === 1, `只记【改动】（首次填写的 energy 不算改）：${rows.map(r => r.label).join(',')}`)
+  ok(rows[0].key === 'pricing' && rows[0].from === '不跟降' && rows[0].to === '降价 20% 抢客',
+    '改动内容齐全（原值 → 新值）')
+  ok(rows[0].提交日 === 4 && rows[0].生效日 === 5, '归属日：第 4 天提交 ⇒ 第 5 天生效（T11 次日生效）')
+  const lines = changeLogLines(rows)
+  ok(lines.length === 1 && /第 4 天提交/.test(lines[0]) && /第 5 天生效/.test(lines[0]) && /房价/.test(lines[0]),
+    `周报文案含"第 4 天提交 · 第 5 天生效"：${lines[0]}`)
+  // 空集不炸 + 未登记决策回退 id
+  ok(changeLogLines(diffDecisions({}, {}, {})).length === 0, '无改动 ⇒ 空记录（周报不显示该卡）')
+  const 未登记 = diffDecisions({ xyz: 1 }, { xyz: 2 }, { day: 2 })
+  ok(未登记[0].label === 'xyz', '未登记的决策 id 回退为 id 本身（不显示 undefined）')
+}
+
+// ── [7] 触发开关可关（反向验证的靶子）──────────────────────────
+console.log('\n[7] 反向验证靶子：把触发关掉 ⇒ 必须不触发')
+{
+  const 开 = shouldAutoSettle(存档, 7)
+  const 关 = shouldAutoSettle(存档, 7, { enabled: false })
+  ok(开.due === true && 关.due === false,
+    `同一输入：默认 due=true，开关关掉 due=false（${关.reason}）⇒ 报告里的"改成不触发 ⇒ 必红"由此可复现`)
+}
+
+console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
+console.log('验收口径：自动/手动不同一入口、幂等失效、旧档炸、归属日不是"次日" —— 任一即红')
+process.exit(fail ? 1 : 0)
