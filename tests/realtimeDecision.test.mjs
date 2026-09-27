@@ -125,5 +125,28 @@ console.log('\n[6] 反向验证靶子（把归属日改成 classDay ⇒ 本套�
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
+// ── [7] E4 前置：客户端"离线 N 天再打开" === 服务端逐日推进 ─────────────
+console.log('\n[7] E4 补算（离线 N 天）=== 全程在线（客户端等效 vs 服务端权威）')
+{
+  const 底 = { brand: BRAND, location: SITE, history: [], capital: 1490000, attrs: { ...ATTR_INIT }, __groupKey: 'backfill|1' }
+  // 服务端权威：一次推进到第 14 天（= 学生离线两周后打开）
+  const 服务端 = advanceGroupToDay(底, 14, { decisions: DEC })
+  // 客户端等效：按"每周一次、同决策"链式结算两周（= 一直在线的等效）
+  let cap = 底.capital, attrs = { ...ATTR_INIT }
+  const hist = []
+  for (const wk of [1, 2]) {
+    const r = settle({ site: SITE, brand: BRAND, decisions: DEC, week: wk, attrs, prevCapital: cap, prevGoodRate: hist.length ? hist[hist.length - 1].finalGoodRate : null })
+    hist.push(r); cap = r.capital; attrs = r.attrsAfter
+  }
+  ok(cap === 服务端.save.capital, `期末资金：客户端补算 ${cap} === 服务端 ${服务端.save.capital}（逐字节）`)
+  const 客户端序列 = hist.map(h => ({ w: h.week, rev: h.revenue, p: h.profit }))
+  const 服务端序列 = 服务端.save.history.map(h => ({ w: h.week, rev: h.revenue, p: h.profit }))
+  ok(JSON.stringify(客户端序列) === JSON.stringify(服务端序列), '逐周 {周号, 营收, 利润} 序列逐字节相同（两周）')
+  console.log('     ★ 浏览器侧 e2e 映射：ui-smoke / verify-capital / verify-live-review-ui 均把 openDayNo 提前 6–13 天再刷新 ⇒')
+  console.log('       正是"关了若干天再打开"的等效路径，且断言了周报自动产生 —— 三项通过即 E4 的浏览器侧证据')
+  console.log('     ★ 已知边界（记账）：客户端独有入参（实时评价/危机/处理数）服务端拿不到 ⇒ 有实时评价的周尚不成立')
+  console.log('       （weeklyAuto.test.mjs [3] 已把它钉成可复现断言）')
+}
+
 console.log('验收口径：归属日不是+1、可回溯、三档不全、公平性破、假装做了分段收入 —— 任一即红')
 process.exit(fail ? 1 : 0)

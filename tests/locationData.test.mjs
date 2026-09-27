@@ -87,6 +87,25 @@ console.log('\n[3] district 传递链：前端传 ⇒ 引擎归一化（两端�
   ok((r无.competitors || []).length === 0, '不传 district ⇒ 无竞品（说明"传 district"确实是生效条件，不是恒真）')
   // 客群：锦江区 dominant=business ⇒ 商务客分支应产出反馈；无 district ⇒ 落默认 33/33/34（dominant=undefined）
   //   ★ 这条必须能红：不是"有 feedback 就算过"，而是【两边的反馈内容不同】才算"画像真的生效"
+  // ── ★ N-7（BL-15「机制存在 ≠ 机制生效」）：断言机制【真的改变结算】，而不只是"数据被带出来了" ──
+  //   ① 有竞品区位 vs 无竞品区位：出租率/利润必须不同（否则等于机制没生效）
+  const 锦有 = r1, 锦无 = r无
+  ok(锦有.occupancy !== 锦无.occupancy || 锦有.profit !== 锦无.profit,
+    `竞品机制真的生效：锦江区(5 家竞品) occ ${锦有.occupancy}% / 利润 ${锦有.profit} vs 无竞品 occ ${锦无.occupancy}% / 利润 ${锦无.profit} —— 两者必须不同`)
+  //   ② 客群画像同样必须改变结果（不是只在 UI 上显示）
+  ok(JSON.stringify(锦有.personaFeedback) !== JSON.stringify(锦无.personaFeedback),
+    '客群画像真的生效：人群反馈不同 ⇒ 画像进入了计算路径')
+  //   ③ 反向：把"有竞品"当"无竞品"处理（键查不到）⇒ 上面的差异必须消失（证明差异来源单一）
+  const 键失效 = settle({ site: { ...attrs, district: '不存在的区' }, ...base })
+  ok((键失效.competitors || []).length === 0 && 键失效.occupancy === 锦无.occupancy,
+    '反证：用一个不存在的区县名 ⇒ 竞品为空且结果回到"无竞品"基线（差异来源单一，不是随机）')
+  //   ④ 同类数据通路排查（BL-7/8/9 通则：用扫描而非回忆）：
+  //      人流/经济画像（LOCATION_PROFILE）是【展示层】数据 —— 引擎不得消费它（否则会出现"看着有、实际没进计算"或反之）
+  const 引擎源码 = src('settlement.js') + src('dayEngine.js') + src('serverTick.mjs')
+  ok(!/LOCATION_PROFILE/.test(引擎源码),
+    '扫描：引擎路径（settlement/dayEngine/serverTick）【不引用】LOCATION_PROFILE ⇒ 人流/经济明确是展示层（不是"声明了但没用"）')
+  ok(/LOCATION_PROFILE/.test(src('SiteSelection.jsx')), '人流/经济画像确被选址页消费（展示层用处明确）')
+
   const 锦 = r1.personaFeedback || []
   const 空 = r无.personaFeedback || []
   ok(锦.length > 0 && 锦.some(t => /商务客/.test(t)), `锦江区（dominant=business）产出商务客反馈 ${锦.length} 条：${锦.slice(0, 2).join(' / ')}`)
