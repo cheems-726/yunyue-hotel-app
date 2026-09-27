@@ -13,6 +13,7 @@
 // 退出码：0 = 文档与代码一致；1 = 发现不同步（需更新文档）
 
 import fs from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -23,6 +24,31 @@ const JSON_OUT = process.argv.includes('--json')
 
 const readIf = p => { try { return fs.readFileSync(p, 'utf8') } catch { return null } }
 const exists = p => fs.existsSync(p)
+
+// 🔴 W4-6 补覆盖（2026-09-27）：本脚本此前只盯 3 份文档 ⇒ 会话交接卡 / 索引 / 现行目录其余任务包
+//    全在监控之外。而"做完即更新交接卡"是 R1 纪律 ⇒ 交接卡落后时门禁照样绿 = **假绿近亲（BL-11 族）**。
+//    本处新增两类覆盖：① 新鲜度清单扩容（含"现行"目录全部 .md）② 交接卡与 HEAD 的一致性事实断言。
+function gitShortHead() {
+  try {
+    const r = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: APP, encoding: 'utf8', shell: false })
+    return (r.status === 0 ? (r.stdout || '').trim() : null)
+  } catch { return null }
+}
+// 监控文档清单：三份原有 + 交接卡 + 索引 + 现行目录全部任务包
+function monitoredDocs() {
+  const list = [
+    path.join(ROOT, '1-总纲与进度', '交接文档-新会话必读.md'),
+    path.join(ROOT, '1-总纲与进度', '决策登记册.md'),
+    path.join(ROOT, '2-任务包', '现行', '总任务包-设计落地与数据补全.md'),
+    path.join(ROOT, '4-审计与报告', '会话交接卡.md'),
+    path.join(ROOT, '0-从这里开始.md'),
+  ]
+  const dir = path.join(ROOT, '2-任务包', '现行')
+  try {
+    for (const f of fs.readdirSync(dir)) if (f.endsWith('.md')) list.push(path.join(dir, f))
+  } catch { /* ignore */ }
+  return list.filter(exists)
+}
 
 function walk(dir, exts, acc = [], depth = 0) {
   if (depth > 6) return acc
@@ -125,6 +151,20 @@ const FACTS = [
     docs: [],
     expect: true,   // 期望为 true：若变 false，说明接线被回退 → 需说明原因
   },
+  {
+    // 🔴 W4-6：R1 纪律是"做完即更新交接卡"——此前没有任何守门盯着它（交接卡不在本脚本的监控清单里）。
+    //   本事实断言：交接卡的起点校验段必须引到【当前 HEAD 短哈希】⇒ 卡落后于提交即报红。
+    name: '会话交接卡已跟上最新提交（起点校验含 HEAD）',
+    actual: () => {
+      const head = gitShortHead()
+      if (!head) return false
+      const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
+      return !!card && card.includes(head)
+    },
+    docSays: '会话交接卡 ⑥ 起点校验（应含最新的 commit 短哈希）',
+    docs: ['4-审计与报告/会话交接卡.md'],
+    expect: true,
+  },
 ]
 
 // ── 执行 ─────────────────────────────────────────────────────────
@@ -142,11 +182,7 @@ for (const f of FACTS) {
 
 // 新鲜度：src/ vs 关键文档
 const srcFiles = walk(path.join(APP, 'src'), ['.js', '.jsx', '.mjs'])
-const docFiles = [
-  path.join(ROOT, '1-总纲与进度', '交接文档-新会话必读.md'),
-  path.join(ROOT, '1-总纲与进度', '决策登记册.md'),
-  path.join(ROOT, '2-任务包', '现行', '总任务包-设计落地与数据补全.md'),
-].filter(exists)
+const docFiles = monitoredDocs()
 
 const srcNewest = newestMtime(srcFiles)
 const docNewest = newestMtime(docFiles)
