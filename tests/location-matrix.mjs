@@ -16,7 +16,9 @@ for (const [city, list] of Object.entries(districts)) {
     for (const brand of BRANDS) {
       let prev = null, total = 0
       for (let w = 1; w <= 12; w++) {
-        const r = settle({ site: d.attrs, brand, decisions: DILIGENT, week: w, prevGoodRate: prev })
+        // 🔴 2026-09-27：把 district 传进引擎 —— 不改的话本套件模拟的是"竞品/客群失效"的旧路径，
+        //   与真机行为不符（真机已修：App 传 district）。矩阵必须模拟【真实路径】。
+        const r = settle({ site: { ...d.attrs, district: d.name }, brand, decisions: DILIGENT, week: w, prevGoodRate: prev })
         prev = r.finalGoodRate
         total += r.profit
       }

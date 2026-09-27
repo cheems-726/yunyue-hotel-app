@@ -18,6 +18,9 @@ import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
 import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, qualityOf } from './attrs.js'
+// 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
+//   （本文件原有三处自算：组员概况 Σocc/Σprofit、积分明细页的【第三套评分副本】）
+import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 import { APP_VERSION } from './version.js'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
@@ -1182,8 +1185,8 @@ function HelpPage({ onBack }) {
       <div className="card">
         <div className="card-title">💰 资金管理指南</div>
         <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
-          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡，初始约 {SCALE.IC_NEW / 10000} 万，每周结算后自动增减。</div>
-          <div><b>每周扣什么：</b>固定成本（约 65 元/间）+ 人员工资（按入住量与排班 20-30 元/间）+ 物料水电 + 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
+          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡。开局系统给你一笔<b>运营启动资金</b>（约 {SCALE.IC_NEW / 10000} 万），每周结算后自动增减。<b>它是经营周转用的钱，不等于"开一家酒店的总投资"</b>——筹建投入见「报价单」。</div>
+          <div><b>每周扣什么：</b>租金（按选址租金档，30–50 元/间·天）+ 部门成本（人力 / 客房 / 能耗 / 维修等，约合营收 45%）+ 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
           <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「🚨 破产预警」。</div>
           <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
@@ -1266,8 +1269,9 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
               week: gs.week || 1,
               finished: gs.finished,
               doneDecisions: gs.state?.doneDecisions || {},
-              occ: h.length ? Math.round(h.reduce((a, x) => a + x.occupancy, 0) / h.length) : 0,
-              profit: h.reduce((a, x) => a + (x.profit || 0), 0),
+              // 🔴 E1：组员概况的平均出租率/累计利润也走单源（原自算 Σ，与主视图两套口径）
+              occ: avgOccupancy(h),
+              profit: sumNet(h).value,
             }
           })
           setMemberStates(map)
@@ -1423,27 +1427,17 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
 // ===== 积分与评分明细页（四维逐周得分 + 加权总分实时预测） =====
 function ScoreDetail({ history, onBack }) {
   const [scoreCopied, setScoreCopied] = useState(false)
-  // 与 FinalResult 同口径的四维打分
-  const scoreOf = (arr) => {
-    const totalProfit = arr.reduce((s, h) => s + h.profit, 0)
-    const avgOcc = arr.length ? Math.round(arr.reduce((s, h) => s + h.occupancy, 0) / arr.length) : 0
-    const avgGood = arr.length ? Math.round(arr.reduce((s, h) => s + h.finalGoodRate, 0) / arr.length) : 0
-    const totalNeg = arr.reduce((s, h) => s + h.negativeCount, 0)
-    // 🔴 T1.1：与 FinalResult.jsx 同口径（旧阈值 × m 取整到万位；本处是成绩单文案用的第三套副本，规格未点到，一并同步）
-    const pS = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
-    const rS = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
-    const oS = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
-    const nS = totalNeg === 0 ? 100 : totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50
-    return { pS, rS, oS, nS, total: Math.round(pS * 0.4 + rS * 0.25 + oS * 0.2 + nS * 0.15) }
-  }
+  // 🔴 E1（二期 · 唯一账本）：改调 metricDefs.scoreOf —— 本处原先是【第三套副本】（FinalResult/TeacherDashboard 之外），
+  //   而且它的差评维度【漏了处理率分支】（只有条数）⇒ 同一份 history 在「积分明细页」与「成绩单」上
+  //   差评得分可能不同（学生可见的口径不一致）。现在三处同源。
   const cum = scoreOf(history)
   const dims = [
-    { label: '利润', weight: 0.4, score: cum.pS },
-    { label: '口碑', weight: 0.25, score: cum.rS },
-    { label: '出租率', weight: 0.2, score: cum.oS },
-    { label: '差评处理', weight: 0.15, score: cum.nS },
+    { label: '利润', weight: 0.4, score: cum.profitScore },
+    { label: '口碑', weight: 0.25, score: cum.reputationScore },
+    { label: '出租率', weight: 0.2, score: cum.occupancyScore },
+    { label: '差评处理', weight: 0.15, score: cum.negativeScore },
   ]
-  const grade = cum.total >= 90 ? 'S' : cum.total >= 80 ? 'A' : cum.total >= 70 ? 'B' : cum.total >= 60 ? 'C' : 'D'
+  const grade = cum.grade.slice(0, 1)
   return (
     <div className="content">
       <div className="header">
@@ -1454,7 +1448,7 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card" style={{ textAlign: 'center', padding: 20 }}>
-        <div style={{ fontSize: 40, fontWeight: 700, color: '#E8940F' }}>{cum.total}</div>
+        <div style={{ fontSize: 40, fontWeight: 700, color: '#E8940F' }}>{cum.finalScore}</div>
         <div style={{ fontSize: 12, color: '#A96407', fontWeight: 600 }}>预测等级 {grade} · 按目前已结算的 {history.length} 周计算</div>
         <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{history.length < 12 ? '经营继续，此分数会随周数实时变化' : '12周已结算完毕'}</div>
       </div>
@@ -1490,7 +1484,7 @@ function ScoreDetail({ history, onBack }) {
               } catch (e) {}
               return { icon: '🧹', name: '零欠差评', got: owed !== null && owed === 0 }
             })(),
-            { icon: '🏆', name: '跻身A级', got: cum.total >= 80 },
+            { icon: '🏆', name: '跻身A级', got: cum.finalScore >= 80 },
             { icon: '🎓', name: '完赛', got: history.length >= 12 },
           ].map(b => (
             <div key={b.name} style={{ textAlign: 'center', padding: '10px 4px', background: b.got ? '#FFF4E0' : '#F9FAFB', borderRadius: 10, border: b.got ? '1px solid #FBE3B3' : '1px solid #F3F4F6' }}>
@@ -1508,8 +1502,8 @@ function ScoreDetail({ history, onBack }) {
           <button className="btn btn-ghost" style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
             onClick={() => {
               const text = `🏆 云悦酒店·累计成绩（${history.length}周）
-综合评分 ${cum.total}（${grade.split(' ')[0]}）
-出租率 ${cum.oS}分 | 口碑 ${cum.rS}分 | 利润 ${cum.pS}分 | 差评处理 ${cum.nS}分
+综合评分 ${cum.finalScore}（${grade}）
+出租率 ${cum.occupancyScore}分 | 口碑 ${cum.reputationScore}分 | 利润 ${cum.profitScore}分 | 差评处理 ${cum.negativeScore}分
 ——来自云悦酒店经营模拟`
               navigator.clipboard.writeText(text).then(() => setScoreCopied(true)).catch(() => setScoreCopied(false))
             }}>📋 复制</button>
@@ -1524,10 +1518,10 @@ function ScoreDetail({ history, onBack }) {
               <span style={{ fontSize: 13, fontWeight: 600 }}>第 {upto.length} 周结算后</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 120, margin: '0 12px' }}>
                 <div style={{ flex: 1, height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: s.total + '%', background: '#E8940F', borderRadius: 3 }}></div>
+                  <div style={{ height: '100%', width: s.finalScore + '%', background: '#E8940F', borderRadius: 3 }}></div>
                 </div>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#E8940F' }}>{s.total}分</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#E8940F' }}>{s.finalScore}分</span>
             </div>
           )
         })}
@@ -1921,7 +1915,11 @@ export default function App() {
     }
   }
   function doSettle() {
-    const site = location?.attrs || { 客流: 3 }
+    // 🔴 选址数据任务（2026-09-27 · 重大修复）：原写法只传 `location.attrs` ⇒ 引擎拿不到 district，
+    //   于是 `COMPETITORS[site.district]` 与 `CUSTOMER_PERSONAS[site.district]` 永远命中空键 ——
+    //   **竞品机制（周报「周边竞品动态」卡 + 竞品压力压出租率）与客群匹配从未生效**（121 家竞品数据白接）。
+    //   现在把 district 一起传进引擎（引擎侧已做入口归一化，服务端同一形状）。
+    const site = { ...(location?.attrs || { 客流: 3 }), district: location?.district }
     // 口碑页数据读一次，供本函数全程使用。
     // 🔴 历史 bug：原先 reviews 声明在下方第一个 try 内部，而"结算卡片入库"那段在另一个 try 里引用它
     //    → ReferenceError 被自己的 catch(e){} 吞掉 → **结算生成的评价卡片从未写进口碑页**（潜伏已久，

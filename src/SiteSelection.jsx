@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
-import { districts, CUSTOMER_PERSONAS } from './siteLocations.mjs'
+import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
@@ -18,6 +18,34 @@ const CONFIDENCE_BADGE = {
   red:    { text: '人工分级', cls: 'tag-ind', title: '人工分级，非统计数据（定性判断，无公开来源）' },
 }
 const PERSONA_SOURCE_TIP = '人工分级，非统计数据 —— 客群占比按区县典型结构人工估算，非统计口径'
+
+// ── 🔴 2026-09-27 选址数据任务：竞品 + 人流 + 经济（学生选之前就要能对比）──────────
+//   数据源：COMPETITORS/LOCATION_PROFILE（5-参考资料/选址竞品-OTA实测数据-20260927.md ·
+//   选址人流经济-统计实测-20260927.md）。全部带来源与抓取日；**没采到的显式标"待补"，不编造**。
+const LEVEL_LABEL = { budget: '经济', mid: '中端', upscale: '中高端', luxury: '高端' }
+const LEVEL_CLS = { budget: 'tag-county', mid: 'tag-ind', upscale: 'tag-tour', luxury: 'tag-core' }
+const fmt万 = (x) => (x >= 10000 ? (x / 10000).toFixed(2) + ' 亿' : Number(x).toLocaleString('zh-CN') + ' 万')
+
+function competitorSummary(name) {
+  const list = COMPETITORS[name] || []
+  if (!list.length) return { text: '竞品资料待补（本区位暂无竞品建模）', empty: true }
+  const prices = list.map(c => (c.priceBasis === 'from' ? c.basePrice : (c.priceAvg || c.basePrice))).filter(Number.isFinite)
+  const byLevel = {}
+  list.forEach(c => { byLevel[c.level] = (byLevel[c.level] || 0) + 1 })
+  const mix = Object.entries(byLevel).map(([k, v]) => `${LEVEL_LABEL[k] || k} ${v}`).join(' · ')
+  return {
+    list, prices, mix, empty: false,
+    价位带: prices.length ? `¥${Math.min(...prices)}–${Math.max(...prices)}` : '价格待补',
+    来源: list[0].source || 'OTA 抽样',
+  }
+}
+
+function profileRows(name) {
+  if (NOT_SURVEYED.includes(name)) return null   // 12 区按用户口径"简单处理" ⇒ 显式待补
+  const p = LOCATION_PROFILE[name]
+  if (!p) return null
+  return p
+}
 
 // 客群主特性一句话（hover/列表行共用）
 const DOMINANT_LABEL = { business: '商务客为主', tourist: '游客为主', family: '家庭客为主' }
@@ -208,6 +236,46 @@ export default function SiteSelection({ onConfirm }) {
                 return '经济型～中端型'
               })()}
             </div>
+
+            {/* 🔴 2026-09-27 选址数据任务：周边竞品（选之前就能对比"这一片有哪些店、什么价位、什么档次"） */}
+            {(() => {
+              const c = competitorSummary(d.name)
+              if (c.empty) return (
+                <div style={{ marginTop: 6, fontSize: 11, color: '#9CA3AF', background: '#F9FAFB', borderRadius: 6, padding: '4px 8px' }}>
+                  🏢 {c.text}
+                </div>
+              )
+              return (
+                <div style={{ marginTop: 6, fontSize: 11, color: '#374151', background: '#F9FAFB', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
+                  🏢 <b>周边竞品 {c.list.length} 家</b> · 价位带 <b>{c.价位带}</b> · {c.mix}
+                  <div style={{ color: '#6B7280', marginTop: 2 }}>
+                    {c.list.slice(0, 3).map(x => `${x.name}（${LEVEL_LABEL[x.level] || x.level} ¥${x.basePrice}${x.priceBasis === 'avg' ? '均' : '起'}）`).join(' · ')}
+                    {c.list.length > 3 ? ` 等 ${c.list.length} 家` : ''}
+                  </div>
+                  <div style={{ color: '#9CA3AF', fontSize: 10, marginTop: 2 }}>来源：{c.来源}</div>
+                </div>
+              )
+            })()}
+
+            {/* 🔴 人流 / 经济（成都+德阳 14 区位为统计实测；其余 12 区按口径显式"待补"） */}
+            {(() => {
+              const p = profileRows(d.name)
+              if (!p) return (
+                <div style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF', background: '#F9FAFB', borderRadius: 6, padding: '4px 8px' }}>
+                  👥 人流 / 💰 经济：<b>待补</b>（本区位未采统计口径 —— 不编造）
+                </div>
+              )
+              return (
+                <div style={{ marginTop: 4, fontSize: 11, color: '#374151', background: '#F9FAFB', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
+                  👥 <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '待补'}
+                  <div style={{ color: '#6B7280' }}>{p.traffic}</div>
+                  💰 <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
+                  <div style={{ color: '#9CA3AF', fontSize: 10, marginTop: 2 }}>
+                    来源：{p.src} · 置信度 {p.conf === 'high' ? '高' : p.conf === 'mid' ? '中' : '低'}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         ))}
       </div>
