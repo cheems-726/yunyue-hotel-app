@@ -4,6 +4,9 @@
 import { chromium } from 'playwright-core'
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+// 🔴 W2-2 重基线（D38-B）：资金三数/版本号【从源头推导】，不再贴死数字 —— 口径再变无需重挂
+//   SCALE.IC_NEW = 当前起始资金 · SCALE.m = 由 SCALE_STEPS 各跳推导的累计倍数 · SCALE.VERSION_CURRENT
+import { SCALE } from '../src/stateMigration.mjs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4177
@@ -102,9 +105,9 @@ try {
   })
   const cardCap = await readCardCap()
   ok(`资金卡 = 权威值 ${st1.capital}（实测 ${cardCap}）`, cardCap === st1.capital)
-  // 🔴 T1.1：起始资金 50万 → 502万（口径 ×m=10.0483，§十七 A3）
-  const wrongOld = 5020000 - 0 + 0   // 首周：旧式 = 起始资金 − ΣtotalExpenses + Σprofit；此处只需断言等于权威值即可
-  ok('资金卡不再用「起始资金−ΣtotalExpenses+Σprofit」的旧式', cardCap !== wrongOld || st1.capital === 5020000)
+  // 🔴 W2-2 重基线：新档起始资金必须 = SCALE.IC_NEW（1,490,000），且不再是 v1 时代的 50 万旧口径
+  ok(`新档起始资金 = SCALE.IC_NEW ${SCALE.IC_NEW}（实测 ${st1.capital}）`, st1.capital === SCALE.IC_NEW)
+  ok(`起始资金已不是最旧档口径 ${SCALE.IC_OLD}（旧式「50万 − 成本 + 利润」）`, st1.capital !== SCALE.IC_OLD)
 
   // ── ③ 做一项决策 + 结算 → 资金必须累积（= 上一周 + 本周利润）──
   await page.evaluate(() => { const c = [...document.querySelectorAll('.task-card')].find(x => x.textContent.includes('前台排班')); c && c.click() }); await sleep(700)
@@ -118,7 +121,7 @@ try {
   ok('周报已出（含利润）', !!mProfit)
   const st2 = await state(page)
   const profit = mProfit ? Number(mProfit[1].replace(/,/g, '')) : null
-  ok(`结算后资金 = 5020000 + 本周利润（${st2.capital} vs ${profit}）`, profit != null && st2.capital === 5020000 + profit)
+  ok(`结算后资金 = IC_NEW + 本周利润（${st2.capital} vs ${SCALE.IC_NEW + (profit || 0)}）`, profit != null && st2.capital === SCALE.IC_NEW + profit)
 
   // ── P5 对账：周报「期末资金」=== 权威 state（精确）=== 资金卡显示（容差 ±500，显示为 x.x 万）──
   let wrCap = null
@@ -136,7 +139,9 @@ try {
   const st3 = await state(page)
   const card2 = await readCardCap()
   // 卡片显示格式为 (cap/10000).toFixed(1) 万 → 容差 ±500（显示精度，不是精度差）
-  ok(`第 2 周资金卡仍显示累积值（显示 ${card2} ≈ 权威 ${st3.capital}）`, card2 != null && Math.abs(card2 - st3.capital) <= 500 && st3.capital > 5020000)
+  // 🔴 W2-2 重基线：累积的判据改为【= IC_NEW + 本周利润】（原来写的是 "> 5020000"，随 IC 变即失效）
+  ok(`第 2 周资金卡仍是累积值（显示 ${card2} ≈ 权威 ${st3.capital}，且 = IC_NEW + 本周利润）`,
+    card2 != null && Math.abs(card2 - st3.capital) <= 500 && profit != null && st3.capital === SCALE.IC_NEW + profit)
   // P5 对账（卡片可见时才比）：资金卡显示 === 上一份周报的「期末资金」（容差 ±500 = x.x 万显示精度）
   if (wrCap != null) ok(`资金卡显示 ≈ 周报期末资金（${card2} vs ${wrCap}）`, card2 != null && Math.abs(card2 - wrCap) <= 500)
 
@@ -153,14 +158,16 @@ try {
   })
   await page.reload(); await sleep(1600)
   const card3 = await readCardCap()
-  // 🔴 D25：capital_new = IC_new + (capital_old − IC_old) × m
-  //   capital_old（无 capital 字段时）= IC_old + Σ历史利润 = 500000 + 19134 = 519134
-  //   ⇒ 5020000 + (519134 − 500000) × 10.0483 = 5212264（与原期望值一致，公式不同但结果等价）
-  const expect3 = 5020000 + (12345 + 6789) * 10.0483
+  // 🔴 D25 公式：capital_new = IC_new + (capital_old − IC_old) × m
+  //   capital_old（无 capital 字段时）= IC_old + Σ历史利润 = 500000 + 19134
+  //   ★ W2-2 重基线：期望值【由版本序表推导】（SCALE.m = 各跳 m 的累计），并【打印推导式】便于复核
+  const legacyCapital = SCALE.IC_OLD + (12345 + 6789)
+  const expect3 = SCALE.IC_NEW + (legacyCapital - SCALE.IC_OLD) * SCALE.m
+  console.log(`    [推导] IC_NEW ${SCALE.IC_NEW} + (旧档 ${legacyCapital} − IC_old ${SCALE.IC_OLD}) × 累计 m ${SCALE.m.toFixed(6)} = ${Math.round(expect3)}`)
   ok(`旧档（无 capital / 无 scaleVersion）平滑迁移 = ${Math.round(expect3)}（显示 ${card3}，容差 ±1000）`, card3 != null && Math.abs(card3 - expect3) <= 1000)
-  // 迁移后必须落 scaleVersion=2（否则下次还会再迁一次）
+  // 迁移后必须落【当前】版本号（否则下次还会再迁一次）
   const ver = await page.evaluate(() => (JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')).scaleVersion)
-  ok('迁移后存档已写回 scaleVersion = 2（幂等闭环）', ver === 2)
+  ok(`迁移后存档已写回 scaleVersion = ${SCALE.VERSION_CURRENT}（幂等闭环）`, ver === SCALE.VERSION_CURRENT)
   ok('无 JS 异常', true)
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)

@@ -4,6 +4,7 @@ import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { decisions as ALL_DECISIONS } from './decisions.js'
 import { qualityOf } from './attrs.js'
 import { buildDailyReport, reconcileWithWeek } from './dailyReport.mjs'
+import { GOP_LABEL, GOP_DEF, NET_LABEL, NET_DEF, pct } from './metricDefs.mjs'
 
 const DECISION_NAMES_MAP = Object.fromEntries(ALL_DECISIONS.map(d => [d.id, d]))
 
@@ -85,7 +86,9 @@ function CrisisCard({ event, week }) {
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose, history = [], brand = {}, attrs }) {
   const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
-  const isProfit = result.profit >= 0
+  // 🔴 W2-3：牌位值读【净利润】权威字段（netProfit；旧档回退 profit —— 引擎恒等式保证同值）
+  const netP = Number.isFinite(result.netProfit) ? result.netProfit : result.profit
+  const isProfit = netP >= 0
   const [copied, setCopied] = useState(false)
   const [tipOpen, setTipOpen] = useState(null) // 决策摘要展开的 tip 行
   // 称号变化检测：结算前 vs 结算后（晋升时刻/降级警示）
@@ -158,8 +161,8 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
             <div className="value"><CountNum n={result.revenue} wan /><span className="unit">万</span></div>
           </div>
           <div className="metric">
-            <div className="label">利润{chip(dProfit)}</div>
-            <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}<CountNum n={result.profit} /><span className="unit">元</span></div>
+            <div className="label" title={NET_DEF}>{NET_LABEL}{chip(dProfit)}</div>
+            <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}<CountNum n={netP} /><span className="unit">元</span></div>
           </div>
         </div>
       </div>
@@ -209,10 +212,16 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           <div>🏨 房量 {result.rooms} 间 · 入住 {result.occupiedRooms} 间</div>
           {/* 🔴 T1.4/B2：平均房价改【实收】= 周客房收入 ÷ 售出间夜（原显示 result.price 是定价） */}
           <div>💵 平均房价（实收）{result.occupiedRooms > 0 ? Math.round(result.revenue / (result.occupiedRooms * 7)) : 0} 元/间·天</div>
-          {/* 🔴 T1.4/B3：GOP 口径【不含】租金/加盟费/利息；本模型"其他部门成本"未建模 ⇒ GOP 率偏高属模型范围差异 */}
-          {typeof result.gopRate === 'number' && (
-            <div title="GOP（经营毛利）= 营收 −（变动成本 + 营销 + OTA佣金 + 其他部门成本）；不含租金/加盟费/利息">
-              📊 GOP 率 {(result.gopRate * 100).toFixed(1)}%<span style={{ color: '#9CA3AF', fontSize: 11 }}>（经营毛利，不含租金）</span>
+          {/* 🔴 W2-3（W10 正名）：GOP 与净利润【分开显示】——口径单源 src/metricDefs.mjs
+              GOP 不含租金 ⇒ GOP > 净利润；两者之差 = 租金 + 非经常项，学生要能对上账 */}
+          {typeof result.gop === 'number' && (
+            <div title={GOP_DEF}>
+              📊 {GOP_LABEL} {result.gop.toLocaleString()} 元 · 率 {pct(result.gopRate)}<span style={{ color: '#9CA3AF', fontSize: 11 }}>（不含租金/加盟费/利息）</span>
+            </div>
+          )}
+          {typeof result.netProfit === 'number' && (
+            <div title={NET_DEF}>
+              📈 {NET_LABEL} {result.netProfit.toLocaleString()} 元 · 率 {pct(result.netProfitRate)}<span style={{ color: '#9CA3AF', fontSize: 11 }}>（已扣租金 · 评分基准）</span>
             </div>
           )}
           <div>💰 成本 {result.totalCost} 元<span style={{ color: '#9CA3AF', fontSize: 11 }}>（含租金 {typeof result.rentCost === 'number' ? result.rentCost.toLocaleString() : '—'} 元）</span></div>

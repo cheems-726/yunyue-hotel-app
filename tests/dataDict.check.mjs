@@ -16,6 +16,8 @@ export const DATA_DICT = [
   { key: 'liveReviews',     中文名: '实时评价',      单位: '条（live 标记）',      权威来源: 'liveReview 掷骰（独立流 0x5A17A2）', 允许用途: '口碑页展示/流水', 禁止用途: '计入 pendingNegatives（口径批③：欠账只数结算卡，公平性红线）' },
   { key: 'weeklyExpenses',  中文名: '周成本构成',    单位: '元（分项）',           权威来源: 'settle().weeklyExpenses', 允许用途: '周报成本条形图', 禁止用途: '前端按 65/30/25 元硬编码重算（已修）' },
   { key: 'gop/gopRate',     中文名: '经营毛利/GOP率', 单位: '元 / 0-1',             权威来源: 'settle().gop/gopRate（= 营收 −(变动+营销+OTA佣金+其他部门成本)）', 允许用途: '周报经营明细', 禁止用途: '把租金算进 GOP（口径错）；当利润率用' },
+  // 🔴 W2-3（W10 正名）：净利润 = 评分基准。★ 与 gop 是【两个指标】，界面必须分列显示
+  { key: 'netProfit/netProfitRate', 中文名: '净利润/净利润率', 单位: '元 / 0-1',   权威来源: 'settle().netProfit（= gop − 租金 − 超售赔偿 − 改造投资 − 事件罚款；=== 既有 profit）', 允许用途: '周报/期末评分基准(40%维度)/教师端/导出CSV', 禁止用途: '与 GOP 混用（GOP 不含租金，天然更大）；用 GOP 冒充净利润做评分' },
   { key: 'rentCost',        中文名: '租金（独立科目）',单位: '元/周',               权威来源: 'settle().rentCost（房量 × 单房日租 × 7）', 允许用途: '周报成本行 / GOP 口径', 禁止用途: '并回 fixedCost（GOP 口径即错）' },
   { key: 'confidence',      中文名: '数据来源分级',  单位: 'red/yellow/green',     权威来源: 'src/siteLocations.mjs 的 confidence', 允许用途: '选址页角标', 禁止用途: '把「人工分级」当统计数据引用' },
   { key: 'keptRand/guestsRng', 中文名: '随机流',     单位: '—',                    权威来源: '结算 rand（全班同种子）/ guestsRng 独立流 / liveReview 0x5A17A2', 允许用途: '各自领域', 禁止用途: '交叉调用（污染随机序列=破坏全班可比性）' },
@@ -24,6 +26,7 @@ export const DATA_DICT = [
 // ── 静态检查：找"绕过权威来源自己算"的残留 ──
 import { readFileSync, readdirSync } from 'node:fs'
 import { settle } from '../src/settlement.js'   // 华住 B 分项要在真引擎上验 RevPAR 恒等式
+import { runSeason6 } from './_season6.mjs'      // W2-4：六组赛季聚合（与 W14 同一份场景，避免两处口径漂移）
 
 const VIOLATION_PATTERNS = [
   { id: 'V1', desc: '本地重算资金（双重扣成本旧公式）', re: /500000\s*-\s*history\.reduce/g, whitelist: [] },
@@ -104,6 +107,8 @@ const termFindings = []
     rooms: /parseRooms\(brand\?\.standard\)|parseRooms\(brand\.standard\)/,
     handleRate: /handleStats/,
     weeklyExpenses: /weeklyExpenses/,
+    // W2-3：净利润的权威实现 = settlement.js 里的推导式（必须真在算，不是只输出个字段）
+    'netProfit/netProfitRate': /const netProfit = gop - rentCostWeekly/,
   }
   for (const [k, re] of Object.entries(coreImpl)) {
     const entry = DATA_DICT.find(d => d.key === k)
@@ -116,9 +121,9 @@ const termFindings = []
 
 // ── 华住分项对拍（§五·步骤5 / D16 修正版）────────────────────────────────
 // 参照模型（华住官网收益模型）：100 间 / 出租率 90% / ADR 200 元 / 3500 ㎡ / 租金 1.5 元/㎡/天 / 365 天
-// ★ 只对拍【可对拍】分项。明确【不对拍】：现金流率 20.8% 与毛利率 55%
-//   —— 我们缺【部门成本】模型（variableCost 仅占营收约 19%，华住 55% 毛利率已扣部门成本），
-//   属模型范围差异、不是失败；不许为凑 20.8% 调参。放 P3《加盟经济模型》。
+// ★ W2-4（2026-09-27）：【现金流率已解锁】—— D16 修正写着"引入部门成本后，再解锁现金流率对拍"，
+//   W14/W2-1 部门成本 5 科目落地 ⇒ 前提消除，本批做【结构对拍 + 差异归因】（见 F 段）。
+//   ★ 纪律不变：仍然【不许为凑 20.8% 调参】—— F 段只断言"差额可被租金项解释"，不要求数值相等。
 export const HUAZHU_BENCH = {
   rooms: 100, occ: 0.9, adr: 200, area: 3500, rentPerSqmDay: 1.5, days: 365,
   费率常量: { 管理费: 0.05, CRS: 0.08, 官方渠道上限: 0.035 },
@@ -161,7 +166,51 @@ const hzFindings = [], hzNotes = []
   // E · 投资额量级
   if (!SAME_ORDER(H.参考值.单房造价 * H.rooms, H.参考值.华住单房造价 * H.rooms)) hzFindings.push({ rule: '华住E(投资额)', ctx: '单房造价×房量 与华住不同量级', expect: '同量级' })
   else hzNotes.push(`E 投资额：单房造价 7.18万×100 = 718 万 vs 华住 6.1万×100 = 610 万 ⇒ ${(H.参考值.单房造价 / H.参考值.华住单房造价).toFixed(2)}× ✅ 同量级；⚠️ 引擎无【投资额/capex】科目 → P3`)
-  hzNotes.push('❌ 不对拍（模型范围差异）：现金流率 20.8% / 毛利率 55% —— 缺部门成本模型，放 P3；不许调参凑')
+  hzNotes.push('❌ 不对拍（模型范围差异）：毛利率 55% —— 华住毛利率口径 = 1 − 部门成本率，本模型已由 W14 对齐（见 F2）')
+}
+
+// ── F · 现金流率对拍（★ W2-4 解锁 · 结构对拍 + 差异归因）────────────────────
+// 为什么这样断言：华住现金流率 20.83% 是【他们自己的租金单价与 RevPAR】下的数；
+//   直接要求我们引擎复现 20.83% = 逼着调参（明令禁止）。可对拍的是【结构】：
+//   ① 华住参考链自身算术自洽 ② 部门成本口径两侧对齐 ③ 现金流率差额【只有】租金项能解释。
+{
+  const H = HUAZHU_BENCH
+  // 华住侧：同一代数式复算（部门成本 = 1 − 毛利率 55%）
+  const hzDeptRate = 1 - 0.55
+  const hzRentRate = H.参考值.年租金 / H.参考值.年营收
+  const hzFranchiseRate = H.费率常量.管理费
+  const hzCfoRate = 1 - hzDeptRate - hzRentRate - hzFranchiseRate
+  const hzCfoMoney = H.参考值.年营收 * (1 - hzDeptRate) - H.参考值.年租金 - H.参考值.特许费
+  // F1 · 华住参考链算术自洽（657万 → 136.875万 → 20.83%）
+  if (Math.abs(hzCfoRate - 0.2083) > 0.0001) {
+    hzFindings.push({ rule: 'F1(华住链)', ctx: `1−45%−${(hzRentRate * 100).toFixed(2)}%−5% = ${(hzCfoRate * 100).toFixed(2)}% ≠ 20.83%`, expect: '华住参考链自洽（算术）' })
+  } else {
+    hzNotes.push(`F1 华住参考链自洽：657万 − 295.65万(部门成本45%) − 191.625万(租金 ${(hzRentRate * 100).toFixed(2)}%) − 32.85万(特许费5%) = ${(hzCfoMoney / 10000).toFixed(3)}万 ⇒ 现金流率 ${(hzCfoRate * 100).toFixed(2)}% ✅`)
+  }
+  // 我们侧：六组 × 12 周赛季加权（W14 场景）
+  const { weighted: us } = runSeason6()
+  const usFranchiseRate = H.费率常量.管理费   // ★ 引擎无【特许费】科目（P3 才做）⇒ 代入华住同费率，如实标注
+  const usCfoRate = 1 - us.deptRate - us.rentRate - usFranchiseRate
+  // F2 · 部门成本口径对齐（W2-4 解锁的核心项：两边都落在 45%）
+  const deptGap = Math.abs(us.deptRate - hzDeptRate)
+  if (!(us.deptRate >= 0.42 && us.deptRate <= 0.48)) {
+    hzFindings.push({ rule: 'F2(部门成本带)', ctx: `我们 ${(us.deptRate * 100).toFixed(2)}% 不在 W14 目标带 42–48%`, expect: '六组赛季加权落 42–48%' })
+  } else if (deptGap > 0.03) {
+    hzFindings.push({ rule: 'F2(部门成本对齐)', ctx: `我们 ${(us.deptRate * 100).toFixed(2)}% vs 华住反推 ${(hzDeptRate * 100).toFixed(1)}% 差 ${(deptGap * 100).toFixed(2)}pp`, expect: '差 ≤3pp（同一口径：1 − 毛利率）' })
+  } else {
+    hzNotes.push(`F2 部门成本口径已对齐：我们 ${(us.deptRate * 100).toFixed(2)}% vs 华住反推 ${(hzDeptRate * 100).toFixed(0)}%（=1−毛利率55%）⇒ 差 ${(deptGap * 100).toFixed(2)}pp ✅（同落 42–48% 带）`)
+  }
+  // F3 · 现金流率差额【必须且只能】由租金项解释（其余两项已对齐）—— 残差 >1pp 才报红
+  const cfoGap = hzCfoRate - usCfoRate
+  const rentGap = us.rentRate - hzRentRate
+  const resid = Math.abs(cfoGap - rentGap)
+  if (resid > 0.01) {
+    hzFindings.push({ rule: 'F3(差异归因)', ctx: `现金流率差 ${(cfoGap * 100).toFixed(2)}pp vs 租金项差 ${(rentGap * 100).toFixed(2)}pp ⇒ 残差 ${(resid * 100).toFixed(2)}pp 无法归因`, expect: '差额应且仅应由租金项解释（残差 ≤1pp）' })
+  } else {
+    hzNotes.push(`F3 差异归因成立：现金流率 我们 ${(usCfoRate * 100).toFixed(2)}% vs 华住 ${(hzCfoRate * 100).toFixed(2)}% ⇒ 差 ${(cfoGap * 100).toFixed(2)}pp，租金项即贡献 ${(rentGap * 100).toFixed(2)}pp，残差 ${(resid * 100).toFixed(2)}pp ✅`)
+    hzNotes.push(`   ▸ 租金项为何更高：引擎 65 元/间/天 × 低出租组拉薄 RevPAR（华住样例 52.5 元/间/天 ÷ RevPAR180 = ${(hzRentRate * 100).toFixed(2)}%）；属【租金档位/出租结构】差异，不是成本模型算错`)
+    hzNotes.push(`   ▸ 如实记录（不调参）：引擎【无特许费科目】⇒ 上式代入华住同费率 5%；我们的 净利率(含租金净额) ${(us.netRate * 100).toFixed(1)}%`)
+  }
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop())) {
@@ -174,7 +223,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop(
   }
   console.log(`  术语断言：${termFindings.length === 0 ? '✅ 全绿（RevPAR÷7 / ADR实收 / GOP变量 / 字典实现齐全）' : '✗ ' + termFindings.length + ' 条未兑现：'}`)
   termFindings.forEach(t => console.log(`   [${t.rule}] ${t.file}:${t.line} — ${t.ctx}\n     期望：${t.expect}`))
-  console.log(`\n  华住分项对拍（§五·步骤5 · D16 修正版）：${hzFindings.length === 0 ? '✅ A~E 全过' : '✗ ' + hzFindings.length + ' 项不符'}`)
+  console.log(`\n  华住分项对拍（§五·步骤5 · D16 修正版 · W2-4 解锁 F 现金流率）：${hzFindings.length === 0 ? '✅ A~F 全过' : '✗ ' + hzFindings.length + ' 项不符'}`)
   hzNotes.forEach(n => console.log('   ' + n))
   hzFindings.forEach(t => console.log(`   ✗ [${t.rule}] ${t.ctx}\n     期望：${t.expect}`))
   process.exit((violations.length || termFindings.length || hzFindings.length) ? 1 : 0)

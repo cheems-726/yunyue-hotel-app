@@ -7,6 +7,7 @@ import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTea
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { normalizeAttrs, qualityOf } from './attrs.js'
+import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf } from './metricDefs.mjs'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -21,7 +22,8 @@ const demoGroups = [
 function summarize(gs, profile, classDay = 0) {
   const s = gs?.state || {}
   const history = s.history || []
-  const totalProfit = history.reduce((a, h) => a + (h.profit || 0), 0)
+  // 🔴 W2-3（W10 正名）：40% 维度读【净利润】（= 评分基准；旧档周回退读 profit，数值语义不变）
+  const totalProfit = sumNet(history).value
   const avgOcc = history.length ? Math.round(history.reduce((a, h) => a + h.occupancy, 0) / history.length) : 0
   const avgGood = history.length ? Math.round(history.reduce((a, h) => a + h.finalGoodRate, 0) / history.length) : 0
   const totalNeg = history.reduce((a, h) => a + (h.negativeCount || 0), 0)
@@ -31,6 +33,9 @@ function summarize(gs, profile, classDay = 0) {
     ? handleWeeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / handleWeeks.length
     : null
   const totalRev = history.reduce((a, h) => a + (h.revenue || 0), 0)
+  // 🔴 W2-3（W10 正名）：教师端与学生端同口径 —— 净利润（评分基准，= 既有 profit）+ GOP（经营毛利，不含租金）
+  //   旧档周无 gop 字段 ⇒ sumGop 只累加有字段的周，并回报覆盖度（教师端要能判断"这组 GOP 是否完整"）
+  const gopTotal = sumGop(history)
   // 🔴 T1.1（§十七 A4）：分段 = 旧阈值 × m，与 FinalResult.jsx 同口径（否则学生端/教师端分数不一致）
   // 🔴 W2-2：分段按新利润量级重标定（m=0.2970）；★ D20 判据② 4/6 组一致，差异已记录未硬凑
   const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
@@ -76,6 +81,7 @@ function summarize(gs, profile, classDay = 0) {
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
+    gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete,
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
     score, scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,
@@ -211,10 +217,11 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
       {hist.map(h => {
         const dec = h.decisions || {}
         const entries = Object.entries(dec)
+        const netW = netOf(h)   // W2-3：净利润权威字段（netProfit；旧档回退 profit）
         return (
           <div key={h.week} style={{ marginBottom: 10, background: '#fff', borderRadius: 8, padding: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-              第{h.week}周 <span style={{ fontWeight: 400, color: '#6B7280' }}>出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
+              第{h.week}周 <span style={{ fontWeight: 400, color: '#6B7280' }}>出租率 {h.occupancy}% · 净利润 {netW === null ? '—' : `${netW >= 0 ? '+' : ''}${netW}元`}{Number.isFinite(h.gop) ? ` · GOP ${h.gop}元` : ''} · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
             </div>
             {h.events && h.events.length > 0 && (
               <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
@@ -485,7 +492,7 @@ export default function TeacherDashboard({ user, onLogout }) {
     const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`
     const lines = []
     lines.push(filterClass ? `【${filterClass} 汇总】` : '【全班汇总】')
-    lines.push('班级,组名,酒店,城市,周次,状态,称号,称号轨迹,策略标签,职责完成度,出租率%,营收(万),利润(万),口碑(5分),综合评分')
+    lines.push('班级,组名,酒店,城市,周次,状态,称号,称号轨迹,策略标签,职责完成度,出租率%,营收(万),净利润(万),GOP(万),口碑(5分),综合评分')
     for (const g of visible) {
       const p = pMap[g.uid] || {}
       const gs = rawStates.find(x => x.user_id === g.uid) || {}
@@ -506,12 +513,12 @@ export default function TeacherDashboard({ user, onLogout }) {
       const dutyStr = dutyIds.size ? `${doneCnt}/${dutyIds.size}` : ''
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
-        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), esc(dutyStr), g.occ, g.revenue, g.profit, g.rating, g.score,
+        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), esc(dutyStr), g.occ, g.revenue, g.profit, Number.isFinite(g.gop) ? g.gop : '', g.rating, g.score,
       ].join(','))
     }
     lines.push('')
     lines.push('【每周明细】')
-    lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),利润(元),评价数,差评数,好评率%,综合分')
+    lines.push('班级,组名,周次,出租率%,房价(元),营收(元),成本(元),净利润(元),GOP(元),评价数,差评数,好评率%,综合分')
     for (const gs of rawStates.filter(x => visibleUids.has(x.user_id))) {
       const p = pMap[gs.user_id] || {}
       const gname = p.group_no ? `${p.class_name ? p.class_name + '·' : ''}第${p.group_no}组` : (p.display_name || gs.user_id.slice(0, 8))
@@ -520,7 +527,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       for (const h of hist) {
         const comp = Math.round((h.occupancy || 0) * 0.35 + (h.finalGoodRate || 0) * 0.35 + q * 0.3)
         lines.push([
-          p.class_name || '', gname, h.week, h.occupancy, h.price, h.revenue, h.totalCost, h.profit,
+          p.class_name || '', gname, h.week, h.occupancy, h.price, h.revenue, h.totalCost, h.profit, Number.isFinite(h.gop) ? h.gop : '',
           h.reviewCount ?? '', h.negativeCount ?? '', h.finalGoodRate ?? '', comp,
         ].join(','))
       }
@@ -737,7 +744,11 @@ export default function TeacherDashboard({ user, onLogout }) {
                     <span>进度 <b style={{color:'#111827'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
                     <span>出租率 <b style={{color:'#111827'}}>{g.occ}%</b></span>
                     <span>营收 <b style={{color:'#111827'}}>{g.revenue}万</b></span>
-                    <span>利润 <b style={{color:'#10B981'}}>{g.profit}万</b></span>
+                    <span title={NET_DEF}>{NET_LABEL} <b style={{color:'#10B981'}}>{g.profit}万</b></span>
+                    {/* W2-3：GOP 与净利润分列（演示数据/旧档无 GOP 字段时不显示，不编造） */}
+                    {typeof g.gop === 'number' && (
+                      <span title={GOP_DEF}>{GOP_SHORT} <b style={{color:'#2563EB'}}>{g.gop}万</b>{!g.gopComplete && <span style={{ color: '#9CA3AF' }}>（部分周）</span>}</span>
+                    )}
                     <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { EVENT_INFO } from './settlement.js'
 import { fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { qualityOf } from './attrs.js'
+import { GOP_LABEL, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, wan2 } from './metricDefs.mjs'
 
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
@@ -23,7 +24,11 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   const TOTAL_WEEKS = 12
 
   // 汇总12周经营数据
-  const totalProfit = history.reduce((s, h) => s + h.profit, 0)
+  // 🔴 W2-3（W10 正名）：评分基准 = 【净利润】。净利润与既有 profit 同值（引擎恒等式 netProfit === profit），
+  //   ⇒ 数值语义零变化；旧档周无 netProfit 字段时回退读 profit；缺字段的周【不按 0 计入】累加
+  const netTotal = sumNet(history)
+  const gopTotal = sumGop(history)
+  const totalProfit = netTotal.value
   const avgOccupancy = history.length ? Math.round(history.reduce((s, h) => s + h.occupancy, 0) / history.length) : 0
   const avgGoodRate = history.length ? Math.round(history.reduce((s, h) => s + h.finalGoodRate, 0) / history.length) : 0
   const totalNegative = history.reduce((s, h) => s + h.negativeCount, 0)
@@ -58,7 +63,8 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   const grade = finalScore >= 90 ? 'S · 标杆酒店' : finalScore >= 80 ? 'A · 优秀经营' : finalScore >= 70 ? 'B · 良好经营' : finalScore >= 60 ? 'C · 合格经营' : 'D · 需改进'
 
   const dimensions = [
-    { label: '累计利润', weight: '40%', score: profitScore, value: `${(totalProfit / 10000).toFixed(2)}万` },
+    // 🔴 W2-3：40% 维度的名字 = 【累计净利润】（= 评分基准）；数值口径未变（netProfit === profit）
+    { label: '累计净利润', weight: '40%', score: profitScore, value: `${(totalProfit / 10000).toFixed(2)}万`, hint: NET_DEF },
     { label: '平均口碑', weight: '25%', score: reputationScore, value: `${avgGoodRate}%` },
     { label: '平均出租率', weight: '20%', score: occupancyScore, value: `${avgOccupancy}%` },
     { label: '差评控制', weight: '15%', score: negativeScore, value: `${totalNegative}条差评` },
@@ -92,7 +98,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         {dimensions.map(d => (
           <div key={d.label} style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{d.label} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>（权重{d.weight}）</span></span>
+              <span style={{ fontSize: 13, fontWeight: 600 }} title={d.hint}>{d.label} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>（权重{d.weight}）</span></span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#E8940F' }}>{d.score}分 · {d.value}</span>
             </div>
             <div style={{ height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
@@ -180,7 +186,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
                   `${user?.className ? user.className + ' · ' : ''}${user?.groupNo ? '第' + user.groupNo + '组 · ' : ''}${user?.name || ''}（学号 ${user?.id || '—'}）`,
                   `策略风格：${st ? st.icon + ' ' + st.tag : '—'}`,
                   `称号轨迹：${nodes.join(' → ') || '—'}`,
-                  `累计利润：${(totalProfit / 10000).toFixed(2)}万 · 平均出租率 ${avgOccupancy}% · 平均好评率 ${avgGoodRate}%`,
+                  `累计净利润：${(totalProfit / 10000).toFixed(2)}万${gopTotal.weeks > 0 ? `（累计GOP ${(gopTotal.value / 10000).toFixed(2)}万）` : ''} · 平均出租率 ${avgOccupancy}% · 平均好评率 ${avgGoodRate}%`,
                   ...(teacherNote && teacherNote.note ? [`教师点评：${teacherNote.note.slice(0, 40)}${teacherNote.note.length > 40 ? '…' : ''}`] : []),
                   '—— 云悦酒店经营模拟',
                 ].join('\n')
@@ -239,8 +245,15 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
       <div className="card" style={{ background: '#FFF4E0' }}>
         <div className="card-title">📝 经营总结</div>
         <div style={{ fontSize: 13, color: '#A96407', lineHeight: 1.7 }}>
-          你完成了 12 周经营。累计利润 {totalProfit >= 0 ? '+' : ''}{(totalProfit / 10000).toFixed(2)} 万，
+          你完成了 12 周经营。累计净利润 {totalProfit >= 0 ? '+' : ''}{(totalProfit / 10000).toFixed(2)} 万，
           平均出租率 {avgOccupancy}%，平均好评率 {avgGoodRate}%。
+          {/* 🔴 W2-3：GOP 与净利润分列（GOP 为经营毛利，不含租金 ⇒ 天然大于净利润）
+              旧档周无 gop 字段 ⇒ 只统计有该字段的周并写明覆盖度，绝不按 0 补 */}
+          <div title={GOP_DEF}>📊 累计 {GOP_LABEL}：<b>{wan2(gopTotal.value)}</b>
+            {!gopTotal.complete && gopTotal.weeks > 0 && <span style={{ color: '#9CA3AF' }}>（仅统计 {gopTotal.weeks}/{gopTotal.total} 周，旧档周无 GOP 字段）</span>}
+            {gopTotal.weeks === 0 && <span style={{ color: '#9CA3AF' }}>（旧档无 GOP 字段，暂不可算）</span>}
+          </div>
+          <div title={NET_DEF}>📈 累计 {NET_LABEL}（评分基准）：<b>{wan2(totalProfit)}</b></div>
           {(() => {
             // 🔴 T1.4/B1：RevPAR（每间可售房【每天】收入）= 总营收 ÷ (房量 × 周数 × 7)
             //   行业标准口径是"每天"；周营收必须 ÷7（缺口表 A3）

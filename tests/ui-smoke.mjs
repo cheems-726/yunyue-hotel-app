@@ -316,6 +316,8 @@ try {
   }
   const rep = await text(page)
   ok('周报渲染（评级/事件/预测）', rep.includes('周经营结果') && rep.includes('本周经营事件') && rep.includes('下周市场预测'))
+  // 🔴 W2-3（W10 正名）：周报必须【同时】显示净利润与 GOP（Wave 2 验收：两指标界面可见）
+  ok('周报显示 GOP / 净利润两个指标', rep.includes('净利润') && rep.includes('GOP') && rep.includes('经营毛利'))
   // 进入第2周：原生 locator 点击（actionability等待，重渲染竞态下最稳）
   let week2 = false
   for (let r = 0; r < 3 && !week2; r++) {
