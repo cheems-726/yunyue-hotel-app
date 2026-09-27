@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
+import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
 
 // 华住全部品牌（按档次分组，含加盟费/造价/房价带）
 const brandGroups = [
@@ -101,11 +102,12 @@ export default function BrandSelection({ location, onConfirm }) {
         </div>
       )}
 
-      {/* 🔴 P3-3：各档"初始资金"文案改口（建议 (a)）——
-          实际是【系统统一提供约 502 万启动资金】，不再是"经济型30万/中端50万…"的分档金额。
-          档次差异体现在装修标准 / 房价带 / 房量门槛，而不是启动资金多少。 */}
+      {/* 🔴 P3-3：各档"初始资金"文案改口（建议 (a)）—— 实际是【系统统一提供启动资金】，
+          不再是"经济型30万/中端50万…"的分档金额；档次差异体现在装修标准/房价带/房量门槛。
+          🔴 W2 收尾修正：原硬编码"约 502 万"是 T1.1 时代的量级，W2-2 后 IC = 149 万
+          ⇒ 学生看到"约 502 万"却只拿到 149 万（学生可见错值）⇒ 改为从 SCALE.IC_NEW 推导，单源。 */}
       <div style={{ margin: '0 0 10px', padding: '8px 12px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, fontSize: 12, color: '#1E40AF', lineHeight: 1.7 }}>
-        💰 <b>启动资金：系统统一提供约 502 万</b>（全班一致）。品牌档次的差异体现在
+        💰 <b>启动资金：系统统一提供约 {SCALE.IC_NEW / 10000} 万</b>（全班一致）。品牌档次的差异体现在
         <b>装修标准 / 房价带 / 房量门槛</b>上，而不是启动资金多少 —— 档越高，同样的钱越要花在品质上。
       </div>
       <div className="district-list">

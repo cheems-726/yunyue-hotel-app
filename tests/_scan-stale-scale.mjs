@@ -24,23 +24,28 @@ const RULES = [
 // 白名单：【理由必须是"为什么这条可以留"，不是"我改不动"】
 const WHITELIST = [
   // allow = 允许保留的【命中文本】模式（不是整文件放行 —— 这样同文件将来出现新残留仍会被抓）
-  { rule: 'R4', file: 'src/BrandSelection.jsx', allow: /万[+]?[\/]间|元[\/]间|502 万|b\.cost\.includes/, why: '品牌单房造价/加盟费（N万[+]/间、约N元/间）属参考资料口径，不是资金量级；502 万是 P3-3 修正后的正确文案。★ 本项按【结构】放行（每间造价/加盟费 + 正确文案 + cost 档位判定），故同文件若再出现初始资金约50万之类仍会被抓' },
+  { rule: 'R4', file: 'src/BrandSelection.jsx', allow: /万[+]?[\/]间|元[\/]间|b\.cost\.includes/, why: '品牌单房造价/加盟费（N万[+]/间、约N元/间）属参考资料口径，不是资金量级。★ 本项按【结构】放行（每间造价 + cost 档位判定）—— 同文件若再现"启动资金约50万/502万"之类仍会被抓。（2026-09-27 W2 收尾：启动资金文案已改为 SCALE.IC_NEW 推导，不再需要白名单）' },
   { rule: 'R4', file: 'src/franchiseModel.mjs', allow: /./, why: '加盟参考资料原值（18万/7.18万/5.6万/10万/3.5-4万/2.5万/6.51万）与差异表文案 —— 该文件整体是参考资料层，不是资金量级；且它不被任何业务代码 import（已断言）' },
-  { rule: 'R4', file: 'src/App.jsx', allow: /502 万|100\.4 万|50\.2 万|50万|30万|10万/, why: 'P3 修正后的正确文案：起始 502 万 / 变黄 100.4 万 / 变红 50.2 万；「怎么涨分」卡片与成绩单副本的正确分段（≥50万=满分、≥30万=85、≥10万=70）。★ 本项只放行这些正确值 —— App.jsx 里若再出现旧档位（如 ≥3万到85分档）仍会被抓，本次就是这样抓到 :1535 的' },
+  { rule: 'R4', file: 'src/App.jsx', allow: /149 ?万|29\.8 ?万|14\.9 ?万|50万|30万|10万/, why: '「怎么涨分」卡片与成绩单副本的正确分段（≥50万=满分、≥30万=85、≥10万=70）。★ 启动资金/预警线文案已改由 SCALE 推导（不再硬编码 149万/29.8万）；本项只放行正确分段值 —— App.jsx 若再出现旧档位仍会被抓' },
   { rule: 'R4', file: 'src/decisions.js', allow: /150万/, why: '「投150万改造」是决策文案（改造费按每周 2000 元计），属每周/单次科目，不参与 ×m' },
   { rule: 'R4', file: 'src/attrs.js', allow: /150万/, why: '同上：决策 ID 字符串「投150万改造」的属性表键名，不可改（改了属性映射就断）' },
   { rule: 'R4', file: 'src/settlement.js', allow: /150万/, why: '同上：决策 ID 字符串比较（decisions.renovation === \'投150万改造\'），改名会破坏决策映射' },
   { rule: 'R4', file: 'src/Establishment.jsx', allow: /150万/, why: '筹建期教学文案（改造 150万/进度天数话术）—— 属叙述层，不进结算数值' },
   { rule: 'R6', file: 'src/App.jsx', why: '资金卡 (cap/10000).toFixed(1) 显示为"万" —— 纯展示换算，量级已随口径更新' },
-  { rule: 'R6', file: 'src/WeeklyReport.jsx', why: '资金/营收显示为"万" —— 纯展示换算' },
+  { rule: 'R6', file: 'src/WeeklyReport.jsx', why: '资金/营收显示为"万" —— 纯展示换算（预警线金额亦由 SCALE.变黄线 / 10000 推导，非写死）' },
   { rule: 'R6', file: 'src/TeacherDashboard.jsx', why: '教师端金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/FinalResult.jsx', why: '成绩单金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/HotelStatus.jsx', why: '经营页金额显示为"万" —— 纯展示换算' },
-  { rule: 'R5', file: 'src/App.jsx', why: 'isLow/isCritical 已同步为 1004000/502000（T1.1），命中是定义处本身' },
+  { rule: 'R6', file: 'src/BrandSelection.jsx', why: '启动资金文案 SCALE.IC_NEW / 10000 显示为"万" —— 纯展示换算（值来自单源常量，不是写死数字）' },
+  { rule: 'R6', file: 'src/metricDefs.mjs', why: 'wan2() 是【金额→万】的展示换算工具函数本身（GOP/净利润显示用）—— 它就是要 /10000' },
+  { rule: 'R5', file: 'src/App.jsx', why: 'isLow/isCritical 的定义行本身；阈值已改引 SCALE.变黄线/变红线（W2 收尾单源）—— 命中是定义处不可免' },
   { rule: 'R3', file: 'src/stateMigration.mjs', allow: /IC_OLD/, why: 'D25 迁移公式自带常量 IC_old = 500,000 —— 它【必须】是旧起始资金本身（公式就是 capital_new = IC_new + (capital_old − IC_old) × m）。这不是"残留的旧口径"，恰恰是用来做换算的基准值' },
   { rule: 'R4', file: 'src/siteLocations.mjs', allow: /./, why: '区县统计文案里的"万"（120万㎡ / 608万游客 / 34万人口 / 3-5万游客 等）—— 与酒店资金量级无关，是区位调研数据的量词' },
   { rule: 'R4', file: 'src/TeacherDashboard.jsx', allow: /50万|30万|10万/, why: 'P3-2 修正后的正确分段文案（≥50万=100分 / ≥30万=85 / ≥10万=70）' },
-  { rule: 'R4', file: 'src/WeeklyReport.jsx', allow: /100\.4 万/, why: 'P3-1 修正后的正确预警线文案（约 100.4 万）' },
+  // ★ 本条原为「R4/WeeklyReport：allow 100.4 万（P3-1 修正后的正确预警线文案）」——
+  //   2026-09-27 W2 收尾发现它是【死条目 + 假理由】：IC 已由 502万 改为 149万，
+  //   100.4 万不再是"正确预警线"，且该文案已改由 SCALE.变黄线 推导 ⇒ 删除本条。
+  //   防复发：tests/capital-single-source.test.mjs 会抓「写死的资金量级」。
 ]
 
 const files = readdirSync(SRC).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))

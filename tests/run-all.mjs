@@ -26,6 +26,8 @@ const SUITES = [
   { name: 'dataDict（B6 口径 + M2 术语）', file: 'tests/dataDict.check.mjs' },
   // W2-3（W10 正名）：GOP / 净利润 口径 + 三处界面显示（含"评分基准零变化"）
   { name: 'metrics-w2-3（GOP/净利润 口径与界面）', file: 'tests/metrics-w2-3.test.mjs' },
+  // W2 收尾：资金三数【单源】守门（改 IC 漏改文案/阈值的漂移类 ⇒ fast 抓，不必等浏览器）
+  { name: 'capital-single-source（资金三数单源）', file: 'tests/capital-single-source.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

@@ -180,8 +180,8 @@ console.log('\n[6] 缩放边界：乘哪些 / 不乘哪些')
 console.log('\n[7] 边界输入：null / 空对象 / 无 history / 已是 v2')
 {
   ok(migrateSave(null).migrated === false, 'null → 不迁移、原样返回')
-  ok(migrateSave({}).migrated === true, '空对象（无 scaleVersion）→ 视为旧档并补 v2')
-  ok(migrateSave({}).save.scaleVersion === SCALE.VERSION_CURRENT, '空对象迁移后 scaleVersion = 2')
+  ok(migrateSave({}).migrated === true, '空对象（无 scaleVersion）→ 视为旧档并补到当前版本')
+  ok(migrateSave({}).save.scaleVersion === SCALE.VERSION_CURRENT, '空对象迁移后 scaleVersion = VERSION_CURRENT（' + SCALE.VERSION_CURRENT + '）')
   const noHist = migrateSave({ capital: 500000 }).save
   ok(Array.isArray(noHist.history) && noHist.history.length === 0, '无 history → 迁移后为 []（不抛异常）')
   const vCur = migrateSave({ scaleVersion: SCALE.VERSION_CURRENT, capital: 999 }).save

@@ -379,10 +379,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         //    再减一次 totalExpenses → 学生看到的资金被系统性低估（实测第1周差 6,981 = 当周 totalExpenses）
         const cap = capital
         const expenses = report?.totalExpenses || 0
-        // 🔴 T1.1：随资金口径按 m 缩放（可变黄 = IC×0.2 = 100.4 万；变红 = IC×0.1 = 50.2 万）
-        // 🔴 W2-2：随资金口径再次按 m 缩放（变黄 = IC×0.2 = 29.8 万；变红 = IC×0.1 = 14.9 万）
-        const isLow = cap < 298000
-        const isCritical = cap < 149000
+        // 🔴 T1.1：随资金口径按 m 缩放（可变黄 = IC×0.2；变红 = IC×0.1）
+        // 🔴 W2-2：随资金口径再次按 m 缩放（IC 502万 → 149万）
+        // 🔴 W2 收尾：阈值改引 SCALE.变黄线/变红线（单源）—— 原先是硬编码数字，
+        //    W2-2 改 IC 时这里的注释改了、数字差点漏改（同类漏改已在 BrandSelection/WeeklyReport 抓到 2 处）
+        const isLow = cap < SCALE.变黄线
+        const isCritical = cap < SCALE.变红线
         return (
           <div className="card" title="点击查看实时流水明细"
             onClick={() => { contentRef.current && contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -1180,9 +1182,9 @@ function HelpPage({ onBack }) {
       <div className="card">
         <div className="card-title">💰 资金管理指南</div>
         <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
-          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡，初始约 149 万，每周结算后自动增减。</div>
+          <div><b>资金在哪看：</b>经营页顶部「资金状况」卡，初始约 {SCALE.IC_NEW / 10000} 万，每周结算后自动增减。</div>
           <div><b>每周扣什么：</b>固定成本（约 65 元/间）+ 人员工资（按入住量与排班 20-30 元/间）+ 物料水电 + 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
-          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 29.8 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 14.9 万</b> 变红「🚨 破产预警」。</div>
+          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「🚨 破产预警」。</div>
           <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
         </div>
