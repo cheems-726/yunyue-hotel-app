@@ -504,7 +504,12 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
 //    引擎 isWarning 沿用代码既有 0.1 比例 = 502,000（= UI 变红「破产预警」线）
 //    自检：① 预警/破产触发周次 vs 改前差异 0 周 ≤1 周 ✅  ② 评级分布 ACBDDC vs ACBDDC 一致 ✅
 const initialCapital = 5020000
-let capital = prevCapital != null ? prevCapital : initialCapital
+// 🔴 B2-1 故障注入抓到：原先写 `prevCapital != null ? prevCapital : initialCapital`，
+//   而 `typeof NaN === 'number'`、`Infinity` 也是 number ⇒ 脏入参会让 capital 直接变 NaN 并外传。
+//   改用 Number.isFinite：合法数值行为【完全不变】，只把 NaN/Infinity/null 归到起始资金。
+//   （同类输入已逐个探过：pendingNegatives / resolvedCount / prevGoodRate / attrs 均有既有守卫，
+//     不会传播；本处是唯一漏网的。）
+let capital = Number.isFinite(prevCapital) ? prevCapital : initialCapital
 capital = capital + profit
 const isBankrupt = capital < 0
 const isWarning = !isBankrupt && capital < 502000

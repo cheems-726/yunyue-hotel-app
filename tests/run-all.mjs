@@ -31,6 +31,7 @@ const SUITES = [
   { name: 'stateMigration（存档口径迁移·批次 B1）', file: 'tests/stateMigration.test.mjs' },
   { name: 'stateMigrationCompat（旧档+续营3周·无混口径）', file: 'tests/stateMigrationCompat.test.mjs' },
   { name: 'cloudMigration（云端路径补迁·批次 B1.5）', file: 'tests/cloudMigration.test.mjs' },
+  { name: 'longRun126（126天长跑+故障注入·批次 B2）', file: 'tests/longRun126.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
