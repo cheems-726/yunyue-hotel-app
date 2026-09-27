@@ -81,7 +81,8 @@ console.log('\n[6] 一期状态标记：临时实现必须写明"二期替换"')
 console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变化')
 {
   const { settle } = await import('../src/settlement.js')
-  const { settle: settleOld } = await import('../src/settle-old-d.mjs')
+  // 🔴 W2 重基线（D38-B）：基准改为「W2 前」
+  const { settle: settleOld } = await import('../src/settle-old-w2.mjs')
   const { applyDecisionToAttrs, normalizeAttrs, ATTR_INIT } = await import('../src/attrs.js')
   const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
   const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
@@ -108,8 +109,12 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
         const sum = ds.reduce((a, d) => a + (d[k] || 0), 0)
         if (sum !== v) { idBad++; console.error(`   ✗ ${name} w${w} Σ${k}=${sum} ≠ 周值 ${v}`) }
       }
-      // ② 零变化：剥掉新字段后必须【逐字节相同】
-      if (strip(r) !== strip(o)) { zeroBad++; console.error(`   ✗ ${name} w${w}：剥 dailySnapshots 后与接线前不同`) }
+      // ② W2 重基线：结构不变量零漂移 + 成本差额恰为 deptCost
+      const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'finalGoodRate', 'reviewCount', 'negativeCount', 'revenue', 'rentCost', 'price', 'rooms']
+      const drifted = STRUCT.filter(k => r[k] !== o[k])
+      if (drifted.length || r.totalCost - o.totalCost !== r.deptCost || r.profit !== o.profit - r.deptCost) {
+        zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
+      }
       pg = r.finalGoodRate; cap = r.capital
       const negCards = r.generatedReviews.filter(x => Number(x.stars) <= 3).length
       rs = Math.ceil(negCards * 0.5); pn = Math.max(0, pn + negCards - rs)
@@ -117,7 +122,7 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
     }
   }
   ok(idBad === 0, `接线后 Σ7天 === 周值（逐项）：3 策略 × 12 周 = ${idCases} 周全部成立`)
-  ok(zeroBad === 0, '接线零变化：剥掉 dailySnapshots 后与接线前【逐字节相同】（36 周）')
+  ok(zeroBad === 0, '结构不变量零漂移 + Δcost === deptCost（36 周，W2 重基线）')
   // ③ 天数据不持久化：dailySnapshots 不得出现在任何存档写入路径
   ok(!/dailySnapshots/.test(readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')), 'dailySnapshots 未进 App 存档路径（一期天数据不持久化）')
 }

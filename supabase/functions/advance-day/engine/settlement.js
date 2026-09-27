@@ -4,6 +4,7 @@ import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SO
 // 🔴 Phase D/C2：把周值拆成 7 天（一期：周值已知 → 按确定性权重分摊；二期替换为逐日独立计算）
 //    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
 import { simulateWeek } from './dayEngine.js'
+import { deptCostWeekly, DEPT_COST_PER_ROOM_DAY } from './deptCosts.mjs'
 
 // 结算引擎（前端模拟版）
 // 核心公式（来自设计文档 §7）：
@@ -490,6 +491,9 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   if (energy != null) perRoomVariable += (energy - 23) * 2
   // 🔴 T1.1（D16 拍板）：variableCost 同为【一晚】口径 → ×7
   let variableCost = occupiedRooms * perRoomVariable * 7
+  const dept = deptCostWeekly({ rooms, decisions })
+  const deptCost = dept.total
+
   // 营销成本 = 做活动才有额外支出
   // R0：声誉 → 获客成本（声誉高→同样营销支出更便宜；中性值 = ×1.0）
   let marketingCost = decisions.campaign ? Math.round(5000 * fCac) : 0
@@ -501,16 +505,18 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
-  const totalCost = fixedCost + rentCostWeekly + variableCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
+  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
 
   // 10. 利润
   const profit = revenue - totalCost
   // 🔴 T1.4/B3：GOP（经营毛利）= 营收 −（变动成本 + 营销 + OTA佣金 + 其他部门成本）
   //    口径【不含】租金 / 加盟费 / 利息（术语表 §B1）；"其他部门成本"本模型尚未建模 ⇒ 记 0。
   //    ⚠️ 因此本项目的 GOP 率会高于华住真实口径 —— 属【模型范围差异】，不是算错（见 §〇.9）。
-  const gopDeptCost = 0
-  const gop = revenue - (variableCost + marketingCost + otaCommission + gopDeptCost)
+  const gopDeptCost = variableCost + deptCost
+  const gop = revenue - (gopDeptCost + marketingCost + otaCommission)   // gopDeptCost = 变动+固定部门成本（勿再叠加 variableCost）
   const gopRate = revenue > 0 ? gop / revenue : 0
+  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine
+  const netProfitRate = revenue > 0 ? netProfit / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
 // 🔴 T1.1（§十七 A3 预授权规则 · 改口径不改教学难度）：资金相关绝对数按【实测缩放系数 m】同步调整，
@@ -706,14 +712,16 @@ for (let i = 0; i < reviewCount; i++) {
   }
 
   // [16] 资金流水（本周变动）
+  // 🔴 W2-1：成本构成改为【与 totalCost 同源】——原先这组数字是另一套公式且漏掉租金与改造投资
+  //   ⇒ "成本构成合计 ≠ 引擎总成本"，学生对不上账。现在逐项来自引擎真实科目，合计 === totalCost。
   const weeklyExpenses = {
-    人员工资: Math.round(occupiedRooms * 15 + (decisions.shifts === '满编保服务' ? occupiedRooms * 18 : decisions.shifts === '精简省成本' ? occupiedRooms * 8 : occupiedRooms * 12)),
-    物料消耗: Math.round(occupiedRooms * (decisions.linen === '自洗' ? 8 : 12)),
-    水电能耗: Math.round(occupiedRooms * (energy != null ? (energy - 21) * 3 + 15 : 20)),
-    维修保养: decisions.hygiene === '停房深清洁' ? 3000 : decisions.renovation === '投150万改造' ? 2000 : 500,
+    ...Object.fromEntries(dept.lines.map(l => [l.名称, l.值])),
+    客房变动成本: variableCost,
+    租金: rentCostWeekly,
     营销推广: marketingCost || 0,
     OTA佣金: otaCommission || 0,
     超售赔偿: overbookCompensation || 0,
+    改造投资: renovationCost || 0,
     事件罚款: eventFine || 0,
   }
   const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
@@ -769,6 +777,10 @@ for (let i = 0; i < reviewCount; i++) {
     rentCost: rentCostWeekly,   // 🔴 T1.4/B3：租金独立科目（GOP 口径不含它）
     gop,                        // 🔴 T1.4/B3：经营毛利（不含租金/加盟费/利息）
     gopRate,                    // 0-1
+    deptCost,                   // 🔴 W2-1：部门成本（固定/半固定，按可售房）
+    deptCostLines: dept.lines,  // 🔴 W2-1：部门成本拆分（三件套见 src/deptCosts.mjs）
+    netProfit,                  // 🔴 W2-3：净利润（= 既有 profit，正名后显式输出）
+    netProfitRate,              // 0-1
     profit,
     goodRate: Math.round(goodRate * 100),
     finalGoodRate: Math.round(finalGoodRate * 100),

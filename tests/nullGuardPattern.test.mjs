@@ -63,10 +63,7 @@ const SAFE_WHY = [
     file: 'settlement.js', match: /energy != null\) perRoomVariable/,
     why: 'energy 已在 settle() 入口归一化（非有限 → null）⇒ 此处 `energy != null` 为假时整段不执行，NaN 进不来。本批已实测：energy = NaN/Infinity/"abc" 三种输入下 totalCost/profit/capital/gop 全部有限',
   },
-  {
-    file: 'settlement.js', match: /energy != null \? \(energy - 21\)/,
-    why: '同上（weeklyExpenses 水电网展示项）；入口归一化后 energy 只可能是有限数或 null',
-  },
+  
   {
     file: 'TeacherDashboard.jsx', match: /' · 综合' \+ comp/,
     why: '模板串内的【字符串拼接】而非数字加法；即使 comp 为 NaN 也只是显示 "综合NaN分"，不参与任何计算',

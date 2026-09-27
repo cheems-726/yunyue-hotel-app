@@ -1,6 +1,3 @@
-// ⚠️【WIP · 未挂门禁】W2-1 的验收套件 —— 仅在 settlement.js 接上部门成本后才通过。
-//   当前 W2-1 已按 §二十一 回滚接线（保留 src/deptCosts.mjs 设计+标定），故本文件暂不进门禁。
-//   启用条件：接线 + 配套重基线完成（见 4-审计与报告/Wave2-进度报告.md）。
 // Wave 2 · W2-1 部门成本科目验收
 // 运行：node tests/deptCosts.test.mjs   （已挂 run-all）
 // 判据（§二十二·四 W2-1）：
@@ -39,7 +36,9 @@ function run12(dec) {
     // 零变化断言用：结构量 + 不应被本次改动影响的成本项
     acc.occ.push(r.occupancy); acc.good.push(r.finalGoodRate); acc.reviews.push(r.reviewCount)
     acc.rent += r.rentCost; acc.variable += (r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款)
-    acc.dept += r.deptCost; acc.rev += r.revenue; acc.cost += r.totalCost; acc.profit += r.profit; acc.gop += r.gop
+    // ★ 完整部门成本 = 变动（随入住量）+ 固定（按可售房）——W14 的 45% 是【完整口径】
+    const varC = r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
+    acc.dept += r.deptCost + varC; acc.rev += r.revenue; acc.cost += r.totalCost; acc.profit += r.profit; acc.gop += r.gop
     pg = r.finalGoodRate; cap = r.capital
     const neg = r.generatedReviews.filter(x => Number(x.stars) <= 3).length
     rs = Math.ceil(neg * 0.5); pn = Math.max(0, pn + neg - rs)
@@ -93,8 +92,8 @@ console.log('\n[3] ★③ 部门成本占营收落 42–48%（六组赛季加权
     tot.dept += a.dept; tot.rev += a.rev
   }
   const avg = tot.dept / tot.rev
-  rows.forEach(([n, d, p]) => console.log(`     ${n}：部门成本/营收 ${(d * 100).toFixed(1)}% · 净利率 ${(p * 100).toFixed(1)}%`))
-  ok(avg >= 0.42 && avg <= 0.48, `六组加权平均 = ${(avg * 100).toFixed(1)}%（目标 42–48%）`)
+  rows.forEach(([n, d, p]) => console.log(`     ${n}：【完整】部门成本/营收 ${(d * 100).toFixed(1)}% · 净利率 ${(p * 100).toFixed(1)}%`))
+  ok(avg >= 0.42 && avg <= 0.48, `六组加权【完整部门成本】/营收 = ${(avg * 100).toFixed(1)}%（目标 42–48%，W14 口径）`)
   console.log(`     ★ 组间天然有差异（躺平/省钱营收低 ⇒ 占比高），加权平均才是目标口径`)
 }
 

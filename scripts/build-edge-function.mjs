@@ -35,7 +35,8 @@ const MODULES = [
   'stateMigration.mjs',
   'franchiseModel.mjs',
   'siteLocations.mjs',
-  'serverTick.mjs',
+  'serverTick.mjs',
+  'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
 

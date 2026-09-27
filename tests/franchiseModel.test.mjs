@@ -4,7 +4,8 @@
 //                   ③ 未碰任何业务代码（结算输出零变化）
 import { FRANCHISE_MODEL, HUAZHU_SAMPLE, reproduceHuazhuChain, GAP_VS_CODE } from '../src/franchiseModel.mjs'
 import { settle } from '../src/settlement.js'
-import { settle as settleOld } from '../src/settle-old-b3.mjs'
+// 🔴 W2 重基线（D38-B）：基准改为「W2 前」，断言改为结构不变量 + 差额恒等式
+import { settle as settleOld } from '../src/settle-old-w2.mjs'
 import { readFileSync, readdirSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -68,9 +69,12 @@ console.log('\n[4] ★ 未碰业务代码：结算输出零变化')
   // 只比【旧快照里已存在的键】：T1.4 新增了 rentCost/gop/gopRate、Phase D 新增了 dailySnapshots，
   // 它们不影响既有数值 —— 因此判据 = 每个既有键逐字节相同
   const o = settleOld({ site: SITE, brand: BRAND, decisions: DEC, week: 1, attrs: A })
-  const drifted = Object.keys(o).filter(k => JSON.stringify(r[k]) !== JSON.stringify(o[k]))
-  ok(drifted.length === 0,
-    `结算输出【既有字段全部零变化】vs B3 前快照（共 ${Object.keys(o).length} 键；rev=${r.revenue} profit=${r.profit}）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
+  // B 类：被 W2 有意改动的是成本/利润派生字段；结构字段与租金必须零漂移，成本差额必须恰为 deptCost
+  const STRUCT = ['revenue', 'rentCost', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount', 'negativeCount', 'goodRate', 'finalGoodRate']
+  const drifted = STRUCT.filter(k => r[k] !== o[k])
+  const money = r.totalCost - o.totalCost === r.deptCost && r.profit === o.profit - r.deptCost
+  ok(drifted.length === 0 && money,
+    `结构字段零漂移（${STRUCT.length} 项）且 Δcost === deptCost（${r.totalCost - o.totalCost} === ${r.deptCost}）（W2 重基线）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
   // 同时钉住 T1.1 的口径恒等式（收入 = 在店间数 × 房价 × 7）
   ok(r.revenue === Math.round(r.occupiedRooms * r.price) * 7, `收入口径恒等式成立（${r.occupiedRooms} 间 × ${r.price} 元 × 7 = ${r.revenue}）`)
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))

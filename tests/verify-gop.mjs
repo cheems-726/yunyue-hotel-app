@@ -6,7 +6,9 @@
 //   ② 拆租金【不改变】任何既有数值：与 B3 之前的引擎（f884768 快照）逐项一致
 //   ③ gopRate 与 gop/revenue 一致；租金 > 0 且可对拍华住量级
 import { settle } from '../src/settlement.js'
-import { settle as settleOld } from '../src/settle-old-b3.mjs'
+// 🔴 W2 重基线（D38-B）：基准从「B3 前」改为「W2 前」——B3 期的「逐项零变化」断言前提已被 W2 的
+//   部门成本改动覆盖（cost/profit 必然变）；现在改断【结构不变量零漂移 + 差额恒等式】
+import { settle as settleOld } from '../src/settle-old-w2.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
 
 const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
@@ -36,15 +38,19 @@ for (const [name, dec] of Object.entries(CASES)) {
     // 两边必须喂【完全相同】的轨迹（prevGoodRate/prevCapital 会影响好评率与危机事件 → 影响后续周）
     const o = settleOld({ site: SITE, brand: BRAND, decisions: dec, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
     // ① GOP 恒等式（本批决策均不含 renovation ⇒ 无需扣改造费）
-    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.eventFine || 0))
+    // W10 口径：GOP = 营收 −（变动成本 + 固定部门成本 + 营销 + OTA）；
+    //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款)
+    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0))
     if (n.gop !== expectGop) { idOK = false; rows.push(`w${w} gop=${n.gop} 期望=${expectGop}`) }
     // ③ gopRate
     const expectRate = n.revenue > 0 ? n.gop / n.revenue : 0
     if (Math.abs(n.gopRate - expectRate) > 1e-12) rateOK = false
     if (!(n.rentCost > 0)) rentOK = false
     // ② 零变化：既有三个数值必须与"改前引擎"逐项一致（T1.1 的 ×7 已由 shadow/severity 证明，这里只钉 B3 的拆租金动作）
-    if (n.revenue !== o.revenue || n.totalCost !== o.totalCost || n.profit !== o.profit) {
-      zeroOK = false; rows.push(`w${w} 数值漂移 rev ${o.revenue}→${n.revenue} cost ${o.totalCost}→${n.totalCost} profit ${o.profit}→${n.profit}`)
+    // B 类重基线：结构不变量（营收/租金/房价/房量/出租率）必须零漂移；成本差额必须恰为 deptCost
+    const drifted = ['revenue', 'rentCost', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
+    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost || n.profit !== o.profit - n.deptCost) {
+      zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital
     const negCards = n.generatedReviews.filter(x => Number(x.stars) <= 3).length
@@ -54,7 +60,7 @@ for (const [name, dec] of Object.entries(CASES)) {
   ok(idOK, `${name}：GOP 恒等式 12 周全成立（gop = 营收 −(变动+营销+OTA)）`, rows.slice(0, 2).join(' | '))
   ok(rateOK, `${name}：gopRate === gop/revenue`)
   ok(rentOK, `${name}：租金科目已独立列示且 > 0`)
-  ok(zeroOK, `${name}：拆租金【零变化】—— revenue/totalCost/profit 与改前引擎逐项一致`, rows.slice(0, 2).join(' | '))
+  ok(zeroOK, `${name}：结构不变量零漂移 + Δcost === deptCost + profit = 旧profit−deptCost（W2 重基线）`, rows.slice(0, 2).join(' | '))
 }
 
 // ③ 租金量级对拍（华住 52.5 元/间/天）

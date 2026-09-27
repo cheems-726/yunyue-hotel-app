@@ -7,6 +7,13 @@
 //   ④ 继续经营产生的新周报是【新量级】（与迁移后的历史同量级）
 import { migrateSave, SCALE } from '../src/stateMigration.mjs'
 import { settle } from '../src/settlement.js'
+import { settle as settlePreW2 } from '../src/settle-old-w2.mjs'
+// 复现「继续经营」那一周的属性轨迹（与 continueWeeks 同款：决策效果先作用到属性）
+function saveAttrsFor(dec, save) {
+  let a = save.attrs || { ...ATTR_INIT }
+  for (const [id, ans] of Object.entries(dec)) a = applyDecisionToAttrs(a, id, ans)
+  return a
+}
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
 
 let pass = 0, fail = 0
@@ -88,9 +95,20 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 
   // ④ 继续经营的新周报是新量级，与迁移后历史同量级
   const lastHist = mig.save.history[mig.save.history.length - 1]
-  const ratio = rowsM[0].profit / lastHist.profit
-  ok(ratio > 0.3 && ratio < 3.5,
-    `${name}：新周 profit ${rowsM[0].profit} 与迁移后历史 ${lastHist.profit} 同量级（比 ${ratio.toFixed(2)}×）`)
+  // 🔴 W2 重基线（D38-B）：原断言拿「W2 前口径算出的历史利润」比「W2 后新周的利润」——
+  //   两者成本结构不同（W2 加了部门成本），前提已失效，不是不变量。
+  //   改断【同引擎自洽】：继续经营产生的那一周，必须与直接用新引擎算同一周【逐字节相同】；
+  //   且其成本必须含部门成本（证明走的是新结构，不是旧档残留）。
+  const direct = settle({ site: SITE, brand: BRAND, decisions: dec, week: rowsM[0].week, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
+  ok(JSON.stringify(rowsM[0]) === JSON.stringify({ week: direct.week, profit: direct.profit, capitalBefore: mig.save.capital, capitalAfter: direct.capital }),
+    `${name}：继续经营的第 ${rowsM[0].week} 周 === 直接用新引擎算该周（逐字节，同引擎自洽）`)
+  ok(direct.deptCost > 0 && direct.deptCostLines.length === 5,
+    `${name}：新周成本含部门成本 ${direct.deptCost}（5 科目）⇒ 走的是 W2 新结构，无旧档残留`)
+
+  // 跨结构差异本身要可解释：新周利润 = 同周旧结构利润 − 部门成本（差额恒等式，D38-B 的统一手法）
+  const preW2 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: rowsM[0].week, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
+  ok(direct.profit === preW2.profit - direct.deptCost,
+    `${name}：差额恒等式 新周利润 ${direct.profit} === 旧结构利润 ${preW2.profit} − 部门成本 ${direct.deptCost}`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）
   const rowsNo = continueWeeks({ ...legacy, capital: legacy.capital }, dec, 3)
