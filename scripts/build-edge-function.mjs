@@ -36,6 +36,7 @@ const MODULES = [
   'franchiseModel.mjs',
   'siteLocations.mjs',
   'serverTick.mjs',
+  'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
 
