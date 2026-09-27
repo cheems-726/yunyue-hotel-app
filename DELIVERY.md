@@ -385,7 +385,7 @@ FinalResult 页
 | 好评率下限保护（见上表，需用户裁决后才动口径） | 高 |
 | daily_snapshots 每日快照迁移（SQL 已备好，**待用户自行在 Supabase 执行**） | 高 |
 | 数据库密码轮换（旧密码已进 git 历史，待用户 Reset） | 高 |
-| 双引擎对齐（cloud-settle.sql 无 R0/属性逻辑 → 云端自动结算班级口径不一致） | 中 |
+| ~~双引擎对齐（cloud-settle.sql 无 R0/属性逻辑 → 云端自动结算班级口径不一致）~~ | ✅ **已解决（B-2 · 2026-09-27 · D47-a）**：按 D8 定为【同一份 JS 两端跑】—— 云端落点 = `supabase/functions/advance-day/`（装配 `engine/` 同构副本，`scripts/build-edge-function.mjs` 组装并断言逐字节相同）；**旧 SQL 引擎与其部署/测试脚本已删除**（历史可取回：`git show HEAD:scripts/cloud-settle.sql`）。剩余动作 = 用户部署 Edge Function（README 四步） |
 | 决策卡职业分工第三步（完整移交机制） | 中 |
 | Bundle 拆分（当前 656 kB / gzip 217 kB） | 中 |
 | CI/CD | 中 |

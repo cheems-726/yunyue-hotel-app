@@ -134,6 +134,28 @@ try {
     }
   }
 
+  // ── ★ E1 新增：出租率 / 好评率 也要【界面 === 周报 === 权威 state】（不止资金）──
+  //   做法：从 DOM 的 .metric 块取数（标签与数值分处两个 div，innerText 里夹着环比 chip ⇒ 不能用正则扫整页）
+  {
+    // ★ 权威口径：结算后那一刻，权威对象 = state.report（引擎本次输出，App 写回存档）；
+    //   history 要到"进入下一周"才落档 ⇒ 这里对 report，落档一致性在 ④ 段单独验（不放过）
+    const R = st2.report || {}
+    const metrics = await page.evaluate(() => [...document.querySelectorAll('.metric')].map(m => m.innerText.replace(/\s+/g, ' ').trim()))
+    const occBlock = metrics.find(t => t.startsWith('出租率'))
+    const goodBlocks = [...wr.matchAll(/⭐ 好评率\s*([\d.]+)%\s*→\s*([\d.]+)%/g)]
+    ok(`周报「出租率」指标块可读（${occBlock || '未匹配'}）`, !!occBlock)
+    if (occBlock) {
+      const n = Number((occBlock.match(/([\d.]+)\s*%/) || [])[1])
+      ok(`周报出租率 === 权威 state.report（${n} vs ${R.occupancy}）`, n === R.occupancy)
+    }
+    ok(`周报「好评率 X% → Y%」可读（${goodBlocks.length ? goodBlocks[0][0] : '未匹配'}）`, goodBlocks.length > 0)
+    if (goodBlocks.length) {
+      // 末值 = finalGoodRate（本周结算后的好评率）—— 必须 === 权威 state 的同名字段
+      ok(`周报好评率（finalGoodRate）=== 权威 state.report（${Number(goodBlocks[0][2])} vs ${R.finalGoodRate}）`,
+        Number(goodBlocks[0][2]) === R.finalGoodRate)
+    }
+  }
+
   // ── ④ 进入下一周 → 资金卡显示累积值（不再是每周重置的 50 万+本周）──
   await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
   const st3 = await state(page)
@@ -144,6 +166,18 @@ try {
     card2 != null && Math.abs(card2 - st3.capital) <= 500 && profit != null && st3.capital === SCALE.IC_NEW + profit)
   // P5 对账（卡片可见时才比）：资金卡显示 === 上一份周报的「期末资金」（容差 ±500 = x.x 万显示精度）
   if (wrCap != null) ok(`资金卡显示 ≈ 周报期末资金（${card2} vs ${wrCap}）`, card2 != null && Math.abs(card2 - wrCap) <= 500)
+  // ── ★ E1 新增：落档一致性（账本进 history 时不得被改写）──
+  {
+    const last = (st3.history || [])[st3.history.length - 1] || null
+    const R = st2.report || {}
+    ok('history 已落档至少 1 周', !!last)
+    if (last) {
+      ok(`落档三量与结算时权威值一致（capital ${last.capital ?? '—'} / occ ${last.occupancy} / 好评 ${last.finalGoodRate}）`,
+        last.occupancy === R.occupancy && last.finalGoodRate === R.finalGoodRate && Number.isFinite(last.profit))
+      ok('落档周值含 gop / netProfit / dailySnapshots（唯一账本链条完整）',
+        Number.isFinite(last.gop) && Number.isFinite(last.netProfit) && Array.isArray(last.dailySnapshots) && last.dailySnapshots.length === 7)
+    }
+  }
 
   // ── ⑤ 旧档平滑迁移：真旧档 = 【既无 capital、也无 scaleVersion】──
   //   🔴 批次 B1：用例必须把 scaleVersion 一并删掉 —— 否则从当前存档派生出来的对象

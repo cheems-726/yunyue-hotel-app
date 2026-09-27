@@ -11,7 +11,7 @@
 //   ③ 幂等（重复触发结果相同）
 //   ④ 数值合理性校验生效（越界不写回）
 //   ⑤ 服务端【不重写引擎】（同一份 src/engine/index.js）
-//   ⑥ 数据库侧无业务计算（cloud-settle.sql 作废未复活）
+//   ⑥ 数据库侧无业务计算（B-2：cloud-settle.sql 已删 · 复活即红）
 import {
   advanceGroupOneDay, advanceGroupToDay, daySnapshotOf, dayToWeekDay,
   tickKey, validateDecisions, validateStateBounds, chainHash, fnv1a, TICK_VERSION,
@@ -157,11 +157,14 @@ console.log('\n[7] engine/ 组装物与 src/ 同源（除 import 路径外逐字
   ok(oob.length === 0, `engine/ 内无会 404 的 import（${oob.length} 个文件命中）`)
 }
 
-console.log('\n[8] ★⑥ 数据库侧无业务计算（作废的 cloud-settle.sql 未复活）')
+console.log('\n[8] ★⑥ 数据库侧无业务计算（★ B-2：cloud-settle.sql 已按 D47-a 删除 ⇒ 判据升级为"不许复活"）')
 {
-  const cs = read('scripts/cloud-settle.sql')
-  ok(/已作废/.test(cs.slice(0, 400)), 'cloud-settle.sql 仍带作废警示头')
-  ok(/尚未实施/.test(cs.slice(0, 1200)), '警示头仍写明"尚未实施"')
+  // 拍板链：BL-1 否决"云端另写一套 SQL" → D8 定为【同一份 JS 两端跑】→ D47-a 代拍 (a)「按 D8 改调同一份 JS ⇒ 随后删 SQL」
+  const 路径 = ['scripts/cloud-settle.sql', 'scripts/deploy-cloud-settle.cjs', 'scripts/test-cloud-settle.cjs']
+  const 复活 = 路径.filter(x => existsSync(APP + x))
+  ok(复活.length === 0, `SQL 引擎与其部署/测试脚本均已删除（复活 ${复活.length} 份）`, 复活.join(','))
+  ok(existsSync(APP + 'supabase/functions/advance-day/engine/settlement.js'),
+    '替代落点仍在：Edge Function 的 engine/settlement.js（同一份 JS 两端跑）')
   ok(chainHash([]).hash === 'genesis', `链式哈希起点 = genesis（FNV1a 实现可用）`)
   ok(fnv1a('genesis') === fnv1a('genesis') && fnv1a('a') !== fnv1a('b'), 'FNV1a 确定性 + 区分性')
 }

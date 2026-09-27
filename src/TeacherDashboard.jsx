@@ -7,7 +7,7 @@ import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTea
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { normalizeAttrs, qualityOf } from './attrs.js'
-import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf } from './metricDefs.mjs'
+import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
 const demoGroups = [
@@ -22,50 +22,34 @@ const demoGroups = [
 function summarize(gs, profile, classDay = 0) {
   const s = gs?.state || {}
   const history = s.history || []
-  // 🔴 W2-3（W10 正名）：40% 维度读【净利润】（= 评分基准；旧档周回退读 profit，数值语义不变）
-  const totalProfit = sumNet(history).value
-  const avgOcc = history.length ? Math.round(history.reduce((a, h) => a + h.occupancy, 0) / history.length) : 0
-  const avgGood = history.length ? Math.round(history.reduce((a, h) => a + h.finalGoodRate, 0) / history.length) : 0
-  const totalNeg = history.reduce((a, h) => a + (h.negativeCount || 0), 0)
-  // A4：真差评处理率（与 FinalResult 同口径；旧档无快照回退原口径）
-  const handleWeeks = history.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
-  const avgHandleRate = handleWeeks.length
-    ? handleWeeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / handleWeeks.length
-    : null
-  const totalRev = history.reduce((a, h) => a + (h.revenue || 0), 0)
+  // 🔴 E1（二期 · 唯一账本）：全部聚合量与四维评分改走 metricDefs 单源 ——
+  //   此前教师端/学生端各写一份【相同阶梯】，且"上周分数"还漏了处理率分支（本周有、上周无 ⇒ 假跳变）。
+  //   scoreOf 与学生端 FinalResult 完全同源；prevScore 用同一套规则算"去掉最后一周"的分数。
+  const S = scoreOf(history)
+  const totalProfit = S.totalProfit
+  const avgOcc = S.avgOccupancy
+  const avgGood = S.avgGoodRate
+  const totalNeg = S.totalNegative
+  const profitScore = S.profitScore
+  const repScore = S.reputationScore
+  const occScore = S.occupancyScore
+  const negScore = S.negativeScore
+  const score = S.finalScore
+  const totalRev = totalRevenue(history)
   // 🔴 W2-3（W10 正名）：教师端与学生端同口径 —— 净利润（评分基准，= 既有 profit）+ GOP（经营毛利，不含租金）
   //   旧档周无 gop 字段 ⇒ sumGop 只累加有字段的周，并回报覆盖度（教师端要能判断"这组 GOP 是否完整"）
   const gopTotal = sumGop(history)
   // 🔴 T1.1（§十七 A4）：分段 = 旧阈值 × m，与 FinalResult.jsx 同口径（否则学生端/教师端分数不一致）
   // 🔴 W2-2：分段按新利润量级重标定（m=0.2970）；★ D20 判据② 4/6 组一致，差异已记录未硬凑
-  const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
-  const repScore = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
-  const occScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
-  const negScore = totalNeg === 0
-    ? 100
-    : avgHandleRate != null
-      ? (avgHandleRate >= 0.9 ? 95 : avgHandleRate >= 0.7 ? 85 : avgHandleRate >= 0.5 ? 70 : avgHandleRate >= 0.3 ? 55 : 40)
-      : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)
-  const score = history.length ? Math.round(profitScore * 0.4 + repScore * 0.25 + occScore * 0.2 + negScore * 0.15) : 0
+  // 🔴 E1：上面这段阶梯已【整体搬进 metricDefs.scoreOf】（本文件与 FinalResult 各写一份 → 改一处必漏另一处）
   // 🔴 W1-5（T3.7）：进度落后提示 —— 服务端 classDay（唯一权威） vs 该组算到第几天。
   //   lastComputedDay 的口径：该组 history 覆盖的游戏天数（每周 7 天）；旧档无该字段时用 history.length×7 推。
   const lastComputedDay = Number(s.__lastComputedDay) || (history.length * 7)
   const lag = classDay > 0 ? progressLag({ classDay, lastComputedDay, lastDecisionAt: s.__lastDecisionAt || null }) : null
   // 上周分数（去掉最后一周的历史再算一次）→ 用于排名行显示周环比
-  let scorePrev = null
-  if (history.length > 1) {
-    const ph = history.slice(0, -1)
-    const pProfit = ph.reduce((a, h) => a + (h.profit || 0), 0)
-    const pOcc = Math.round(ph.reduce((a, h) => a + h.occupancy, 0) / ph.length)
-    const pGood = Math.round(ph.reduce((a, h) => a + h.finalGoodRate, 0) / ph.length)
-    const pNeg = ph.reduce((a, h) => a + (h.negativeCount || 0), 0)
-    // 🔴 T1.1：上周分数同口径（与上方 profitScore 保持一致，否则周环比会出现假跳变）
-    const ps = pProfit >= 150000 ? 100 : pProfit >= 90000 ? 85 : pProfit >= 30000 ? 70 : pProfit >= 0 ? 55 : 40
-    const pr = pGood >= 90 ? 95 : pGood >= 85 ? 85 : pGood >= 75 ? 70 : pGood >= 60 ? 55 : 40
-    const po = pOcc >= 75 ? 95 : pOcc >= 65 ? 80 : pOcc >= 55 ? 65 : pOcc >= 45 ? 50 : 40
-    const pn = pNeg === 0 ? 100 : pNeg <= 5 ? 80 : pNeg <= 10 ? 65 : 50
-    scorePrev = Math.round(ps * 0.4 + pr * 0.25 + po * 0.2 + pn * 0.15)
-  }
+  // 🔴 E1：改走 metricDefs.prevScore（同一套规则）—— 原内联式**漏了处理率分支**，
+  //   于是"本周按处理率算、上周按条数算" ⇒ 周环比可能凭空跳变（正是那行注释自己担心的假跳变）
+  const scorePrev = prevScore(history)
   // 品质分改读属性池（与学生端同口径：normalizeAttrs 兜底旧档无 attrs → 初值 60，绝不 NaN）
   // 保险丝：极端脏数据下回退 70，避免 getTitle 崩溃（历史教训：undefined 会让称号计算炸）
   const attrsQ = normalizeAttrs(gs?.state?.attrs).quality
@@ -152,8 +136,9 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
       {(() => {
         const hist = s.history || []
         if (!hist.length) return null
-        const avgOcc = Math.round(hist.reduce((a, h) => a + h.occupancy, 0) / hist.length)
-        const avgGood = Math.round(hist.reduce((a, h) => a + h.finalGoodRate, 0) / hist.length)
+        // 🔴 E1：称号进度也用单源平均（原自算两行 Σ÷length；与学生端 HotelStatus 的称号口径必须同源）
+        const avgOcc = avgOccupancy(hist)
+        const avgGood = avgGoodRate(hist)
         const q = qualityOf(s)
         const ti = getTitle(avgOcc, avgGood, q)
         // 称号轨迹：仅在称号变化的周记录节点（课堂复盘看成长路径）

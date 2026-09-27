@@ -6,7 +6,7 @@ import { EVENT_INFO } from './settlement.js'
 import { fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { qualityOf } from './attrs.js'
-import { GOP_LABEL, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, wan2 } from './metricDefs.mjs'
+import { GOP_LABEL, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, wan2, scoreOf, totalRevenue } from './metricDefs.mjs'
 
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
@@ -28,39 +28,20 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   //   ⇒ 数值语义零变化；旧档周无 netProfit 字段时回退读 profit；缺字段的周【不按 0 计入】累加
   const netTotal = sumNet(history)
   const gopTotal = sumGop(history)
-  const totalProfit = netTotal.value
-  const avgOccupancy = history.length ? Math.round(history.reduce((s, h) => s + h.occupancy, 0) / history.length) : 0
-  const avgGoodRate = history.length ? Math.round(history.reduce((s, h) => s + h.finalGoodRate, 0) / history.length) : 0
-  const totalNegative = history.reduce((s, h) => s + h.negativeCount, 0)
-  // A4：差评处理率（每快照周 resolved/(pending+resolved)）；旧档无 handleStats → 该周不计入平均（回退不惩罚）
-  const handleWeeks = history.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
-  const avgHandleRate = handleWeeks.length
-    ? handleWeeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / handleWeeks.length
-    : null
-
-  // 四维评分（简化：按表现打分 0-100）
-  // 利润得分：累计利润越高越好
-  // 🔴 T1.1（§十七 A4 预授权规则）：新阈值 = 旧阈值 × m（m=10.0483），取整到万位。
-  //    必要性：不重标定则 6 组里 5 组并列 100，本维度区分度归零。
-  //    自检（tests/_t11-impact.mjs）：6 组评级分布 ACBDDC vs ACBDDC【一致】✅（档位 4/6 逐组一致）
-  const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
-  // 口碑得分：平均好评率
-  const reputationScore = avgGoodRate >= 90 ? 95 : avgGoodRate >= 85 ? 85 : avgGoodRate >= 75 ? 70 : avgGoodRate >= 60 ? 55 : 40
-  // 出租率得分
-  const occupancyScore = avgOccupancy >= 75 ? 95 : avgOccupancy >= 65 ? 80 : avgOccupancy >= 55 ? 65 : avgOccupancy >= 45 ? 50 : 40
-  // A4：15% 维度 = 真差评处理率（有差评的周取平均；全学期零差评 → 100，不惩罚；
-  //     旧档无快照 → 按原"差评条数"口径回退，不惩罚历史档）
-  const negativeScore = totalNegative === 0
-    ? 100
-    : avgHandleRate != null
-      ? (avgHandleRate >= 0.9 ? 95 : avgHandleRate >= 0.7 ? 85 : avgHandleRate >= 0.5 ? 70 : avgHandleRate >= 0.3 ? 55 : 40)
-      : (totalNegative <= 5 ? 80 : totalNegative <= 10 ? 65 : 50)
-
-  // 加权总分
-  const finalScore = Math.round(profitScore * 0.4 + reputationScore * 0.25 + occupancyScore * 0.2 + negativeScore * 0.15)
-
-  // 评级
-  const grade = finalScore >= 90 ? 'S · 标杆酒店' : finalScore >= 80 ? 'A · 优秀经营' : finalScore >= 70 ? 'B · 良好经营' : finalScore >= 60 ? 'C · 合格经营' : 'D · 需改进'
+  // 🔴 E1（二期 · 唯一账本）：四维评分的【整套计算】收进 metricDefs.scoreOf —— 此前学生端/教师端各写一份
+  //   完全相同的阶梯（改一处必漏另一处），且平均出租率/好评率/差评数/处理率也是两份。
+  //   ★ 零变化：scoreOf 是原内联式的逐字提取，守门用【旧式 oracle】逐字段比对（tests/ledgerSingleSource.test.mjs）
+  const S = scoreOf(history)
+  const totalProfit = S.totalProfit
+  const avgOccupancy = S.avgOccupancy
+  const avgGoodRate = S.avgGoodRate
+  const totalNegative = S.totalNegative
+  const profitScore = S.profitScore
+  const reputationScore = S.reputationScore
+  const occupancyScore = S.occupancyScore
+  const negativeScore = S.negativeScore
+  const finalScore = S.finalScore
+  const grade = S.grade
 
   const dimensions = [
     // 🔴 W2-3：40% 维度的名字 = 【累计净利润】（= 评分基准）；数值口径未变（netProfit === profit）
@@ -260,7 +241,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
             const roomsArr = history.map(h => h.rooms).filter(Boolean)
             if (!roomsArr.length) return null
             const avgRooms = Math.round(roomsArr.reduce((a, b) => a + b, 0) / roomsArr.length)
-            const totalRevSum = history.reduce((a, h) => a + (h.revenue || 0), 0)
+            const totalRevSum = totalRevenue(history)   // 🔴 E1：总营收也走单源（原自算 Σ revenue）
             const revpar = Math.round(totalRevSum / (avgRooms * (history.length || 1) * 7))
             if (!revpar || revpar <= 0) return null
             return <div>单房收益（RevPAR）：<b>{revpar}</b> 元/间·天</div>

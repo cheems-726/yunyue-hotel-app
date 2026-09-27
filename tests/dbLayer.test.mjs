@@ -2,11 +2,11 @@
 // 运行：node tests/dbLayer.test.mjs   （已挂 run-all）
 //
 // 判据（§二十一·五 批次 B2-4）：确认"数据库侧无业务计算残留"
-//   —— 只出结论、不删文件（删除需拍板）
+//   —— B2-4 当时只出结论、不删文件（删除需拍板）；★ B-2（2026-09-27 · D47-a）已拍板 ⇒ 文件已删，判据升级为【不许复活】
 //
 // 本套件把结论固化成【可复跑的守门】：
-//   ① 已知的业务计算残留（cloud-settle.sql）必须带【⛔ 已作废 · 禁止部署】警示头
-//   ② 除它之外，不得再出现"含结算变量的 PL/pgSQL 函数"（新增一处就要被看见）
+//   ① cloud-settle.sql 及其部署/测试脚本【已删除】（D47-a）· 任一被复原 ⇒ 红
+//   ② 任何 SQL 都不得再出现"含结算变量的 PL/pgSQL 函数"（新增一处就要被看见）
 //   ③ schema/迁移类 SQL 只做鉴权/RLS/归档，不得含结算计算
 //   ④ 退役文件不得被部署脚本"误伤"引入（部署脚本必须显式指向目标文件）
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
@@ -36,32 +36,35 @@ const SETTLE_MARKERS = /v_occupancy|v_revenue|v_profit|v_good_rate|v_total_cost|
 // 旧口径阈值（T1.1 之后不该在 SQL 里以"活体"形式出现）
 const OLD_SCALE = /\b(500000|100000|50000)\b/
 
-console.log('\n[1] ① 已知业务计算残留：cloud-settle.sql 必须带作废警示头')
+console.log('\n[1] ① ★ B-2（D47-a 拍板）：cloud-settle.sql 已【删除】，且不许复活')
 {
-  const p = 'scripts/cloud-settle.sql'
-  ok(existsSync(APP + p), `文件存在：${p}`)
-  const s = read(p)
-  const head = s.split('\n').slice(0, 3).join('\n')
-  ok(/已作废/.test(head) && /禁止部署/.test(head), '头部带【已作废 · 禁止部署】警示（防顺手部署）')
-  ok(/BL-1/.test(s) && /D8/.test(s), '警示头写明了依据（BL-1 更正 + D8 同构方向）')
-  const markers = s.match(SETTLE_MARKERS)
-  console.log(`     该文件含结算标识 ${markers ? markers.length : 0} 处（v_occupancy/v_revenue/settle_group/rand_next…）`)
-  ok(!!markers && markers.length > 0, '确认它【确实是】一套完整的业务计算（不是空壳）')
-  ok(/尚未实施/.test(s), '警示头写明"尚未实施"（登记册 BL-1 的状态）')
+  // 拍板链：BL-1 否决"云端另写一套 SQL" → D8 定为【同一份 JS 两端跑】→ D47-a 代拍 (a)「按 D8 改调同一份 JS ⇒ 随后删 SQL」
+  //   落点：supabase/functions/advance-day/（Edge Function，装配 engine/ 同构副本；组装脚本自带"逐字节相同"断言）
+  const 已删 = ['scripts/cloud-settle.sql', 'scripts/deploy-cloud-settle.cjs', 'scripts/test-cloud-settle.cjs']
+  for (const p of 已删) ok(!existsSync(APP + p), `已删除：${p}`)
+  // 反向验证（R3）：文件若被复原 ⇒ 本段立刻红（下面这行是"复活即红"的判据本身）
+  const 复活 = 已删.filter(p => existsSync(APP + p))
+  ok(复活.length === 0, `无"复活"（命中 ${复活.length}）—— 复原任一份即报红`, 复活.join(','))
+  // 更宽的判据：整个 scripts/ 与 supabase/ 不得再出现"结算型 PL/pgSQL"
+  const 残留 = []
+  for (const p of SQLS) {
+    const s = read(p)
+    if (SETTLE_MARKERS.test(s)) 残留.push(p)
+  }
+  ok(残留.length === 0, `全库 ${SQLS.length} 份 SQL 均无结算计算（残留 ${残留.length}）`, 残留.join(','))
+  // 正确落点必须仍在（删掉 SQL 不等于删掉"不看也在跑"）
+  ok(existsSync(APP + 'supabase/functions/advance-day/index.ts') && existsSync(APP + 'supabase/functions/advance-day/engine/settlement.js'),
+    '替代落点存在：Edge Function（index.ts + engine/settlement.js 同构副本）')
 }
 
-console.log('\n[2] ② 业务计算的扩散：除已标记的退役文件外，不得再有')
+console.log('\n[2] ② 业务计算的扩散：任何 SQL 都不得含结算计算')
 {
   const offenders = []
   for (const p of SQLS) {
-    if (p.endsWith('cloud-settle.sql')) continue          // 已标记退役
     const s = read(p)
     if (SETTLE_MARKERS.test(s)) offenders.push(p)
   }
-  ok(offenders.length === 0, `其余 ${SQLS.length - 1} 份 SQL 均不含结算计算${offenders.length ? ' → 新增残留：' + offenders.join(', ') : ''}`)
-  // 退役文件的警示头必须仍在（防止被"顺手清理"掉）
-  const retired = read('scripts/cloud-settle.sql')
-  ok(/⛔/.test(retired), '退役文件的警示头仍在（守门有效）')
+  ok(offenders.length === 0, `${SQLS.length} 份 SQL 均不含结算计算${offenders.length ? ' → 残留：' + offenders.join(', ') : ''}`)
 }
 
 console.log('\n[3] ③ schema / 迁移类 SQL 只做鉴权·RLS·归档，不含结算')
@@ -77,26 +80,27 @@ console.log('\n[3] ③ schema / 迁移类 SQL 只做鉴权·RLS·归档，不含
   }
 }
 
-console.log('\n[4] ④ 旧口径阈值不得以"活体 SQL"形式存在（除退役文件）')
+console.log('\n[4] ④ 旧口径阈值不得以"活体 SQL"形式存在')
 {
   const hits = []
   for (const p of SQLS) {
-    if (p.endsWith('cloud-settle.sql')) continue
-    const lines = read(p).split(/\r?\n/).filter(l => !/^\s*--/.test(l))   // 剥纯注释行（警示头正是注释）
+    const lines = read(p).split(/\r?\n/).filter(l => !/^\s*--/.test(l))
     lines.forEach((l, i) => { if (OLD_SCALE.test(l)) hits.push(`${p}:${i + 1} ${l.trim().slice(0, 60)}`) })
   }
   ok(hits.length === 0, `活体 SQL 无旧量级阈值（命中 ${hits.length} 处）`)
   hits.slice(0, 4).forEach(h => console.log('     ⚠ ' + h))
 }
 
-console.log('\n[5] 结论固化：处置方向与依据必须可追溯')
+console.log('\n[5] 结论固化：处置方向与依据必须可追溯（SQL 已删 ⇒ 依据改由【文档 + 替代落点】承担）')
 {
-  const s = read('scripts/cloud-settle.sql')
-  ok(/同一份 JS/.test(s) || /src\/engine\/index\.js/.test(s),
-    '警示头指明了正确做法（同构一份 JS / engine/index.js 统一出口）')
-  ok(/待决策队列/.test(s), '警示头指明处置属 A 级、已进待决策队列（不擅自删）')
-  // B2-3 建的统一出口必须真的存在（否则"同构"没有落点）
+  // B-2：SQL 本体已按 D47-a 删除 ⇒ "处置依据"不能再挂在被删文件上（那会变成查不到依据）。
+  //   依据改为两处【仍然存在】的地方：① 决策登记册的 BL-1/D8/D47-a；② 替代落点 src/engine/index.js 的注释。
+  const barrel = read('src/engine/index.js')
+  ok(/同一份 JS|同构/.test(barrel), 'engine/index.js 写明【同一份 JS 两端跑】的同构方向（依据落点①）')
   ok(existsSync(APP + 'src/engine/index.js'), '同构落点存在：src/engine/index.js（B2-3）')
+  ok(existsSync(APP + 'scripts/build-edge-function.mjs'), '组装脚本存在：scripts/build-edge-function.mjs（D8 落地的最后一公里）')
+  const 登记册 = read('../1-总纲与进度/决策登记册.md')
+  ok(/D47-a|cloud-settle/.test(登记册), '决策登记册留有 D47-a / cloud-settle 的处置记录（依据落点② · 决策端维护）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

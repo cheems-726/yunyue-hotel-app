@@ -105,7 +105,8 @@ console.log('\n[3] 界面层：三处界面显示两个指标（静态断言）'
   const td = readSrc('TeacherDashboard.jsx')
   ok(/from '\.\/metricDefs\.mjs'/.test(td), '教师端：从 metricDefs.mjs 取标签/定义（单源）')
   ok(/\{NET_LABEL\}/.test(td) && /\{GOP_SHORT\}/.test(td), '教师端：组卡分列显示 净利润 / GOP')
-  ok(/sumNet\(history\)/.test(td) && /sumGop\(history\)/.test(td), '教师端：组汇总走同一单源累加（与学生端同口径）')
+  // 🔴 E1：净利润累加已收进 metricDefs.scoreOf（教师端不再直接调 sumNet）⇒ 判据改为"走单源接入点"
+  ok(/scoreOf\(history\)/.test(td) && /sumGop\(history\)/.test(td), '教师端：组汇总走单源（scoreOf 取净利润 + sumGop 取 GOP 覆盖度）')
   ok(/netOf\(h\)/.test(td) && /Number\.isFinite\(h\.gop\)/.test(td), '教师端：周明细读净利润权威字段 + GOP 缺字段时不显示')
   ok(!/\{GOP_SHORT\}\(万\)/.test(td), '教师端：CSV 表头是字面量列名（不把 JSX 常量插值进 CSV 表头）')
   ok(/净利润\(万\),GOP\(万\)/.test(td) && /净利润\(元\),GOP\(元\)/.test(td), '教师端：导出 CSV 两个表头都加了 GOP 列')
@@ -115,12 +116,17 @@ console.log('\n[3] 界面层：三处界面显示两个指标（静态断言）'
 console.log('\n[4] 评分基准：净利润（W2-2 分段不动）')
 {
   const SEG = /totalProfit >= 150000 \? 100 : totalProfit >= 90000 \? 85 : totalProfit >= 30000 \? 70 : totalProfit >= 0 \? 55 : 40/
-  const fr = readSrc('FinalResult.jsx'), td = readSrc('TeacherDashboard.jsx'), app = readSrc('App.jsx')
-  ok(SEG.test(fr), '期末：40% 维度分段 = 150000/90000/30000/0（W2-2 落值未动）')
-  ok(SEG.test(td), '教师端：分段与学生端同式（两处同口径）')
-  ok(SEG.test(app), 'App：分段同式（第三处副本仍在）')
-  ok(/sumNet\(history\)/.test(fr) && /netTotal\.value/.test(fr), '期末：分段输入 = Σ净利润（单源累加，不再裸 reduce）')
-  ok(/sumNet\(history\)\.value/.test(td), '教师端：分段输入 = Σ净利润（单源累加）')
+  const fr = readSrc('FinalResult.jsx'), td = readSrc('TeacherDashboard.jsx'), app = readSrc('App.jsx'), md = readSrc('metricDefs.mjs')
+  // 🔴 E1（二期 · 唯一账本）改造后的判据（★ 这不是降级，是判据搬家）：
+  //   原文验"三处界面各有一份【相同的副本】"—— E1 把副本全部搬进 metricDefs.scoreOf，
+  //   于是"副本在不在"这条判据本身失效。新判据更强：① 分段只许在 metricDefs 出现一次；
+  //   ② 三处界面必须【引用】它；③ 零变化由 ledgerSingleSource 的【旧式 oracle 逐字段比对】保证（比"文本同式"强）。
+  ok(SEG.test(md), '分段唯一定义处 = metricDefs.scoreOf（150000/90000/30000/0 · W2-2 落值未动）')
+  const 副本 = [['FinalResult.jsx', fr], ['TeacherDashboard.jsx', td], ['App.jsx', app]].filter(([, t]) => SEG.test(t))
+  ok(副本.length === 0, `三处界面【不再自带副本】（命中 ${副本.length}：${副本.map(x => x[0]).join(',') || '无'}）`)
+  ok(/from '\.\/metricDefs\.mjs'/.test(fr) && /scoreOf\(history\)/.test(fr), '期末：引用单源 scoreOf（分段输入 = Σ净利润 由其内部保证）')
+  ok(/from '\.\/metricDefs\.mjs'/.test(td) && /scoreOf\(history\)/.test(td), '教师端：引用单源 scoreOf（与学生端同源）')
+  ok(/from '\.\/metricDefs\.mjs'/.test(app) && /scoreOf\(history\)/.test(app), 'App（积分明细页·第三处）：也改引单源 scoreOf')
   // 零变化证明：新旧取数在引擎产出上逐组同值
   const { perGroup } = runSeason6()
   const oldWay = perGroup.map(g => g.weeksList.reduce((a, r) => a + (r.profit || 0), 0))

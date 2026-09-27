@@ -32,6 +32,63 @@ const sumBy = (read) => (history) => {
 export const sumGop = sumBy(gopOf)
 export const sumNet = sumBy(netOf)
 
+// ── 🔴 E1（二期 · 唯一账本）· 聚合量与四维评分【单源】──────────────────────────
+// 起因（BL-7 同族：同一批"可由引擎周值导出的量"曾各写一份）：
+//   · 累计利润：HotelStatus 自己 `history.reduce((s,h)=>s+h.profit,0)` —— 与 sumNet 两套（旧档口径还不同）
+//   · 四维评分：FinalResult 与 TeacherDashboard 各写一份【相同阶梯】⇒ 改一处必漏另一处
+//   · 平均出租率/好评率/差评数/处理率/总营收：同样两套
+// ⇒ 统一收在本模块：谁要这些量，只许调这里的函数（守门 tests/ledgerSingleSource.test.mjs）。
+// ★ 零变化证明：下面是 FinalResult 原内联式的【逐字提取】；测试保留旧式当 oracle，逐字段比对。
+
+// 平均出租率 / 平均好评率（四舍五入到整数；无周 → 0）
+export const avgOccupancy = (history) => {
+  const arr = Array.isArray(history) ? history : []
+  return arr.length ? Math.round(arr.reduce((s, h) => s + h.occupancy, 0) / arr.length) : 0
+}
+export const avgGoodRate = (history) => {
+  const arr = Array.isArray(history) ? history : []
+  return arr.length ? Math.round(arr.reduce((s, h) => s + h.finalGoodRate, 0) / arr.length) : 0
+}
+// 差评总数（缺字段按 0 —— 教师端口径；原学生端未兜底，脏数据会让整段变 NaN，本次按更安全者统一）
+export const totalNegative = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + (h.negativeCount || 0), 0)
+// 差评处理率（只统计"本周确有差评待办"的周；无 → null ⇒ 调用方回退旧口径，不惩罚历史档）
+export const avgHandleRateOf = (history) => {
+  const arr = Array.isArray(history) ? history : []
+  const weeks = arr.filter(h => h.handleStats && (h.handleStats.pending + h.handleStats.resolved) > 0)
+  return weeks.length ? weeks.reduce((s, h) => s + h.handleStats.resolved / (h.handleStats.pending + h.handleStats.resolved), 0) / weeks.length : null
+}
+// 总营收（缺字段按 0）
+export const totalRevenue = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + (h.revenue || 0), 0)
+
+// 四维评分 + 评级（★ 学生端 FinalResult 与 教师端 TeacherDashboard 共用；口径 W10/W2-2/D20 已冻结）
+//   40% 累计净利润 · 25% 平均口碑 · 20% 平均出租率 · 15% 差评控制（有处理率快照则按处理率，否则按条数）
+//   ★ 空 history → finalScore 0（原教师端行为；学生端到不了这一步）
+export function scoreOf(history) {
+  const arr = Array.isArray(history) ? history : []
+  const totalProfit = sumNet(arr).value
+  const avgOcc = avgOccupancy(arr)
+  const avgGood = avgGoodRate(arr)
+  const totalNeg = totalNegative(arr)
+  const handleRate = avgHandleRateOf(arr)
+  const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
+  const reputationScore = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
+  const occupancyScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
+  const negativeScore = totalNeg === 0
+    ? 100
+    : handleRate != null
+      ? (handleRate >= 0.9 ? 95 : handleRate >= 0.7 ? 85 : handleRate >= 0.5 ? 70 : handleRate >= 0.3 ? 55 : 40)
+      : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)
+  const finalScore = arr.length ? Math.round(profitScore * 0.4 + reputationScore * 0.25 + occupancyScore * 0.2 + negativeScore * 0.15) : 0
+  const grade = finalScore >= 90 ? 'S · 标杆酒店' : finalScore >= 80 ? 'A · 优秀经营' : finalScore >= 70 ? 'B · 良好经营' : finalScore >= 60 ? 'C · 合格经营' : 'D · 需改进'
+  return { totalProfit, avgOccupancy: avgOcc, avgGoodRate: avgGood, totalNegative: totalNeg, avgHandleRate: handleRate, profitScore, reputationScore, occupancyScore, negativeScore, finalScore, grade }
+}
+
+// 周环比用的"上一周分数"（去掉最后一周再算；不足 2 周 → null）
+export const prevScore = (history) => {
+  const arr = Array.isArray(history) ? history : []
+  return arr.length <= 1 ? null : scoreOf(arr.slice(0, -1)).finalScore
+}
+
 export const pct = (v, d = 1) => (Number.isFinite(v) ? (v * 100).toFixed(d) + '%' : '—')
 export const wan2 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(2) + '万' : '—')
 export const yuanFmt = (v) => (Number.isFinite(v) ? v.toLocaleString() + ' 元' : '—')
