@@ -200,7 +200,10 @@ console.log('\n[9] ★ 回归锁：App 写档路径必须带 scaleVersion（否�
   const lines = code.split('\n')
   const saveLine = lines.find(l => l.includes('localStorage.setItem(STORAGE_KEY') && /capital,\s*bizMode/.test(l))
   ok(!!saveLine, 'App.jsx 能定位到 saveState 的写档语句（含 capital, bizMode 的那条）')
-  ok(!!saveLine && /scaleVersion/.test(saveLine), 'saveState 的 payload 含 scaleVersion（★ 回归锁）')
+  // ★ B1.5 起规范变了：写档不再【手写】scaleVersion 字段，而是统一过 withScaleVersion() 入口
+  //   ⇒ 本锁改为认定"统一入口"（原先只找字面量 scaleVersion，改成入口后大小写不匹配会误报）
+  //   手写字段现在被 cloudMigration.test.mjs [4]⑥ 明确禁止（防旁路）
+  ok(!!saveLine && /withScaleVersion\(/.test(saveLine), 'saveState 的 payload 过 withScaleVersion()（★ 回归锁）')
   const migLine = lines.find(l => l.includes('localStorage.setItem(STORAGE_KEY') && /r\.save/.test(l))
   ok(!!migLine, 'loadState 的迁移写回也存在（写 r.save，天然带版本标记）')
   // 语义级闭环：带标记 → 不再迁移；去掉标记 → 复现缺陷
