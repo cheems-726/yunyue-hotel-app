@@ -140,18 +140,27 @@ try {
   // P5 对账（卡片可见时才比）：资金卡显示 === 上一份周报的「期末资金」（容差 ±500 = x.x 万显示精度）
   if (wrCap != null) ok(`资金卡显示 ≈ 周报期末资金（${card2} vs ${wrCap}）`, card2 != null && Math.abs(card2 - wrCap) <= 500)
 
-  // ── ⑤ 旧档平滑迁移：有 history 但无 capital → 500000 + Σ历史利润 ──
+  // ── ⑤ 旧档平滑迁移：真旧档 = 【既无 capital、也无 scaleVersion】──
+  //   🔴 批次 B1：用例必须把 scaleVersion 一并删掉 —— 否则从当前存档派生出来的对象
+  //      已带 scaleVersion=2，migrateSave 会【正确地】跳过它，用例就不再是"旧档"了
+  //      （这正是 B1 的幂等契约：带版本标记的档不再迁移）
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
     st.history = [{ week: 1, profit: 12345 }, { week: 2, profit: 6789 }]
     delete st.capital
+    delete st.scaleVersion          // ★ 关键：不删它就不是旧档
     localStorage.setItem('hotel-sim-state', JSON.stringify(st))
   })
   await page.reload(); await sleep(1600)
   const card3 = await readCardCap()
-  // 🔴 T1.1：起始资金 ×m；旧档 history 的利润是【旧口径】算出来的 → 迁移时利润也 ×m
+  // 🔴 D25：capital_new = IC_new + (capital_old − IC_old) × m
+  //   capital_old（无 capital 字段时）= IC_old + Σ历史利润 = 500000 + 19134 = 519134
+  //   ⇒ 5020000 + (519134 − 500000) × 10.0483 = 5212264（与原期望值一致，公式不同但结果等价）
   const expect3 = 5020000 + (12345 + 6789) * 10.0483
-  ok(`旧档（无 capital 字段）平滑迁移 = 502万+Σ利润×m = ${Math.round(expect3)}（显示 ${card3}，容差 ±1000）`, card3 != null && Math.abs(card3 - expect3) <= 1000)
+  ok(`旧档（无 capital / 无 scaleVersion）平滑迁移 = ${Math.round(expect3)}（显示 ${card3}，容差 ±1000）`, card3 != null && Math.abs(card3 - expect3) <= 1000)
+  // 迁移后必须落 scaleVersion=2（否则下次还会再迁一次）
+  const ver = await page.evaluate(() => (JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')).scaleVersion)
+  ok('迁移后存档已写回 scaleVersion = 2（幂等闭环）', ver === 2)
   ok('无 JS 异常', true)
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)

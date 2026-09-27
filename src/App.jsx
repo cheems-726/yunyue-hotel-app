@@ -1743,9 +1743,12 @@ export default function App() {
   }, [])
 
   // 状态持久化：本机 localStorage 即时保存
+  // 🔴 批次 B1 修复：必须带 scaleVersion —— 否则写出去的档【没有版本标记】，
+  //   下次读档会被 migrateSave 当成旧档【再迁移一次】（实测：5,020,000 → 约 5,044 万，涨 10 倍）。
+  //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, scaleVersion: SCALE.VERSION_CURRENT }))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
 

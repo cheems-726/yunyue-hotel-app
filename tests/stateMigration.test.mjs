@@ -5,6 +5,7 @@
 //   ③ history 长度不变 ④ 已迁移档再读 → 数值不变
 // 另加：D25 公式正确性（不许写成 capital × m）· 缩放边界（price/gopRate 不乘）· 不删字段
 import { migrateSave, SCALE, SCALED_KEYS_DOC } from '../src/stateMigration.mjs'
+import { readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -184,6 +185,31 @@ console.log('\n[8] 字段清单文档齐备（供报告引用）')
   ok(SCALED_KEYS_DOC.length >= 6, `缩放字段清单 ${SCALED_KEYS_DOC.length} 条`)
   ok(SCALED_KEYS_DOC.every(d => d.字段 && d.口径 && d.为什么), '每条都带 字段/口径/为什么')
   ok(SCALED_KEYS_DOC.some(d => /不乘/.test(d.字段) && /price/.test(d.字段)), '清单里显式写明 price 不乘')
+}
+
+console.log('\n[9] ★ 回归锁：App 写档路径必须带 scaleVersion（否则每次读档都会再迁移一次）')
+{
+  // 这是【批末全门禁抓到的真缺陷】的回归锁：
+  //   写档不带版本标记 ⇒ 下次 loadState 视为旧档 ⇒ migrateSave 再乘一次 m
+  //   实测现象：verify-capital 报"结算后资金 = 50,507,418"（5,020,000 被再迁移一次）
+  const src = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  // ★ 必须精确定位【saveState 那一条】——App.jsx 里 setItem(STORAGE_KEY) 不止一处：
+  //   ① 云端恢复 ② loadState 写回迁移结果 ③ saveState 即时保存
+  //   用 find(...) 取第一条会取到 ①（无 scaleVersion）→ 假失败
+  const lines = code.split('\n')
+  const saveLine = lines.find(l => l.includes('localStorage.setItem(STORAGE_KEY') && /capital,\s*bizMode/.test(l))
+  ok(!!saveLine, 'App.jsx 能定位到 saveState 的写档语句（含 capital, bizMode 的那条）')
+  ok(!!saveLine && /scaleVersion/.test(saveLine), 'saveState 的 payload 含 scaleVersion（★ 回归锁）')
+  const migLine = lines.find(l => l.includes('localStorage.setItem(STORAGE_KEY') && /r\.save/.test(l))
+  ok(!!migLine, 'loadState 的迁移写回也存在（写 r.save，天然带版本标记）')
+  // 语义级闭环：带标记 → 不再迁移；去掉标记 → 复现缺陷
+  const v2 = { capital: SCALE.IC_NEW, history: [], scaleVersion: SCALE.VERSION_CURRENT }
+  ok(migrateSave(v2).migrated === false, '带 scaleVersion 的档再读 → 不再迁移（幂等闭环）')
+  const bad = { capital: SCALE.IC_NEW, history: [] }
+  const re = migrateSave(bad).save.capital
+  ok(migrateSave(bad).migrated === true && re > SCALE.IC_NEW * 9,
+    `反证：去掉 scaleVersion 会被再迁移一次（${SCALE.IC_NEW} → ${re}，涨 ${(re / SCALE.IC_NEW).toFixed(1)} 倍）`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
