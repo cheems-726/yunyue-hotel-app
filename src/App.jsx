@@ -21,6 +21,8 @@ import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, quali
 // 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
 //   （本文件原有三处自算：组员概况 Σocc/Σprofit、积分明细页的【第三套评分副本】）
 import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
+// 🔴 E3（N-3）：三档节奏（实时/周期/一次性）在界面上必须可辨 —— 档位口径来自 decisionCadence（单源）
+import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal } from './weeklyAuto.mjs'
 import { teachingDayNo } from './teachingClock.mjs'
@@ -501,7 +503,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">
                         <span style={{ fontSize: 10, color: '#D1D5DB', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
-                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
+                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
+                        {(() => { const k = cadenceOf(d.id); if (!k) return null; const c = CAD_LANG[k]
+                          const style = k === CAD.实时 ? { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }
+                            : k === CAD.周期 ? { background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE' }
+                              : { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA' }
+                          return <span title={c.说明} style={{ fontSize: 9, borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 600, ...style }}>{c.名}</span> })()}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
   ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: '#1D4ED8', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>👤 我的职责</span>
   : <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}>{OWNER_LABELS[d.owner].icon} {OWNER_LABELS[d.owner].label}</span>)}
                       </div>

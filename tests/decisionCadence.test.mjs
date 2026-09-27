@@ -23,11 +23,11 @@ console.log('\n[1] 覆盖完整性（18 项决策全覆盖，且无静默遗漏�
   ok(c.未覆盖.length === 0, '每项决策都落在【已定档】或【待定档】里（无静默遗漏）', c.未覆盖.join(', '))
   ok(c.多余.length === 0, '档位表里没有不存在的 id（无幽灵条目）', c.多余.join(', '))
   const 已定数 = Object.values(已定档).flat().length
-  ok(已定数 === 11 && 待定档.length === 7,
-    `已定 ${已定数} 项（归档规格原文的 11 项）+ 待定 ${待定档.length} 项 = 18`, `${已定数}/${待定档.length}`)
-  // 待定档必须【显式可读】：它的存在本身就是"不擅自定口径"的证据
-  ok(待定档.every(id => c.全部.includes(id)), '待定档里都是真实存在的决策 id')
-  ok(档语[档.待定].说明.includes('待拍板'), '待定档有面向界面的说明文案（不许静默混进已定档）')
+  // 🔴 2026-09-28（N-3 · D47-d 已拍）：原"已定 11 + 待定 7" ⇒ 现"已定 18 + 待定 0"（7 项代拍落定）
+  ok(已定数 === 18 && 待定档.length === 0,
+    `全 18 项都已定档、无待定（D47-d 代拍后待定档清空）`, `${已定数}/${待定档.length}`)
+  ok(c.重复.length === 0, '同一 id 没有被塞进两档（否则界面会出现两个组标签）', c.重复.join(','))
+  ok(档语[档.待定].说明.includes('待拍板'), '待定档文案保留（空档也留着链 —— 一旦有人塞进未拍板项，界面会显式提示）')
   ok(非决策项.some(x => x.规格名 === '品牌加盟'), '规格里的"品牌加盟"标注为【非决策项】（属认领流程），不留悬空项')
 }
 
@@ -37,9 +37,12 @@ console.log('\n[2] 已定档与归档规格逐项对齐')
   // 规格原文（归档包《任务包-实时经营改造-含前置修复.md》E3 段）：
   //   实时项=房价/超售数/排班/能耗温度/布草 · 周期项=会员策略/营销活动/OTA合作/收益管理
   //   一次性=投资改造/裁员招聘/品牌加盟
+  //   ★ 2026-09-28（N-3 · D47-d 代拍补 7 项）：
+  //     实时 += 质检 quality-check / 卫生 hygiene / 口碑应对 reputation / 应急 emergency
+  //     周期 += 报表诊断 report-diagnosis / 企业客户 corporate / 会员门槛 member-threshold
   const 期望 = {
-    实时: ['pricing', 'overbook', 'shifts', 'energy', 'linen'],
-    周期: ['member-convert', 'campaign', 'ota', 'revenue-mgmt'],
+    实时: ['pricing', 'overbook', 'shifts', 'energy', 'linen', 'quality-check', 'hygiene', 'reputation', 'emergency'],
+    周期: ['member-convert', 'campaign', 'ota', 'revenue-mgmt', 'report-diagnosis', 'corporate', 'member-threshold'],
     一次性: ['renovation', 'hr-optimize'],
   }
   for (const [k, ids] of Object.entries(期望)) {
@@ -70,7 +73,14 @@ console.log('\n[4] 零影响：不碰结算 / 不与 decisions.js 抢权威')
   ok(!/from '\.\/settlement\.js'/.test(code), '不引用引擎（settlement.js）')
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const importers = files.filter(f => f !== 'decisionCadence.mjs' && /decisionCadence/.test(strip(src(f))))
-  ok(importers.length === 0, `目前无引用方（E3 开工时接入）—— 现有 ${importers.length} 处`, importers.join(','))
+  // 🔴 2026-09-28（N-3 · E3 落地）：原断言是"E3 开工前不许有引用方"的施工期护栏；
+  //   E3 已把三档接到界面 ⇒ 判据翻转为【必须被界面引用】（且必须引到"档位/档语"这两个面上）。
+  //   这样"界面把档位表抄一份自己写"会同时被本套件与 realtimeDecision[3] 抓到（双向守）。
+  const 界面引用 = ['App.jsx', 'DecisionPanel.jsx'].filter(f => importers.includes(f))
+  ok(界面引用.length === 2,
+    `三档已接入界面（${界面引用.join(' + ')}）—— E3 验收"三档可辨"的机器证据`, importers.join(','))
+  const 抄一份 = ['App.jsx', 'DecisionPanel.jsx'].filter(f => /realtime|periodic|onetime/.test(strip(src(f))) && !/decisionCadence/.test(strip(src(f))))
+  ok(抄一份.length === 0, '界面文件没有绕过单源另写一份档位字面量', 抄一份.join(','))
   // 权威不重叠：档位表里的 id 必须真的存在于 decisions.js（防"自己造一套 id"）
   const ids = new Set(decisions.map(d => d.id))
   ok([...Object.values(已定档).flat(), ...待定档].every(id => ids.has(id)), '档位表的 id 全部取自 decisions.js（不另造一套）')

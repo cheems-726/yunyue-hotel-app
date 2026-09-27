@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
+// 🔴 E3（N-3）：档位与'次日生效'口径来自 decisionCadence（单源；本文件不另写一份）
+import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG, 归属日 } from './decisionCadence.mjs'
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
@@ -109,6 +111,20 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
           <span className="day-tag">{decision.module}</span>
         </div>
         <div className="sub">{decision.icon} {decision.name}</div>
+        {/* 🔴 E3：学生要能一眼分辨"这项能不能随时改、什么时候生效" */}
+        {(() => {
+          const k = cadenceOf(decision.id); if (!k) return null
+          const c = CAD_LANG[k]
+          const 色 = k === CAD.实时 ? { bg: '#ECFDF5', fg: '#065F46', bd: '#A7F3D0' }
+            : k === CAD.周期 ? { bg: '#EFF6FF', fg: '#1E40AF', bd: '#BFDBFE' }
+              : { bg: '#FEF2F2', fg: '#991B1B', bd: '#FECACA' }
+          return (
+            <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 7px', background: 色.bg, color: 色.fg, border: '1px solid ' + 色.bd }}>{c.名}</span>
+              <span style={{ fontSize: 10, color: '#6B7280' }}>{c.说明}</span>
+            </div>
+          )
+        })()}
       </div>
 
       <div className="card">
