@@ -20,7 +20,9 @@ let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
 const WANT_REPORT = process.argv.includes('--report')
 
-const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+// 🔴 2026-09-28（N-6）：长跑必须走【真实链路】—— 原 SITE 只有六维、没有 district，
+//   于是竞品表/客群表永远命中空键（竞品压力恒 0），长跑验的是一条【不存在的路径】。
+const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2, district: '锦江区' }
 const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
 
 // ── 全 18 项决策（取每项第一个选项；用于判据⑤"18 项决策所有周都能结算"）──
