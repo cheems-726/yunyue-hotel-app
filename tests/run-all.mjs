@@ -30,6 +30,8 @@ const SUITES = [
   { name: 'capital-single-source（资金三数单源）', file: 'tests/capital-single-source.test.mjs' },
   // Wave 3 · W3-2：认领页物业报价单（投资侧纯计算 · 不改结算）
   { name: 'propertyQuote（认领页报价单·W3-2）', file: 'tests/propertyQuote.test.mjs' },
+  // Wave 3 · W3-1/W3-5：一页钱账（口径 (b) 本店实测）+ 回本周期（外推）
+  { name: 'onePageLedger（一页钱账+回本·W3-1/W3-5）', file: 'tests/onePageLedger.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

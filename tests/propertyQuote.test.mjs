@@ -91,7 +91,11 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   ok(!/propertyQuote/.test(strip(src('settlement.js'))), 'settlement.js 不引用 propertyQuote（静态证明：改动不进结算路径）')
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const importers = files.filter(f => f !== 'propertyQuote.mjs' && /propertyQuote/.test(strip(src(f))))
-  ok(importers.length === 1 && importers[0] === 'Claim.jsx', '唯一引用方 = Claim.jsx（认领页）', importers.join(','))
+  // 🔴 W3-1 重基线（D38-B）：引用方从"仅 Claim.jsx"扩为【交互层白名单】——
+  //   onePageLedger（W3-1 钱账）需要报价单的"总投资"来算回本周期，属同一交互层；意图不变：不进结算路径
+  const ALLOWED = ['Claim.jsx', 'onePageLedger.mjs']
+  ok(importers.every(f => ALLOWED.includes(f)) && importers.includes('Claim.jsx'),
+    `引用方限于交互层白名单（${importers.join(',')}）`, importers.join(','))
   // 纯函数：同输入同输出 + 不改入参
   const a1 = propertyQuote(汉庭, 物业, 区县), a2 = propertyQuote(汉庭, 物业, 区县)
   ok(JSON.stringify(a1) === JSON.stringify(a2), '纯函数：同输入两次调用结果逐字节相同')

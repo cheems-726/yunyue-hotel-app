@@ -201,6 +201,8 @@ try {
     await sleep(600)
   }
   ok('认领·项目决策步出现物业报价单（W3-2）', quoteSeen)
+  // 🔴 W3-1/W3-5：同一页必须出现「一页钱账」（收益侧 + 回本周期）
+  ok('认领·项目决策步出现一页钱账（W3-1/W3-5）', (await text(page)).includes('一页钱账') && (await text(page)).includes('回本周期'))
   for (let i = 0; i < 7; i++) {
     const done = await page.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))

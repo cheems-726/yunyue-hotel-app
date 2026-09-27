@@ -85,7 +85,7 @@ console.log('\n[4] ★ 未碰业务代码：结算输出零变化')
   //     ② 引用方只允许是交互层（白名单 + 理由），且那些模块必须【不被结算引用】（由各自套件守）
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const users = files.filter(f => f !== 'franchiseModel.mjs' && /from\s*['"].*franchiseModel/.test(readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')))
-  const INTERACTION_LAYER = ['propertyQuote.mjs']   // 加盟【展示/测算】层：纯函数，不被结算引用
+  const INTERACTION_LAYER = ['propertyQuote.mjs', 'onePageLedger.mjs']   // 加盟【展示/测算】层：纯函数，不被结算引用
   const illegal = users.filter(u => !INTERACTION_LAYER.includes(u))
   ok(illegal.length === 0, `franchiseModel 只被交互层引用（白名单 ${INTERACTION_LAYER.join(',')}）${illegal.length ? ' → 越界：' + illegal.join(',') : ''}`)
   const engineFiles = ['settlement.js', 'serverTick.mjs', 'deptCosts.mjs', 'metricDefs.mjs']

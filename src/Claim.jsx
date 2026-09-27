@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
+import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -54,7 +55,13 @@ export default function Claim({ brand, location, onComplete }) {
   const progress = Math.round((step / (claimSteps.length - 1)) * 100)
   // 🔴 W3-2：物业报价单（选中物业后即可算；口径见 src/propertyQuote.mjs 顶部注释）
   const quote = selectedProperty ? propertyQuote(brand, selectedProperty, location?.attrs) : null
+  // 🔴 W3-1/W3-5：一页钱账 + 回本周期（口径 (b) 本店实测：ADR/OCC 取自引擎确定性单周）
+  const ledger = selectedProperty ? onePageLedger({ brand, property: selectedProperty, districtAttrs: location?.attrs }) : null
+  const payback = ledger ? paybackText(ledger) : null
   const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补')
+  // 报价单与钱账共用的行格式化（口径：缺来源 ⇒ "待补"，不是空/0）
+  const fmtLine = (l) => l.status === STATUS.MISSING ? '待补 · 无来源数据'
+    : (l.fmt === 'fixed2' ? Number(l.value).toFixed(2) : l.fmt === 'num' ? String(l.value) : (l.value / 10000).toFixed(1) + ' 万')
 
   function propertyResult(p) {
     const rentHigh = p.rent.includes('高') || p.rent.includes('很高') || p.rent.includes('极高')
@@ -180,7 +187,9 @@ export default function Claim({ brand, location, onComplete }) {
             <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, padding: '12px', background: '#F9FAFB', borderRadius: 10 }}>
               {step === 1 && '开发经理核对：商圈客源充足、交通便利、竞品适中、租金可承受。✅ 初审通过'}
               {step === 2 && '实地勘址：柱网、电梯、消防、采光条件良好，可实现房量符合品牌标准。✅ 勘址完成'}
-              {step === 3 && '收益模型测算：基于商圈客流和房价，预计出租率 65%，回收期约 6-7 年。✅ 项目准入'}
+              {step === 3 && (ledger
+                ? `收益模型测算：以引擎确定性单周为基准 —— 出租率 ${ledger.occ}%、实收均价 ${ledger.adr} 元/间·天，${payback.text.replace('回本周期：', '')}。✅ 项目准入`
+                : '收益模型测算：选中物业后可见「一页钱账」。✅ 项目准入')}
               {step === 4 && '商务条款：确认加盟费、合作责任、营建标准、筹备计划。✅ 条款达成'}
               {step === 5 && `合同签署：完成产权审核，正式签约。🎉 你已认领「${selectedProperty?.name}」，获得${brand.name}品牌经营权！`}
             </div>
@@ -198,10 +207,7 @@ export default function Claim({ brand, location, onComplete }) {
                   <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed #E0F2FE' }}>
                     <span style={{ color: '#0C4A6E', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
                     <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? '#9CA3AF' : '#0369A1' }}>
-                      {l.status === STATUS.MISSING ? '待补 · 无来源数据'
-                        : (l.fmt === 'fixed2' ? Number(l.value).toFixed(2)
-                          : l.fmt === 'num' ? String(l.value)
-                            : (l.value / 10000).toFixed(1) + ' 万')}
+                      {fmtLine(l)}
                       {l.status !== STATUS.MISSING && l.fmt !== 'wan' ? ' ' + l.unit : ''}
                     </span>
                   </div>
@@ -210,9 +216,40 @@ export default function Claim({ brand, location, onComplete }) {
                   📌 报价单只算【投资侧】。房量取品牌标准（与结算同源）、年租金取引擎租金口径、
                   费率来自加盟资料三件套 ⇒ 每个数字可追溯；<b>没有来源的一律"待补"，不编造</b>。
                 </div>
+              </div>
+            )}
+
+            {/* 🔴 W3-1（口径 (b) 本店实测）+ W3-5 回本周期（外推）：一页钱账 —— ★ 只加展示，不改结算
+                收益侧取【引擎确定性单周】（固定种子，"同一周全班同结果"）⇒ 与后续真实结算同源。
+                CRS 按决策端口径【单列展示、不并入成本】；回本周期必须带"外推"标注（W4 裁决）。 */}
+            {step === 3 && ledger && (
+              <div style={{ marginTop: 12, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', marginBottom: 8 }}>
+                  📒 一页钱账 · {brand.name} @ {ledger.property}（年化）
+                </div>
+                {ledger.lines.map(l => (
+                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed #DCFCE7' }}>
+                    <span style={{ color: '#14532D', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
+                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? '#9CA3AF' : (l.label.includes('现金流') ? (l.value > 0 ? '#15803D' : '#DC2626') : '#166534') }}>
+                      {fmtLine(l)}{l.status !== STATUS.MISSING && l.fmt !== 'wan' ? ' ' + l.unit : ''}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 8, color: payback.ok ? '#166534' : '#92400E' }}>
+                  ⏳ {payback.text}
+                </div>
+                <div style={{ fontSize: 10, color: '#166534', marginTop: 8, lineHeight: 1.6 }}>
+                  📌 口径（决策端 2026-09-27 拍板 · 选项 (b) 本店实测）：出租率与平均房价取自
+                  <b>引擎确定性单周</b>的实收结果（与后续每周结算同一套引擎）；部门成本用
+                  <b>完整口径</b>（固定 {部门固定合计.toFixed(1)} 元/间·天含人力固定，另按入住量计变动），
+                  与结算一致。CRS 仅单列展示、<b>不并入成本</b>（避免与 5% 管理费重复计）。
+                </div>
                 <div style={{ fontSize: 10, color: '#92400E', marginTop: 6, lineHeight: 1.6, background: '#FFFBEB', borderRadius: 6, padding: '6px 8px' }}>
-                  ⏳ 收益侧（出租率 / 平均房价 / 回本周期）需先确定"用哪套口径"（真实市场数据 or 参考模型样例），
-                  已列入待决策队列 —— 定案前不在此页给数，避免与课堂口径打架。
+                  ⏳ {ledger.extrapolation} —— 实际经营会因决策、事件与淡旺季偏离本页估计。
+                </div>
+                <div style={{ fontSize: 10, color: '#7C2D12', marginTop: 4, lineHeight: 1.6 }}>
+                  ⚠️ {ledger.engineGap}（任务包原式只列了"人力"，本页按 W14 后的完整部门成本口径 ——
+                  只扣人力会系统性高估现金流）
                 </div>
               </div>
             )}
