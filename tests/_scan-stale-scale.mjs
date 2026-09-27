@@ -4,12 +4,18 @@
 //       旧阈值、旧量级字面量、"万"为单位的资金文案、预警 UI 变量、金额→万换算处。
 // 运行：node tests/_scan-stale-scale.mjs           报告模式（有未豁免命中 → 退出码 1）
 //       node tests/_scan-stale-scale.mjs --list    只列白名单（便于人工复核理由）
+//       node tests/_scan-stale-scale.mjs --json    机器可读输出（W4-4 新增）
+//       node tests/_scan-stale-scale.mjs --since <ref>  只扫该 ref 之后改动过的 src 文件（W4-4 新增）
 //
 // ★ 判据（§十九 P3-5）：报告必须是【0 残留】或【逐条列出剩余项 + 为什么可留】
 //   ⇒ 本脚本把"可留"写成带理由的白名单，命中数 - 白名单数 = 真残留。
 import { readFileSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 
 const SRC = new URL('../src/', import.meta.url)
+const APP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const RULES = [
   { id: 'R1', desc: '资金阈值 · 旧一晚口径（<100000 / <50000）', re: /<\s*(100000|50000)\b/g },
   { id: 'R2', desc: '资金阈值 · 镜像（>100000 / >50000）', re: />\s*(100000|50000)\b/g },
@@ -38,6 +44,10 @@ const WHITELIST = [
   { rule: 'R6', file: 'src/HotelStatus.jsx', why: '经营页金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/BrandSelection.jsx', why: '启动资金文案 SCALE.IC_NEW / 10000 显示为"万" —— 纯展示换算（值来自单源常量，不是写死数字）' },
   { rule: 'R6', file: 'src/metricDefs.mjs', why: 'wan2() 是【金额→万】的展示换算工具函数本身（GOP/净利润显示用）—— 它就是要 /10000' },
+  // W4-4 补登（★ 记账：W3 那批加的两个模块引入了 3 处未登记命中 —— 说明"量级/单位类改动必跑扫描"这条
+  //   纪律我当时漏执行了；扫描器不在门禁内是 D26 的既定设计，只能靠这条纪律 + 本白名单）
+  { rule: 'R6', file: 'src/Claim.jsx', why: '认领页的万元展示助手（万元()/fmtLine()）—— 纯展示换算（报价单/一页钱账把元转成"万"），值本身来自单源模块' },
+  { rule: 'R6', file: 'src/propertyQuote.mjs', why: '报价单"加盟费下限"备注文案里的 元→万 换算（仅为把 18 万这类下限读顺眼）—— 展示用，不参与任何计算' },
   { rule: 'R5', file: 'src/App.jsx', why: 'isLow/isCritical 的定义行本身；阈值已改引 SCALE.变黄线/变红线（W2 收尾单源）—— 命中是定义处不可免' },
   { rule: 'R3', file: 'src/stateMigration.mjs', allow: /IC_OLD/, why: 'D25 迁移公式自带常量 IC_old = 500,000 —— 它【必须】是旧起始资金本身（公式就是 capital_new = IC_new + (capital_old − IC_old) × m）。这不是"残留的旧口径"，恰恰是用来做换算的基准值' },
   { rule: 'R4', file: 'src/siteLocations.mjs', allow: /./, why: '区县统计文案里的"万"（120万㎡ / 608万游客 / 34万人口 / 3-5万游客 等）—— 与酒店资金量级无关，是区位调研数据的量词' },
@@ -57,8 +67,26 @@ if (process.argv.includes('--list')) {
   process.exit(0)
 }
 
+// ── W4-4 增强：--json（机器消费）+ --since <ref>（限定扫描范围）────────────────
+//   用法：node tests/_scan-stale-scale.mjs --json
+//         node tests/_scan-stale-scale.mjs --since <commit|HEAD~1>
+//   自检（见 tests/scannerTools.test.mjs）：--json 可 JSON.parse；--since 结果 ⊆ 全量结果
+const JSON_OUT = process.argv.includes('--json')
+const SINCE = (() => { const i = process.argv.indexOf('--since'); return i >= 0 ? (process.argv[i + 1] || null) : null })()
+let scanned = files, sinceList = null
+if (SINCE) {
+  // 只看该 ref 之后【改动过的 src 文件】（git 一律 spawnSync + shell:false，AGENTS.md：shell git 会超时）
+  const r = spawnSync('git', ['diff', '--name-only', SINCE, '--', 'src/'], { cwd: APP_DIR, encoding: 'utf8', shell: false })
+  if (r.status !== 0) {
+    console.error('✗ --since ' + SINCE + ' 无法解析：' + String(r.stderr || '').trim().slice(0, 160))
+    process.exit(2)
+  }
+  sinceList = (r.stdout || '').trim().split(/\r?\n/).filter(Boolean).map(p => p.replace(/^src\//, ''))
+  scanned = files.filter(f => sinceList.includes(f))
+}
+
 const hits = []
-for (const f of files) {
+for (const f of scanned) {
   const path = 'src/' + f
   const code = strip(readFileSync(new URL(f, SRC), 'utf8'))
   const lines = code.split('\n')
@@ -77,8 +105,21 @@ for (const f of files) {
 const wl = (h) => WHITELIST.some(w => w.rule === h.rule && w.file === h.file && (!w.allow || w.allow.test(h.raw)))
 const 留 = hits.filter(wl), 真 = hits.filter(h => !wl(h))
 
+// ── W4-4：--json 供机器消费（自检要求"可 JSON.parse"；字段与文本模式同源）──
+if (JSON_OUT) {
+  console.log(JSON.stringify({
+    scan: 'P3-5 全库旧口径残留扫描',
+    scope: { dir: 'src/', since: SINCE, scannedFiles: scanned.length, totalFiles: files.length, sinceFiles: sinceList },
+    rules: RULES.map(r => ({ id: r.id, desc: r.desc })),
+    命中: hits.length, 白名单: 留.length, 真残留: 真.length,
+    residual: 真.map(h => ({ rule: h.rule, file: h.file, line: h.line, text: h.text })),
+    whitelisted: 留.map(h => ({ rule: h.rule, file: h.file, line: h.line })),
+  }, null, 2))
+  process.exit(真.length ? 1 : 0)
+}
+
 console.log('▶ P3-5 全库旧口径残留扫描')
-console.log(`  扫描范围：src/ 共 ${files.length} 个模块（已排除 settle-old-* 快照、已剥注释）`)
+console.log(`  扫描范围：src/ 共 ${scanned.length} 个模块${SINCE ? `（--since ${SINCE} ⇒ 只扫改动过的 ${sinceList.length} 个）` : '（全量）'}（已排除 settle-old-* 快照、已剥注释）`)
 console.log(`  规则 ${RULES.length} 条：${RULES.map(r => r.id).join(' ')}`)
 console.log(`  命中 ${hits.length} 处 → 白名单（可留，带理由）${留.length} 处 · 【真残留 ${真.length} 处】\n`)
 

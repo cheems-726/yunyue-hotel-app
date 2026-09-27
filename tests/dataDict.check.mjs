@@ -119,6 +119,53 @@ const termFindings = []
   }
 }
 
+// ── E · M2 术语断言扩展（W4-4 · 按《酒店专业术语与项目对照缺口表》补）──────────
+// 原则：每条都【同时钉条件与内容】（W3-1 教训）——不写"出现过这个词就算过"，而是钉住恒等式/常量/未实装状态。
+// 覆盖面：A2 出租率口径 · B6 单房运营成本 · B8 OTA 佣金率 · B9/B10 参考费率在册且【未实装】 · C3/C4 回收期链
+const eNotes = []
+{
+  // E1 · A2 出租率口径：OCC = 售出间夜 ÷ 可售间夜（不是"售出间数 ÷ 总间数"的其它变体）
+  const r = settle({ site: { 客流: 5, 房价: 5, 租金: 3, 竞争: 3, 人力: 4, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房100间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', energy: 23, overbook: 0 }, week: 1, attrs: { quality: 80, reputation: 80, morale: 80 } })
+  const occ期望 = Math.round((r.occupiedRooms / r.rooms) * 100)
+  if (r.occupancy === occ期望) eNotes.push(`E1 OCC 恒等式：occupancy ${r.occupancy} === round(occupiedRooms/rooms×100)（缺口表 A2）`)
+  if (r.occupancy !== occ期望) termFindings.push({ rule: 'E1(OCC恒等式)', file: 'src/settlement.js', line: 0, ctx: `occupancy ${r.occupancy} ≠ round(occupiedRooms/rooms×100) = ${occ期望}`, expect: 'OCC = 售出间夜 ÷ 可售间夜（缺口表 A2）' })
+
+  // E2 · B6 单房运营成本 CPOR：运营成本 ÷ 售出间夜，且必须 0 < CPOR < ADR（单房经济性常识）
+  const 售出间夜 = r.occupiedRooms * 7
+  const CPOR = (r.totalCost - r.rentCost) / 售出间夜
+  const ADR = r.revenue / 售出间夜
+  if (!(CPOR > 0 && CPOR < ADR)) termFindings.push({ rule: 'E2(CPOR)', file: 'src/settlement.js', line: 0, ctx: `CPOR ${CPOR.toFixed(1)} 不在 (0, ADR ${ADR.toFixed(1)}) 区间内`, expect: '每卖一间房的运营成本应低于房价（缺口表 B6）' })
+  else eNotes.push(`E2 CPOR：${CPOR.toFixed(1)} 元/间夜 < ADR ${ADR.toFixed(1)} 元/间夜 ⇒ 单房经济性成立（缺口表 B6）`)
+
+  // E3 · B8 OTA 佣金率：登记在案的 15%（平台合作）/ 11%（自营投放）必须在源码里以该形态存在
+  const st = codeOnly(readFileSync('src/settlement.js', 'utf8'))
+  const 有15 = /otaCommissionRate = 0\.15/.test(st)
+  const 有11 = /revenue \* 0\.11/.test(st)
+  if (有15 && 有11) eNotes.push('E3 OTA 佣金率：平台合作 15% / 自营投放 11% 与登记值一致（缺口表 B8）')
+  if (!(有15 && 有11)) termFindings.push({ rule: 'E3(OTA佣金率)', file: 'src/settlement.js', line: 0, ctx: `15% 或 11% 的佣金率写法未找到（15%: ${有15} / 11%: ${有11}）`, expect: '平台合作 15% · 自营投放 11%（缺口表 B8 登记值）' })
+
+  // E4 · B9/B10 参考费率【在册】且【未实装】：franchiseModel 有三条费率；引擎里不得出现
+  //      （防止"半接一半"：接了展示却忘了改结算，或反过来）——P3 未开工前这条必须成立
+  const fm = readFileSync('src/franchiseModel.mjs', 'utf8')
+  const 费率在册 = /0\.05/.test(fm) && /0\.08/.test(fm) && /0\.035/.test(fm)
+  const 引擎未实装 = !/0\.035/.test(st) && !/管理费/.test(st)
+  if (!费率在册) termFindings.push({ rule: 'E4(费率在册)', file: 'src/franchiseModel.mjs', line: 0, ctx: '管理费 5% / CRS 8% / 官方渠道上限 3.5% 三者未同时存在', expect: '缺口表 B9/B10 的参考费率必须登记在册' })
+  if (!引擎未实装) termFindings.push({ rule: 'E4(未实装状态)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现了加盟费率字样 ⇒ 与"P3 未开工"不符', expect: 'P3 开工前引擎不得含加盟费率（要么全接，要么不动；不许半接）' })
+  if (费率在册 && 引擎未实装) eNotes.push('E4 加盟费率：在册（5%/8%/3.5%）且引擎未实装 ⇒ 与 P3 未开工状态自洽')
+
+  // E5 · C3/C4 回收期链（缺口表给的外部权威答案）：华住链 ⇒ 现金流 136.875 万 ⇒ 回收期 ≈ 4.5 年
+  const 年现金流 = 6570000 - 6570000 * 0.45 - 1916250 - 328500   // 按缺口表：年收入 − 部门成本45% − 租金 − 特许费
+  const 回收期 = 6100000 / 年现金流
+  if (Math.abs(年现金流 - 1368750) > 1 || Math.abs(回收期 - 4.5) > 0.05) {
+    termFindings.push({ rule: 'E5(回收期链)', file: 'tests/dataDict.check.mjs', line: 0, ctx: `现金流 ${(年现金流 / 10000).toFixed(2)} 万 / 回收期 ${回收期.toFixed(2)} 年`, expect: '136.875 万 ⇒ 610 万投资 ⇒ 约 4.5 年（缺口表 C3/C4 的权威链）' })
+  } else eNotes.push(`E5 回收期链：年现金流 ${(年现金流 / 10000).toFixed(2)} 万 ÷ 投资 610 万 = ${回收期.toFixed(2)} 年（与缺口表 4.5 年一致）`)
+  // 并断言：我们的回本口径与 C3 定义一致（总投资 ÷ 年现金流）
+  const { paybackText } = await import('../src/onePageLedger.mjs')
+  const t2 = paybackText({ 总投资: 6100000, yearly: { 现金流: 年现金流 } })
+  if (!/约 4\.5 年/.test(t2.text)) termFindings.push({ rule: 'E5(回本口径)', file: 'src/onePageLedger.mjs', line: 0, ctx: `paybackText 输出「${t2.text}」`, expect: '与缺口表 C3 同式：总投资 ÷ 年现金流 ⇒ 约 4.5 年' })
+  else eNotes.push('E5 回本口径：paybackText 与缺口表 C3 同式（总投资 ÷ 年现金流）')
+}
+
 // ── 华住分项对拍（§五·步骤5 / D16 修正版）────────────────────────────────
 // 参照模型（华住官网收益模型）：100 间 / 出租率 90% / ADR 200 元 / 3500 ㎡ / 租金 1.5 元/㎡/天 / 365 天
 // ★ W2-4（2026-09-27）：【现金流率已解锁】—— D16 修正写着"引入部门成本后，再解锁现金流率对拍"，
@@ -223,6 +270,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop(
   }
   console.log(`  术语断言：${termFindings.length === 0 ? '✅ 全绿（RevPAR÷7 / ADR实收 / GOP变量 / 字典实现齐全）' : '✗ ' + termFindings.length + ' 条未兑现：'}`)
   termFindings.forEach(t => console.log(`   [${t.rule}] ${t.file}:${t.line} — ${t.ctx}\n     期望：${t.expect}`))
+  if (eNotes.length) { console.log('  · M2 扩展（W4-4 · 按缺口表补）：'); eNotes.forEach(n => console.log('    ✓ ' + n)) }
   console.log(`\n  华住分项对拍（§五·步骤5 · D16 修正版 · W2-4 解锁 F 现金流率）：${hzFindings.length === 0 ? '✅ A~F 全过' : '✗ ' + hzFindings.length + ' 项不符'}`)
   hzNotes.forEach(n => console.log('   ' + n))
   hzFindings.forEach(t => console.log(`   ✗ [${t.rule}] ${t.ctx}\n     期望：${t.expect}`))

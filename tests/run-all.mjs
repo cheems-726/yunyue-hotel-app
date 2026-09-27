@@ -30,6 +30,8 @@ const SUITES = [
   { name: 'capital-single-source（资金三数单源）', file: 'tests/capital-single-source.test.mjs' },
   // Wave 3 · W3-2：认领页物业报价单（投资侧纯计算 · 不改结算）
   { name: 'propertyQuote（认领页报价单·W3-2）', file: 'tests/propertyQuote.test.mjs' },
+  // Wave 4 · W4-4：扫描器工具自检（--json / --since）
+  { name: 'scannerTools（扫描器自检·W4-4）', file: 'tests/scannerTools.test.mjs' },
   // Wave 4 · W4-6B（原 W3-6）：加盟回归断言（零变化 + 数值）
   { name: 'franchiseRegression（加盟回归·W4-6B）', file: 'tests/franchiseRegression.test.mjs' },
   // Wave 4 · D-2：仓库卫生（垃圾文件不得被跟踪 + .gitignore 规则在位 + 证据图引用检查）
