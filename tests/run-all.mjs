@@ -44,7 +44,15 @@ const SUITES = [
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
-  { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', optional: true },
+  // ⏳ 已知红（平衡性待决 · A 级 · 2026-09-27 用户拍板 D39）：本套件的断言【一个字没改】——
+  //    它在真实 45% 完整部门成本下报「死亡选址过多 24/52（>15%）」，属【教学平衡问题】：
+  //    低出租率选址在按可售房摊的固定部门成本下真亏。目标值（门槛 or 租金曲线）已进待决策队列，
+  //    等用户拍板；**不许调阈值、不许调租金曲线来变绿**。
+  //    ⇒ 门禁把它显示为「⏳ 已知红」并写明理由，不计入失败数，但【仍在门禁内、仍然会跑】。
+  { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', knownRed: {
+      reason: '平衡性待决：真实 45% 部门成本下低出租选址真亏（24/52 > 15% 阈值）；目标值待拍板',
+      since: '2026-09-27', decision: 'D39', owner: '用户（待决策队列）',
+    } },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true },
   { name: 'ui-smoke（已并入 npm run test:ui）', file: null, npm: 'test:ui', browser: true, note: '含 build' },
@@ -77,6 +85,7 @@ if (!NO_BUILD) {
 for (const s of SUITES) {
   if (s.npm) {
     if (FAST) { rows.push({ name: s.name, state: '⏭ 跳过（--fast）', pass: '-', fail: '-', secs: '-' }); skipped++; continue }
+    // D39：已知红（平衡性待决）—— 跑、报告、写明理由，但不计入失败数（断言本身未改动）
     const r = run('npm', ['run', s.npm], s.name)
     const state = r.code === 0 ? '✓' : '✗'
     if (r.code !== 0) failed++
@@ -99,6 +108,15 @@ for (const s of SUITES) {
     rows.push({ name: s.name, state, pass: r.pass ?? '-', fail: r.fail ?? '-', secs: r.secs, out: r.out })
     continue
   }
+  // ⏳ D39「已知红」：平衡性待决项 —— 套件【断言一个字没改】，仍然跑、仍然报红，
+  //    但明确标注理由与拍板编号，且不计入失败数（避免掩盖，也避免误导）
+  if (s.knownRed) {
+    const state = r.code === 0 ? '✅ 已知红已转绿' : '⏳ 已知红'
+    if (r.code === 0) console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)`)
+    else console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)· ${s.knownRed.decision} 待决`)
+    rows.push({ name: s.name, state, pass: r.pass ?? '-', fail: r.fail ?? '-', secs: r.secs, out: r.out, knownRed: s.knownRed })
+    continue
+  }
   const state = r.code === 0 ? '✓' : '✗'
   if (r.code !== 0) failed++
   console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)`)
@@ -111,6 +129,16 @@ const total = rows.reduce((a, r) => a + (Number(r.pass) || 0), 0)
 const totalFail = rows.reduce((a, r) => a + (Number(r.fail) || 0), 0)
 for (const r of rows) console.log(`  ${r.state}  ${String(r.name).padEnd(40)} ${String(r.pass).padStart(4)} 通过 / ${String(r.fail).padStart(2)} 失败  ${r.secs}s`)
 console.log(`\n合计断言：${total} 通过 / ${totalFail} 失败${skipped ? ` · 跳过 ${skipped} 项` : ''}`)
+const knownReds = rows.filter(r => r.knownRed)
+if (knownReds.length) {
+  console.log('\n⏳ 已知红（在门禁内保留 · 断言未改动 · 不计入失败数）：')
+  knownReds.forEach(r => {
+    console.log(`  · ${r.name}`)
+    console.log(`    理由：${r.knownRed.reason}`)
+    console.log(`    拍板：${r.knownRed.decision}（${r.knownRed.since}）· 归属：${r.knownRed.owner}`)
+  })
+  console.log('  ★ 纪律：不许调阈值 / 不许调租金曲线来让它变绿 —— 目标值待拍板')
+}
 
 if (failed) {
   console.log('\n✗ 失败项详情（尾部 40 行）：')
