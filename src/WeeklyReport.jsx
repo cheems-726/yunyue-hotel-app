@@ -3,6 +3,7 @@ import { getTitle } from './hotelTitle.js'
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { decisions as ALL_DECISIONS } from './decisions.js'
 import { qualityOf } from './attrs.js'
+import { buildDailyReport, reconcileWithWeek } from './dailyReport.mjs'
 
 const DECISION_NAMES_MAP = Object.fromEntries(ALL_DECISIONS.map(d => [d.id, d]))
 
@@ -83,6 +84,7 @@ function CrisisCard({ event, week }) {
 
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose, history = [], brand = {}, attrs }) {
+  const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
   const isProfit = result.profit >= 0
   const [copied, setCopied] = useState(false)
   const [tipOpen, setTipOpen] = useState(null) // 决策摘要展开的 tip 行
@@ -161,6 +163,44 @@ export default function WeeklyReport({ result, onClose, history = [], brand = {}
           </div>
         </div>
       </div>
+
+      {/* 🔴 B2-2 日报（T3.3/T3.4）：把"本周经营数据"按天展开，7 天明细 + 与周报对账徽标
+          数据源 = result.dailySnapshots（Phase D 已接，Σ7天 ≡ 周值）；D30 已定随周报持久化 */}
+      {(() => {
+        const rows = buildDailyReport(result)
+        if (!rows.length) return null
+        const rec = reconcileWithWeek(result)
+        return (
+          <div className="card">
+            <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setDailyOpen(o => !o)}>
+              <span>📅 日报（按天查看）<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}> · 点标题展开/收起</span></span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: rec.ok ? '#10B981' : '#DC2626' }}>
+                {rec.ok ? '✓ 7 天合计 = 周报' : `⚠ 与周报有 ${rec.diff.length} 处对不上`}
+              </span>
+            </div>
+            {dailyOpen && (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 11, color: '#9CA3AF', padding: '4px 6px', borderBottom: '1px solid #F3F4F6' }}>
+                  <span>天</span><span style={{ textAlign: 'right' }}>营收</span><span style={{ textAlign: 'right' }}>成本</span><span style={{ textAlign: 'right' }}>净流入</span>
+                </div>
+                {rows.map(d => (
+                  <div key={d.dayIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 12, padding: '5px 6px', borderBottom: '1px dashed #F3F4F6' }}>
+                    <span style={{ color: '#6B7280' }}>{d.label}</span>
+                    <span style={{ textAlign: 'right' }}>{d.revenue.toLocaleString()}</span>
+                    <span style={{ textAlign: 'right', color: '#6B7280' }}>{d.cost.toLocaleString()}</span>
+                    <span style={{ textAlign: 'right', color: d.cashDelta >= 0 ? '#10B981' : '#DC2626', fontWeight: 600 }}>{d.cashDelta >= 0 ? '+' : ''}{d.cashDelta.toLocaleString()}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>
+                  📌 天数据是【周值的确定性分摊】（整数分摊 + 余数补偿 ⇒ 7 天合计严格等于周报），
+                  不是逐日独立模拟；到店/离店按周口径统计，暂未拆到天。
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* 经营明细 */}
       <div className="card">
