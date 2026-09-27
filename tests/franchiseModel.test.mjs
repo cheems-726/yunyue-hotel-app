@@ -77,9 +77,20 @@ console.log('\n[4] ★ 未碰业务代码：结算输出零变化')
     `结构字段零漂移（${STRUCT.length} 项）且 Δcost === deptCost（${r.totalCost - o.totalCost} === ${r.deptCost}）（W2 重基线）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
   // 同时钉住 T1.1 的口径恒等式（收入 = 在店间数 × 房价 × 7）
   ok(r.revenue === Math.round(r.occupiedRooms * r.price) * 7, `收入口径恒等式成立（${r.occupiedRooms} 间 × ${r.price} 元 × 7 = ${r.revenue}）`)
+  // ── 零影响保证（🔴 W3-2 重基线 D38-B：从"零引用"升级为"引用也不进结算"）──────
+  //   原断言：franchiseModel 不被【任何】业务代码 import（= 零影响的证明方式）。
+  //   P2 交互层（报单/钱账）开始合法引用它 ⇒ 该证明方式失效，但【意图】没变：
+  //   "加盟数据不得影响结算输出"。新形式更强也更准：
+  //     ① 结算路径（settlement.js / 引擎出口）不得引用它
+  //     ② 引用方只允许是交互层（白名单 + 理由），且那些模块必须【不被结算引用】（由各自套件守）
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const users = files.filter(f => f !== 'franchiseModel.mjs' && /from\s*['"].*franchiseModel/.test(readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')))
-  ok(users.length === 0, `franchiseModel 未被任何业务代码 import（纯数据，零影响）${users.length ? ' → ' + users.join(',') : ''}`)
+  const INTERACTION_LAYER = ['propertyQuote.mjs']   // 加盟【展示/测算】层：纯函数，不被结算引用
+  const illegal = users.filter(u => !INTERACTION_LAYER.includes(u))
+  ok(illegal.length === 0, `franchiseModel 只被交互层引用（白名单 ${INTERACTION_LAYER.join(',')}）${illegal.length ? ' → 越界：' + illegal.join(',') : ''}`)
+  const engineFiles = ['settlement.js', 'serverTick.mjs', 'deptCosts.mjs', 'metricDefs.mjs']
+  const engineUsers = users.filter(u => engineFiles.includes(u))
+  ok(engineUsers.length === 0, `结算/口径路径不引用 franchiseModel（${engineFiles.join(' / ')} 均无）${engineUsers.length ? ' → ' + engineUsers.join(',') : ''}`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

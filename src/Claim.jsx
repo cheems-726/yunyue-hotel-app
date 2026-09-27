@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
+import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -12,23 +13,25 @@ const claimSteps = [
 ]
 
 // 候选物业（按品牌标准给出，含商圈类型）
+// 🔴 W3-2：新增 areaNum（与 area 字符串同义的数字，供报价单计算用）——
+//   字符串只作展示；数字字段由 tests/propertyQuote.test.mjs 断言"必须与字符串一致"（防两处漂移）
 const properties = {
   经济型: [
-    { name: '社区旁物业', type: '社区型', area: '2600㎡', rooms: '72间', rent: '中等', match: '高', note: '可排客房按品牌标准（约50-80间）' },
-    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', rooms: '80间', rent: '低', match: '高', note: '可排客房按品牌标准（约50-80间）' },
-    { name: '商务区物业', type: '商圈型', area: '2800㎡', rooms: '75间', rent: '高', match: '中', note: '可排客房按品牌标准（约50-80间）' },
+    { name: '社区旁物业', type: '社区型', area: '2600㎡', areaNum: 2600, rooms: '72间', rent: '中等', match: '高', note: '可排客房按品牌标准（约50-80间）' },
+    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', areaNum: 3000, rooms: '80间', rent: '低', match: '高', note: '可排客房按品牌标准（约50-80间）' },
+    { name: '商务区物业', type: '商圈型', area: '2800㎡', areaNum: 2800, rooms: '75间', rent: '高', match: '中', note: '可排客房按品牌标准（约50-80间）' },
   ],
   中档: [
-    { name: '商圈核心物业', type: '商圈型', area: '3500㎡', rooms: '85间', rent: '高', match: '高' },
-    { name: '商务区物业', type: '商务型', area: '3200㎡', rooms: '80间', rent: '中高', match: '高' },
-    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', rooms: '78间', rent: '中', match: '中' },
+    { name: '商圈核心物业', type: '商圈型', area: '3500㎡', areaNum: 3500, rooms: '85间', rent: '高', match: '高' },
+    { name: '商务区物业', type: '商务型', area: '3200㎡', areaNum: 3200, rooms: '80间', rent: '中高', match: '高' },
+    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', areaNum: 3000, rooms: '78间', rent: '中', match: '中' },
   ],
   中高档: [
-    { name: '商圈黄金物业', type: '商圈型', area: '4000㎡', rooms: '90间', rent: '很高', match: '高' },
-    { name: '高端商务物业', type: '商务型', area: '3800㎡', rooms: '88间', rent: '高', match: '高' },
+    { name: '商圈黄金物业', type: '商圈型', area: '4000㎡', areaNum: 4000, rooms: '90间', rent: '很高', match: '高' },
+    { name: '高端商务物业', type: '商务型', area: '3800㎡', areaNum: 3800, rooms: '88间', rent: '高', match: '高' },
   ],
   高档: [
-    { name: '核心地段物业', type: '商圈型', area: '4500㎡', rooms: '95间', rent: '极高', match: '高' },
+    { name: '核心地段物业', type: '商圈型', area: '4500㎡', areaNum: 4500, rooms: '95间', rent: '极高', match: '高' },
   ],
 }
 
@@ -49,6 +52,9 @@ export default function Claim({ brand, location, onComplete }) {
   const propList = getPropertyList(brand.level)
   const current = claimSteps[step]
   const progress = Math.round((step / (claimSteps.length - 1)) * 100)
+  // 🔴 W3-2：物业报价单（选中物业后即可算；口径见 src/propertyQuote.mjs 顶部注释）
+  const quote = selectedProperty ? propertyQuote(brand, selectedProperty, location?.attrs) : null
+  const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补')
 
   function propertyResult(p) {
     const rentHigh = p.rent.includes('高') || p.rent.includes('很高') || p.rent.includes('极高')
@@ -178,6 +184,38 @@ export default function Claim({ brand, location, onComplete }) {
               {step === 4 && '商务条款：确认加盟费、合作责任、营建标准、筹备计划。✅ 条款达成'}
               {step === 5 && `合同签署：完成产权审核，正式签约。🎉 你已认领「${selectedProperty?.name}」，获得${brand.name}品牌经营权！`}
             </div>
+
+            {/* 🔴 W3-2（P2 交互层）：物业报价单 —— ★ 只加展示，不改任何结算数值
+                每个数字都能追到已有口径（房量=parseRooms / 年租金=引擎租金公式 / 费率=franchiseModel 三件套）；
+                缺数据的字段显示"待补"（franchiseModel 目前只有 汉庭·汉庭快捷 两个品牌）；
+                收益侧（出租率/ADR/回收期）需先定用哪套口径 ⇒ 属 A7，已进待决策队列，此处不编造。 */}
+            {step === 3 && quote && (
+              <div style={{ marginTop: 12, padding: 12, background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#075985', marginBottom: 8 }}>
+                  🧾 物业报价单 · {quote.property}（{brand.name} 品牌标准）
+                </div>
+                {quote.lines.map(l => (
+                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed #E0F2FE' }}>
+                    <span style={{ color: '#0C4A6E', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
+                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? '#9CA3AF' : '#0369A1' }}>
+                      {l.status === STATUS.MISSING ? '待补 · 无来源数据'
+                        : (l.fmt === 'fixed2' ? Number(l.value).toFixed(2)
+                          : l.fmt === 'num' ? String(l.value)
+                            : (l.value / 10000).toFixed(1) + ' 万')}
+                      {l.status !== STATUS.MISSING && l.fmt !== 'wan' ? ' ' + l.unit : ''}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 10, color: '#0369A1', marginTop: 8, lineHeight: 1.6 }}>
+                  📌 报价单只算【投资侧】。房量取品牌标准（与结算同源）、年租金取引擎租金口径、
+                  费率来自加盟资料三件套 ⇒ 每个数字可追溯；<b>没有来源的一律"待补"，不编造</b>。
+                </div>
+                <div style={{ fontSize: 10, color: '#92400E', marginTop: 6, lineHeight: 1.6, background: '#FFFBEB', borderRadius: 6, padding: '6px 8px' }}>
+                  ⏳ 收益侧（出租率 / 平均房价 / 回本周期）需先确定"用哪套口径"（真实市场数据 or 参考模型样例），
+                  已列入待决策队列 —— 定案前不在此页给数，避免与课堂口径打架。
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

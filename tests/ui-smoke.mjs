@@ -193,6 +193,14 @@ try {
   await clickCard(page, 'OTA平台合作'); await sleep(400)
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '社区旁物业'); await sleep(400)
+  // 🔴 W3-2：第 3 步「项目决策」必须出现物业报价单（投资侧可追溯 / 无来源标待补）
+  let quoteSeen = false
+  for (let i = 0; i < 4 && !quoteSeen; i++) {
+    if ((await text(page)).includes('物业报价单')) { quoteSeen = true; break }
+    await page.evaluate(() => { const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('下一步')); n && n.click() })
+    await sleep(600)
+  }
+  ok('认领·项目决策步出现物业报价单（W3-2）', quoteSeen)
   for (let i = 0; i < 7; i++) {
     const done = await page.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
