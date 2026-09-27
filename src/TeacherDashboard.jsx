@@ -4,6 +4,7 @@ import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
+import { restoreFromCloud } from './stateMigration.mjs'
 import { normalizeAttrs, qualityOf } from './attrs.js'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -402,7 +403,14 @@ export default function TeacherDashboard({ user, onLogout }) {
 
   const loadAll = async () => {
     try {
-      const [states, profiles] = await Promise.all([fetchAllGameStates(), fetchAllProfiles()])
+      const [rawStates, profiles] = await Promise.all([fetchAllGameStates(), fetchAllProfiles()])
+      // 🔴 批次 B1.5（教师端读取侧 · 第 4 处云端路径）：教师端消费 state.history 算策略/排名/四维分
+      //   ⇒ 旧量级云档必须一并迁移，否则"学生端 502 万、教师端 50 万"两套量级混排
+      //   ★ 只读迁移、【不回写云端】—— 教师端没有改写学生存档的权限语义
+      const states = rawStates.map(gs => {
+        const r = restoreFromCloud(gs && gs.state)
+        return r.migrated ? { ...gs, state: r.state } : gs
+      })
       const pMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
       const list = states.map(gs => summarize(gs, pMap[gs.user_id]))
       list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
