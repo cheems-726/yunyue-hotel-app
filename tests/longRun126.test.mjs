@@ -10,6 +10,7 @@
 //   ⑥ Σ7天 === 周值（新口径下重验）
 //   ★ 越界逐条列出，【不许调阈值】
 import { settle } from '../src/settlement.js'
+import { SCALE } from '../src/stateMigration.mjs'   // W5-1：预警线单源（原写死 100.4 万 = W2-2 之前的旧口径）
 import { decisions as DECISIONS } from '../src/decisions.js'
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
 
@@ -160,8 +161,8 @@ console.log('\n[5] ④ 全学期 资金/口碑/属性 不出界（★ 越界逐�
   // 资金是否跌破破产线（0）—— 逐条报出
   const bankrupt = Object.entries(runs).filter(([, r]) => r.weeks.some(w => w.capital < 0))
   console.log(`     破产（capital<0）组数：${bankrupt.length}${bankrupt.length ? ' → ' + bankrupt.map(([n]) => n).join('、') : ''}`)
-  const warn = Object.entries(runs).filter(([, r]) => r.weeks.some(w => w.capital < 1004000))
-  console.log(`     触预警（capital<100.4万）组数：${warn.length}${warn.length ? ' → ' + warn.map(([n]) => n).join('、') : ''}`)
+  const warn = Object.entries(runs).filter(([, r]) => r.weeks.some(w => w.capital < SCALE.变黄线))
+  console.log(`     触预警（capital<${SCALE.变黄线 / 10000}万 = SCALE.变黄线 单源）组数：${warn.length}${warn.length ? ' → ' + warn.map(([n]) => n).join('、') : ''}`)
 }
 
 console.log('\n[6] 故障注入：脏输入不得崩溃、不得污染数值')
