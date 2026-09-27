@@ -335,7 +335,7 @@ if ((s.竞争 || 3) >= EVENT_CONFIG.rivalOpen.minCompetition && rand() < EVENT_C
 }
 // ⑤ 网红探店（正面）：口碑好被推荐
 if (goodRate >= EVENT_CONFIG.influencerVisit.minGoodRate && rand() < EVENT_CONFIG.influencerVisit.prob) {
-  addEvent({ type: 'good', icon: '📸', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', impact: '口碑 +2%', impact: '口碑 +2%', tip: '好口碑会带来免费流量' })
+  addEvent({ type: 'good', icon: '📸', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', impact: '口碑 +2%', tip: '好口碑会带来免费流量' })
   goodRate = Math.min(goodRate + EVENT_CONFIG.influencerVisit.goodRateUp, 0.95)
 }
 // ⑥ 会员复购（正面）：强调品质转化带来回头客

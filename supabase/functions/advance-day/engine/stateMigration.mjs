@@ -28,12 +28,28 @@
 //   history 里存的是 settle() 的【整个返回对象】，因此 Phase D 新增的 dailySnapshots
 //   会随 history 一起落存档 —— 与"天数据不持久化"的字面要求有出入（详见 B1 报告 §诚实记录）。
 
+// 🔴 W2-2：改成【版本序表】——口径每变一次只加一行，迁移按跳次依次执行（不再每次重写）
+//   ① v1→v2：T1.1（一晚→一周 ×7 + 资金三数 m=10.0483）⇒ IC 50万 → 502万
+//   ② v2→v3：W2-1 部门成本落地 ⇒ 利润量级 ×0.2970 ⇒ IC 502万 → 149万
+//   ★ 合并校验：500,000 × 10.0483 × 0.2970 = 1,492,150 ≈ IC_NEW 1,490,000（万位取整）
+export const SCALE_STEPS = [
+  { from: 1, to: 2, IC_OLD: 500000, IC_NEW: 5020000, m: 10.0483, why: 'T1.1 一晚→一周 ×7 + 资金三数按 m' },
+  { from: 2, to: 3, IC_OLD: 5020000, IC_NEW: 1490000, m: 0.2970, why: 'W2-1 部门成本落地 ⇒ 利润量级 ×0.297' },
+]
+const IC_NEW = 1490000   // 当前起始资金（W2-2 落值 · D40 裁定）
 export const SCALE = {
-  IC_OLD: 500000,
-  IC_NEW: 5020000,
-  m: 10.0483,
-  VERSION_LEGACY: 1,   // 旧档（无 scaleVersion 字段 ⇒ 视为 1）
-  VERSION_CURRENT: 2,  // 已迁移
+  IC_OLD: 500000,        // 最旧档起始资金（文档/断言引用）
+  IC_NEW,                // 当前起始资金（W2-2 落值）
+  m: SCALE_STEPS.reduce((a, st) => a * st.m, 1),   // ★ 累计缩放【由各跳推导】，不手写 —— 避免与跳表漂移
+  VERSION_LEGACY: 1,
+  VERSION_CURRENT: 3,
+  // 🔴 W2 收尾（学生可见错值修复）：资金三数【由 IC 推导】——界面与守门一律引用这两个常量。
+  //   比例来自 D40（黄/IC = 0.2000、红/IC = 0.1000，决策端第 12 轮实算复核）。
+  //   为什么要常量：W2-2 改 IC 时，界面里【硬编码】的 502 万文案 / 100.4 万预警线没跟着改
+  //   ⇒ 学生看到"启动约 502 万"却拿到 149 万、周报预警线（100.4万）与资金卡变黄线（29.8万）两套。
+  //   从此单源：改 IC 一处，文案/阈值/守门全部跟着走。
+  变黄线: Math.round(IC_NEW * 0.2),   // 298,000 = UI「⚠ 资金偏低」
+  变红线: Math.round(IC_NEW * 0.1),   // 149,000 = UI「🚨 破产预警」
 }
 
 // history / report 条目里【乘 m】的字段
@@ -42,17 +58,17 @@ const MONEY_KEYS = ['revenue', 'totalCost', 'rentCost', 'gop', 'profit', 'eventF
 const MONEY_MAPS = ['weeklyExpenses']
 const DAY_MONEY_KEYS = ['revenue', 'cost', 'cashDelta']
 
-const scaleNum = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * SCALE.m) : v)
+const scaleNum = (v, m = SCALE.m) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * m) : v)
 
 // 缩放一个"结算结果"对象（report 或 history[i]）—— 只读入参，返回新对象
-function scaleResult(r) {
+function scaleResult(r, m = SCALE.m) {
   if (!r || typeof r !== 'object') return r
   const out = { ...r }
-  for (const k of MONEY_KEYS) if (k in out) out[k] = scaleNum(out[k])
+  for (const k of MONEY_KEYS) if (k in out) out[k] = scaleNum(out[k], m)
   for (const k of MONEY_MAPS) {
     if (out[k] && typeof out[k] === 'object') {
       const m2 = {}
-      for (const [kk, vv] of Object.entries(out[k])) m2[kk] = scaleNum(vv)
+      for (const [kk, vv] of Object.entries(out[k])) m2[kk] = scaleNum(vv, m)
       out[k] = m2
     }
   }
@@ -60,7 +76,7 @@ function scaleResult(r) {
     out.dailySnapshots = out.dailySnapshots.map(d => {
       if (!d || typeof d !== 'object') return d
       const dd = { ...d }
-      for (const k of DAY_MONEY_KEYS) if (k in dd) dd[k] = scaleNum(dd[k])
+      for (const k of DAY_MONEY_KEYS) if (k in dd) dd[k] = scaleNum(dd[k], m)
       return dd
     })
   }
@@ -103,22 +119,30 @@ export function migrateSave(saved) {
   const ver = Number(saved.scaleVersion) || SCALE.VERSION_LEGACY
   if (ver >= SCALE.VERSION_CURRENT) return { ...none, reason: `已是 scaleVersion=${ver}，跳过（幂等）`, from: ver, to: ver }
 
-  const history = Array.isArray(saved.history) ? saved.history : []
-  // capital_old：有字段就用它；否则回退"IC_old + Σ历史利润"（与旧版 App 的兜底口径一致）
-  const sumProfitOld = history.reduce((a, h) => a + (Number(h && h.profit) || 0), 0)
-  const capitalOld = typeof saved.capital === 'number' ? saved.capital : SCALE.IC_OLD + sumProfitOld
-  // ★ D25：只放大【相对起点的盈亏】
-  const capitalNew = Math.round(SCALE.IC_NEW + (capitalOld - SCALE.IC_OLD) * SCALE.m)
-
-  const save = {
-    ...saved,
-    capital: capitalNew,
-    history: history.map(scaleResult),
-    scaleVersion: SCALE.VERSION_CURRENT,
+  // 🔴 W2-2：按【跳次】依次迁移（每跳只做一次 D25 变换）
+  //   跳内变换：capital = IC_new + (capital − IC_old) × m ；history/report 金额 × m
+  const steps = SCALE_STEPS.filter(st => st.from >= ver)
+  const scaledOnce = (obj, m) => {
+    const r = scaleResult(obj, m)
+    return r
   }
-  if (saved.report && typeof saved.report === 'object') save.report = scaleResult(saved.report)
-
-  return { save, migrated: true, reason: `scaleVersion ${ver} → ${SCALE.VERSION_CURRENT}`, from: ver, to: SCALE.VERSION_CURRENT, scaledHistory: history.length }
+  let cur = { ...saved }
+  let history = Array.isArray(cur.history) ? cur.history : []
+  for (const st of steps) {
+    // capital：有字段就用它；无则先按该跳的 IC_OLD + Σ利润 还原
+    const sumProfit = history.reduce((a, h) => a + (Number(h && h.profit) || 0), 0)
+    const capitalOld = typeof cur.capital === 'number' ? cur.capital : st.IC_OLD + sumProfit
+    const capitalNew = Math.round(st.IC_NEW + (capitalOld - st.IC_OLD) * st.m)   // ★ D25：只放大相对起点的盈亏
+    history = history.map(h => scaledOnce(h, st.m))
+    cur = { ...cur, capital: capitalNew, history }
+    if (cur.report && typeof cur.report === 'object') cur.report = scaledOnce(cur.report, st.m)
+  }
+  const save = { ...cur, scaleVersion: SCALE.VERSION_CURRENT }
+  return {
+    save, migrated: true,
+    reason: `scaleVersion ${ver} → ${SCALE.VERSION_CURRENT}（${steps.length} 跳：${steps.map(s => `v${s.from}→v${s.to}`).join(' ')}）`,
+    from: ver, to: SCALE.VERSION_CURRENT, scaledHistory: (save.history || []).length,
+  }
 }
 
 // 供测试与文档引用的字段清单（"哪些乘了 m，为什么"）

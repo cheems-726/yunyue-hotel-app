@@ -14,5 +14,15 @@ android/local.properties
 *.patch-tmp
 
 # 测试运行自动重写的截图（ui-smoke 每次跑都覆盖，属生成物不是源码）
-tests/_s3-report.png
-tests/_s3-rep.png
+tests/_s3-*.png
+# 一次性诊断脚本的截图（_shot-*.mjs 各自写出；重跑即得，不必入库）
+# ⚠️ 注意：仓库里【已跟踪】13 张历史 _shot-*.png（被诊断脚本与 DIAG-2A 文档引用作证据）
+#    ⇒ 规则只挡【将来新增】的截图，不影响已跟踪的那些（gitignore 对已跟踪文件无效）
+tests/_shot-*.png
+
+# 本地一次性核验脚本与输出（执行端/用户逐批核对时生成于【仓库根目录】；不属源码，用完即清）
+# ★ 用【根锚定】写法（前导 /）：只挡根目录，不碰 scripts/ 下有意维护的 *.cjs 工具脚本
+#   （第一版写成 `_*.cjs` 会连 scripts/_check-tables.cjs 这类正式脚本一起挡掉 —— 已纠正）
+# ★ 附带价值：避免"git add -A 把核验脚本扫进提交"（D42 事故的同类风险）
+/_*.cjs
+/_*.txt

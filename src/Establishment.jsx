@@ -177,13 +177,16 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
         <div>
           <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>点击情景查看投资结果，<b>选定一个</b>作为你的投资决策（必须选择才能进入下一步）：</div>
           {[
-            { key: 'inv-opt', scene: '乐观情景', occ: '出租率 80%+', note: '高客流市场，快速回收，约 4-5 年回本', advise: '适合追加投资提品质', title: '乐观情景 · 投资决策', changes: [{ label: '投资规模', value: '追加投资，提升品质', dir: 'down' }, { label: '品质定位', value: '高（拉高房价带）', dir: 'up' }, { label: '预计回收期', value: '4-5 年', dir: 'up' }, { label: '风险', value: '客流不及预期时回收期拉长', dir: 'down' }], note: '乐观情景下市场承接得住更高房价，追加投资（房型升级/公区品质）能换来更高 ADR。但钱花出去就收不回——先看选址客流是否真的支撑 80% 出租率。' },
-            { key: 'inv-base', scene: '基准情景', occ: '出租率 65%', note: '中等客流，正常回收，约 6-7 年回本', advise: '稳健投入，控制成本', title: '基准情景 · 投资决策', changes: [{ label: '投资规模', value: '按品牌标准，不追加', dir: '' }, { label: '品质定位', value: '标准（符合品牌验收）', dir: '' }, { label: '预计回收期', value: '6-7 年', dir: '' }, { label: '风险', value: '低，行业最常见路径', dir: 'up' }], note: '基准情景是行业最常见假设：按品牌标准投入、不追加不削减。华住收益模型测算多以 65% 出租率为基准——稳健是主旋律， fluctuations 留给经营期去应对。' },
-            { key: 'inv-pes', scene: '悲观情景', occ: '出租率 50%', note: '低客流市场，慢回收，约 8-10 年回本', advise: '谨慎投资，压缩预算', title: '悲观情景 · 投资决策', changes: [{ label: '投资规模', value: '压缩非必要预算', dir: 'up' }, { label: '品质定位', value: '保底线（卫生/床品/热水）', dir: '' }, { label: '预计回收期', value: '8-10 年', dir: 'down' }, { label: '风险', value: '现金流压力大，警惕资金链', dir: 'down' }], note: '悲观情景下每一分钱都要花在客人直接感知的地方（床品/热水/卫生），砍装修软装。低客流+高投入是最危险的组合，资金链断裂就出局。' },
+            { key: 'inv-opt', scene: '乐观情景', occ: '出租率 80%+', 摘要: '高客流市场，快速回收，约 4-5 年回本', advise: '适合追加投资提品质', title: '乐观情景 · 投资决策', changes: [{ label: '投资规模', value: '追加投资，提升品质', dir: 'down' }, { label: '品质定位', value: '高（拉高房价带）', dir: 'up' }, { label: '预计回收期', value: '4-5 年', dir: 'up' }, { label: '风险', value: '客流不及预期时回收期拉长', dir: 'down' }], note: '乐观情景下市场承接得住更高房价，追加投资（房型升级/公区品质）能换来更高 ADR。但钱花出去就收不回——先看选址客流是否真的支撑 80% 出租率。' },
+            { key: 'inv-base', scene: '基准情景', occ: '出租率 65%', 摘要: '中等客流，正常回收，约 6-7 年回本', advise: '稳健投入，控制成本', title: '基准情景 · 投资决策', changes: [{ label: '投资规模', value: '按品牌标准，不追加', dir: '' }, { label: '品质定位', value: '标准（符合品牌验收）', dir: '' }, { label: '预计回收期', value: '6-7 年', dir: '' }, { label: '风险', value: '低，行业最常见路径', dir: 'up' }], note: '基准情景是行业最常见假设：按品牌标准投入、不追加不削减。华住收益模型测算多以 65% 出租率为基准——稳健是主旋律， fluctuations 留给经营期去应对。' },
+            { key: 'inv-pes', scene: '悲观情景', occ: '出租率 50%', 摘要: '低客流市场，慢回收，约 8-10 年回本', advise: '谨慎投资，压缩预算', title: '悲观情景 · 投资决策', changes: [{ label: '投资规模', value: '压缩非必要预算', dir: 'up' }, { label: '品质定位', value: '保底线（卫生/床品/热水）', dir: '' }, { label: '预计回收期', value: '8-10 年', dir: 'down' }, { label: '风险', value: '现金流压力大，警惕资金链', dir: 'down' }], note: '悲观情景下每一分钱都要花在客人直接感知的地方（床品/热水/卫生），砍装修软装。低客流+高投入是最危险的组合，资金链断裂就出局。' },
           ].map(s => (
             <div key={s.key} onClick={() => { onPick(s.key, { title: s.title, changes: s.changes, note: s.note }); chooseInvest(s.scene) }} style={{ ...(choices.invest === s.scene ? { cursor: 'pointer', border: '2px solid #E8940F', background: '#FFF4E0' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.invest === s.scene ? '✅ ' : ''}{s.scene} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{s.occ}</span>{picked[s.key] && <span style={{ fontSize: 10, color: '#A96407', marginLeft: 6 }}>已查看</span>}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{s.note}</div>
+              {/* 🔴 D-1 修复（Wave 4）：原先同一对象里 `note` 写了两次（短结论 + 长说明）⇒
+                  JS 静默保留长文、短结论从未显示，且 build 有 3 条 "Duplicate key" 警告。
+                  现拆成两个名字：卡片显示 摘要，浮层用完整 note（各自的用途都保住） */}
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{s.摘要}</div>
               <div style={{ fontSize: 11, color: '#A96407', marginTop: 4 }}>建议：{s.advise}</div>
             </div>
           ))}
