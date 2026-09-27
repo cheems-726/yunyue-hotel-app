@@ -6,7 +6,7 @@
 //       node tests/run-all.mjs --no-build 跳过 npm run build
 // 退出码：0 = 全绿；1 = 有失败；2 = 有环境性跳过
 import { spawnSync, execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const FAST = process.argv.includes('--fast')
 const NO_BUILD = process.argv.includes('--no-build')
@@ -154,6 +154,34 @@ if (knownReds.length) {
     console.log(`    拍板：${r.knownRed.decision}（${r.knownRed.since}）· 归属：${r.knownRed.owner}`)
   })
   console.log('  ★ 纪律：不许调阈值 / 不许调租金曲线来让它变绿 —— 目标值待拍板')
+}
+
+// ── 机器可读的"最近一次门禁记录"（A1 / BL-13 对策）──────────────────────
+//   交接卡 ⑥ 起点校验段是【人维护】的数字 ⇒ 会出现"卡合规（含 HEAD）但数字过期"。
+//   本记录让 docs-sync 能拿卡里的数字与它对账。
+//   ★ 三个设计要点：
+//     ① 只在【全绿】时写 —— 记录 = 最近一次干净状态（失败运行不污染基准）
+//     ② 双模式并存（fast / full 各一档），只更新自己那档
+//     ③ 附带 docs-sync 自身的断言数 —— 总数含它，比对时要用它当容差（解开自指）
+//   ★ 写失败不影响门禁结论；文件在 .gitignore（生成物）。
+if (!failed) {
+  try {
+    const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8', shell: false })
+    const P = new URL('./_last-gate.json', import.meta.url)
+    let prev = {}
+    try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
+    const dsRow = rows.find(x => String(x.name).startsWith('docs-sync'))
+    const dsCount = dsRow ? (Number(dsRow.pass) || 0) + (Number(dsRow.fail) || 0) : 0
+    const next = {
+      ...prev,
+      [FAST ? 'fast' : 'full']: {
+        ranAt: new Date().toISOString(), 通过: total, 失败: totalFail, 跳过: skipped,
+        docsSync断言数: dsCount, head: (head.stdout || '').trim() || null,
+      },
+      已知红: knownReds.map(x => x.name),
+    }
+    writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
+  } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
 
 if (failed) {

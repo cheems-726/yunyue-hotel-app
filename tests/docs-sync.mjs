@@ -28,6 +28,24 @@ const exists = p => fs.existsSync(p)
 // 🔴 W4-6 补覆盖（2026-09-27）：本脚本此前只盯 3 份文档 ⇒ 会话交接卡 / 索引 / 现行目录其余任务包
 //    全在监控之外。而"做完即更新交接卡"是 R1 纪律 ⇒ 交接卡落后时门禁照样绿 = **假绿近亲（BL-11 族）**。
 //    本处新增两类覆盖：① 新鲜度清单扩容（含"现行"目录全部 .md）② 交接卡与 HEAD 的一致性事实断言。
+// A1：取"## <标记>"段的正文（到下一个 --- 或 ## 为止）
+function 段(card, mark) {
+  const lines = String(card).split(/\r?\n/)
+  const i = lines.findIndex(l => new RegExp("^##\\s*" + mark).test(l))
+  if (i < 0) return ""
+  const rest = lines.slice(i + 1)
+  const j = rest.findIndex(l => /^##\s|^---\s*$/.test(l))
+  return (j < 0 ? rest : rest.slice(0, j)).join("\n")
+}
+// A1：读"最近一次门禁记录"（run-all 每次跑自动重写；缺失 = 首次，不判）
+function 门禁记录() {
+  try { return JSON.parse(readIf(path.join(APP, "tests", "_last-gate.json")) || "{}") } catch { return {} }
+}
+function gitCount(args) {
+  const r = spawnSync("git", args, { cwd: APP, encoding: "utf8", shell: false })
+  return r.status === 0 ? Number((r.stdout || "").trim()) : null
+}
+
 function gitShortHead() {
   try {
     const r = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: APP, encoding: 'utf8', shell: false })
@@ -162,6 +180,53 @@ const FACTS = [
       return !!card && card.includes(head)
     },
     docSays: '会话交接卡 ⑥ 起点校验（应含最新的 commit 短哈希）',
+    docs: ['4-审计与报告/会话交接卡.md'],
+    expect: true,
+  },
+  {
+    // 🔴 A1（BL-13 对策）：卡里数字由人维护 ⇒ 与【最近一次全绿门禁记录】对账
+    //   容差 = 本套件自身断言数（总数包含它，否则会自指循环）
+    name: '会话交接卡 ⑥ 段门禁数字 === 最近一次门禁记录（±本套件断言数）',
+    actual: () => {
+      const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
+      if (!card) return false
+      const rec = 门禁记录()
+      const seg = 段(card, '⑥')
+      const 断言数 = 门禁记录() && 门禁记录().full && 门禁记录().full.docsSync断言数 ? 门禁记录().full.docsSync断言数 : 0
+      const 候选 = []
+      if (rec.fast && rec.fast.head) 候选.push({ 档: 'fast', 基准: rec.fast.通过, 容差: (rec.fast.docsSync断言数 || 0) })
+      if (rec.full && rec.full.head) 候选.push({ 档: 'full', 基准: rec.full.通过, 容差: (rec.full.docsSync断言数 || 0) })
+      if (!候选.length) return true   // 还没有记录（首次跑）⇒ 不判
+      const 数字 = (seg.match(/\b\d{3,}\b/g) || []).map(Number)
+      return 候选.every(c => 数字.some(n => Math.abs(n - c.基准) <= Math.max(1, c.容差)))
+    },
+    docSays: '会话交接卡 ⑥（快检/全量数字应与最近一次全绿门禁一致；容差 = 本套件断言数）',
+    docs: ['4-审计与报告/会话交接卡.md'],
+    expect: true,
+  },
+  {
+    name: '会话交接卡 ⑥ 段「未推 N」与实际一致',
+    actual: () => {
+      const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
+      if (!card) return false
+      const m = /未推\s*(\d+)/.exec(段(card, '⑥'))
+      if (!m) return false
+      const n = gitCount(['rev-list', '--count', 'origin/main..HEAD'])
+      return n != null && Number(m[1]) === n
+    },
+    docSays: '会话交接卡 ⑥（未推数应等于 git rev-list --count origin/main..HEAD）',
+    docs: ['4-审计与报告/会话交接卡.md'],
+    expect: true,
+  },
+  {
+    name: '会话交接卡 ①–⑥ 六段各恰好一次（无重复段）',
+    actual: () => {
+      const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
+      if (!card) return false
+      return ['①','②','③','④','⑤','⑥'].every(mk =>
+        (card.match(new RegExp('^##\\s*' + mk, 'gm')) || []).length === 1)
+    },
+    docSays: '会话交接卡（①–⑥ 各一段；本次实装卡曾出现重复的第三段）',
     docs: ['4-审计与报告/会话交接卡.md'],
     expect: true,
   },

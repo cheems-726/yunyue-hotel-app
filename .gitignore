@@ -26,3 +26,6 @@ tests/_shot-*.png
 # ★ 附带价值：避免"git add -A 把核验脚本扫进提交"（D42 事故的同类风险）
 /_*.cjs
 /_*.txt
+
+# 门禁自述记录（run-all 每次跑自动重写；A1/BL-13 对策用）
+tests/_last-gate.json
