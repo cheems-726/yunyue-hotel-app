@@ -184,8 +184,14 @@ if (knownReds.length) {
 //   ★ 写失败不影响门禁结论；文件在 .gitignore（生成物）。
 const 仅本套件失败 = failed === 1 && rows.filter(x => x.state === '✗').every(x => String(x.name).startsWith('docs-sync'))
 if (!failed || 仅本套件失败) {
-  // 唯一失败是 docs-sync 时：按"卡改好后应有的计数"记（本套件那 1 条从失败挪到通过）
-  const 记通过 = 仅本套件失败 ? total + 1 : total
+  // 唯一失败是 docs-sync 时：按"卡改好后应有的计数"记（本套件那些失败断言改好后即通过）。
+  // 🔴 2026-09-28 夜（N-0 实测抓到的真 bug）：原式写死 `total + 1` —— 隐含假设"docs-sync 只会失败 1 条"。
+  //   本次它一次失败 3 条（卡里的 HEAD / 门禁数字 / 未推 三行同时过期）⇒ 记录比真实少 2
+  //   ⇒ 卡"改成真实值"后反倒与记录不等 ⇒ **来回震荡**（实测白跑两轮）。
+  //   ★ 正确式 = `total + totalFail`：total 是【各套件 pass 之和】（已含失败套件的通过部分），
+  //     全绿时 = 如今所有失败断言都变成通过 ⇒ 加回 totalFail 即"修好后应有值"。
+  //     （只失败 1 条时它与原式一致 ⇒ 兼容历史行为。）
+  const 记通过 = 仅本套件失败 ? total + totalFail : total
   const 记失败 = 仅本套件失败 ? 0 : totalFail
   try {
     const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8', shell: false })
