@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import SiteSelection from './SiteSelection.jsx'
+import { migrateSave, SCALE } from './stateMigration.mjs'
 import BrandSelection from './BrandSelection.jsx'
 import Claim from './Claim.jsx'
 import Establishment from './Establishment.jsx'
@@ -1544,11 +1545,28 @@ function ScoreDetail({ history, onBack }) {
 
 // ===== App 框架（登录 + 选址 + 底部导航 + 真实时间 + 占位页路由） =====
 const STORAGE_KEY = 'hotel-sim-state'
+const STORAGE_BAK_KEY = 'hotel-sim-state.bak-v1'   // 口径迁移前的原始存档（只写一次，永不覆盖）
 
+// 🔴 批次 B1（D25）：读档时做【口径迁移】—— 旧档金额是旧量级，不迁移会出现"一周混口径"
+//    （旧 capital 50 万量级 + 新 profit 10 倍量级 ⇒ 资金曲线跳变、破产教学失真）
+//    · 幂等：迁移后 scaleVersion=2，再读直接跳过（migrateSave 内部判断）
+//    · .bak：只在【首次】迁移前落一次原始存档，供回滚；绝不覆盖
+//    · 不删档：只换量级，不动任何字段与条目
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    const r = migrateSave(parsed)
+    if (r.migrated && r.save) {
+      try {
+        if (!localStorage.getItem(STORAGE_BAK_KEY)) localStorage.setItem(STORAGE_BAK_KEY, raw)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(r.save))
+      } catch (e) { /* 写盘失败也不阻断：内存里已返回迁移结果 */ }
+      try { console.log('[存档迁移]', r.reason, '· 缩放 history', r.scaledHistory, '条') } catch (e) {}
+      return r.save
+    }
+    return parsed
   } catch (e) {
     return {}
   }
@@ -1682,11 +1700,12 @@ export default function App() {
   }
   const [pendingReviewCount, setPendingReviewCount] = useState(0) // 未处理差评数（红点）
   const [time, setTime] = useState('')
-  // 资金唯一权威（settle 返回后写回）；旧档无该字段时按"502万 + 历史累计利润×m"平滑起算
-  // 🔴 T1.1（§十七 A3）：起始资金 50万 → 502万（×m=10.0483）。旧档 history 里的利润是【旧口径】算出来的，
-  //    比新口径小约 m 倍，故迁移时 ×m 才能保住它相对起始资金的位置（新旧档不同起跑线会不公平）。
+  // 资金唯一权威（settle 返回后写回）。
+  // 🔴 批次 B1（D25）：换算口径【统一收敛到 src/stateMigration.mjs】—— loadState() 已把旧档迁到新量级，
+  //    故这里不再重复 ×m（原先 App 侧内联的"502万 + Σ利润×m"已删除，避免两处口径打架）。
+  //    兜底：极旧的档若连 capital 都没有（迁移也会给出），仍回退到新起始资金。
   const [capital, setCapital] = useState(
-    typeof saved.capital === 'number' ? saved.capital : 5020000 + (saved.history || []).reduce((a, h) => a + (h.profit || 0) * 10.0483, 0)
+    typeof saved.capital === 'number' ? saved.capital : SCALE.IC_NEW
   )
   // 经营模式：认领页选择（direct 自主直营 / ota 平台合作）。旧档缺省 direct —— 与当前引擎默认一致，老班成绩零变化
   const [bizMode, setBizMode] = useState(saved.bizMode === 'ota' ? 'ota' : 'direct')

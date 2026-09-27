@@ -28,6 +28,7 @@ const SUITES = [
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
   { name: 'franchiseModel（加盟经济模型 P1·Phase F）', file: 'tests/franchiseModel.test.mjs' },
+  { name: 'stateMigration（存档口径迁移·批次 B1）', file: 'tests/stateMigration.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
