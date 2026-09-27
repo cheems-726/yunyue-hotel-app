@@ -61,6 +61,15 @@ console.log('\n[3] .gitignore 关键规则在位（防"12 个 .bak"那类事故�
   ok(/gitignore 对已跟踪文件无效|不影响已跟踪/.test(gi), '.gitignore 里写明"对已跟踪文件无效"（避免误以为加了规则就没事）')
 }
 
+// ── ③.5 ★ 返修③：生成物必须【真被忽略】且【未被跟踪】（行为检查，不是查 .gitignore 文本）──
+{
+  const 生成物 = ['tests/_last-gate.json']   // run-all 每次自动重写；不是源码
+  const 未被忽略 = 生成物.filter(f => !existsSync(path.join(APP, f)) || (spawnSync('git', ['check-ignore', f], { cwd: APP, encoding: 'utf8', shell: false }).status !== 0))
+  ok(未被忽略.length === 0, `生成物必须被 gitignore 真匹配（${生成物.length} 个）`, 未被忽略.join(', '))
+  const tracked = git(['ls-files', ...生成物]).split(/\r?\n/).filter(Boolean)
+  ok(tracked.length === 0, '生成物不得被跟踪（误提交即红）', tracked.join(','))
+}
+
 // ── ④ 证据图必须有引用（把"删前确认无引用"机器化）─────────────────
 console.log('\n[4] 已跟踪的证据图（_shot-*.png）必须有引用；无引用者列为可删候选')
 {

@@ -15,6 +15,7 @@
 import fs from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
+import { 数字匹配, 抽数字 } from './_docsSyncCompare.mjs'   // A1 返修①②：数字比对唯一实现点
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -184,23 +185,24 @@ const FACTS = [
     expect: true,
   },
   {
-    // 🔴 A1（BL-13 对策）：卡里数字由人维护 ⇒ 与【最近一次全绿门禁记录】对账
-    //   容差 = 本套件自身断言数（总数包含它，否则会自指循环）
-    name: '会话交接卡 ⑥ 段门禁数字 === 最近一次门禁记录（±本套件断言数）',
+    // 🔴 A1 返修①②（BL-13 对策 · 精确比对版）：卡里数字必须能在【最近一次门禁记录】里找到【精确相等者】。
+    //   为什么不要容差：百分比容差放过"差 24"的真过期数字（决策端活证 906/1039 vs 930/1063）；
+    //   而"本套件自身断言数波动"由 run-all 的【记录写入策略】解决（唯一失败是 docs-sync 时按修好后计数记），
+    //   不靠容差掩盖 —— 容差既不唯一也不可解释，故整体删除。
+    //   比对实现只有一处：tests/_docsSyncCompare.mjs（返修①验收"容差来源唯一"）。
+    name: '会话交接卡 ⑥ 段门禁数字 === 最近一次门禁记录（精确相等）',
     actual: () => {
       const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
       if (!card) return false
       const rec = 门禁记录()
-      const seg = 段(card, '⑥')
-      // 容差 = max(20, 基准×5%)：既容忍本套件自身断言数变化，又能抓真正过期的数字
-      const 候选 = []
-      if (rec.fast && rec.fast.head) 候选.push({ 档: 'fast', 基准: rec.fast.通过, 容差: (rec.fast.docsSync断言数 || 0) })
-      if (rec.full && rec.full.head) 候选.push({ 档: 'full', 基准: rec.full.通过, 容差: (rec.full.docsSync断言数 || 0) })
-      if (!候选.length) return true   // 还没有记录（首次跑）⇒ 不判
-      const 数字 = (seg.match(/\b\d{3,}\b/g) || []).map(Number)
-      return 候选.every(c => 数字.some(n => Math.abs(n - c.基准) <= Math.max(20, Math.round(c.基准 * 0.05))))
+      const 卡数字 = 抽数字(段(card, '⑥'))
+      const 档 = []
+      if (rec.fast && rec.fast.head) 档.push(rec.fast.通过)
+      if (rec.full && rec.full.head) 档.push(rec.full.通过)
+      if (!档.length) return true    // 还没有记录（首次跑）⇒ 不判
+      return 档.every(值 => 数字匹配(卡数字, 值))
     },
-    docSays: '会话交接卡 ⑥（快检/全量数字应与最近一次全绿门禁一致；容差 = max(20, 基准×5%)）',
+    docSays: '会话交接卡 ⑥（快检/全量数字必须精确等于最近一次门禁记录）',
     docs: ['4-审计与报告/会话交接卡.md'],
     expect: true,
   },

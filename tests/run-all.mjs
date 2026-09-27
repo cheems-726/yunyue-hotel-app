@@ -33,6 +33,8 @@ const SUITES = [
   // 二期 A5：决策节奏（粒度丙）+ 归属日规则（E3 前置定义）
   { name: 'decisionCadence（决策节奏·A5）', file: 'tests/decisionCadence.test.mjs' },
   // Wave 4 · W4-4：扫描器工具自检（--json / --since）
+  // 二期 D46：量级扫描器【纳入 fast 门禁】（0.2s · 当前真残留 0 · 白名单死条目自检）
+  { name: 'stale-scale（旧口径残留扫描·D46）', file: 'tests/_scan-stale-scale.mjs' },
   { name: 'scannerTools（扫描器自检·W4-4）', file: 'tests/scannerTools.test.mjs' },
   // Wave 4 · W4-6B（原 W3-6）：加盟回归断言（零变化 + 数值）
   { name: 'franchiseRegression（加盟回归·W4-6B）', file: 'tests/franchiseRegression.test.mjs' },
@@ -164,21 +166,25 @@ if (knownReds.length) {
 //   ★ 三个设计要点：
 //     ① 只在【全绿】时写 —— 记录 = 最近一次干净状态（失败运行不污染基准）
 //     ② 双模式并存（fast / full 各一档），只更新自己那档
-//     ③ 附带 docs-sync 自身的断言数 —— 总数含它，比对时要用它当容差（解开自指）
+//     ③ ★ 返修①②：不再写"docsSync断言数"（原设计声明了却没用 ⇒ 声明未消费，已删）
+//        "本套件自身断言数波动"改由【写入策略】解决：当【唯一失败就是 docs-sync】时也写记录，
+//        并把通过数按"卡修好后应有的值"记（通过+1、失败−1）⇒ 卡改对后即精确一致，不会自指死锁
 //   ★ 写失败不影响门禁结论；文件在 .gitignore（生成物）。
-if (!failed) {
+const 仅本套件失败 = failed === 1 && rows.filter(x => x.state === '✗').every(x => String(x.name).startsWith('docs-sync'))
+if (!failed || 仅本套件失败) {
+  // 唯一失败是 docs-sync 时：按"卡改好后应有的计数"记（本套件那 1 条从失败挪到通过）
+  const 记通过 = 仅本套件失败 ? total + 1 : total
+  const 记失败 = 仅本套件失败 ? 0 : totalFail
   try {
     const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8', shell: false })
     const P = new URL('./_last-gate.json', import.meta.url)
     let prev = {}
     try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
-    const dsRow = rows.find(x => String(x.name).startsWith('docs-sync'))
-    const dsCount = dsRow ? (Number(dsRow.pass) || 0) + (Number(dsRow.fail) || 0) : 0
     const next = {
       ...prev,
       [FAST ? 'fast' : 'full']: {
-        ranAt: new Date().toISOString(), 通过: total, 失败: totalFail, 跳过: skipped,
-        docsSync断言数: dsCount, head: (head.stdout || '').trim() || null,
+        ranAt: new Date().toISOString(), 通过: 记通过, 失败: 记失败, 跳过: skipped,
+        head: (head.stdout || '').trim() || null,
       },
       已知红: knownReds.map(x => x.name),
     }

@@ -36,7 +36,10 @@ const WHITELIST = [
   { rule: 'R4', file: 'src/decisions.js', allow: /150万/, why: '「投150万改造」是决策文案（改造费按每周 2000 元计），属每周/单次科目，不参与 ×m' },
   { rule: 'R4', file: 'src/attrs.js', allow: /150万/, why: '同上：决策 ID 字符串「投150万改造」的属性表键名，不可改（改了属性映射就断）' },
   { rule: 'R4', file: 'src/settlement.js', allow: /150万/, why: '同上：决策 ID 字符串比较（decisions.renovation === \'投150万改造\'），改名会破坏决策映射' },
-  { rule: 'R4', file: 'src/Establishment.jsx', allow: /150万/, why: '筹建期教学文案（改造 150万/进度天数话术）—— 属叙述层，不进结算数值' },
+  // ★ 返修⑤(a) 死条目自检当场抓到并删除（2026-09-27）：
+  //   原条目 `{ file: 'src/Establishment.jsx', allow: /150万/, why: '筹建期教学文案…' }`
+  //   实测该文件已【不含任何 N万 文本】（D-1 把投资情景的 note 拆成 摘要/note 后，那段话术已不在）
+  //   ⇒ 按扫描器自己的判据「对应写法已消失 ⇒ 删条目」删除。这类"白名单腐烂"正是 BL-11 族。
   { rule: 'R6', file: 'src/App.jsx', why: '资金卡 (cap/10000).toFixed(1) 显示为"万" —— 纯展示换算，量级已随口径更新' },
   { rule: 'R6', file: 'src/WeeklyReport.jsx', why: '资金/营收显示为"万" —— 纯展示换算（预警线金额亦由 SCALE.变黄线 / 10000 推导，非写死）' },
   { rule: 'R6', file: 'src/TeacherDashboard.jsx', why: '教师端金额显示为"万" —— 纯展示换算' },
@@ -105,13 +108,23 @@ for (const f of scanned) {
 const wl = (h) => WHITELIST.some(w => w.rule === h.rule && w.file === h.file && (!w.allow || w.allow.test(h.raw)))
 const 留 = hits.filter(wl), 真 = hits.filter(h => !wl(h))
 
+// ★ 返修⑤(a)：白名单【死条目】自检 —— 声明了却从不命中 = 白名单腐烂（BL-11 族）
+//   判据：某条白名单在本轮扫描里【一条都没匹配到】⇒ 要么对应写法已消失（该删），
+//   要么规则写错（该修）—— 两种都该被人看见，不许静默留着。
+const wUsed = WHITELIST.map(() => 0)
+hits.forEach(h2 => {
+  const i = WHITELIST.findIndex(w => w.rule === h2.rule && w.file === h2.file && (!w.allow || w.allow.test(h2.raw)))
+  if (i >= 0) wUsed[i]++
+})
+const 死条目 = WHITELIST.map((w, i) => ({ w, i, 用次: wUsed[i] })).filter(x => x.用次 === 0)
+
 // ── W4-4：--json 供机器消费（自检要求"可 JSON.parse"；字段与文本模式同源）──
 if (JSON_OUT) {
   console.log(JSON.stringify({
     scan: 'P3-5 全库旧口径残留扫描',
     scope: { dir: 'src/', since: SINCE, scannedFiles: scanned.length, totalFiles: files.length, sinceFiles: sinceList },
     rules: RULES.map(r => ({ id: r.id, desc: r.desc })),
-    命中: hits.length, 白名单: 留.length, 真残留: 真.length,
+    命中: hits.length, 白名单: 留.length, 真残留: 真.length, 死条目: 死条目.map(d => d.w.rule + " " + d.w.file),
     residual: 真.map(h => ({ rule: h.rule, file: h.file, line: h.line, text: h.text })),
     whitelisted: 留.map(h => ({ rule: h.rule, file: h.file, line: h.line })),
   }, null, 2))
@@ -141,5 +154,13 @@ if (真.length) {
 } else {
   console.log('── ✅ 真残留 0 处 —— 旧口径已全部清除 ──')
 }
-console.log(`\n========== 扫描结果：真残留 ${真.length} 处 ==========`)
-process.exit(真.length ? 1 : 0)
+// ★ 返修⑤(a)：白名单【死条目】明示（声明了却从不命中 ⇒ 白名单腐烂 = BL-11 族）
+if (死条目.length) {
+  console.log('── ⚠️ 白名单死条目（本轮 0 次命中 ⇒ 该删或该修）──')
+  死条目.forEach(d => console.log(`  ⚠ [${d.w.rule}] ${d.w.file} —— ${d.用次} 次命中`))
+  console.log('  ⇒ 对应写法若已消失，删条目；若是规则写错，修条目（不许静默留着）')
+}
+console.log(`\n========== 扫描结果：真残留 ${真.length} 处${死条目.length ? ` · 死条目 ${死条目.length} 条` : ''} ==========`)
+// ★ 返修⑤：给 run-all 可解析的计数（已登记命中 + 用上的白名单 = 通过；未登记残留 + 死条目 = 失败）
+console.log(`${留.length} 通过 / ${真.length + 死条目.length} 失败`)
+process.exit((真.length + 死条目.length) ? 1 : 0)
