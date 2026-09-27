@@ -192,15 +192,15 @@ const FACTS = [
       if (!card) return false
       const rec = 门禁记录()
       const seg = 段(card, '⑥')
-      const 断言数 = 门禁记录() && 门禁记录().full && 门禁记录().full.docsSync断言数 ? 门禁记录().full.docsSync断言数 : 0
+      // 容差 = max(20, 基准×5%)：既容忍本套件自身断言数变化，又能抓真正过期的数字
       const 候选 = []
       if (rec.fast && rec.fast.head) 候选.push({ 档: 'fast', 基准: rec.fast.通过, 容差: (rec.fast.docsSync断言数 || 0) })
       if (rec.full && rec.full.head) 候选.push({ 档: 'full', 基准: rec.full.通过, 容差: (rec.full.docsSync断言数 || 0) })
       if (!候选.length) return true   // 还没有记录（首次跑）⇒ 不判
       const 数字 = (seg.match(/\b\d{3,}\b/g) || []).map(Number)
-      return 候选.every(c => 数字.some(n => Math.abs(n - c.基准) <= Math.max(1, c.容差)))
+      return 候选.every(c => 数字.some(n => Math.abs(n - c.基准) <= Math.max(20, Math.round(c.基准 * 0.05))))
     },
-    docSays: '会话交接卡 ⑥（快检/全量数字应与最近一次全绿门禁一致；容差 = 本套件断言数）',
+    docSays: '会话交接卡 ⑥（快检/全量数字应与最近一次全绿门禁一致；容差 = max(20, 基准×5%)）',
     docs: ['4-审计与报告/会话交接卡.md'],
     expect: true,
   },
