@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import SiteSelection from './SiteSelection.jsx'
-import { migrateSave, SCALE } from './stateMigration.mjs'
+import { migrateSave, withScaleVersion, restoreFromCloud, SCALE } from './stateMigration.mjs'
 import BrandSelection from './BrandSelection.jsx'
 import Claim from './Claim.jsx'
 import Establishment from './Establishment.jsx'
@@ -1748,7 +1748,7 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, scaleVersion: SCALE.VERSION_CURRENT }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode })))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
 
@@ -1760,7 +1760,8 @@ export default function App() {
   }, [attrFlash])
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
-  const cloudState = { location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode }
+  // 🔴 批次 B1.5：云端上传 payload 也必须盖版本戳（原先直接漏掉了 scaleVersion）
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode })
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const gk = groupKeyOf(user.className, user.groupNo)
@@ -1843,7 +1844,17 @@ export default function App() {
     // 真实登录：从云端恢复经营进度（本机进度让位于云端最新）
     if (userInfo.cloud && userInfo.uid) {
       try {
-        const cloudSaved = await fetchGameState(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
+        const cloudRaw = await fetchGameState(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
+        // 🔴 批次 B1.5（读取侧）：云端档必须过 restoreFromCloud ——
+        //   它负责（a）旧云档按 D25 迁移（b）已是 v2 则原样返回（幂等）。
+        //   背景：B1 只补了本机路径，抽查发现【云端三处全漏】——旧云档恢复后会与本机新档混口径。
+        const { state: cloudSaved, migrated: cloudMigrated } = restoreFromCloud(cloudRaw)
+        if (cloudMigrated) {
+          // 🔴 批次 B1.5（回写侧）：迁移后【立刻】把 v2 落本机，避免"恢复后又被再迁一次"的窗口；
+          //   随后云端上传 effect 会带着同一个 v2 标记回写云端（两处都不留旧档）
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion(cloudSaved))) } catch (e) {}
+          try { console.log('[云端存档迁移]', '已按 D25 迁到新量级并回写本机 v2') } catch (e) {}
+        }
         if (cloudSaved) {
           setLocation(cloudSaved.location || null)
           setBrand(cloudSaved.brand || null)
