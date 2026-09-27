@@ -38,7 +38,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   // 🔴 T1.1（§十七 A4 预授权规则）：新阈值 = 旧阈值 × m（m=10.0483），取整到万位。
   //    必要性：不重标定则 6 组里 5 组并列 100，本维度区分度归零。
   //    自检（tests/_t11-impact.mjs）：6 组评级分布 ACBDDC vs ACBDDC【一致】✅（档位 4/6 逐组一致）
-  const profitScore = totalProfit >= 500000 ? 100 : totalProfit >= 300000 ? 85 : totalProfit >= 100000 ? 70 : totalProfit >= 0 ? 55 : 40
+  const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
   // 口碑得分：平均好评率
   const reputationScore = avgGoodRate >= 90 ? 95 : avgGoodRate >= 85 ? 85 : avgGoodRate >= 75 ? 70 : avgGoodRate >= 60 ? 55 : 40
   // 出租率得分

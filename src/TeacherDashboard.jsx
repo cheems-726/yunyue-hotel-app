@@ -32,7 +32,8 @@ function summarize(gs, profile, classDay = 0) {
     : null
   const totalRev = history.reduce((a, h) => a + (h.revenue || 0), 0)
   // 🔴 T1.1（§十七 A4）：分段 = 旧阈值 × m，与 FinalResult.jsx 同口径（否则学生端/教师端分数不一致）
-  const profitScore = totalProfit >= 500000 ? 100 : totalProfit >= 300000 ? 85 : totalProfit >= 100000 ? 70 : totalProfit >= 0 ? 55 : 40
+  // 🔴 W2-2：分段按新利润量级重标定（m=0.2970）；★ D20 判据② 4/6 组一致，差异已记录未硬凑
+  const profitScore = totalProfit >= 150000 ? 100 : totalProfit >= 90000 ? 85 : totalProfit >= 30000 ? 70 : totalProfit >= 0 ? 55 : 40
   const repScore = avgGood >= 90 ? 95 : avgGood >= 85 ? 85 : avgGood >= 75 ? 70 : avgGood >= 60 ? 55 : 40
   const occScore = avgOcc >= 75 ? 95 : avgOcc >= 65 ? 80 : avgOcc >= 55 ? 65 : avgOcc >= 45 ? 50 : 40
   const negScore = totalNeg === 0
@@ -54,7 +55,7 @@ function summarize(gs, profile, classDay = 0) {
     const pGood = Math.round(ph.reduce((a, h) => a + h.finalGoodRate, 0) / ph.length)
     const pNeg = ph.reduce((a, h) => a + (h.negativeCount || 0), 0)
     // 🔴 T1.1：上周分数同口径（与上方 profitScore 保持一致，否则周环比会出现假跳变）
-    const ps = pProfit >= 500000 ? 100 : pProfit >= 300000 ? 85 : pProfit >= 100000 ? 70 : pProfit >= 0 ? 55 : 40
+    const ps = pProfit >= 150000 ? 100 : pProfit >= 90000 ? 85 : pProfit >= 30000 ? 70 : pProfit >= 0 ? 55 : 40
     const pr = pGood >= 90 ? 95 : pGood >= 85 ? 85 : pGood >= 75 ? 70 : pGood >= 60 ? 55 : 40
     const po = pOcc >= 75 ? 95 : pOcc >= 65 ? 80 : pOcc >= 55 ? 65 : pOcc >= 45 ? 50 : 40
     const pn = pNeg === 0 ? 100 : pNeg <= 5 ? 80 : pNeg <= 10 ? 65 : 50
