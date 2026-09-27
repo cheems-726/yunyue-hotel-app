@@ -68,6 +68,29 @@ function scaleResult(r) {
   return out
 }
 
+// ── 写档侧单一入口（批次 B1.5）────────────────────────────────
+// 🔴 为什么需要它：B1 补了本地 saveState 的 scaleVersion 后，抽查发现【云端写入侧还漏着】——
+//    漏一处就等于"写出去的档没有版本标记 ⇒ 下次读档被再迁移一次（金额涨 m 倍）"。
+//    所以把"盖版本戳"收敛成一个函数，所有写档路径（本机 / 云端上传 / 未来新增）都必须过它。
+//    ★ 用法：{ ...withScaleVersion(payload) } —— 不改入参，返回带戳的副本。
+export function withScaleVersion(state) {
+  if (!state || typeof state !== 'object') return state
+  return { ...state, scaleVersion: SCALE.VERSION_CURRENT }
+}
+
+/**
+ * 云端档 → 可直接写进 state 的规范化对象（批次 B1.5 读取侧）。
+ * 🔴 抽成纯函数的原因：原来的云端恢复路径内联在 App 的 useEffect 里，依赖真实 Supabase
+ *    （fetchGameState），导致"旧云档会不会被迁移"这件事【根本没法在测试里验】。
+ *    现在恢复逻辑在这里，App 只负责把结果灌进 state ⇒ 可用纯函数直接跑测试。
+ * @returns {{ state: object|null, migrated: boolean, reason: string }}
+ */
+export function restoreFromCloud(cloudSaved) {
+  if (!cloudSaved || typeof cloudSaved !== 'object') return { state: null, migrated: false, reason: '云端无档' }
+  const r = migrateSave(cloudSaved)
+  return { state: r.save, migrated: r.migrated, reason: r.reason }
+}
+
 /**
  * 迁移存档。纯函数：不写盘、不改入参。
  * @param {object} saved 读到的存档对象（可能为 null/非法）
