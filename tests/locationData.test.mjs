@@ -51,15 +51,19 @@ console.log('\n[2] 覆盖与"未采不编造"')
   ok(空.length === 0, `26 个区位【全部】有竞品数据（轮前为 13 个空白）`, 空.join(','))
   const 重叠 = NOT_SURVEYED.filter(n => LOCATION_PROFILE[n])
   ok(重叠.length === 0, `未采的 ${NOT_SURVEYED.length} 个区位【不得】出现在画像表里（不编造）`, 重叠.join(','))
-  ok(NOT_SURVEYED.length === 12, `未采清单 = 12（绵阳4 + 承德4 + 重庆4 · 按用户口径"简单处理"）`)
+  // 🔴 2026-09-28（N-9）：12 区画像已回填 ⇒ 未采清单清空、画像表 26/26（判据随数据面升级，非降级）
+  ok(NOT_SURVEYED.length === 0, `未采清单已清空（12 区于 N-9 回填；名单机制保留）`)
   const 精细 = Object.keys(LOCATION_PROFILE)
-  ok(精细.length === 14, `画像表 = 14 个精细区位（成都 9 + 德阳 5）`)
+  ok(精细.length === 26, `画像表覆盖全部 26 区位（成都9+德阳5 精细 + N-9 回填 12 区）`)
   const 缺基本 = 精细.filter(n => !Number.isFinite(LOCATION_PROFILE[n].pop) && !Number.isFinite(LOCATION_PROFILE[n].gdp))
   ok(缺基本.length === 0, '精细区位都至少有 人口 或 GDP（否则不该算"精细采过"）', 缺基本.join(','))
   // 待补必须是 null，不许用 0/负数糊
   const 假值 = 精细.filter(n => LOCATION_PROFILE[n].tou != null && !(LOCATION_PROFILE[n].tou > 0))
   ok(假值.length === 0, '游客数"待补"一律为 null（不得用 0 或负数冒充）', 假值.join(','))
   const 待补 = 精细.filter(n => LOCATION_PROFILE[n].tou == null)
+  // ★ N-9 追加：待补区必须有"为什么待补"的注（touNote），不许静默 null
+  const 静默 = 待补.filter(n => !LOCATION_PROFILE[n].touNote)
+  ok(静默.length === 0, `游客数待补的区位都带"原因注"（touNote）—— 不静默 null`, 静默.join(','))
   console.log(`     待补项（预期存在，非失败）：${待补.length} 个区位无年接待游客 ⇒ ${待补.join('、')}`)
 }
 

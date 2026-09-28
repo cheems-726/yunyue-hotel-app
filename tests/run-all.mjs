@@ -190,7 +190,11 @@ if (knownReds.length) {
 //        "本套件自身断言数波动"改由【写入策略】解决：当【唯一失败就是 docs-sync】时也写记录，
 //        并把通过数按"卡修好后应有的值"记（通过+1、失败−1）⇒ 卡改对后即精确一致，不会自指死锁
 //   ★ 写失败不影响门禁结论；文件在 .gitignore（生成物）。
-const 仅本套件失败 = failed === 1 && rows.filter(x => x.state === '✗').every(x => String(x.name).startsWith('docs-sync'))
+// ★ §13（2026-09-28 晨）：本批加了 M3 判死模式后，"文档滞后"可能由【docs-sync + docs-staleness 两套件】同时报
+//   ⇒ 记录写入条件从"仅 docs-sync 失败"放宽为"唯一失败的【都是文档同步类】套件"（判据未放宽内容，只放宽套件集合）
+const 文档类 = (name) => String(name).startsWith('docs-sync') || String(name).startsWith('docs-staleness')
+const 仅文档套件失败 = failed > 0 && rows.filter(x => x.state === '✗').every(x => 文档类(x.name))
+const 仅本套件失败 = 仅文档套件失败
 if (!failed || 仅本套件失败) {
   // 唯一失败是 docs-sync 时：按"卡改好后应有的计数"记（本套件那些失败断言改好后即通过）。
   // 🔴 2026-09-28 夜（N-0 实测抓到的真 bug）：原式写死 `total + 1` —— 隐含假设"docs-sync 只会失败 1 条"。
