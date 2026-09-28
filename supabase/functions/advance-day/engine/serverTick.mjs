@@ -16,6 +16,8 @@
 // 幂等键 tickKey(classDay, groupKey)。同一天重复触发：若该周已在 history 里，直接返回既有结果、
 // 不再结算（advanced=false）⇒ 结果逐字节相同。
 import { settle, DAYS_PER_WEEK, buildDailyReport } from './index.js'
+import { settleWeekSegmented } from './weekSegments.mjs'   // §19.1 单元1·B4
+import { decisionsByDayFrom } from './weeklyAuto.mjs'
 import { dayToWeekDay } from './weeklyAuto.mjs'   // E2：周↔天换算唯一来源（本文件不再自己算）
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）与客户端【同一派生点】——补算 === 在线 的前置
 import { weekInputsOf, 空周输入 } from './weekInputs.mjs'
@@ -145,7 +147,9 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   //   ★ 读不到（旧档 / 周号不符）⇒ 用【空输入】兜底，并把来源标出来（不静默假装拿到过）。
   const 存档输入 = weekInputsOf(src, week)
   const 输入 = 存档输入 || 空周输入(week)
-  const result = settle({
+  // ★ §19.1（单元 1·B4）：服务端也走分段结算（客户的变更记录随存档上传 ⇒ 两端同一口径）
+  const 变更前决策 = (() => { const b = { ...decisions }; (Array.isArray(src.decisionChanges) ? src.decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
+  const result = settleWeekSegmented({
     site: src.location,
     brand: src.brand,
     decisions,
@@ -159,6 +163,7 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     liveNegCount: 输入.liveNegCount,
     livePosCount: 输入.livePosCount,
     crisisResponse: 输入.crisisResponse,
+    decisionsByDay: decisionsByDayFrom({ base: 变更前决策, changes: src.decisionChanges, week }),
   })
 
   const nextSave = { ...src, week, capital: result.capital, attrs: result.attrsAfter, history: [...history, result] }

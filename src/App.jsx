@@ -25,6 +25,8 @@ import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
 import { settleInputsFrom } from './weekInputs.mjs'
+import { settleWeekSegmented } from './weekSegments.mjs'          // §19.1 单元1·B4：引擎级分段
+import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：变更记录 → 按天生效的决策
 // §16.2-B5：投资项档位 → 品质联动（系数单源在该模块）
 import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
@@ -1984,7 +1986,11 @@ export default function App() {
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
     // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
     //     + bizMode（否则认领页选的"平台合作"在引擎侧永远走不到，帮助页承诺的 15% 佣金与流量加成失效）
-    const result = settle({ site, brand, decisions: doneDecisions, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode })
+    // ★ §19.1（单元 1·B4）：走【分段结算】—— 把本周变更记录变成按天生效的决策喂进引擎。
+    //   周内无改动 ⇒ 段数=1 ⇒ settleWeekSegmented 内部原样走既有路径（逐字节水位线）。
+    const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
+    const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
+    const result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode })
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {

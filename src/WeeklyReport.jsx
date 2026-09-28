@@ -448,19 +448,29 @@ ${after.icon} 当前称号：${after.title}${evText}
         </div>
       )}
 
-      {/* 🔴 D52-a：周中调价 ⇒ 营收分段【估算】卡 —— 教学诚实是硬要求：必须标"估算" */}
+      {/* 🔴 D52-a：周中调价 ⇒ 营收分段卡。
+          ★ §19.1（单元 1·B4）：引擎已能【按天实算】⇒ 有真分段时**撤掉"估算"标注**；
+            旧档/无改动周仍走显示级估算路径，标注照旧（教学诚实：是什么就标什么）。 */}
       {result.revenueSegments && (
         <div className="card">
           <div className="card-title">📊 {result.revenueSegments.标题}</div>
           <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
             {result.revenueSegments.rows.map((x, i) => (
-              <div key={i}>· {x.段}：约 {x.金额估算.toLocaleString()} 元（{x.天数} 天）</div>
+              result.revenueSegments.实算
+                ? <div key={i}>· {x.段}：{Number(x.金额).toLocaleString()} 元（{x.天数} 天）</div>
+                : <div key={i}>· {x.段}：约 {x.金额估算.toLocaleString()} 元（{x.天数} 天）</div>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: '#B45309', marginTop: 6, background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '5px 8px' }}>
-            ⚠️ 以上为<b>估算</b>：当前引擎按「整周一套决策」实收，分段是按改价时点的显示级近似；
-            周报的<b>总营收/利润仍以引擎实收为准</b>（两处数字不冲突）。
-          </div>
+          {result.revenueSegments.实算 ? (
+            <div style={{ fontSize: 10, color: '#15803D', marginTop: 6, background: '#F0FDF4', border: '1px dashed #86EFAC', borderRadius: 6, padding: '5px 8px' }}>
+              ✅ 以上为<b>引擎按天实算</b>：各段用「该天生效的决策」真跑，<b>Σ分段 = 周报收入</b>（不重不漏）。
+            </div>
+          ) : (
+            <div style={{ fontSize: 10, color: '#B45309', marginTop: 6, background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '5px 8px' }}>
+              ⚠️ 以上为<b>估算</b>：当前引擎按「整周一套决策」实收，分段是按改价时点的显示级近似；
+              周报的<b>总营收/利润仍以引擎实收为准</b>（两处数字不冲突）。
+            </div>
+          )}
         </div>
       )}
       {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (

@@ -105,6 +105,36 @@ export function diffDecisions(prev, next, ctx = {}) {
   return out
 }
 
+// ★ §19.1（单元 1·B4）：变更记录 → **按天生效的决策集**（引擎消费"生效日"的唯一入口）
+//
+//   口径（与 diffDecisions 的 T11 一致）：某条变更的 `生效日 = D+1` ⇒ **第 D+1 天起**用它的 `to` 值；
+//   第 1..D 天仍用 `from`（即"改动之前的那一版"）。
+//
+//   @param {object} p
+//     · base    本周【改动前】的决策集（= 现在的决策集把每条变更的 key 回退到 from）
+//     · changes 变更记录（diffDecisions 的输出）
+//     · week    周号（保留给调用方标注；本函数不参与计算）
+//   @returns {Array} 长度 7 的决策集数组（第 d 天生效的决策）
+//
+//   ★ 为什么不在本函数里"从当前决策集反推 base"：那会猜（current 里可能同时有上周遗留的改动）。
+//     调用方手里有真实的两版决策 ⇒ **由调用方给 base**，本函数只负责"按生效日应用"。
+export function decisionsByDayFrom({ base, changes, week } = {}) {
+  void week
+  const 起点 = (base && typeof base === 'object') ? { ...base } : {}
+  const rows = (Array.isArray(changes) ? changes : []).filter(r => r && r.key && r.生效日 != null)
+  const out = []
+  for (let d = 1; d <= 7; d++) {
+    const 当天 = { ...起点 }
+    for (const r of rows) {
+      const e = Math.round(Number(r.生效日))
+      if (!Number.isFinite(e)) continue
+      if (e <= d) 当天[r.key] = r.to      // 生效日 ≤ d ⇒ 该天已按新值；生效日 > 7 ⇒ 本周内不发生
+    }
+    out.push(当天)
+  }
+  return out
+}
+
 // 变更记录 → 一行行可读文案（周报直接渲染；两端共用同一份措辞）
 export function changeLogLines(rows) {
   const arr = Array.isArray(rows) ? rows : []
@@ -149,6 +179,29 @@ export function revenueSegments(engineResult, changes, prevWeek) {
   const rows = Array.isArray(changes) ? changes : []
   const 调价 = rows.find(c => c.key === 'pricing' && c.生效日 != null)
   if (!调价) return null
+
+  // ═══ ★ §19.1（单元 1·B4）：引擎给了【真分段】就优先用它，并**撤掉"估算"标注** ═══
+  //   背景：本函数原为 D52-a 的**显示级估算**（必须标"估算"）。B4 落地后引擎会返回
+  //   `segments[]`（逐段用该段决策真跑、Σ分段 === 周报收入）⇒ 那是**实算**，不再标"估算"。
+  //   ★ 旧档/无改动的周没有 `segments` ⇒ 走下面的老估算路径（保持向后兼容，标注照旧）。
+  const 引擎段 = Array.isArray(r.segments) ? r.segments : null
+  if (引擎段 && 引擎段.length >= 2 && Number.isFinite(r.revenue)) {
+    const Σ = 引擎段.reduce((a, s) => a + (Number(s.revenue) || 0), 0)
+    if (Σ === Math.round(Number(r.revenue))) {          // 守恒校验：不重不漏才敢当"实算"展示
+      return {
+        估算: false,                                     // ★ 不再是估算
+        实算: true,
+        分段版本: r.分段版本 ?? null,
+        说明: `引擎【按天实算】：${引擎段.length} 段 × 该段生效的决策，Σ分段 = 周报收入 ${r.revenue.toLocaleString()} 元（不重不漏）`,
+        rows: 引擎段.map(s => ({
+          段: `第 ${s.from}–${s.to} 天（${s.from === 1 ? '改前' : '改后'}）`,
+          天数: s.天, 金额: s.revenue, 利润: s.profit,
+        })),
+        标题: `本周营收分段（引擎实算）：均价 ${r.price} 元（第 ${调价.生效日} 天调整为 ${调价.to}）`,
+      }
+    }
+  }
+
   const rooms = Number(r.rooms) || 0
   const occ = Number(r.occupiedRooms) || 0
   if (!(rooms > 0) || !(occ >= 0) || !Number.isFinite(r.revenue) || !Number.isFinite(r.price)) return null

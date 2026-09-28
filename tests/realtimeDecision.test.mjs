@@ -14,6 +14,8 @@ import { 档, 已定档, 待定档, 档位, 按档分组, 归属日, 可提交, 
 import { decisions } from '../src/decisions.js'
 import { advanceGroupToDay } from '../src/serverTick.mjs'
 import { settle } from '../src/settlement.js'
+import { settleWeekSegmented } from '../src/weekSegments.mjs'                        // §19.1 单元1·B4
+import { diffDecisions, decisionsByDayFrom, revenueSegments } from '../src/weeklyAuto.mjs'
 import { ATTR_INIT } from '../src/attrs.js'
 
 let pass = 0, fail = 0
@@ -98,20 +100,75 @@ console.log('\n[4] 公平性红线（可机器证）：不同在线时长、同�
   ok(JSON.stringify(改.history) !== JSON.stringify(离线.history), '反证：改一项决策 ⇒ 结果确实变化（一致性非恒真）')
 }
 
-// ── [5] 分段收入：如实记账为【未实现】（不许假装做到）─────────────
-console.log('\n[5] 分段收入（周中调价如实分段）—— ★ 现状：未实现，已记账')
+// ── [5] ★ §19.1（单元 1·B4）：引擎级分段 —— 施工期护栏【显式翻转】────────────
+// 🔴 本段原为【施工期护栏】：断言「引擎没有按天入参」（即"分段收入未实现，已记账"）。
+//    §19.1 明确要求：**B4 落地时必须显式翻转它，不许悄悄删**（悄悄删 = 假绿家族）。
+//    ⇒ 它的使命结束了：**按天生效的决策入参现已存在**（`decisionsByDay` + `decisionsByDayFrom`
+//      + `settleWeekSegmented`），所以护栏翻转为"**必须存在**"。
+console.log('\n[5] 引擎级分段（★ 施工期护栏已按要求显式翻转：从"必须不存在"→"必须存在"）')
+// 老路径基准（水位线对照）：同一输入下 settle 的输出，必须与"无改动"的分段结果逐字节相同
+const 甲0 = settle({ site: SITE, brand: BRAND, decisions: { ...DEC }, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
 {
-  // 现状证据：引擎按【整周一套决策】结算 ⇒ 周中换价不会改变周值（因为没有"按天生效"的入参）
-  const 甲 = settle({ site: SITE, brand: BRAND, decisions: { ...DEC, pricing: '不跟降' }, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
-  const 乙 = settle({ site: SITE, brand: BRAND, decisions: { ...DEC, pricing: '降价 20% 抢客' }, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
-  ok(甲.revenue !== 乙.revenue, '换价会改变整周收入（引擎有价格响应）✅')
-  const 有按天入参 = /priceByDay|decisionsByDay|perDayDecisions/.test(src('settlement.js') + src('dayEngine.js'))
-  ok(有按天入参 === false,
-    '★ 诚实记账：引擎【没有】"按天生效的决策"入参 ⇒ 周中调价目前无法如实分段（要 dayEngine 逐日独立计算）')
-  // 也不假装用"平均价"糊：周报里的均价仍是引擎实收均价（可核）
-  ok(Number.isFinite(甲.price), '周报均价 = 引擎实收均价（有据可核，不是另算的近似值）')
-  console.log('     ⇒ 待决（已进队列给 N-3/N-4）：① 逐日独立计算（引擎级改动 + 全套重基线）')
-  console.log('                                 ② 显示级分段（按天权重推导，须显式标"估算"，教学上要讲清）')
+  // ① 护栏翻转：按天入参【必须】存在（原断言是 `=== false`）
+  const 有按天入参 = /decisionsByDay/.test(src('weekSegments.mjs') + src('weeklyAuto.mjs'))
+  ok(有按天入参 === true,
+    '★ 护栏翻转：引擎【已】有"按天生效的决策"入参（decisionsByDay / decisionsByDayFrom）⇒ 分段收入可实算')
+  ok(/settleWeekSegmented/.test(src('weekSegments.mjs')), '分段结算入口 settleWeekSegmented 在位')
+  // ② ★★ 水位线（最重要）：周内无改动 ⇒ 与既有路径【逐字节相同】
+  const 无改动 = settleWeekSegmented({ site: SITE, brand: BRAND, decisions: { ...DEC }, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
+  ok(JSON.stringify(无改动) === JSON.stringify(甲0), '★★ 水位线：周内无改动 ⇒ 逐日实算 === 既有路径【逐字节】（键数也相同）',
+    `${Object.keys(无改动).length} vs ${Object.keys(甲0).length}`)
+  const 七天同 = settleWeekSegmented({ site: SITE, brand: BRAND, decisions: { ...DEC }, decisionsByDay: Array(7).fill({ ...DEC }), week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
+  ok(JSON.stringify(七天同) === JSON.stringify(甲0), '★ 水位线：显式传"7 天同一套决策"也必须逐字节相同（1 段走老路径）')
+  // ③ 有改动：第 4 天调价 ⇒ 段=2 · Σ分段 === 周值 · Σ7天 === 周值（不重不漏）
+  const 低价 = { ...DEC, pricing: '不跟降' }
+  const 高价 = { ...DEC, pricing: '降价 20% 抢客' }
+  const 分段 = settleWeekSegmented({
+    site: SITE, brand: BRAND, decisions: 高价, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000,
+    decisionsByDay: [低价, 低价, 低价, 高价, 高价, 高价, 高价],
+  })
+  ok(Array.isArray(分段.segments) && 分段.segments.length === 2, `周中调价 ⇒ 分成 2 段（实测 ${分段.segments?.length}）`)
+  ok(分段.segments[0].from === 1 && 分段.segments[0].to === 3 && 分段.segments[1].from === 4 && 分段.segments[1].to === 7,
+    '段边界 = 生效日分段（1-3 天旧价 / 4-7 天新价）', JSON.stringify(分段.segments.map(s => s.from + '-' + s.to)))
+  const Σ段 = 分段.segments.reduce((a, s) => a + s.revenue, 0)
+  ok(Σ段 === 分段.revenue, `★ Σ分段 === 周报收入（不重不漏）：${Σ段} === ${分段.revenue}`)
+  const Σ天 = 分段.dailySnapshots.reduce((a, d) => a + d.revenue, 0)
+  const Σ天现金 = 分段.dailySnapshots.reduce((a, d) => a + d.cashDelta, 0)
+  ok(分段.dailySnapshots.length === 7 && Σ天 === 分段.revenue, `Σ7天 === 周值（${Σ天} === ${分段.revenue}）`)
+  ok(Σ天现金 === 分段.profit, `Σ7天 cashDelta === 周利润（${Σ天现金} === ${分段.profit}）`)
+  // ④ ★ 实算（非估算、非平均摊、非"拿一个值按权重摊"）—— 用【判别量】钉住：
+  //   若实现退化成"每段都用同一套决策"（= 回到"取周初决策"），分段周值会**塌到**那一种全周值。
+  //   正确实现下它必须**严格介于**两种全周值之间（本周改动 = 前 3 天旧价 + 后 4 天新价）。
+  const 全周低 = settle({ site: SITE, brand: BRAND, decisions: 低价, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 }).revenue
+  const 全周高 = settle({ site: SITE, brand: BRAND, decisions: 高价, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 }).revenue
+  const 下界 = Math.min(全周低, 全周高), 上界 = Math.max(全周低, 全周高)
+  ok(分段.revenue > 下界 && 分段.revenue < 上界,
+    `★ 分段周值【严格介于】两种全周值之间 ${下界} < ${分段.revenue} < ${上界} ⇒ 是真混合（不是退回单一决策）`)
+  ok(分段.revenue !== 全周低 && 分段.revenue !== 全周高,
+    '★ 判别量：分段值【不塌到】任一全周值（若实现退化成"每段同一决策"，此条必红——RV 靶子）')
+  const 日均 = 分段.segments.map(s => s.revenue / s.天)
+  ok(Math.abs(日均[0] - 日均[1]) > 0.5, `两段日均收入确实不同（${日均.map(x => x.toFixed(0)).join(' vs ')}）`)
+  // ⑤ 守恒 + 随机流未动
+  ok(分段.capital - 1490000 === 分段.profit, `守恒：资金变化 === 合并后利润（${分段.capital - 1490000}）`)
+  ok(!/Math\.random/.test(src('weekSegments.mjs')), '不引入新随机源（Math.random 零命中）')
+  // ⑥ 生效日 → 天数：decisionsByDayFrom 按 T11 应用
+  const rows = diffDecisions({ ...低价 }, { ...高价 }, { day: 3 })   // 第 3 天提交 ⇒ 第 4 天生效
+  const byDay = decisionsByDayFrom({ base: { ...低价 }, changes: rows, week: 1 })
+  ok(rows[0]?.生效日 === 4, `变更记录：第 3 天提交 ⇒ 生效日 = 4（实测 ${rows[0]?.生效日}）`)
+  ok(byDay.length === 7 && byDay[0].pricing === '不跟降' && byDay[3].pricing === '降价 20% 抢客' && byDay[6].pricing === '降价 20% 抢客',
+    'decisionsByDayFrom：第 1-3 天用旧值、第 4 天起用新值（生效日语义落地）')
+  ok(byDay.slice(0, 3).every(d => d.pricing === 低价.pricing) && byDay.slice(3).every(d => d.pricing === 高价.pricing),
+    '★ 分段边界与生效日一致（前 3 天 / 后 4 天）')
+  // ⑦ ★ §19.1 第 4 项：周报/钱账的分段卡【撤掉"估算"标注】（有真分段时）
+  const 卡 = revenueSegments(分段, rows, null)
+  ok(卡 && 卡.实算 === true, '周报分段卡：引擎给真分段时标【实算】而非估算')
+  ok(!/估算/.test(卡.标题 + 卡.说明), '★ 撤掉"估算"标注：标题与说明里不再出现"估算"字样', 卡.标题)
+  ok(卡.rows.every(x => Number.isFinite(x.金额)), '分段行显示【真值金额】（不再是"约 X 元"的估算字段）')
+  const 旧档卡 = revenueSegments({ ...分段, segments: undefined }, rows, null)
+  ok(旧档卡 && 旧档卡.估算 === true && /估算/.test(旧档卡.标题),
+    '旧档/无真分段 ⇒ 回退估算路径且标注照旧（向后兼容；不许静默变"实算"）')
+  // ⑧ 周报均价仍可核（不因分段而改口径）
+  ok(Number.isFinite(甲0.price), '周报均价 = 引擎实收均价（有据可核）')
 }
 
 // ── [6] 反向验证靶子：归属日改成"当天生效" ⇒ [1][2] 必红 ──────────
