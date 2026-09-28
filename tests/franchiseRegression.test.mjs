@@ -11,6 +11,7 @@ import { settle } from '../src/settlement.js'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
 import { propertyQuote } from '../src/propertyQuote.mjs'
 import { onePageLedger, paybackText } from '../src/onePageLedger.mjs'
+import { franchiseFees, 已接入品牌 } from '../src/franchiseFees.mjs'   // §17.1-③：口径分离断言要用
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -68,8 +69,41 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   ok(ota.revenue === 168980 && ota.totalCost === 118425 && ota.netProfit === 50555,   // 🔴 §14.3 重基线：+加盟两费 12505
     `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（各自锚点，与自营不同属正常）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
-    `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}（模式差异只由此产生）`)
-  ok(direct.weeklyExpenses['OTA佣金'] === 0, '自营模式不收 OTA 佣金（模式差异点唯一）')
+    `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}`)
+  ok(direct.weeklyExpenses['OTA佣金'] === 0, '自营模式不收 OTA 佣金')
+  // 🔴 §17.1-③（2026-09-28）更正一处**注释口径**：原先这里写"模式差异只由此产生"/"模式差异点唯一"——
+  //   **不准确**：引擎里 bizMode 还有【价格竞争力】差异（settlement 的 `priceCompetitive *= 1.2`(ota)
+  //   vs `*= 0.85`(direct)）⇒ 营收/出租率随之不同（本用例 168980 vs 126140，差额**大部分不是佣金**）。
+  //   ⇒ 差异**共两处**：① 佣金（15% vs 0）② 线上流量/获客（经价格竞争力）。下面把它断言住。
+}
+
+// ── 【A2b】§17.1-③ C1：开店模式的引擎侧差异必须【可观察】且断言钉住（走真实传递链）──
+//   需求文档原话："已有 UI，缺引擎，改动量小价值高"。清点结论：UI 只有两种模式（direct/ota），
+//   引擎侧差异**已存在但从未被完整断言**；本层把它钉住，并守住 D55-c 的"三处口径不许混"。
+console.log('\n[A2b] C1 · 开店模式差异（可观察）+ 口径分离（门槛按品牌 · 佣金按 bizMode）')
+{
+  const direct = settle({ ...BASE, bizMode: 'direct' })
+  const ota = settle({ ...BASE, bizMode: 'ota' })
+  // ① UI 承诺"线上客源多且稳定 · 起步容易" ⇒ 引擎侧必须**可观察**：OTA 的出租率高于自营
+  ok(ota.occupancy > direct.occupancy,
+    `UI 承诺"OTA 线上客源更多"在引擎里成立：出租率 ${ota.occupancy}% > 自营 ${direct.occupancy}%（走真实传递链）`)
+  ok(ota.occupiedRooms > direct.occupiedRooms, `售出间夜同步更高：${ota.occupiedRooms} > ${direct.occupiedRooms}`)
+  // ② 佣金差异是【按 bizMode】，不是按品牌 —— 换品牌（同为已接入）佣金率不变
+  const 换品牌 = settle({ ...BASE, brand: 汉庭, bizMode: 'ota' })
+  ok(Math.abs(换品牌.weeklyExpenses['OTA佣金'] / 换品牌.revenue - 0.15) < 1e-9,
+    `换品牌后佣金率仍为 15%（佣金按 bizMode，不按品牌）`, String(换品牌.weeklyExpenses['OTA佣金'] / 换品牌.revenue))
+  // ③ 加盟两费是【按品牌】，与 bizMode 无关 —— 费率一致（金额随营收变，那是正常的）
+  const 费率集 = 已接入品牌.map(n => franchiseFees({ name: n }, 100000).费率.合计)
+  ok(new Set(费率集).size === 1 && Math.abs(费率集[0] - 0.074) < 1e-9,
+    `加盟两费率对所有已接入品牌一致 = ${(费率集[0] * 100).toFixed(2)}%（按品牌名单，与 bizMode 无关）`)
+  ok(!/bizMode/.test(strip(src('src/franchiseFees.mjs'))),
+    '★ 口径分离（D55-c）：franchiseFees 源码里【不出现 bizMode】⇒ 加盟费不可能被平台佣金口径污染')
+  // ④ 结构上：两费的计算入口不接收 bizMode
+  ok(franchiseFees.length === 2, `franchiseFees(brand, revenue) 只有 2 个入参（无 bizMode）`, String(franchiseFees.length))
+  // ⑤ 两模式的差异**共两处**，不许只归因于佣金（更正口径后钉住）
+  const 佣金差 = ota.weeklyExpenses['OTA佣金'] - direct.weeklyExpenses['OTA佣金']
+  const 营收差 = ota.revenue - direct.revenue
+  ok(营收差 > 0 && 佣金差 > 0, `两模式差异两处并存：营收差 ${营收差}（流量） + 佣金差 ${佣金差}（费率）`)
 }
 
 // ── 【B】加盟数值断言（与 W3-1/W3-2 同源）────────────────────────────

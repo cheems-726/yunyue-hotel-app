@@ -64,6 +64,9 @@ const SUITES = [
   { name: 'reportCaliber（产物报告口径版本·§15.1C）', file: 'tests/reportCaliber.test.mjs' },
   // §16.2-B5：筹建页投资项档位（可配置默认档位 · 老师给数只改配置）
   { name: 'establishmentInvest（筹建投资项·§16.2B5）', file: 'tests/establishmentInvest.test.mjs' },
+  // §17.1-③（C1）：承诺一致性 M1 —— 文案里的数值承诺 ↔ 代码里的权重计算必须对得上。
+  //   ★ 此前它**不在门禁内**（所以"评分公式搬到 .mjs 后它就瞎了"没人发现）；本批修好 + 挂进来。
+  { name: 'promise-consistency（M1 承诺一致性·§17.1C1）', file: 'tests/promise-consistency.mjs' },
   // §14.3 G3 二步：加盟两费进资金流（零变化、守恒、单源）
   { name: 'franchiseFees（加盟两费·§14.3）', file: 'tests/franchiseFees.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },

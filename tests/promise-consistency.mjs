@@ -47,7 +47,11 @@ const SKIP_CONTEXT = [
 ]
 
 const promises = []
-for (const f of walk(SRC, ['.js', '.jsx'])) {
+// 🔴 §17.1-③（2026-09-28）修复①：扫描范围补 `.mjs`
+//   原写法只扫 .js/.jsx ⇒ E1（批次 B）把四维评分从 App.jsx/FinalResult.jsx 移进 src/metricDefs.mjs 后，
+//   本脚本**一个权重式都扫不到**（"已实现的权重集：{}"），于是把【已实现】的 15% 承诺报成"未兑现" ——
+//   属 BL-14「链路式未消费」同族：**检查器的目标搬家了，没人发现，它还在原地报**。
+for (const f of walk(SRC, ['.js', '.jsx', '.mjs'])) {
   const txt = readIf(f)
   if (!txt) continue
   const lines = txt.split('\n')
@@ -79,7 +83,9 @@ const WEIGHT_PATTERNS = [
   /(?:finalScore|totalScore|score)\s*=\s*([^\n;]+)/g,
 ]
 const weightsFound = []   // { file, line, weights: [0.4, 0.25, ...], expr }
-for (const f of walk(SRC, ['.js', '.jsx'])) {
+// 🔴 §17.1-③（2026-09-28）修复①·同前：权重式扫描也必须包含 .mjs
+//   （四维评分公式现居 src/metricDefs.mjs 的 scoreOf —— 只扫 .js/.jsx 会漏掉它）
+for (const f of walk(SRC, ['.js', '.jsx', '.mjs'])) {
   const txt = readIf(f)
   if (!txt) continue
   const lines = txt.split('\n')
@@ -121,6 +127,17 @@ for (const p of promises) {
 const bad = results.filter(r => !r.hit && !r.whitelisted)
 const good = results.filter(r => r.hit || r.whitelisted)
 
+// ── 3.5 ★ §17.1-③（2026-09-28）自检：扫描器不得空转 ──────────────────
+//   本脚本曾因"只扫 .js/.jsx"而在四维评分搬到 metricDefs.mjs 后**一个权重式都扫不到**，
+//   于是把【已实现】的承诺报成未兑现（假红），同时"已实现权重集"变成空集 ⇒ 也就**再也抓不到**真未兑现项（假绿）。
+//   这是"判据退化成什么都扫不到"（与"表在但没盖全""断言恒真"同族）⇒ 立两道自检：
+//     ① 必须扫到 ≥1 个权重式（否则评分公式又搬家了：查它在哪个文件/扩展名）
+//     ② 必须扫到 ≥1 条数值承诺（否则承诺句式变了，本脚本在空转）
+//   ★ 白名单为空时，"承诺数 > 0 且 权重式 > 0"是这套件还能工作的最低条件。
+const 空转 = []
+if (weightsFound.length === 0) 空转.push('权重式 0 个 ⇒ 评分公式可能又换了文件/扩展名（当前扫 src/**/*.{js,jsx,mjs}）')
+if (promises.length === 0) 空转.push('数值承诺 0 条 ⇒ 承诺句式变了，本脚本在空转')
+
 // 权重和检查：加权式之和应为 1.00（否则可能漏了一项）
 const sumIssues = weightsFound.filter(w => {
   const s = w.weights.reduce((a, b) => a + b, 0)
@@ -143,6 +160,11 @@ console.log('')
 console.log('  已实现的权重集：{' + [...implementedWeights].join(', ') + '}')
 console.log('')
 console.log('  文案承诺：' + promises.length + ' 条 ｜ 兑现 ' + good.length + ' ｜ 未兑现 ' + bad.length)
+if (空转.length) {
+  console.log('')
+  console.log('  ✗ 扫描器自检失败（本脚本已失去判别力）：')
+  for (const x of 空转) console.log('   · ' + x)
+}
 console.log('')
 
 if (bad.length) {
@@ -164,7 +186,7 @@ if (good.length) {
 }
 
 console.log('────────── 结论 ──────────')
-if (bad.length === 0 && sumIssues.length === 0) {
+if (bad.length === 0 && sumIssues.length === 0 && 空转.length === 0) {
   console.log('  ✓ 所有数值承诺均已兑现，且权重和 = 1.00')
 } else {
   if (sumIssues.length) {
@@ -180,7 +202,7 @@ if (bad.length === 0 && sumIssues.length === 0) {
 console.log('')
 
 // 统一尾行格式，便于 run-all 汇总统计
-console.log(good.length + ' 通过 / ' + (bad.length + sumIssues.length) + ' 失败')
+console.log(good.length + ' 通过 / ' + (bad.length + sumIssues.length + 空转.length) + ' 失败')
 console.log('')
 
-process.exit((bad.length || sumIssues.length) ? 1 : 0)
+process.exit((bad.length || sumIssues.length || 空转.length) ? 1 : 0)
