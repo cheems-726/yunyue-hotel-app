@@ -28,6 +28,17 @@ const FN = /\b(?:ok|gok|expect|t|it)\s*\(/g
 const ALWAYS_TRUE = /\|\|\s*(true|1)(?![\d.])/
 const ALWAYS_FALSE = /&&\s*(false|0)(?![\d.])/
 
+// ── §16.2-B8（D57 已拍）· A4：比较式恒真（**有限扩展 + 误伤保护**）──────────
+// 背景：repoHygiene 曾写 `ok(citedByDoc.length === pngs.length || citedByDoc.length >= 0, …)` ——
+//   右侧 `>= 0` 恒真 ⇒ 整条断言从不判任何东西；而 A1 只认 `|| true` 字面量 ⇒ 漏网。
+// 做法（**枚举式白名单，不许泛化**）：只抓"对【必然非负】的量做必然成立的下界比较"：
+//   · `X.length >= 0` · `X.length > -N`（N>0）· `X.length !== -N` · `X.length != -N`
+//   ★ 为什么只认 `.length`：数组/字符串长度**在语言层就 ≥ 0** ⇒ 静态可判定恒真。
+//   ★ 为什么不认普通变量（如 `n >= 0`、`count >= 0`）：变量**可能是负的** ⇒ 那是正常判据，
+//     报它就是误伤。D57 裁定原文："泛化会误伤合法析取式 ⇒ 宁可漏，不可误伤"。
+//   扩展新形态时的规矩：**必须是"语言层保证"的非负量**，且要同时补命中/不误伤两组自检样例。
+const ALWAYS_TRUE_CMP = /\.length\s*(?:>=\s*0|>\s*-\s*\d+|!==?\s*-\s*\d+)(?![\d.])/
+
 function* walk(dir) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name)
@@ -53,6 +64,8 @@ for (const f of walk(DIR)) {
     const arg1 = first.slice(first.indexOf('(') + 1)
     if (ALWAYS_TRUE.test(arg1)) hits.push({ f: path.basename(f), line: i + 1, kind: '恒真(`|| true`)', text: lines[i].trim().slice(0, 90) })
     else if (ALWAYS_FALSE.test(arg1)) hits.push({ f: path.basename(f), line: i + 1, kind: '恒假(`&& false`)', text: lines[i].trim().slice(0, 90) })
+    // §16.2-B8 · A4：比较式恒真（`.length >= 0` 一类）
+    else if (ALWAYS_TRUE_CMP.test(arg1)) hits.push({ f: path.basename(f), line: i + 1, kind: '恒真(比较式 `.length >= 0`)', text: lines[i].trim().slice(0, 90) })
   }
 }
 
@@ -76,6 +89,31 @@ ok(真.length === 0, `tests/** 正式套件无恒真/恒假断言（命中 ${hit
   ok(!ALWAYS_FALSE.test(剥(样本数值).slice(样本数值.indexOf('(') + 1)), '判据自检：`=== false && 0.08 * x` 不被误判为恒假（数值合取合法）')
   ok(ALWAYS_TRUE.test(剥(样本恒真).slice(样本恒真.indexOf('(') + 1)) && !ALWAYS_TRUE.test(剥(样本正常).slice(样本正常.indexOf('(') + 1)),
     '判据自检：恒真样本命中、正常样本不命中（非恒真守门）')
+
+  // ── §16.2-B8：比较式恒真的【命中样例】与【不误伤样例】—— 两组都必须验（D57 明确要求）──
+  const 取arg1 = (t) => 剥(t).slice(t.indexOf('(') + 1)
+  const 命中样例 = [
+    "ok(a.length === b.length || a.length >= 0, 'msg')",   // repoHygiene 原来那条的同构写法
+    "ok(xs.length >= 0, 'msg')",
+    "ok(xs.length > -1, 'msg')",
+    "ok(xs.length !== -1, 'msg')",
+    "ok(xs.length != -5, 'msg')",
+  ]
+  const 不误伤样例 = [
+    "ok(n >= 0, 'msg')",                 // ★ 普通变量：可能是负的 ⇒ 正常判据，不许报
+    "ok(count >= 0, 'msg')",
+    "ok(a > 0 || b > 0, 'msg')",         // ★ 合法析取式，不许报
+    "ok(xs.length >= 1, 'msg')",         // 空数组时为假 ⇒ 真判据
+    "ok(xs.length === 0, 'msg')",        // 正常判据
+    "ok(xs.length !== 0, 'msg')",
+    "ok(xs.length > -0.5, 'msg')",       // 小数 ⇒ 不是"必然成立的整数下界"写法，宁漏不误伤
+  ]
+  const 漏报 = 命中样例.filter(t => !ALWAYS_TRUE_CMP.test(取arg1(t)))
+  const 误伤 = 不误伤样例.filter(t => ALWAYS_TRUE_CMP.test(取arg1(t)))
+  ok(漏报.length === 0, `判据自检：比较式恒真 ${命中样例.length} 条样例全部命中`, 漏报.join(' | '))
+  ok(误伤.length === 0, `判据自检：${不误伤样例.length} 条合法写法【一条都不误报】`, 误伤.join(' | '))
+  // 这条自检本身也不许恒真：两组样例都必须非空（否则"全过"是空集合的假象）
+  ok(命中样例.length >= 5 && 不误伤样例.length >= 6, '自检样例数量足够（命中 ≥5 · 不误伤 ≥6）')
 }
 
 // 反向验证靶子（报告引用）：往任意套件塞 `ok(false || true, 'RV')` ⇒ 本套件必红

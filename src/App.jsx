@@ -25,6 +25,8 @@ import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
 import { settleInputsFrom } from './weekInputs.mjs'
+// §16.2-B5：投资项档位 → 品质联动（系数单源在该模块）
+import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { teachingDayNo } from './teachingClock.mjs'
@@ -2082,10 +2084,18 @@ export default function App() {
     setEstablished(false)
   }
   function handleEstablished(choices) {
-    const c = choices || { invest: null, supplier: null, opening: [] }
+    const c = choices || { invest: null, supplier: null, opening: [], investTiers: {} }
     // 筹建期"物资采购"是一次性选择（非周决策）：品质养成从这里起步，只应用一次
     // 用 estChoices 是否已有渠道做幂等保护（重进筹建流程不会重复加分）
     setAttrs(prev => (estChoices?.supplier ? prev : applyDecisionToAttrs(prev, 'est-supplier', c.supplier)))
+    // 🔴 §16.2-B5（2026-09-28）：投资项档位 → 品质联动（一次性，与 est-supplier 同样的幂等保护）。
+    //   品质分由 `投资测算()` 现算（系数单源在 establishmentInvest.mjs）⇒ 本处只传数值。
+    //   ★ 投资规模（总投资）不进资金流：那是**投资侧**展示口径（与 capex 同族，D53-c 未接 E1 账本），
+    //     本批不做"扣钱"（B2/B3 才是动钱的项）。
+    if (!estChoices?.investTiers) {
+      const 品质分 = 投资测算({ brand, 选择: c.investTiers }).品质分
+      if (品质分) setAttrs(prev => applyDecisionToAttrs(prev, 'est-invest', 品质分))
+    }
     setEstChoices(c)
     setEstablished(true)
     setTab('business')

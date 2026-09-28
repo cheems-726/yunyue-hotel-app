@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
+// §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
+import { 投资测算, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
+
+// 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
+const 投资项清单 = [
+  { key: '装修' },
+  ...附加项.map(x => ({ key: x.key })),
+]
 
 // 筹建 4 步（品牌/物业已在前面的选品牌和认领环节完成）
 const steps = [
@@ -27,7 +35,10 @@ export default function Establishment({ brand, property, onComplete }) {
   const [feedback, setFeedback] = useState(null) // 选项点击反馈
   const [picked, setPicked] = useState({}) // 已查看过的详情 key（视觉标记）
   // 真正的选择（会随开业写入存档）：invest=投资情景 / supplier=采购渠道 / opening=开业任务优先级顺序
-  const [choices, setChoices] = useState({ invest: null, supplier: null, opening: [] })
+  // §16.2-B5：+ investTiers = 投资项档位（装修/软装/IT/布草/开办费 各 低中高）
+  const [choices, setChoices] = useState({ invest: null, supplier: null, opening: [], investTiers: {} })
+  // 投资测算（纯计算；老师给数只改 establishmentInvest.mjs 的配置）
+  const 测算 = 投资测算({ brand, 选择: choices.investTiers })
 
   function pick(key, result) {
     setPicked(p => ({ ...p, [key]: true }))
@@ -35,6 +46,10 @@ export default function Establishment({ brand, property, onComplete }) {
   }
   function chooseInvest(scene) { setChoices(c => ({ ...c, invest: scene })) }
   function chooseSupplier(name) { setChoices(c => ({ ...c, supplier: name })) }
+  // §16.2-B5：档位切换（只改选择，金额/品质由 投资测算 现算 —— 单一计算点）
+  function chooseTier(key, 档) {
+    setChoices(c => ({ ...c, investTiers: { ...(c.investTiers || {}), [key]: 档 } }))
+  }
   function toggleOpeningTask(task) {
     setChoices(c => {
       const arr = c.opening.includes(task) ? c.opening.filter(x => x !== task) : [...c.opening, task]
@@ -111,7 +126,7 @@ export default function Establishment({ brand, property, onComplete }) {
       <div className="card">
         <div className="card-title">{step.icon} {step.title}</div>
         <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>{step.desc}</div>
-        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} />
+        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} chooseTier={chooseTier} />
       </div>
 
       {/* 底部按钮 */}
@@ -165,7 +180,7 @@ export default function Establishment({ brand, property, onComplete }) {
   )
 }
 
-function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask }) {
+function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, chooseTier }) {
   const clickable = key => ({
     cursor: 'pointer',
     border: picked[key] ? '1px solid #E8940F' : '1px solid transparent',
@@ -192,6 +207,42 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
           ))}
           <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
             💡 关键指标：RevPAR（每间可售房收入）= ADR × 出租率；GOP率（毛经营利润率）是业主最关注指标。追加投资提升品质能拉高房价，但拉长回收期——权衡投入与回报。
+          </div>
+          {/* 🔴 §16.2-B5（2026-09-28）：投资项档位（W3-3 铺满版）——
+              原先装修档/软装/IT/布草/开办费【整体悬置】；现在用【可配置默认档位】先填上：
+              装修档锚定品牌官方单房造价，其余四项按占装修的教学比例；每档显式标「待老师确认」。
+              老师给数 ⇒ 只改 src/establishmentInvest.mjs 的配置，不动代码。 */}
+          <div style={{ marginTop: 14, padding: '10px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
+              🧱 投资项档位（{待老师确认文案}）
+            </div>
+            {投资项清单.map(it => (
+              <div key={it.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, width: 62, color: '#78350F' }}>{it.key}</span>
+                {['低', '中', '高'].map(d => {
+                  const on = (choices.investTiers?.[it.key] || '中') === d
+                  return (
+                    <span key={d} onClick={() => chooseTier(it.key, d)} style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 5, cursor: 'pointer',
+                      border: on ? '1px solid #E8940F' : '1px solid #E5E7EB',
+                      background: on ? '#FFF4E0' : '#FFFFFF', color: on ? '#A96407' : '#6B7280',
+                      fontWeight: on ? 700 : 400,
+                    }}>{d}{on ? ' ✓' : ''}</span>
+                  )
+                })}
+                <span style={{ fontSize: 10, color: '#9CA3AF' }}>
+                </span>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: '#92400E', marginTop: 6, borderTop: '1px dashed #FDE68A', paddingTop: 6, lineHeight: 1.7 }}>
+              {测算.合计 == null
+                ? <>⚠️ {测算.待补.join('；')}</>
+                : <>📊 合计投资（估算）：<b>{(测算.合计 / 10000).toFixed(1)} 万</b>
+                  （含装修 {(测算.明细[0].金额 / 10000).toFixed(1)} 万）· 品质影响：<b>{测算.品质分 > 0 ? '+' : ''}{测算.品质分}</b></>}
+              <div style={{ color: '#B45309', marginTop: 2 }}>
+                {口径.来源} —— ★ 这是**教学默认档位**，不是官方市场价；老师给出金额档位后替换。
+              </div>
+            </div>
           </div>
         </div>
       )

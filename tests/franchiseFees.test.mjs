@@ -10,7 +10,7 @@
 //   [6] 界面标注层：哪些费率"已实收"、哪些"待接入"必须如实标注
 import { readFileSync } from 'node:fs'
 import { settle } from '../src/settlement.js'
-import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项 } from '../src/franchiseFees.mjs'
+import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比 } from '../src/franchiseFees.mjs'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
 
 let pass = 0, fail = 0
@@ -246,6 +246,48 @@ console.log('\n[6] 界面标注：哪些费率已实收 / 哪些仍是待补')
   const wr = src('WeeklyReport.jsx')
   ok(/result\.franchiseFees/.test(wr) && /待补/.test(wr),
     '周报：成本构成处读 result.franchiseFees 并对未接入品牌标「待补」（真判据，非靠 GOP 注释碰巧命中）')
+}
+
+// ── §16.2-B6：CRS 渠道占比【一处可调】+ 界面标置信度 + 默认值不动 ──────────
+console.log('\n[§16.2-B6] CRS 渠道占比可配置（默认值不动 · 改动可观测 · 复位可复原）')
+{
+  const 汉庭 = { name: '汉庭', price: '180-280元', standard: '客房70间起', level: '经济型 · 国民' }
+  const 初始 = CRS配置()
+  ok(初始.当前 === 0.30 && 初始.默认 === 0.30, `默认值未被本批改动（当前 ${初始.当前} = 默认 ${初始.默认}）`)
+  ok(初始.置信度 === '低' && !!初始.来源, `置信度与来源随配置带出（${初始.置信度} · ${初始.来源.slice(0, 24)}…）`)
+  ok(初始.官方封顶 === 0.035, '官方封顶 3.5% 仍是配置的一部分（不是写死在别处）')
+  // ① 可观测：改配置 ⇒ 引擎算出的两费/现金流确实变化
+  const 基准 = franchiseFees(汉庭, 100000)
+  const 设 = 设置CRS渠道占比(0.15)
+  ok(设.成功 === true && 设.旧 === 0.30 && 设.新 === 0.15, '设置成功并回带旧值/新值（可审计）')
+  const 改后 = franchiseFees(汉庭, 100000)
+  ok(改后.CRS === Math.round(100000 * 0.08 * 0.15) && 改后.CRS < 基准.CRS,
+    `改配置 ⇒ CRS 可观测变化（${基准.CRS} → ${改后.CRS}）—— 不是"配置了但没人读"`)
+  ok(改后.管理费 === 基准.管理费, '只有 CRS 变、管理费不动（改一处只影响一处）')
+  ok(CRS配置().是否已改动 === true, '配置状态能看出"已改动"（界面/断言可读）')
+  // ② 封顶守卫在【改配置后】仍然生效（不另写一份判断）
+  const 设高 = 设置CRS渠道占比(0.9)                       // 0.08×0.9 = 7.2% > 3.5% 封顶
+  const 封顶单 = franchiseFees(汉庭, 100000)
+  ok(设高.成功 && 封顶单.CRS === Math.round(100000 * 0.035) && 封顶单.封顶是否触发 === true,
+    '渠道占比抬到 90% ⇒ 撞官方封顶（CRS 按 3.5% 收）且封顶标记置真 —— 守卫没被绕过')
+  // ③ 复位 ⇒ 逐字节回到默认口径（教学/演示可复原）
+  const 复位 = 重置CRS渠道占比()
+  ok(复位.当前 === 0.30 && 复位.是否已改动 === false, '重置回默认 0.30')
+  ok(JSON.stringify(franchiseFees(汉庭, 100000)) === JSON.stringify(基准),
+    '复位后两费输出与基准【逐字节相同】（复位真的干净）')
+  // ④ 非法值被拒（且不改变现状）
+  const 坏 = 设置CRS渠道占比(0)
+  ok(坏.成功 === false && /必须/.test(坏.原因) && CRS生效值() === 0.30,
+    '非法值（0）被拒并说明原因，且不改动现状', 坏.原因)
+  ok(设置CRS渠道占比(-1).成功 === false && 设置CRS渠道占比(1.5).成功 === false, '非法值（负 / >1）同样被拒')
+  // ⑤ 单源仍成立：消费者读的是生效值，不许别处留常量副本
+  const ff = strip(src('franchiseFees.mjs'))
+  const 常量消费点 = (ff.match(/CRS_渠道占比\.值/g) || []).length
+  ok(常量消费点 === 4, `常量只在 4 个定义/复位点出现（实测 ${常量消费点} 处）—— 多一处即"绕过配置开关"`, String(常量消费点))
+  // ⑥ 界面标置信度（B6 明列要求）
+  ok(/x.置信度/.test(strip(src('Claim.jsx'))), '认领页把【置信度】渲染出来（剥注释后判定，不是只存在数据里）')
+  ok(/费费用条款|加盟费用条款/.test(src('Claim.jsx')) && /x\.置信度/.test(src('Claim.jsx')),
+    '加盟条款逐项带置信度渲染（CRS 那条由此标出"低置信度/教学假设"）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

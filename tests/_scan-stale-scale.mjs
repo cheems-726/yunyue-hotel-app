@@ -54,6 +54,9 @@ const WHITELIST = [
   // 2026-09-27 选址数据任务：选址页新增「人流/经济」行 —— 那里的 /10000 是【人口·游客数的万/亿展示换算】，
   //   与酒店资金量级无关（值来自 LOCATION_PROFILE 的统计口径）⇒ 按展示换算放行。
   { rule: 'R6', file: 'src/SiteSelection.jsx', why: '人口/游客数的万·亿展示换算（选址页人流/经济行）—— 不是资金量级' },
+  // §16.2-B5（2026-09-28）：筹建页投资项显示为万（合计投资/装修额）—— 纯展示换算，
+  //   金额本身来自 establishmentInvest（锚定 franchiseModel 的官方单房造价），不是写死的资金量级。
+  { rule: 'R6', file: 'src/Establishment.jsx', why: '筹建页投资项显示为"万"（合计投资/装修额 /10000）—— 纯展示换算，金额锚在官方单房造价上' },
   { rule: 'R5', file: 'src/App.jsx', why: 'isLow/isCritical 的定义行本身；阈值已改引 SCALE.变黄线/变红线（W2 收尾单源）—— 命中是定义处不可免' },
   { rule: 'R3', file: 'src/stateMigration.mjs', allow: /IC_OLD/, why: 'D25 迁移公式自带常量 IC_old = 500,000 —— 它【必须】是旧起始资金本身（公式就是 capital_new = IC_new + (capital_old − IC_old) × m）。这不是"残留的旧口径"，恰恰是用来做换算的基准值' },
   { rule: 'R4', file: 'src/siteLocations.mjs', allow: /./, why: '区县统计文案里的"万"（120万㎡ / 608万游客 / 34万人口 / 3-5万游客 等）—— 与酒店资金量级无关，是区位调研数据的量词' },

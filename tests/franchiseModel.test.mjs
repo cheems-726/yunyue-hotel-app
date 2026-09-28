@@ -94,7 +94,9 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   // 🔴 §14.3 重基线：新增 franchiseFees.mjs —— 它是【引擎侧计费单源】（settlement.js 经它取费率），
   //   是 franchiseModel 的合法消费方。旧保证「加盟数据零影响结算」因此升级为三条：
   //     ① 数据只被【单源计费模块】消费（不散落）② 费率改动走《学生感知变化清单》③ settlement.js 不直接引用本数据层
-  const INTERACTION_LAYER = ['propertyQuote.mjs', 'onePageLedger.mjs', 'franchiseFees.mjs']
+  // 🔴 §16.2-B5（2026-09-28）：新增 establishmentInvest.mjs —— 筹建页投资项**锚定官方单房造价**（B5 的"不编造"设计），
+  //   同属交互层；它**不被 settlement 引用**，由 tests/establishmentInvest.test.mjs 的"不越界层"独立守门。
+  const INTERACTION_LAYER = ['propertyQuote.mjs', 'onePageLedger.mjs', 'franchiseFees.mjs', 'establishmentInvest.mjs']
   const illegal = users.filter(u => !INTERACTION_LAYER.includes(u))
   ok(illegal.length === 0, `franchiseModel 只被交互层引用（白名单 ${INTERACTION_LAYER.join(',')}）${illegal.length ? ' → 越界：' + illegal.join(',') : ''}`)
   const engineFiles = ['settlement.js', 'serverTick.mjs', 'deptCosts.mjs', 'metricDefs.mjs']

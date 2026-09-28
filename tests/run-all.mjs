@@ -62,6 +62,8 @@ const SUITES = [
   { name: 'assertionSanity（断言不得恒真·§14.1）', file: 'tests/assertionSanity.test.mjs' },
   // §15.1-C 制度性守门：凡引用引擎数值的产物报告必须标注【口径版本】+ 覆盖度（防"数字对≠引用处都对"再生）
   { name: 'reportCaliber（产物报告口径版本·§15.1C）', file: 'tests/reportCaliber.test.mjs' },
+  // §16.2-B5：筹建页投资项档位（可配置默认档位 · 老师给数只改配置）
+  { name: 'establishmentInvest（筹建投资项·§16.2B5）', file: 'tests/establishmentInvest.test.mjs' },
   // §14.3 G3 二步：加盟两费进资金流（零变化、守恒、单源）
   { name: 'franchiseFees（加盟两费·§14.3）', file: 'tests/franchiseFees.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },

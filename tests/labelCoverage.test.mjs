@@ -112,11 +112,13 @@ console.log('\n[4] 引擎/属性表里引用的决策 id 必须真实存在（at
   const idsInAttrs = [...attrs.matchAll(/['"]([a-z][a-z-]{3,})['"]\s*[:)]/g)].map(x => x[1])
   const 可疑 = [...new Set(idsInAttrs)].filter(id => !IDS.includes(id) && !['quality', 'reputation', 'morale', 'case', 'delta', 'else'].includes(id))
   // 白名单：attrs.js 里这些是【属性名/局部词/JS类型字面量】，不是决策 id（§14.1 返修：逐条补全理由 ⇒ 死断言复活）
-  //   实测命中全集：number / est-supplier / buy-a / buy-b / buy-c / object / string（2026-09-28 跑出）
+  //   实测命中全集（2026-09-28 跑出）：number / object / string / est-supplier / est-invest / buy-a / buy-b / buy-c
   const ALLOW_ATTRS = [
     'init', 'label', 'icon', 'note', 'type', 'desc', 'from', 'into', 'none', 'name', 'self', 'keep', 'cost', 'rate',
     'number', 'object', 'string',            // JS 类型注记（normalize 的 typeof 分支）
     'est-supplier',                          // 筹建期选择键（estChoices.supplier 的选项值，非 18 项决策）
+    'est-invest',                            // ★ §16.2-B5：投资项档位 → 品质联动的伪 id（同上，非 18 项决策；
+                                             //   它没有表项、是**计算型分支**，系数单源在 establishmentInvest.mjs）
     'buy-a', 'buy-b', 'buy-c',               // 筹建期"物资采购"的渠道选项键（同上，非 18 项决策）
   ]
   const 真可疑 = 可疑.filter(id => !ALLOW_ATTRS.includes(id) && id.length > 4)

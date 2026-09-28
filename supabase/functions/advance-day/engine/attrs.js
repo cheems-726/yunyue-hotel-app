@@ -226,6 +226,16 @@ export function applyDecisionToAttrs(attrs, decisionId, answer, dir = 1) {
       const d = campaignDelta(answer)
       return d ? applyDelta(attrs, scaleDelta(d, dir)) : normalizeAttrs(attrs)
     }
+    // 🔴 §16.2-B5（2026-09-28）：投资项档位（装修/软装/IT/布草/开办费）对品质的联动。
+    //   ★ 必须放在【DECISION_EFFECTS 查表】之前 —— 它没有表项（是计算型，不是选项表型），
+    //     放到查表之后会被 `if (!table) return` 提前短路掉（本批实测踩到：60 → 60 没加分）。
+    //   ★ 传进来的 answer 是**已经算好的品质分**（数值），由 `establishmentInvest.投资测算()` 产出 ——
+    //     **系数的唯一来源在那边**（本处只负责把它落到属性上，不复制一份系数表，
+    //     否则就成了 BL-7「两套算法两个数」；也避免 attrs→establishmentInvest→settlement→attrs 的循环依赖）。
+    if (decisionId === 'est-invest') {
+      const q = Number(answer)
+      return Number.isFinite(q) && q !== 0 ? applyDelta(attrs, { quality: q }) : normalizeAttrs(attrs)
+    }
     const table = DECISION_EFFECTS[decisionId]
     if (!table) return normalizeAttrs(attrs)
 
