@@ -16,7 +16,7 @@
 // 幂等键 tickKey(classDay, groupKey)。同一天重复触发：若该周已在 history 里，直接返回既有结果、
 // 不再结算（advanced=false）⇒ 结果逐字节相同。
 import { settle, DAYS_PER_WEEK, buildDailyReport } from './engine/index.js'
-import { settleWeekSegmented } from './weekSegments.mjs'   // §19.1 单元1·B4
+import { settleWeekSegmented, 同决策集 } from './weekSegments.mjs'   // §19.1 单元1·B4 · §21.1-A-1 base 交叉核对
 import { decisionsByDayFrom } from './weeklyAuto.mjs'
 import { dayToWeekDay } from './weeklyAuto.mjs'   // E2：周↔天换算唯一来源（本文件不再自己算）
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）与客户端【同一派生点】——补算 === 在线 的前置
@@ -147,8 +147,19 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   //   ★ 读不到（旧档 / 周号不符）⇒ 用【空输入】兜底，并把来源标出来（不静默假装拿到过）。
   const 存档输入 = weekInputsOf(src, week)
   const 输入 = 存档输入 || 空周输入(week)
-  // ★ §19.1（单元 1·B4）：服务端也走分段结算（客户的变更记录随存档上传 ⇒ 两端同一口径）
-  const 变更前决策 = (() => { const b = { ...decisions }; (Array.isArray(src.decisionChanges) ? src.decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
+  // ★ §19.1（单元 1·B4）+ §21.1-A-1（D61）：分段结算的 base 采【客户端上传】，服务端不再反推当期入参
+  //   背景：decisionsByDayFrom 的契约是"由调用方给 base（反推会猜）"，而两端原先**都在反推**
+  //   ⇒ 函数与调用方自相矛盾；且服务端可能只拿到不完整的变更记录 ⇒ 两端 decisionsByDay 可能不同
+  //     ⇒ "补算 === 在线"破（与 B7 同类）。
+  //   现在：① 优先读存档里的 `weekBase`（客户端上传的真实 base）
+  //        ② 读不到（旧档 / 周号不符 / 版本不符）⇒ **退回反推**兜底，并把来源标出来（不静默假装拿到过）
+  //        ③ ★ 反推结果保留为【交叉核对】：与上传值不一致 ⇒ 置 `baseMismatch`（捕获"客户端记账缺失"）
+  const 反推base = (() => { const b = { ...decisions }; (Array.isArray(src.decisionChanges) ? src.decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
+  const 上传base = (src.weekBase && Number(src.weekBase.week) === Number(week) && (src.weekBase.版本 == null || Number(src.weekBase.版本) === 1) && src.weekBase.decisions)
+    ? src.weekBase.decisions : null
+  const 变更前决策 = 上传base || 反推base
+  const baseSource = 上传base ? 'save' : 'derived'
+  const baseMismatch = !!上传base && !同决策集(上传base, 反推base)
   const result = settleWeekSegmented({
     site: src.location,
     brand: src.brand,
@@ -175,7 +186,9 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     save: nextSave,
     violations: [...(bounds.ok ? [] : bounds.violations.map(x => `${x.id}: ${x.why}`)), ...stateBounds.violations],
     engineVersion: TICK_VERSION,
-    inputsSource: 存档输入 ? 'save' : 'default',      // §16.2-B7：'default' = 存档没带本周输入（补算口径会与在线不同）
+    inputsSource: 存档输入 ? 'save' : 'default',
+    baseSource,          // §21.1-A-1：'save'（客户端上传）| 'derived'（旧档兜底反推）
+    baseMismatch,        // §21.1-A-1：上传值与反推值不一致 ⇒ 客户端记账可能缺失（交叉核对，不静默）      // §16.2-B7：'default' = 存档没带本周输入（补算口径会与在线不同）
   }
 }
 

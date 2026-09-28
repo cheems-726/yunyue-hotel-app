@@ -1805,6 +1805,17 @@ export default function App() {
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
       return settleInputsFrom({ reviews: rv, week, crisis: cr })
     } catch (e) { return null }
+  })(), weekBase: (() => {
+    // ★ §21.1-A-1（D61）：本周【改动前】的决策集，随存档上传。
+    //   背景：`weeklyAuto.decisionsByDayFrom` 的契约是"**由调用方给 base**（反推会猜）"，
+    //   但两端当时**都在反推**（把 decisionChanges 的 from 回退）⇒ 函数与调用方自相矛盾，
+    //   且服务端可能拿到不完整的变更记录 ⇒ 两端 decisionsByDay 可能不同 ⇒ "补算 === 在线"破（与 B7 同类）。
+    //   现在：**客户端给出 base（它拥有权威变更记录）并上传**；服务端直接读（并把反推留作交叉核对）。
+    try {
+      const b = { ...(doneDecisions || {}) }
+      ;(Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from })
+      return { 版本: 1, week: Number(week) || 1, decisions: b }
+    } catch (e) { return null }
   })() })
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return

@@ -64,6 +64,8 @@ const SUITES = [
   { name: 'reportCaliber（产物报告口径版本·§15.1C）', file: 'tests/reportCaliber.test.mjs' },
   // §16.2-B5：筹建页投资项档位（可配置默认档位 · 老师给数只改配置）
   { name: 'establishmentInvest（筹建投资项·§16.2B5）', file: 'tests/establishmentInvest.test.mjs' },
+  // §21.1-A-1（D61）：分段结算的 base 必须两端同源（反推只作交叉核对）
+  { name: 'baseSingleSource（base 单源·§21.1A1）', file: 'tests/baseSingleSource.test.mjs' },
   // §17.1-③（C1）：承诺一致性 M1 —— 文案里的数值承诺 ↔ 代码里的权重计算必须对得上。
   //   ★ 此前它**不在门禁内**（所以"评分公式搬到 .mjs 后它就瞎了"没人发现）；本批修好 + 挂进来。
   { name: 'promise-consistency（M1 承诺一致性·§17.1C1）', file: 'tests/promise-consistency.mjs' },

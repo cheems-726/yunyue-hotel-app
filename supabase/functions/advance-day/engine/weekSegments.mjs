@@ -33,7 +33,8 @@ import { dayWeights, DAYS_PER_WEEK } from './dayEngine.js'
 export const 分段版本 = 1
 
 // 决策集相等（键序无关；只比可序列化的业务键）
-function 同决策(a, b) {
+//   ★ §21.1-A-1：本函数【导出】供 serverTick 的 base 交叉核对复用（口径单源，不许各写一份）
+export function 同决策集(a, b) {
   const 规整 = (o) => {
     const src = (o && typeof o === 'object') ? o : {}
     return Object.keys(src).sort().map(k => k + '=' + JSON.stringify(src[k])).join('|')
@@ -48,7 +49,7 @@ export function segmentsOf(decisionsByDay, baseDecisions = {}) {
   const segs = []
   for (let i = 0; i < DAYS_PER_WEEK; i++) {
     const last = segs[segs.length - 1]
-    if (last && 同决策(last.decisions, days[i])) last.to = i + 1
+    if (last && 同决策集(last.decisions, days[i])) last.to = i + 1
     else segs.push({ from: i + 1, to: i + 1, decisions: days[i] })
   }
   return segs
