@@ -1,17 +1,15 @@
-// M3 · 文档过期自检（报告模式：只报告，不自动改文档，不阻塞门禁）
-// 运行：node tests/docs-staleness.mjs
-// 原理：扫"进度类文档"里的【疑似未完成】标记行 → 提取关键词 → 在代码语料里搜
-//       代码有命中 = 疑似过期（文档说没做、代码里有）
-//
-// P0-1：搜索用 Node 原生 fs（不用 execFileSync('grep')——部分 Windows 无 grep → 假绿，BL-3）
-// P1-1：三类假阳性对策
-//   a 自指过滤：M3 自身正则文本 / 本脚本名 / 现行包的"批次数"行 → 一律跳过（不再逐行硬编码行号）
-//   b 别名拆细：_alias.mjs 的条目带 kind（feature/wired/concept）——
-//       wired = 必须被【非测试文件】import/调用才算命中（"文件在、没接线"不再误报）
-//       concept = 宽概念，命中降 low 置信度
-//   c 死代码清理：walk() 的两分支 undefined / 恒真判定已重写；preflight 的 _localAliasBackup 已删
-// P1-2：输出分【高/中/低】三档置信度 + "跳过 N 处自指"统计
+// M3 · 文档过期自检（双模式）
+//   node tests/docs-staleness.mjs          → 报告模式（原样：扫"疑似未完成"标记，不阻塞门禁）
+//   node tests/docs-staleness.mjs --gate   → 判死模式（§13.2-N8 新增 · 挂 run-all fast）：
+//       (a) hotel-app/AGENTS.md 状态行（门禁数字 === _last-gate.json 精确相等 · 无失效警告 · 阶段含"二期"）
+//       (b) 0-从这里开始.md 状态段（同上两条）
+//       (c) 已被取代文档必须有【作废/取代】标注（长跑报告 v3 / 账务闭环方案）
+//   ★ 与 docs-sync 分工（勿重复）：docs-sync 管【会话交接卡】HEAD/数字/未推数 + 关键事实 + 新鲜度；
+//     本套件（--gate）管【入口文档】（AGENTS.md / 0-从这里开始.md）与【作废标注】。
+//   ★ 背景（夜跑实测）：AGENTS.md 原先【不在 docs-sync 监控内】—— 把它门禁数字改成 9999 仍全绿
+//     ⇒ 执行端唯一入口的数字可静默腐烂（本轮已实证并由此立项）。
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
 import { ALIAS, expandTerms } from './_alias.mjs'
 
@@ -136,4 +134,66 @@ for (const lvl of ['high', 'medium', 'low']) {
 }
 console.log(`\n结果: ${bucket.high.length} 高 + ${bucket.medium.length} 中 + ${bucket.low.length} 低 / 0 失败（报告模式，不阻塞门禁；自指跳过 ${skippedSelf}）`)
 console.log(`验收口径：最高置信项（high）条条为真——抽查请逐条看 high 档`)
+// ── ★ §13.2-N8：判死模式（--gate）──────────────────────────────
+if (process.argv.includes('--gate')) {
+  const path2 = (await import('node:path')).default
+  const APP2 = path2.resolve(path2.dirname(fileURLToPath(import.meta.url)), '..')
+  const ROOT2 = path2.resolve(APP2, '..')
+  let gp = 0, gf = 0
+  const gok = (c, nm, extra = '') => { if (c) { gp++; console.log('  ✓ ' + nm) } else { gf++; console.error('  ✗ FAIL: ' + nm + (extra ? '  [' + extra + ']' : '')) } }
+  const rd = (p) => { try { return readFileSync(p, 'utf8') } catch { return null } }
+
+  console.log('\n▶ M3 --gate：入口文档状态行 + 作废标注')
+  let gateRec = {}
+  try { gateRec = JSON.parse(rd(path2.join(APP2, 'tests', '_last-gate.json')) || '{}') } catch (e) {}
+  const 档 = []
+  if (gateRec.full && gateRec.full.head) 档.push(gateRec.full.通过)
+  if (gateRec.fast && gateRec.fast.head) 档.push(gateRec.fast.通过)
+
+  // (a) AGENTS.md（执行端唯一入口）
+  const A = rd(path2.join(APP2, 'AGENTS.md'))
+  gok(A !== null, 'AGENTS.md 存在')
+  if (A) {
+    const nums = [...A.matchAll(/(\d{3,})\s*(?:通过|\/)/g)].map(m => Number(m[1]))
+    if (档.length) {
+      gok(档.every(v => nums.includes(v)), `AGENTS.md 门禁数字 === 门禁记录（fast ${档[1] ?? '—'} / full ${档[0] ?? '—'}）`, `卡内=[${nums.join(',')}]`)
+    } else gok(true, '（尚无门禁记录 ⇒ 不判数字）')
+    gok(!/当前门禁是红的/.test(A), '无失效的「D42 门禁是红的」警告')
+    gok(/二期/.test(A), '阶段含「二期」')
+    gok(!/40 小时冲刺 · Wave 2 收尾/.test(A), '无过期阶段「40 小时冲刺 · Wave 2 收尾」')
+    const reg = rd(path2.join(ROOT2, '1-总纲与进度', '决策登记册.md')) || ''
+    const maxD = Math.max(0, [...reg.matchAll(/D(\d{2,3})/g)].map(x => Number(x[1])).reduce((a, b) => Math.max(a, b), 0))
+    const mUp = [...A.matchAll(/D1[–-]D(\d{2,3})/g)].map(x => Number(x[1]))
+    if (maxD > 0 && mUp.length) gok(mUp[0] >= maxD - 3, `决策区间上限 D1–D${mUp[0]} 不落后登记册（最新 D${maxD}，容差 3）`, `卡=${mUp[0]} 册=${maxD}`)
+    else gok(true, '（决策区间未标 ⇒ 不判）')
+  }
+
+  // (b) 0-从这里开始.md（新会话第一站）
+  const Z = rd(path2.join(ROOT2, '0-从这里开始.md'))
+  gok(Z !== null, '0-从这里开始.md 存在')
+  if (Z) {
+    const zNums = [...Z.matchAll(/(\d{3,})\s*通过/g)].map(m => Number(m[1]))
+    if (gateRec.full && gateRec.full.head) gok(zNums.includes(gateRec.full.通过), `状态段全量数字 === 门禁记录（${gateRec.full.通过}）`, `卡内=[${zNums.join(',')}]`)
+    gok(!/冲刺完成（Wave 1–5）→ 拍板窗口/.test(Z), '无过期状态「冲刺完成→拍板窗口」')
+    gok(/二期进行中/.test(Z), '状态段标明「二期进行中」')
+  }
+
+  // (c) 作废标注
+  const RETIRED = [
+    { p: path2.join(ROOT2, '4-审计与报告', '18周（126天）长跑报告.md'), kw: ['作废', 'v3（本报告）'] },
+    { p: path2.join(ROOT2, '3-设计文档', '账务闭环-设计方案.md'), kw: ['作废'] },
+  ]
+  for (const { p, kw } of RETIRED) {
+    const t = rd(p)
+    if (t === null) { gok(true, `（${path2.basename(p)} 不存在 ⇒ 跳过）`); continue }
+    gok(kw.some(k => t.slice(0, 1200).includes(k)), `${path2.basename(p)}：顶部带作废/取代标注`)
+  }
+  const lr = rd(path2.join(ROOT2, '4-审计与报告', '18周（126天）长跑报告.md')) || ''
+  gok(/v3（本报告）/.test(lr) && /真实链路/.test(lr), '长跑报告 = v3 现行（真实链路）')
+
+  console.log(`\n结果: ${gp} 通过 / ${gf} 失败（--gate 判死模式）`)
+  console.log('RV：把 AGENTS.md 门禁数字改成 9999 ⇒ 本模式必红（夜跑已实测 docs-sync 对它失明）')
+  process.exit(gf ? 1 : 0)
+}
+
 process.exit(0)

@@ -24,7 +24,7 @@ import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 // 🔴 E3（N-3）：三档节奏（实时/周期/一次性）在界面上必须可辨 —— 档位口径来自 decisionCadence（单源）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
-import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal } from './weeklyAuto.mjs'
+import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { teachingDayNo } from './teachingClock.mjs'
 import { APP_VERSION } from './version.js'
 
@@ -2008,6 +2008,9 @@ export default function App() {
     if (Array.isArray(decisionChanges) && decisionChanges.length) {
       result.changeLog = decisionChanges.map(c => ({ ...c, week }))
       result.changeLogLines = changeLogLines(result.changeLog)
+      // 🔴 D52-a：周中调价 ⇒ 显示级分段（**必须标"估算"**；引擎周值不动 —— 零变化）
+      const seg = revenueSegments(result, result.changeLog, history[history.length - 1] || null)
+      if (seg) result.revenueSegments = seg
     }
     if (meta.auto) {
       // 自动成报：记幂等键（同一天/同一周不重复成报）

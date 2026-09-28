@@ -430,7 +430,34 @@ ${after.icon} 当前称号：${after.title}${evText}
         {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>✅ 已复制，去微信粘贴吧</div>}
       </div>
 
-      {/* 🔴 E2：本周变更记录（第几天改了什么 + 次日生效）—— 与 E3 的"次日生效"互为证据 */}
+      {/* 🔴 E2：本周变更记录（第几天改了什么 + 次日生效）—— 与 E3 的「次日生效」互为证据 */}
+      {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (
+        <div className="card">
+          <div className="card-title">📝 本周变更记录</div>
+          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+            {result.changeLogLines.map((t, i) => <div key={i}>· {t}</div>)}
+          </div>
+          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+            决策【次日生效】：第 N 天提交的改动，第 N+1 天起算（当日已发生的不可回溯）
+          </div>
+        </div>
+      )}
+
+      {/* 🔴 D52-a：周中调价 ⇒ 营收分段【估算】卡 —— 教学诚实是硬要求：必须标"估算" */}
+      {result.revenueSegments && (
+        <div className="card">
+          <div className="card-title">📊 {result.revenueSegments.标题}</div>
+          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+            {result.revenueSegments.rows.map((x, i) => (
+              <div key={i}>· {x.段}：约 {x.金额估算.toLocaleString()} 元（{x.天数} 天）</div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: '#B45309', marginTop: 6, background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '5px 8px' }}>
+            ⚠️ 以上为<b>估算</b>：当前引擎按「整周一套决策」实收，分段是按改价时点的显示级近似；
+            周报的<b>总营收/利润仍以引擎实收为准</b>（两处数字不冲突）。
+          </div>
+        </div>
+      )}
       {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (
         <div className="card">
           <div className="card-title">📝 本周变更记录</div>

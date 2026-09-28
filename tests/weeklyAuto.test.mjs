@@ -9,7 +9,9 @@
 //   另附：与服务端逐日推进（serverTick）的【同源对拍】—— 同一份输入两端必须同结果（D8）；
 //         以及"本周变更记录"的归属日口径（提交日 + 1 = 生效日，T11）
 import { readFileSync } from 'node:fs'
-import { dayToWeekDay, shouldAutoSettle, autoSettleKey, classDayFromLocal, diffDecisions, changeLogLines, shapeWeeklyReport, DAYS_PER_WEEK } from '../src/weeklyAuto.mjs'
+import { dayToWeekDay, shouldAutoSettle, autoSettleKey, classDayFromLocal, diffDecisions, changeLogLines, shapeWeeklyReport, revenueSegments, DAYS_PER_WEEK } from '../src/weeklyAuto.mjs'
+import { decisions as DEC_ALL } from '../src/decisions.js'
+const NAMES = Object.fromEntries(DEC_ALL.map(d => [d.id, d.name]))
 import { advanceGroupOneDay, tickKey } from '../src/serverTick.mjs'
 import { settle } from '../src/settlement.js'
 import { ATTR_INIT } from '../src/attrs.js'
@@ -51,7 +53,7 @@ console.log('\n[2] 自动成报 === 手动结算（逐字节）')
   const 自动 = settle({ ...输入 })            // 自动路径调用的就是同一个 settle（App 里两条入口合并为一个 doSettle）
   ok(JSON.stringify(手动) === JSON.stringify(自动), `同一状态同决策 ⇒ 引擎输出逐字节相同（week ${week}）`)
   // 自动周报只是"整形"，不改数值：shapeWeeklyReport 后除新增字段外必须逐字节等于引擎输出
-  const 整形 = shapeWeeklyReport(手动, { week, changes: [{ key: 'pricing', label: '房价', from: 'A', to: 'B', 提交日: 4, 生效日: 5 }] })
+  const 整形 = shapeWeeklyReport(手动, { week, changes: [{ key: 'pricing', label: '动态调价', from: 'A', to: 'B', 提交日: 4, 生效日: 5 }] })
   const 数值键 = Object.keys(手动)
   const 差异 = 数值键.filter(k => JSON.stringify(整形[k]) !== JSON.stringify(手动[k]))
   ok(差异.length === 0, `整形不碰任何引擎字段（差异 ${差异.length}）`, 差异.join(','))
@@ -136,7 +138,7 @@ console.log('\n[6] 「本周变更记录」与归属日口径（T11：次日生�
     '改动内容齐全（原值 → 新值）')
   ok(rows[0].提交日 === 4 && rows[0].生效日 === 5, '归属日：第 4 天提交 ⇒ 第 5 天生效（T11 次日生效）')
   const lines = changeLogLines(rows)
-  ok(lines.length === 1 && /第 4 天提交/.test(lines[0]) && /第 5 天生效/.test(lines[0]) && /房价/.test(lines[0]),
+  ok(lines.length === 1 && /第 4 天提交/.test(lines[0]) && /第 5 天生效/.test(lines[0]) && /动态调价/.test(lines[0]),
     `周报文案含"第 4 天提交 · 第 5 天生效"：${lines[0]}`)
   // 空集不炸 + 未登记决策回退 id
   ok(changeLogLines(diffDecisions({}, {}, {})).length === 0, '无改动 ⇒ 空记录（周报不显示该卡）')
@@ -154,5 +156,39 @@ console.log('\n[7] 反向验证靶子：把触发关掉 ⇒ 必须不触发')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
+// ── [8] D52-a：分段收入（显示级 · 必标"估算" · 引擎周值零变化）──────
+console.log('\n[8] 分段收入（D52-a：显示级 + 显式"估算"）')
+{
+  const r = settle({ site: SITE, brand: BRAND, decisions: DEC, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000 })
+  const 调价 = [{ key: 'pricing', label: NAMES.pricing, from: '不跟降', to: '降价 20% 抢客', 提交日: 3, 生效日: 4 }]
+  const seg = revenueSegments(r, 调价, null)
+  ok(seg !== null, '有调价记录 ⇒ 产出分段')
+  ok(seg.估算 === true, '分段【必须】带 估算:true（D52-a 硬要求：不标 = 让学生误当精算）')
+  ok(/估算/.test(seg.标题) && /估算/.test(seg.说明), '标题与说明都含"估算"字样')
+  ok(seg.rows.length === 2 && seg.rows[0].天数 + seg.rows[1].天数 === 7, `两段天数合计 7（${seg.rows[0].天数}+${seg.rows[1].天数}）`)
+  ok(seg.rows[0].金额估算 + seg.rows[1].金额估算 === r.revenue,
+    `分段合计 === 引擎整周实收（${seg.rows[0].金额估算}+${seg.rows[1].金额估算} = ${r.revenue}）—— 只重排、不改总数`)
+  const 快照 = JSON.stringify(r)
+  revenueSegments(r, 调价, null)
+  ok(JSON.stringify(r) === 快照, '纯函数：调用前后引擎输出逐字节不变（不回写）')
+  ok(revenueSegments(r, [{ key: 'pricing', 生效日: 1 }], null) !== null, '生效日=1（整周新价）⇒ 分段不炸（前段 0 天）')
+  ok(revenueSegments(r, [{ key: 'shifts', label: '排班', 提交日: 2, 生效日: 3 }], null) === null, '非调价改动 ⇒ 无分段卡（只对 pricing）')
+  ok(revenueSegments(r, [], null) === null && revenueSegments(null, 调价, null) === null, '无变更 / 空引擎输出 ⇒ null（周报不显示该卡）')
+  const wr = src('WeeklyReport.jsx')
+  ok(/估算/.test(wr) && /revenueSegments/.test(wr) && /引擎实收为准/.test(wr), 'WeeklyReport 渲染分段卡且带"引擎实收为准"警示')
+}
+
+// ── [9] D52-b：服务端结算时点（保持现状 + 观察项已写）──────────────
+console.log('\n[9] 服务端结算时点（D52-b：保持现状）')
+{
+  const 底 = { brand: BRAND, location: SITE, history: [], capital: 1490000, attrs: { ...ATTR_INIT }, __groupKey: 'timing|1' }
+  const r8 = advanceGroupOneDay(底, 8, { decisions: DEC })
+  ok(r8.advanced === true && r8.week === 2, '现状（保持）：classDay 8 ⇒ 结算第 2 周（周首结算 · 已在队列留观察项）')
+  const r9 = advanceGroupOneDay(r8.save, 9, { decisions: DEC })
+  ok(r9.advanced === false && r9.week === 2, 'classDay 9（同周第 2 天）⇒ 不重复结算（幂等）')
+  const 队列 = src('../../4-审计与报告/待决策队列.md')
+  ok(/周中改动|结算时点|周首/.test(队列), '待决策队列已留「服务端结算时点」观察项（D52-b）')
+}
+
 console.log('验收口径：自动/手动不同一入口、幂等失效、旧档炸、归属日不是"次日" —— 任一即红')
 process.exit(fail ? 1 : 0)

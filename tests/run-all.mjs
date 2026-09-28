@@ -24,6 +24,8 @@ const SUITES = [
   { name: 'fairness（B5 公平性形式化）', file: 'tests/fairness.test.mjs' },
   // dataDict（B6+M2 术语断言）：🔴 T1.4 已完成（RevPAR÷7 / ADR实收 / GOP 三修）⇒ 摘掉 expectedFail，按【全绿】要求
   { name: 'dataDict（B6 口径 + M2 术语）', file: 'tests/dataDict.check.mjs' },
+  // M3（§13.2-N8）：文档过期自检【判死模式】—— 入口文档（AGENTS/索引）状态行 + 作废标注
+  { name: 'docs-staleness（M3 入口文档+作废标注·--gate）', file: 'tests/docs-staleness.mjs', args: ['--gate'] },
   // W2-3（W10 正名）：GOP / 净利润 口径 + 三处界面显示（含"评分基准零变化"）
   { name: 'metrics-w2-3（GOP/净利润 口径与界面）', file: 'tests/metrics-w2-3.test.mjs' },
   // W2 收尾：资金三数【单源】守门（改 IC 漏改文案/阈值的漂移类 ⇒ fast 抓，不必等浏览器）
@@ -52,6 +54,8 @@ const SUITES = [
   { name: 'weeklyAuto（E2 自动周报）', file: 'tests/weeklyAuto.test.mjs' },
   // 二期 E3（N-3）：三档节奏/归属日+1/不可回溯/公平性/分段收入现状
   { name: 'realtimeDecision（E3 实时决策）', file: 'tests/realtimeDecision.test.mjs' },
+  // §13.1 返修：决策 id 映射表覆盖度（元断言 —— 防"表在但没盖全"）
+  { name: 'labelCoverage（映射表覆盖度·§13.1）', file: 'tests/labelCoverage.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
@@ -132,7 +136,7 @@ for (const s of SUITES) {
     console.log(`${s.name.padEnd(38)} ⏭ 文件不存在：${s.file}`)
     continue
   }
-  const r = run('node', [s.file], s.name)
+  const r = run('node', [s.file, ...(s.args || [])], s.name)   // §13.2-N8：支持套件自带参数（docs-staleness --gate）
   // expectedFail：当前预期失败（如 M2 修复前红）；红→记「预期红」不算失败，绿→记「已转绿」
   if (s.expectedFail) {
     const state = r.code === 0 ? '✅ 已转绿' : '⏳ 预期红'
