@@ -23,8 +23,10 @@ const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } 
 // 断言函数名（本仓库全部用 ok / gok；将来加 expect 一并覆盖）
 const FN = /\b(?:ok|gok|expect|t|it)\s*\(/g
 // 恒真/恒假片段（A1/A2）
-const ALWAYS_TRUE = /\|\|\s*(true|1)\b/
-const ALWAYS_FALSE = /&&\s*(false|0)\b/
+// ⚠️ 必须加 (?![\d.])：否则 `|| 1.5` / `&& 0.08` 这类【正常数值比较】会被误判为恒真/恒假
+//    （本批实测踩到：`封顶是否触发 === false && 0.08 * 占比 <= 封顶` 被当成"恒假"）
+const ALWAYS_TRUE = /\|\|\s*(true|1)(?![\d.])/
+const ALWAYS_FALSE = /&&\s*(false|0)(?![\d.])/
 
 function* walk(dir) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -69,6 +71,9 @@ ok(真.length === 0, `tests/** 正式套件无恒真/恒假断言（命中 ${hit
   const 样本恒真 = "ok(可疑.length === 0 || true, 'msg')"
   const 样本正常 = "ok(可疑.length === 0, 'msg')"
   const 剥 = (t) => t.replace(/`[^`]*`/g, '').replace(/'[^']*'/g, '')
+  // 误伤样例（本批实测）：`=== false && 0.08 * x` 是正常合取、不是恒假
+  const 样本数值 = "ok(a === false && 0.08 * b <= c, 'msg')"
+  ok(!ALWAYS_FALSE.test(剥(样本数值).slice(样本数值.indexOf('(') + 1)), '判据自检：`=== false && 0.08 * x` 不被误判为恒假（数值合取合法）')
   ok(ALWAYS_TRUE.test(剥(样本恒真).slice(样本恒真.indexOf('(') + 1)) && !ALWAYS_TRUE.test(剥(样本正常).slice(样本正常.indexOf('(') + 1)),
     '判据自检：恒真样本命中、正常样本不命中（非恒真守门）')
 }

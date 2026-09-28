@@ -37,10 +37,14 @@ for (const [name, dec] of Object.entries(CASES)) {
     const n = settle({ site: SITE, brand: BRAND, decisions: dec, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
     // 两边必须喂【完全相同】的轨迹（prevGoodRate/prevCapital 会影响好评率与危机事件 → 影响后续周）
     const o = settleOld({ site: SITE, brand: BRAND, decisions: dec, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
+// 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
+//   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
+//   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
+const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
     // ① GOP 恒等式（本批决策均不含 renovation ⇒ 无需扣改造费）
     // W10 口径：GOP = 营收 −（变动成本 + 固定部门成本 + 营销 + OTA）；
     //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款)
-    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0))
+    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0) - 两费(n))
     if (n.gop !== expectGop) { idOK = false; rows.push(`w${w} gop=${n.gop} 期望=${expectGop}`) }
     // ③ gopRate
     const expectRate = n.revenue > 0 ? n.gop / n.revenue : 0
@@ -50,7 +54,7 @@ for (const [name, dec] of Object.entries(CASES)) {
     // B 类重基线：结构不变量（营收/租金/房价/房量/出租率）必须零漂移；成本差额必须恰为 deptCost
     const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
-    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent || n.profit !== o.profit - n.deptCost - Δrent) {
+    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) || n.profit !== o.profit - n.deptCost - Δrent - 两费(n)) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital

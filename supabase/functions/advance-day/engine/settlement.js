@@ -7,6 +7,10 @@ import { simulateWeek } from './dayEngine.js'
 import { deptCostWeekly, DEPT_COST_PER_ROOM_DAY } from './deptCosts.mjs'
 // 🔴 A-2：资金三数【单源】—— 引擎不再自带一份起始资金/预警线常量（曾落后界面对一个口径版本）
 import { SCALE } from './stateMigration.mjs'
+// §14.3 G3 二步：加盟两费（管理费 + CRS）进资金流——只对【汉庭 / 全季 / 海友】计费，
+//   未接入品牌返回 null ⇒ 本文件对它们的输出【逐字节不变】（水位线；守门 tests/franchiseFees.test.mjs）
+//   纪律：计费在 src/franchiseFees.mjs 【唯一计算点】—— 本处只调用，不重写公式（E1 账本单源）
+import { franchiseFees } from './franchiseFees.mjs'
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -523,13 +527,19 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   let marketingCost = decisions.campaign ? Math.round(5000 * fCac) : 0
   // OTA 佣金：平台合作模式全营收抽成15%，直营只有投放OTA时才有11%佣金
   const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.11) : 0)
+  // §14.3（D53-a/b）加盟两费：管理费 + CRS，按【营收百分比】计提。
+  //   ① 只有 3 个品牌有完整费率来源 ⇒ 其余品牌返 null（不拿别家费率冒充）
+  //   ② 纯算术、不消耗 rand() ⇒ 事件/差评/竞品的随机序列不受影响（公平性红线）
+  //   ③ 进 totalCost 后 profit→capital 自动受影响；进 weeklyExpenses 则保证「成本构成合计 === totalCost」不破
+  const 加盟 = franchiseFees(brand, revenue)
+  const 加盟两费 = 加盟 ? 加盟.合计 : 0
   // 超售赔偿：到店无房按间赔偿（每间赔一晚房价）
   let overbookCompensation = 0
   if (overbook > 0) {
     const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
-  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine
+  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费
 
   // 10. 利润
   const profit = revenue - totalCost
@@ -539,7 +549,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const gopDeptCost = variableCost + deptCost
   const gop = revenue - (gopDeptCost + marketingCost + otaCommission)   // gopDeptCost = 变动+固定部门成本（勿再叠加 variableCost）
   const gopRate = revenue > 0 ? gop / revenue : 0
-  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine
+  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine - 加盟两费
   const netProfitRate = revenue > 0 ? netProfit / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
@@ -747,6 +757,9 @@ for (let i = 0; i < reviewCount; i++) {
     超售赔偿: overbookCompensation || 0,
     改造投资: renovationCost || 0,
     事件罚款: eventFine || 0,
+    // §14.3：未接入品牌不加任何键（否则输出字节会变）⇒ 用条件展开
+    //   键名/金额均取自 franchiseFees 的 依据[]（单源：界面与断言都读同一份）
+    ...(加盟 ? Object.fromEntries(加盟.依据.map(x => [x.科目, x.金额])) : {}),
   }
   const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
 
@@ -821,6 +834,8 @@ for (let i = 0; i < reviewCount; i++) {
     decisions: { ...decisions },
     eventFine,
     weeklyExpenses,
+    // §14.3：未接入品牌不发这个键 ⇒ 返回值逐字节不变（零变化水位线）
+    ...(加盟 ? { franchiseFees: 加盟 } : {}),
     capital: Math.round(capital),
     isBankrupt, isWarning, bizMode,
     competitors: competitorActions,

@@ -9,6 +9,9 @@
 //   ⑥ ★ 零变化：经营结构（出租率/好评率/评价数/租金/变动成本）不受本次改动影响
 import { settle } from '../src/settlement.js'
 import { DEPT_COST_LINES, DEPT_COST_PER_ROOM_DAY, deptCostWeekly } from '../src/deptCosts.mjs'
+
+// 🔴 §14.3 重基线：加盟两费是 totalCost 的新科目 ⇒ 残差推导"变动成本"必须剔除它（否则变动成本虚增）
+const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
 
 let pass = 0, fail = 0
@@ -35,9 +38,9 @@ function run12(dec) {
     const r = settle({ site: SITE, brand: BRAND, decisions: d, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
     // 零变化断言用：结构量 + 不应被本次改动影响的成本项
     acc.occ.push(r.occupancy); acc.good.push(r.finalGoodRate); acc.reviews.push(r.reviewCount)
-    acc.rent += r.rentCost; acc.variable += (r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款)
+    acc.rent += r.rentCost; acc.variable += (r.totalCost - r.rentCost - r.deptCost - 两费(r) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款)
     // ★ 完整部门成本 = 变动（随入住量）+ 固定（按可售房）——W14 的 45% 是【完整口径】
-    const varC = r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
+    const varC = r.totalCost - r.rentCost - r.deptCost - 两费(r) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
     acc.dept += r.deptCost + varC; acc.rev += r.revenue; acc.cost += r.totalCost; acc.profit += r.profit; acc.gop += r.gop
     pg = r.finalGoodRate; cap = r.capital
     const neg = r.generatedReviews.filter(x => Number(x.stars) <= 3).length
@@ -76,8 +79,8 @@ console.log('\n[2] ★② 与 variableCost 去重（计费基数不同、语义�
   const low = settle({ site: { ...SITE, 客流: 1, 房价: 2 }, brand: BRAND, decisions: D, week: 1, attrs: { quality: 40, reputation: 30, morale: 60 } })
   const ratioDept = r.deptCost / low.deptCost
   ok(Math.abs(ratioDept - 1) < 0.01, `部门成本与入住量无关：两配置同为 ${r.deptCost}（比 ${ratioDept.toFixed(3)}）⇒ 按可售房计`)
-  const v1 = r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
-  const v2 = low.totalCost - low.rentCost - low.deptCost - low.weeklyExpenses.营销推广 - low.weeklyExpenses.OTA佣金 - low.weeklyExpenses.超售赔偿 - low.weeklyExpenses.改造投资 - low.weeklyExpenses.事件罚款
+  const v1 = r.totalCost - r.rentCost - r.deptCost - 两费(r) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
+  const v2 = low.totalCost - low.rentCost - low.deptCost - 两费(low) - low.weeklyExpenses.营销推广 - low.weeklyExpenses.OTA佣金 - low.weeklyExpenses.超售赔偿 - low.weeklyExpenses.改造投资 - low.weeklyExpenses.事件罚款
   ok(v1 !== v2, `变动成本随入住量变化（${v2} → ${v1}）⇒ 两者基数不同、不重复计`)
   // ⚠️ 用【无决策加成】的配置断言基准公式（D 里含"停房深清洁"⇒客房部固定 ×1.08，会不等）
   ok(deptCostWeekly({ rooms: 80, decisions: {} }).total === Math.round(DEPT_COST_PER_ROOM_DAY * 80 * 7),
@@ -120,7 +123,7 @@ console.log('\n[4] ④ 成本构成合计 === totalCost（修掉"展示≠总额
 console.log('\n[5] ⑤ gop / netProfit 定义（W10 口径）')
 {
   const r = settle({ site: SITE, brand: BRAND, decisions: D, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
-  const expectGop = r.revenue - (r.deptCost + (r.totalCost - r.rentCost - r.deptCost - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款) + r.weeklyExpenses.营销推广 + r.weeklyExpenses.OTA佣金)
+  const expectGop = r.revenue - (r.deptCost + (r.totalCost - r.rentCost - r.deptCost - 两费(r) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款) + r.weeklyExpenses.营销推广 + r.weeklyExpenses.OTA佣金)
   ok(r.gop === expectGop, `GOP = 营收 −（部门成本 + 营销 + OTA佣金）= ${r.gop}`)
   ok(r.gop > r.profit, `GOP ${r.gop} > 净利润 ${r.profit}（GOP 未扣租金，符合定义）`)
   ok(r.netProfit === r.profit, '★ netProfit === profit（W2-3 是【正名】，不改数值语义）')

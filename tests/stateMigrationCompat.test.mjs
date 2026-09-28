@@ -105,9 +105,13 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   ok(direct.deptCost > 0 && direct.deptCostLines.length === 5,
     `${name}：新周成本含部门成本 ${direct.deptCost}（5 科目）⇒ 走的是 W2 新结构，无旧档残留`)
 
+// 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
+//   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
+//   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
+const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   // 跨结构差异本身要可解释：新周利润 = 同周旧结构利润 − 部门成本（差额恒等式，D38-B 的统一手法）
   const preW2 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: rowsM[0].week, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
-  ok(direct.profit === preW2.profit - direct.deptCost - (direct.rentCost - preW2.rentCost),   // 🔴 A-1：加租金项
+  ok(direct.profit === preW2.profit - direct.deptCost - (direct.rentCost - preW2.rentCost) - 两费(direct),   // 🔴 A-1：加租金项
     `${name}：差额恒等式 新周利润 ${direct.profit} === 旧结构利润 ${preW2.profit} − 部门成本 ${direct.deptCost}`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）

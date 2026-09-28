@@ -27,7 +27,9 @@ console.log('\n[1] 引擎层：恒等式（六组 × 12 周 = 72 周）')
   let idBad = [], rateBad = [], sepBad = [], proNameBad = [], basisBad = []
   for (const g of perGroup) {
     for (const r of g.weeksList) {
+      // §14.3：加盟两费也进净利链（GOP 口径不含它，但净利润含）—— 恒等式随口径同步
       const expectNet = r.gop - r.rentCost - (r.overbookCompensation || 0) - (r.renovationCost || 0) - (r.eventFine || 0)
+        - (r.franchiseFees ? r.franchiseFees.合计 : 0)
       if (r.netProfit !== expectNet) idBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.gopRate - (r.revenue > 0 ? r.gop / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.netProfitRate - (r.revenue > 0 ? r.netProfit / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week} net`)
@@ -41,7 +43,7 @@ console.log('\n[1] 引擎层：恒等式（六组 × 12 周 = 72 周）')
     const sp = g.weeksList.reduce((a, r) => a + r.profit, 0)
     if (sn !== sp || sn !== g.profit) basisBad.push(`${g.name} Σnet=${sn} Σprofit=${sp} acc=${g.profit}`)
   }
-  ok(idBad.length === 0, `净利润恒等式 72/72 成立（净利润 = GOP − 租金 − 超售 − 改造 − 罚款）`, idBad.slice(0, 3).join(', '))
+  ok(idBad.length === 0, `净利润恒等式 72/72 成立（净利润 = GOP − 租金 − 超售 − 改造 − 罚款 − 加盟两费）`, idBad.slice(0, 3).join(', '))
   ok(rateBad.length === 0, 'netProfitRate === netProfit/revenue，且 gopRate === gop/revenue（72/72）', rateBad.slice(0, 3).join(', '))
   ok(sepBad.length === 0, '两指标确实分开：租金 > 0 ⇒ GOP > 净利润（72/72）', sepBad.slice(0, 3).join(', '))
   ok(proNameBad.length === 0, '★ netProfit === profit（正名不改数值语义，6/6 组 72/72 周）', proNameBad.join(', '))

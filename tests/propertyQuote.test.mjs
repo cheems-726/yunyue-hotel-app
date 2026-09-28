@@ -3,7 +3,7 @@
 //
 // 分四层：
 //   ① 口径层：报价单每个数字都从【已有口径】推导（房量=parseRooms / 年租金=引擎租金公式 / 费率=franchiseModel）
-//   ② 不编造层：缺来源的字段必须是"待补"（汉庭以外品牌 / 面积缺失 / 汉庭快捷缺保证金）
+//   ② 不编造层：缺来源的字段必须是「待补」（无经济条款的品牌 / 面积缺失 / 汉庭快捷缺保证金）
 //   ③ 一致性层：物料数据的两份表示（字符串 area 与数字 areaNum）必须一致（防漂移）
 //   ④ 零影响层：模块是纯函数 + settlement.js 不引用它 ⇒ 结算输出在构造上不可能变
 import { readFileSync, readdirSync } from 'node:fs'
@@ -45,18 +45,25 @@ console.log('\n[1] 口径层：每个数字都能追到已有口径')
     `总投资 = 单房造价×房量 + 加盟费 + 保证金 + 筹备费 = ${总投应}`)
   ok(!!q.sources && !!q.sources.来源 && !!q.sources.置信度, '三件套随行（来源/取数日期/置信度）可 hover 追溯',
     JSON.stringify(q.sources))
-  ok(brandTerms('汉庭') !== null && brandTerms('全季') === null, 'brandTerms：汉庭有条款、全季（无来源数据）返回 null')
+  ok(brandTerms('汉庭') !== null && brandTerms('全季') !== null && brandTerms('不存在的品牌') === null,
+    'brandTerms：汉庭/全季（§14.3 起已有来源条款）返回条款、无该品牌条目返回 null')
 }
 
 // ── ② 不编造层 ────────────────────────────────────────────────────────
 console.log('\n[2] 不编造层：缺来源 ⇒ 必须是"待补"')
 {
-  const q = propertyQuote(全季, 物业, 区县)
+  // §14.3 重基线：全季已补来源条款 ⇒ 本层改用【真正无条款】的桔子做「不编造」用例
+  const 桔子 = { name: '桔子', standard: '客房70间起' }
+  const q = propertyQuote(桔子, 物业, 区县)
   const s = quoteSummary(q)
   ok(s.待补字段.includes('单房造价') && s.待补字段.includes('加盟费') && s.待补字段.includes('保证金') && s.待补字段.includes('筹备费'),
-    '汉庭以外的品牌：经济条款四项全部标"待补"（不拿别家费率冒充）', s.待补字段.join(','))
+    '无经济条款的品牌：四项全部标「待补」（不拿别家费率冒充）', s.待补字段.join(','))
   ok(s.房量 > 0 && s.年租金 > 0 && s.总投资 === null,
     '但房量/年租金仍有值（来自引擎口径），总投资因缺造价而为空 —— 该有的不该误标待补', JSON.stringify(s))
+  // §14.3 反向：已接入品牌【不许】被标待补（否则「接入」白做）
+  const 全季票 = quoteSummary(propertyQuote(全季, 物业, 区县))
+  ok(全季票.待补字段.length === 0 && 全季票.总投资 > 0,
+    '已接入品牌（全季）：四项齐全、总投资有值 ⇒ 不再标待补', JSON.stringify(全季票.待补字段))
   const 快捷 = propertyQuote({ name: '汉庭快捷', standard: '客房60间起' }, 物业, 区县)
   ok(quoteSummary(快捷).待补字段.includes('保证金'), '汉庭快捷：franchiseModel 无保证金 ⇒ 标"待补"')
   const 无面积 = propertyQuote(汉庭, { name: '无面积物业', areaNum: null }, 区县)
@@ -104,8 +111,8 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   ok(JSON.stringify(物业) === frozen, '不改动入参对象（无副作用）')
   // 引擎锚点：确定性单配置（与批次报告一致）—— 若有人把报价单接进结算，这里会红
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
-  ok(r.revenue === 126140 && r.totalCost === 71753 && r.netProfit === 54387,
-    '引擎锚点（A-1 重基线）：单配置 revenue 126140 / totalCost 71753 / netProfit 54387', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
+  ok(r.revenue === 126140 && r.totalCost === 81087 && r.netProfit === 45053,
+    '引擎锚点（§14.3 重基线：全季已收加盟两费 9334 ⇒ 成本 +9334 / 净利 −9334；营收不变）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

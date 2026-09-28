@@ -99,7 +99,7 @@ ok(good > 80 && good < 200 && bad > 20 && bad < 80, '掷骰频率符合设定概
 console.log('\n▶ 纯函数与硬约束（源码级）')
 const src = readFileSync(new URL('../src/reviewRate.js', import.meta.url), 'utf8')
 ok(!/from ['"]\.\/settlement/.test(src), '未 import settlement')
-const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n').replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, '``')
+const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n').replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, '``')
 ok((code.match(/(^|[^.\w])rand\(\)/g) || []).length === 0, '代码中无裸全局 rand() 调用')
 ok(typeof REVIEW_BASE_RATE === 'number' && typeof REVIEW_K === 'number', 'baseRate/K 为可调常量')
 const p1 = dailyReviewProb(base), p2 = dailyReviewProb(base)

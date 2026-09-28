@@ -71,7 +71,7 @@ console.log('\n[4] 乱序补算：跳过 3 天再补算 === 连续算')
 console.log('\n[5] 硬约束：不碰全局随机 / 纯函数不改入参')
 {
   const srcRaw = readFileSync(new URL('../src/dayEngine.js', import.meta.url), 'utf8')
-  const codeOnly = srcRaw.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  const codeOnly = srcRaw.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
   ok(!/Math\.random/.test(codeOnly), 'dayEngine.js 无 Math.random（只用 guestsRng 独立流）')
   const state = { price: 230, attrs: { quality: 60 } }
   const decisions = { pricing: '不跟降' }
@@ -126,9 +126,13 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
   //   它本就该变；差额恒等式改在下方单独加【历史周租差】项（Δcost === deptCost + Δ租）。
   const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'finalGoodRate', 'reviewCount', 'negativeCount', 'revenue', 'price', 'rooms']
       const drifted = STRUCT.filter(k => r[k] !== o[k])
+// 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
+//   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
+//   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
+const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
       // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加【历史周租差】（旧引擎不暴露 rentCost）
   const Δ租 = r.rentCost - 旧租周(r, dec)
-  if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 || r.profit !== o.profit - r.deptCost - Δ租) {
+  if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r)) {
         zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
       }
       pg = r.finalGoodRate; cap = r.capital

@@ -221,7 +221,7 @@ export default function Claim({ brand, location, onComplete }) {
 
             {/* 🔴 W3-1（口径 (b) 本店实测）+ W3-5 回本周期（外推）：一页钱账 —— ★ 只加展示，不改结算
                 收益侧取【引擎确定性单周】（固定种子，"同一周全班同结果"）⇒ 与后续真实结算同源。
-                CRS 按决策端口径【单列展示、不并入成本】；回本周期必须带"外推"标注（W4 裁决）。 */}
+                §14.3 起加盟两费（管理费+CRS）已由引擎按营收实收；回本周期必须带"外推"标注（W4 裁决）。 */}
             {step === 3 && ledger && (
               <div style={{ marginTop: 12, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', marginBottom: 8 }}>
@@ -239,16 +239,28 @@ export default function Claim({ brand, location, onComplete }) {
                   ⏳ {payback.text}
                 </div>
                 <div style={{ fontSize: 10, color: '#166534', marginTop: 8, lineHeight: 1.6 }}>
+                {/* §14.3：加盟费用条款 —— 哪几项【已实收】、哪几项【待接入】
+                    硬要求（D53）：不许让学生以为全是真金 ⇒ 逐项标状态 */}
+                <div style={{ marginTop: 8, padding: '6px 8px', background: '#FFFFFF', border: '1px solid #DCFCE7', borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', marginBottom: 4 }}>
+                    🧾 加盟费用条款（{ledger.费用状态 && ledger.费用状态.接入 ? '引擎已按营收实收' : '费率待补 · 未计费'}）
+                  </div>
+                  {(ledger.加盟条款 || []).map(x => (
+                    <div key={x.科目} style={{ fontSize: 10, lineHeight: 1.7, color: x.状态 === '已实收' ? '#15803D' : '#9CA3AF' }}>
+                      · {x.科目}：{x.状态}{x.费率 ? ` · ${x.费率}` : ''}{x.说明 ? ` · ${x.说明}` : ''}
+                    </div>
+                  ))}
+                </div>
                   📌 口径（决策端 2026-09-27 拍板 · 选项 (b) 本店实测）：出租率与平均房价取自
                   <b>引擎确定性单周</b>的实收结果（与后续每周结算同一套引擎）；部门成本用
                   <b>完整口径</b>（固定 {部门固定合计.toFixed(1)} 元/间·天含人力固定，另按入住量计变动），
-                  与结算一致。CRS 仅单列展示、<b>不并入成本</b>（避免与 5% 管理费重复计）。
+                  与结算一致。<b>加盟两费</b>（管理费 5% + CRS 有效 2.4%）自 §14.3 起已由引擎按营收实收，本页读引擎实收（不重复计）。
                 </div>
                 <div style={{ fontSize: 10, color: '#92400E', marginTop: 6, lineHeight: 1.6, background: '#FFFBEB', borderRadius: 6, padding: '6px 8px' }}>
                   ⏳ {ledger.extrapolation} —— 实际经营会因决策、事件与淡旺季偏离本页估计。
                 </div>
                 <div style={{ fontSize: 10, color: '#7C2D12', marginTop: 4, lineHeight: 1.6 }}>
-                  ⚠️ {ledger.engineGap}（任务包原式只列了"人力"，本页按 W14 后的完整部门成本口径 ——
+                  ⚠️ {ledger.engineFeeNote}（任务包原式只列了"人力"，本页按 W14 后的完整部门成本口径 ——
                   只扣人力会系统性高估现金流）
                 </div>
               </div>

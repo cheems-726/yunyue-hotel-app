@@ -27,7 +27,11 @@ export const SEASON_GROUPS = {
 }
 
 // 可变成本 = 总成本 −（租金 + 部门固定成本 + 各非经常项）——与 deptCosts 去重纪律一致
+// 可变成本 = 总成本 −（租金 + 部门固定成本 + 各非经常项 + 加盟两费）——与 deptCosts 去重纪律一致
+// 🔴 §14.3 修正：加盟两费【必须】在此剔除 —— 否则它会被算进"可变成本/部门成本"⇒
+//   六组赛季的部门成本率被污染（实测 42–48% 带 → 52.45%），W2-4 华住对拍跟着失真。
 export const variableOf = (r) => r.totalCost - r.rentCost - r.deptCost
+  - (r.franchiseFees ? r.franchiseFees.合计 : 0)
   - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金
   - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
 

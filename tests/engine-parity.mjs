@@ -60,10 +60,12 @@ console.log('\n[3] 与 shadow-reviews 基线口径比对')
   //    （本配置：档位 3、房量 80、无决策修正 ⇒ 旧租周 = 80×65×7 = 36400、新租 = 80×40×7 = 22400）
   //    ★ 出租率 68% 【前后未变】—— 这是"改动只碰钱、没碰经营结构"的独立佐证（A 类红旗判据）
   const 旧租周 = (r) => (r.rooms || 0) * (35 + 3 * 10) * 7   // 旧曲线历史值（旧引擎不暴露 rentCost）
-  ok(r.occupancy === 68 && r.profit === 58167,
-    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/58167）`)
-  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)),
-    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)})`)
+  // 🔴 §14.3 重基线：全季自 §14.3 起按营收计加盟两费 ⇒ 58167 − 9687 = 48480（本次唯一变动项）
+  const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
+  ok(r.occupancy === 68 && r.profit === 48480,
+    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/48480 = 58167 − 两费 9687）`)
+  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)) - 两费(r),
+    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)}) − 加盟两费 ${两费(r)}`)
 }
 
 // ── 步骤4 · dayEngine 的 Node 可运行性（C2 前置）──

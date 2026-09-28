@@ -140,19 +140,38 @@ console.log('\n[6] ★⑤ 服务端不重写引擎（同一份源码）')
   ok(!/^\s*\*\s*[0-9]/m.test(idx), 'Edge Function 内无裸乘常数')
 }
 
-console.log('\n[7] engine/ 组装物与 src/ 同源（除 import 路径外逐字节）')
+console.log('\n[7] engine/ 组装物与 src/ 同源（除 import 路径外逐字节 · ★ §14.3 起为全清单）')
 {
   const OUT = 'supabase/functions/advance-day/engine/'
   ok(existsSync(APP + OUT), 'engine/ 目录存在（已组装）')
-  const PAIRS = [['src/settlement.js', 'settlement.js'], ['src/serverTick.mjs', 'serverTick.mjs'], ['src/engine/index.js', 'index.js']]
+  // 🔴 §14.3 升级：从「抽样 3 个」改为【全清单逐字节 + 导入闭包】——
+  //   起因：新增 src/franchiseFees.mjs 时忘了登进组装清单，抽样恰好没抽到
+  //   ⇒ 本地全绿、部署后云端 advance-day 会 import 404（P1 尚未部署，属「抓住但没炸」）。
+  //   现在两个判据都是【全量】的：① 清单里每个模块都必须与 src 同源 ② 组装体的 import 必须都能解析。
+  const stripCode7 = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  const BLD = stripCode7(read('scripts/build-edge-function.mjs'))
+  const MODULES = [...BLD.matchAll(/\'([A-Za-z0-9_.\/-]+\.(?:js|mjs))\',/g)].map(m => m[1])
+  ok(MODULES.length >= 15, `从组装脚本读到模块清单 ${MODULES.length} 项（全量，不抽样）`)
   const stripImports = (s) => s.replace(/(from\s*['"])[^'"]+(['"])/g, '$1$2')
   let bad = 0
-  for (const [a, b] of PAIRS) {
+  for (const m of MODULES) {
+    const a = m === 'engine/index.js' ? 'src/engine/index.js' : 'src/' + m
+    const b = m === 'engine/index.js' ? 'index.js' : m
+    if (!existsSync(APP + OUT + b)) { bad++; console.error(`     ✗ 清单里的 ${m} 未组装`); continue }
     if (stripImports(read(a)) !== stripImports(read(OUT + b))) { bad++; console.error(`     ✗ ${b} 与 ${a} 不同源`) }
   }
-  ok(bad === 0, `抽样 ${PAIRS.length} 个模块：除 import 路径外逐字节相同` + (bad ? '　⇒ 组装物已过期，请跑 node scripts/build-edge-function.mjs' : ''))
-  // 组装物里不得残留会 404 的 import
+  ok(bad === 0, `清单 ${MODULES.length} 个模块：除 import 路径外逐字节相同` + (bad ? '　⇒ 组装物已过期，请跑 node scripts/build-edge-function.mjs' : ''))
+  // 导入闭包：组装体里每个 './x' 引用都必须真的存在（漏登清单的模块会在这里现形）
   const files = readdirSync(APP + OUT)
+  const inEngine = new Set(files)
+  const missing = []
+  for (const f of files) {
+    if (!/\.(js|mjs)$/.test(f)) continue
+    const rels = [...stripCode7(read(OUT + f)).matchAll(/from\s*['"](\.\/[^'"]+)['"]/g)].map(m => m[1].replace('./', ''))   // 先剥注释：组装体注释里有示例 import
+    for (const r of rels) if (!inEngine.has(r)) missing.push(`${f} → ${r}`)
+  }
+  ok(missing.length === 0, `engine/ 导入闭包完整（${files.length} 个文件 · 缺 ${missing.length} 条）`, missing.join(', '))
+  // 组装物里不得残留会 404 的 import
   const oob = files.filter(f => /from\s*['"](?:\.\.\/|\.\/engine\/)/.test(read(OUT + f)))
   ok(oob.length === 0, `engine/ 内无会 404 的 import（${oob.length} 个文件命中）`)
 }

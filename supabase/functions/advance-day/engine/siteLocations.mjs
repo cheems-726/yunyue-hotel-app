@@ -517,7 +517,7 @@ export const LOCATION_PROFILE = {
   '武侯区': { pop: 123.39, popy: 2025, gdp: 1649.7, gdpy: 2025, tou: 3070, touy: 2024,
       traffic: '武侯祠博物馆（4A）· 锦里 · 地铁3/5号线高升桥站 · 10号线武侯祠站',
       src: '武侯区2025统计公报 / 2024年计划执行报告', conf: 'high' },
-  '青羊区': { pop: 98.3, popy: 2025, gdp: 1737.19, gdpy: 2025, tou: null, touy: null,
+  '青羊区': { pop: 98.3, popy: 2025, gdp: 1737.19, gdpy: 2025, tou: null, touy: null, touNote: '无公开区县级全口径（2024 仅计划数 · 2023 年 2969.77 万可参考）',
       traffic: '宽窄巷子（4A）· 金沙遗址博物馆 · 天府广场 · 地铁4号线宽窄巷子站',
       src: '青羊区2025统计公报（人口/GDP为转载）· 年接待游客无公开区县级数据', conf: 'mid' },
   '金牛区': { pop: 129.7, popy: 2025, gdp: 1762.7, gdpy: 2025, tou: 2690.8, touy: 2025,
@@ -535,10 +535,10 @@ export const LOCATION_PROFILE = {
   '简阳市': { pop: 72.44, popy: 2024, gdp: 540.17, gdpy: 2024, tou: 946.78, touy: 2024,
       traffic: '成都天府国际机场（2025年吞吐5668.7万人次）· 成自宜高铁天府机场站 · 成渝高铁简阳南站',
       src: '简阳市2024统计公报（口径=辖区）/ 2025年GDP通报', conf: 'high' },
-  '旌阳区': { pop: 82.7, popy: 2025, gdp: 1026.7, gdpy: 2025, tou: null, touy: null,
+  '旌阳区': { pop: 82.7, popy: 2025, gdp: 1026.7, gdpy: 2025, tou: null, touy: null, touNote: '公报无此项（只有半年度与五年累计）',
       traffic: '德阳站（高铁）· S11成德市域铁路在建（旌阳区内5站，力争2026底开通）',
       src: '旌阳区2025统计公报 · 年接待游客公报无此项（只有半年度与五年累计）', conf: 'mid' },
-  '五洲广场商圈': { pop: 82.7, popy: 2025, gdp: 1026.7, gdpy: 2025, tou: null, touy: null,
+  '五洲广场商圈': { pop: 82.7, popy: 2025, gdp: 1026.7, gdpy: 2025, tou: null, touy: null, touNote: '商圈口径无公开统计',
       traffic: '银鑫·五洲广场总建面约120万㎡ · S11线五洲广场站2023-08-28主体封顶',
       src: '口径=所在行政区（旌阳区）统计公报；商圈客流无公开统计', conf: 'low' },
   '广汉市': { pop: 62.2, popy: 2025, gdp: 630.9, gdpy: 2025, tou: 1573.8, touy: 2025,
@@ -547,13 +547,32 @@ export const LOCATION_PROFILE = {
   '绵竹市': { pop: 43.1, popy: 2025, gdp: 501.82, gdpy: 2025, tou: 1238.05, touy: 2024,
       traffic: '川青铁路绵竹南站（2023-11投用，距市区约8km）· 3处4A景区',
       src: '绵竹市2025统计公报 / 2024统计公报', conf: 'high' },
-  '中江县': { pop: 93.2, popy: 2025, gdp: 506.61, gdpy: 2025, tou: null, touy: null,
+  '中江县': { pop: 93.2, popy: 2025, gdp: 506.61, gdpy: 2025, tou: null, touy: null, touNote: '政府工作报告中人次被脱敏（仅有旅游收入 25.8 亿）',
       traffic: '⚠️无高铁无地铁（县交通局2024-09答复：无铁路项目纳入国家规划）',
       src: '中江县2025统计公报 · 接待人次在政府工作报告中被脱敏（仅有旅游收入25.8亿）', conf: 'mid' },
 }
 
-// 未采（按用户口径简单处理）：绵阳 4 / 承德 4 / 重庆 4 = 12 区 —— 一律显式 notSurveyed，绝不填估值
-export const NOT_SURVEYED = ['涪城区', '游仙区', '江油市', '三台县', '双桥区', '双滦区', '承德县', '围场满族蒙古族自治县', '解放碑商圈', '观音桥商圈', '南滨路', '沙坪坝区']
+// 🔴 2026-09-28（§13.2-N9）：12 区画像补采回填（来源：5-参考资料/选址人流经济-统计实测-20260927.md 附录B）
+//   · 游客数【区县级公报不载】的仍为 null（绵阳 4 区/承德 2 区）或"仅市级"（touNote）—— 不冒充
+//   · NOT_SURVEYED 名单保留但清空（历史口径记录）；画像缺项继续由 null + 待补 UI 承担
+const 十二区 = {
+  '涪城区': { pop: 134.08, popy: 2024, gdp: 1543.45, gdpy: 2024, tou: null, touy: null, touNote: '仅市级：绵阳 2024 接待 10400 万', traffic: '绵阳南郊机场 · 西成高铁绵阳站（均在辖区）', src: '涪城区2024统计公报（公报库转载）', conf: 'mid' },
+  '游仙区': { pop: 57.15, popy: 2024, gdp: 522.03, gdpy: 2024, tou: null, touy: null, touNote: '仅市级：10400 万', traffic: '绵阳主城区之一 · 辖区无机场/高铁站', src: '游仙区2024统计公报（转载）', conf: 'mid' },
+  '江油市': { pop: 73.32, popy: 2023, gdp: 716.91, gdpy: 2024, tou: null, touy: null, touNote: '仅市级：10400 万', traffic: '西成高铁江油站 · 李白故里 + 方特东方神画', src: '人口=2023公报（2024不可达）/GDP=2024公报（转载）', conf: 'mid' },
+  '三台县': { pop: 94.40, popy: 2024, gdp: 570.07, gdpy: 2024, tou: null, touy: null, touNote: '仅市级：10400 万', traffic: '无高铁无机场 · 公路衔接绵阳主城', src: '三台县2024统计公报（转载）', conf: 'mid' },
+  '双桥区': { pop: 35.7, popy: 2023, gdp: 195.6, gdpy: 2024, tou: 1445.99, touy: 2024, traffic: '避暑山庄及周围寺庙（5A + 世界文化遗产）所在地', src: '人口=区公报(2023)/GDP=区政府工作报告【预计数】/游客=媒体转载', conf: 'low' },
+  '双滦区': { pop: 17.74, popy: 2023, gdp: 162.2, gdpy: 2023, tou: null, touy: null, touNote: '仅市级：承德 2024 接待 9326.99 万', traffic: '承德老工业区（钒钛冶金）· 双塔山景区', src: '双滦区2023公报（转载）', conf: 'mid' },
+  '承德县': { pop: 32.97, popy: 2025, gdp: 171.9, gdpy: 2025, tou: null, touy: null, touNote: '仅市级：9326.99 万', traffic: '承德普宁机场在境内（距市中心约 19.5km）', src: '承德县2025统计公报（转载）', conf: 'mid' },
+  '围场满族蒙古族自治县': { pop: 40.95, popy: 2025, gdp: 219.43, gdpy: 2025, tou: 1030.72, touy: 2025, traffic: '塞罕坝所在地 · 京津冀生态旅游 · 境内无高铁', src: '围场2025统计公报（转载）', conf: 'mid' },
+  '解放碑商圈': { pop: 57.4, popy: 2024, gdp: 1691.5, gdpy: 2024, tou: 8920.6, touy: 2024, traffic: '解放碑—洪崖洞头部客流街区 · 轨道 1/2/6 号线 · 长江索道', src: '渝中区2024统计公报（口径=渝中区）', conf: 'mid' },
+  '观音桥商圈': { pop: 95.66, popy: 2024, gdp: 1924.3, gdpy: 2024, tou: 7351, touy: 2024, traffic: '观音桥商圈 · 重庆北站在区内', src: '江北区2024统计公报（口径=江北区）', conf: 'mid' },
+  '南滨路': { pop: 121.37, popy: 2024, gdp: 1133.16, gdpy: 2024, tou: 6981, touy: 2023, traffic: '南滨路沿江休闲带 · 南山观景带 · 环线/6 号线', src: '南岸区2024公报/游客=2023国新办口径（口径=南岸区）', conf: 'mid' },
+  '沙坪坝区': { pop: 149.55, popy: 2025, gdp: 1322.6, gdpy: 2025, tou: null, touy: null, touNote: '待补（市级公报不发布总量）', traffic: '沙坪坝高铁站（成渝高铁）· 三峡广场 · 高校聚集', src: '沙坪坝区2025公报（区政府官网 PDF 原件）', conf: 'high' },
+}
+for (const [k, v] of Object.entries(十二区)) LOCATION_PROFILE[k] = v
+// ★ 2026-09-28（N-9）：12 区画像已回填 ⇒ 本清单清空（保留空数组 = "未采名单"机制仍在，
+//   未来新增区位若未采画像，加进来即可显式标待补）
+export const NOT_SURVEYED = []
 
 // 客群画像数据（每个区县的三类客群占比，总和100%）
 // persona: business=商务客 tourist=游客 family=家庭客

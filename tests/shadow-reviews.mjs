@@ -74,6 +74,10 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
     (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w)
   ok(floatDiff.length === 0,
     `${name}：夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前的 好评率/差评数 逐周完全一致；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
+// 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
+//   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
+//   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
+const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   // (乙) ×7 精确算式：收入恒 7 倍；利润差额 = 6 × 【未被 ×7 的科目】
   const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
@@ -83,7 +87,7 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
     // 🔴 A-1 重基线：租金曲线改了（35+档×10 → 25+档×5）⇒ ×7 恒等式再加一项 −(新租 − 旧租周)。
   //   旧租周 = 旧公式的历史值（旧引擎把租金并进 fixedCost，返回值里没有 rentCost）—— 与 SCALE_STEPS 记历史跳同法。
-  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions))
+  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new)
   })
   ok(moneyBad.length === 0,
     `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,

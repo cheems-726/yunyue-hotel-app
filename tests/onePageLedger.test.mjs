@@ -5,12 +5,12 @@
 //   ADR/OCC 取【引擎确定性单周】实收结果 · CRS 单列不并入 · 回本周期必须带"外推"标注（W4 裁决）
 // 分四层：
 //   ① 口径层：每个年化数字都能回到"基准周 × 52"，且与引擎同源
-//   ② 不编造层：管理费率/CRS 缺来源 ⇒ 待补；且年现金流必须注明"管理费未计入"
+//   ② 不编造层：费率未接入的品牌 ⇒ 两费标"待补"；且现金流必须读引擎实收（不补数）
 //   ③ 回本层：正现金流 ⇒ "约 X 年 + 外推"；≤0 ⇒ 不适用；总投资缺 ⇒ 待补
-//   ④ 零影响层：纯函数 + settlement.js 不引用 + UI 静态断言（旧写死数字已清除）
+//   ④ 零影响层：纯函数 + settlement.js 不引用 + UI 静态断言（条款逐项标"已实收/待接入"）
 import { readFileSync, readdirSync } from 'node:fs'
 import {
-  onePageLedger, paybackText, baseWeek, 部门固定合计, 人力固定单价, WEEKS_PER_YEAR, EXTRAPOLATION_NOTE, ENGINE_GAP_NOTE,
+  onePageLedger, paybackText, baseWeek, 部门固定合计, 人力固定单价, WEEKS_PER_YEAR, EXTRAPOLATION_NOTE, ENGINE_FEE_NOTE,
 } from '../src/onePageLedger.mjs'
 import { parseRooms } from '../src/settlement.js'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
@@ -20,6 +20,7 @@ const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } 
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
 const src = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
 
+import { 费用清单 } from '../src/franchiseFees.mjs'
 // 从加盟资料取费率（不在测试里写死 0.05 / 0.08）
 const 费率 = (brandName, kind) => {
   const t = FRANCHISE_MODEL[brandName]
@@ -29,6 +30,7 @@ const 费率 = (brandName, kind) => {
 
 const 汉庭 = { name: '汉庭', price: '180-280元', standard: '客房70间起', level: '经济型 · 国民' }
 const 全季 = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
+const 汉庭快捷 = { name: '汉庭快捷', price: '160-240元', standard: '客房60间起', level: '经济型（轻改/特许）' }
 const 物业 = { name: '社区旁物业', type: '社区型', area: '2600㎡', areaNum: 2600, rent: '中等' }
 const 区县 = { 客流: 4, 房价: 3, 租金: 3, 竞争: 3, 人力: 3, 波动: 3 }
 
@@ -47,44 +49,43 @@ console.log('\n[1] 口径层：年化数字都能回到"基准周 × 52"（与�
   const y = q.yearly
   ok(y.营收 === w.revenue * WEEKS_PER_YEAR && y.租金 === w.rentCost * WEEKS_PER_YEAR && y.部门固定 === w.deptCost * WEEKS_PER_YEAR,
     `年营收/年租金/年部门固定 = 基准周对应值 × ${WEEKS_PER_YEAR}（逐项回算一致）`)
-  ok(y.变动与其他 === (w.totalCost - w.rentCost - w.deptCost) * WEEKS_PER_YEAR,
-    '年变动与其他 = (总成本 − 租金 − 部门固定) × 52 —— 全部取自引擎实测字段')
 
-  const mgmtRate = 费率('汉庭', '管理费')
-  ok(mgmtRate != null && Math.abs(y.管理费 - y.营收 * mgmtRate) < 1e-6,
-    `年管理费 = 年营收 × ${(mgmtRate * 100).toFixed(1)}%（加盟资料费率）`)
-
-  const 现金应 = y.营收 - y.租金 - y.部门固定 - y.变动与其他 - y.管理费
-  ok(y.现金流 === 现金应, '年现金流 = 营收 − 租金 − 部门固定 − 变动与其他 − 管理费（★ 不含 CRS）')
-  const crsRate = 费率('汉庭', 'CRS')
-  ok(crsRate != null && y.CRS === y.营收 * crsRate && y.现金流 !== 现金应 - y.CRS,
-    `CRS 单列：年 CRS = 年营收 × ${(crsRate * 100).toFixed(1)}% = ${(y.CRS / 10000).toFixed(1)} 万，且【未】从现金流扣（决策端口径）`)
+  // 🔴 §14.3 重基线：加盟两费改【读引擎实收】（单源），本页不再自乘费率 ⇒
+  //   ① 年变动与其他必须先剔除两费（否则与"年加盟两费"行重复计）
+  //   ② 年现金流 === 引擎利润年化（差 0）对【接入与未接入品牌】都成立（原为"差额恰为管理费"）
+  const 两费周 = w.franchiseFees.合计
+  ok(y.变动与其他 === (w.totalCost - w.rentCost - w.deptCost - 两费周) * WEEKS_PER_YEAR,
+    '年变动与其他 = (引擎总成本 − 租金 − 部门固定 − 加盟两费) × 52 —— 已剔除两费，不与下一行重复计')
+  ok(y.加盟两费 === 两费周 * WEEKS_PER_YEAR,
+    `年加盟两费 = 引擎基准周实收两费 ${两费周} 元 × ${WEEKS_PER_YEAR} = ${(y.加盟两费 / 10000).toFixed(1)} 万（单源：不在此再乘一遍费率）`)
+  ok(Math.abs(y.加盟两费 / y.营收 - 0.074) < 0.001,
+    `两费约占年营收 ${(y.加盟两费 / y.营收 * 100).toFixed(2)}%（决策端"全体下移 7.4pp"证据在钱账链上同样成立）`)
   ok(部门固定合计 > 0 && 人力固定单价 === 18.5,
     `部门成本口径单源：Σ固定 ${部门固定合计.toFixed(1)} 元/间·天（含人力固定 ${人力固定单价}）`)
+  ok(y.现金流 === y.营收 - y.租金 - y.部门固定 - y.变动与其他 - y.加盟两费,
+    '年现金流 = 营收 − 租金 − 部门固定 − 变动与其他 − 加盟两费（页面公式与实现一致）')
 
-  // ★★ 同源锚点（口径 (b) 的硬证据）：现金流 + 管理费 = 引擎利润年化
-  //   有费率（汉庭）时差额恰为管理费；无费率数据（全季）时差 0 ⇒ 其余各项与引擎逐项一致
-  ok(Math.abs((y.现金流 + (y.管理费 ?? 0)) - q.引擎利润年化) < 1e-9,
-    `同源锚点·有费率：现金流 ${Math.round(y.现金流)} + 管理费 ${Math.round(y.管理费)} = 引擎利润年化 ${Math.round(q.引擎利润年化)}（差额恰为管理费）`)
-  const q全季 = onePageLedger({ brand: 全季, property: 物业, districtAttrs: 区县 })
-  ok(q全季.yearly.管理费 === null && Math.abs(q全季.yearly.现金流 - q全季.引擎利润年化) < 1e-9,
-    `同源锚点·无费率：现金流 ${Math.round(q全季.yearly.现金流)} === 引擎利润年化 ${Math.round(q全季.引擎利润年化)}（差 0）`)
+  // ★★ 同源锚点（§14.3 后更强）：现金流 === 引擎利润年化【差 0】，接入品牌也不例外
+  ok(Math.abs(y.现金流 - q.引擎利润年化) < 1e-9,
+    `同源锚点·接入品牌：现金流 ${Math.round(y.现金流)} === 引擎利润年化 ${Math.round(q.引擎利润年化)}（差 0 · 含两费）`)
+  const q快捷 = onePageLedger({ brand: 汉庭快捷, property: 物业, districtAttrs: 区县 })
+  ok(q快捷.yearly.加盟两费 === null && Math.abs(q快捷.yearly.现金流 - q快捷.引擎利润年化) < 1e-9,
+    `同源锚点·未接入品牌（汉庭快捷）：两费 = null 且 现金流 ${Math.round(q快捷.yearly.现金流)} === 引擎利润年化 ${Math.round(q快捷.引擎利润年化)}（差 0）`)
 }
 
 // ── ② 不编造层 ────────────────────────────────────────────────────────
-console.log('\n[2] 不编造层：缺来源 ⇒ 待补 + 现金流注明"管理费未计入"')
+console.log('\n[2] 不编造层：费率未接入 ⇒ 两费标"待补" + 不补数')
 {
-  const q = onePageLedger({ brand: 全季, property: 物业, districtAttrs: 区县 })
-  ok(q.yearly.管理费 === null && q.missing.includes('年管理费（特许费）'), '全季：管理费率无来源 ⇒ 年管理费标"待补"')
-  ok(q.yearly.CRS === null && q.missing.includes('CRS（单列·不并入）'), '全季：CRS 费率无来源 ⇒ 标"待补"')
-  const line = q.lines.find(l => l.label === '年现金流（本页口径）')
-  ok(/管理费缺来源数据【未计入】/.test(line.note) && /别当净利看/.test(line.note),
-    '年现金流明示"管理费未计入 ⇒ 实际更低"（不让人误当净利）')
-  ok(q.yearly.现金流 === q.yearly.营收 - q.yearly.租金 - q.yearly.部门固定 - q.yearly.变动与其他,
-    '未计入管理费时，现金流公式与页面说明一致（按 0 处理而非凭空补数）')
+  const q = onePageLedger({ brand: 汉庭快捷, property: 物业, districtAttrs: 区县 })
+  ok(q.yearly.加盟两费 === null && q.missing.includes('年加盟两费（管理费 + CRS）'),
+    '汉庭快捷（缺管理费率/CRS 费率）⇒ 年加盟两费标"待补"')
+  const line = q.lines.find(l => l.label === '年加盟两费（管理费 + CRS）')
+  ok(/【待补】/.test(line.note) && /缺/.test(line.note),
+    '该行明示【待补】并写出【缺什么】（不是空白、不是 0 冒充）', line.note)
+  ok(q.费用状态.接入 === false && /待补/.test(q.费用状态.原因),
+    '状态对象如实回报"未接入 + 原因"（界面据此标注）', JSON.stringify(q.费用状态))
 }
 
-// ── ③ 回本层（W3-5）──────────────────────────────────────────────────
 console.log('\n[3] 回本层：外推标注 + 三种分支')
 {
   // 正分支：用"客流/房价双高 + 低租金"的配置（汉庭在该配置下年现金流为正）
@@ -109,7 +110,8 @@ console.log('\n[3] 回本层：外推标注 + 三种分支')
 
   ok(paybackText({ 总投资: null, 年现金流: 100 }).text.includes('待补'), '总投资缺来源 ⇒ "待补"')
   ok(EXTRAPOLATION_NOTE.includes('外推') && EXTRAPOLATION_NOTE.includes('非实际发生'), '外推说明是模块常量（页面与测试同源）')
-  ok(/P3/.test(ENGINE_GAP_NOTE), '页面必须写明"引擎当前不收集加盟费/管理费（P3 待定）"—— 否则学生会以为游戏内就这么差')
+  ok(/§14.3/.test(ENGINE_FEE_NOTE) && /汉庭\/全季\/海友/.test(ENGINE_FEE_NOTE) && /待补/.test(ENGINE_FEE_NOTE),
+    '页面必须写明「引擎自 §14.3 起对三品牌实收两费、其余待补」—— 否则学生会把「未计费」误当「不用交钱」', ENGINE_FEE_NOTE)
 }
 
 // ── ④ 零影响层 ────────────────────────────────────────────────────────
@@ -132,10 +134,11 @@ console.log('\n[4] 零影响层：纯计算 + 结算路径不受影响 + UI 静�
   ok(/\{step === 3 && ledger &&/.test(claim) && /📒 一页钱账/.test(claim) && /ledger\.lines\.map/.test(claim) && /paybackText\(ledger\)/.test(claim),
     'Claim.jsx：第 3 步渲染钱账（条件渲染 + 标题 + 逐行 + 回本周期）')
   ok(!/预计出租率 65%/.test(claim), 'Claim.jsx：旧的写死"预计出租率 65%"已清除（改由引擎基准周推导）')
-  ok(/ledger\.extrapolation/.test(claim) && /ledger\.engineGap/.test(claim) && /不并入成本/.test(claim),
-    'Claim.jsx：页面写明"外推"说明、"引擎未收费（P3）"缺口与"CRS 不并入成本"（三处口径可见）')
+  ok(/加盟费用条款/.test(claim) && /'已实收'/.test(claim), 'Claim.jsx：条款表逐项标「已实收/待接入」（不许让学生以为全是真金）')
+  ok(/ledger\.extrapolation/.test(claim) && /ledger\.engineFeeNote/.test(claim) && /ledger\.加盟条款/.test(claim),
+    'Claim.jsx：页面写明「外推」说明、§14.3 费用口吻（engineFeeNote）与【逐项条款表】（已实收/待接入）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
-console.log('验收口径：口径 (b) 本店实测（引擎基准周）· CRS 单列不并入 · 回本周期必须带"外推"')
+console.log('验收口径：口径 (b) 本店实测 · 加盟两费读引擎实收（§14.3 单源）· 回本周期必须带"外推"')
 process.exit(fail ? 1 : 0)

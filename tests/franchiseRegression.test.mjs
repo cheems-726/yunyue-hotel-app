@@ -62,10 +62,10 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   const 未给 = settle({ ...BASE })
   const ota = settle({ ...BASE, bizMode: 'ota' })
   // 自营锚点 = 各批次报告引用的"单配置"（与 W2/W3 报告同源）
-  ok(direct.revenue === 126140 && direct.totalCost === 71753 && direct.netProfit === 54387,   // A-1 重基线
+  ok(direct.revenue === 126140 && direct.totalCost === 81087 && direct.netProfit === 45053,   // 🔴 §14.3 重基线：+加盟两费 9334
     `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（与文档锚点一致）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')
-  ok(ota.revenue === 168980 && ota.totalCost === 105920 && ota.netProfit === 63060,   // A-1 重基线
+  ok(ota.revenue === 168980 && ota.totalCost === 118425 && ota.netProfit === 50555,   // 🔴 §14.3 重基线：+加盟两费 12505
     `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（各自锚点，与自营不同属正常）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
     `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}（模式差异只由此产生）`)
@@ -85,11 +85,11 @@ console.log('\n[B] 加盟数值：费率 / 年现金流 / 回本年数')
   const l = onePageLedger({ brand: 汉庭, property: 物业, districtAttrs: 区县 })
   const 报价总投资 = q.lines.find(x => x.label === '总投资（估算）').value
   ok(l.总投资 === 报价总投资, `跨模块单源：onePageLedger 的总投资 === propertyQuote 的总投资 = ${报价总投资}`)
-  ok(Math.abs(l.yearly.现金流 - (l.yearly.营收 - l.yearly.租金 - l.yearly.部门固定 - l.yearly.变动与其他 - l.yearly.管理费)) < 1e-9,
-    `年现金流口径自洽 = ${Math.round(l.yearly.现金流)}（营收 − 租金 − 部门固定 − 变动 − 管理费）`)
+  ok(Math.abs(l.yearly.现金流 - (l.yearly.营收 - l.yearly.租金 - l.yearly.部门固定 - l.yearly.变动与其他 - l.yearly.加盟两费)) < 1e-9,
+    `年现金流口径自洽 = ${Math.round(l.yearly.现金流)}（营收 − 租金 − 部门固定 − 变动 − 加盟两费，读引擎实收）`)
   // 与 W3-1 同源锚点（此处复核一条，证明"加盟数值与引擎同源"）
-  ok(Math.abs((l.yearly.现金流 + (l.yearly.管理费 ?? 0)) - l.引擎利润年化) < 1e-9,
-    `同源锚点复核：现金流 + 管理费 = 引擎利润年化 ${Math.round(l.引擎利润年化)}`)
+  ok(Math.abs(l.yearly.现金流 - l.引擎利润年化) < 1e-9,   // 🔴 §14.3：钱账改读引擎实收 ⇒ 两者恒等（差 0）
+    `同源锚点复核：现金流 === 引擎利润年化 ${Math.round(l.引擎利润年化)}（含两费，差 0）`)
   // 回本 = 总投资 ÷ 年现金流（正分支/负分支都要如实）
   const p = paybackText(l)
   if (l.yearly.现金流 > 0) ok(Math.abs(l.回本年 - 报价总投资 / l.yearly.现金流) < 1e-9 && /约 [\d.]+ 年（外推/.test(p.text),

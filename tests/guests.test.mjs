@@ -96,7 +96,7 @@ ok(!/from ['"]\.\/settlement/.test(src), 'guests.js 未 import settlement（不�
 // 先剥掉注释与字符串字面量，再检查裸 rand() —— 避免把注释里提到的 rand() 误判成调用
 const code = src
   .replace(/\/\*[\s\S]*?\*\//g, '')
-  .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  .split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
   .replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, '``')
 const bareRand = (code.match(/(^|[^.\w])rand\(\)/g) || []).length
 ok(bareRand === 0, `代码中无裸全局 rand() 调用（剥注释后实际 ${bareRand} 处）`)
@@ -124,7 +124,7 @@ ok(t1 === t2, '同种子 → 同文本（可复现）')
 console.log('\n[随机源纪律] 评价相关模块不得依赖 Math.random')
 {
   const read = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
-  const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
   // 口径（2026-09-22 实测）：guests.js / liveReview.js = 0 处；reviewRate.js 允许 1 处，
   // 且必须只出现在 `typeof rnd === 'function' ? rnd() : Math.random()` 的兜底分支
   const countRandom = (src) => (codeOnly(src).match(/Math\.random/g) || []).length

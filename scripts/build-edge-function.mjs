@@ -34,6 +34,7 @@ const MODULES = [
   'hotelTitle.js',
   'stateMigration.mjs',
   'franchiseModel.mjs',
+  'franchiseFees.mjs',   // §14.3（G3 二步）：加盟两费计费（settlement 依赖 ⇒ 必须一起组装）
   'siteLocations.mjs',
   'serverTick.mjs',
   'weeklyAuto.mjs',   // E2（N-2）：自动周报纯核心（serverTick 依赖它 ⇒ 必须一起组装）

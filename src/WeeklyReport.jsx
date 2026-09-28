@@ -258,6 +258,11 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
               })()}
             </div>
           )}
+          {/* §14.3：加盟两费如实标注 —— 哪几项【已实收】、哪些【待补】（不许让学生以为全是真金） */}
+          <div style={{ fontSize: 10, color: result.franchiseFees ? '#15803D' : '#9CA3AF', marginTop: 2 }}>
+            {result.franchiseFees
+              ? `🧾 含加盟两费 ${result.franchiseFees.合计.toLocaleString()} 元（${result.franchiseFees.品牌}：管理费 ${(result.franchiseFees.费率.管理费 * 100).toFixed(1)}% + CRS 有效 ${(result.franchiseFees.费率.CRS有效 * 100).toFixed(1)}%，均按营收）· 引擎已实收`
+              : '🧾 加盟费率待补（该品牌未接入名单）⇒ 引擎未计费，不编造'}</div>
           {result.eventFine > 0 && <div style={{ color: '#DC2626' }}>🧯 事件罚款 {result.eventFine} 元（已计入成本）</div>}
           {result.overbookCompensation > 0 && <div style={{ color: '#DC2626' }}>🛏️ 超售到店无房赔偿 {result.overbookCompensation} 元</div>}
         </div>

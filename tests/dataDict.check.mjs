@@ -39,7 +39,7 @@ const VIOLATION_PATTERNS = [
 ]
 
 const files = readdirSync('src').filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
-const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
 let violations = []
 for (const f of files) {
   const path = 'src/' + f
@@ -144,14 +144,23 @@ const eNotes = []
   if (有15 && 有11) eNotes.push('E3 OTA 佣金率：平台合作 15% / 自营投放 11% 与登记值一致（缺口表 B8）')
   if (!(有15 && 有11)) termFindings.push({ rule: 'E3(OTA佣金率)', file: 'src/settlement.js', line: 0, ctx: `15% 或 11% 的佣金率写法未找到（15%: ${有15} / 11%: ${有11}）`, expect: '平台合作 15% · 自营投放 11%（缺口表 B8 登记值）' })
 
-  // E4 · B9/B10 参考费率【在册】且【未实装】：franchiseModel 有三条费率；引擎里不得出现
-  //      （防止"半接一半"：接了展示却忘了改结算，或反过来）——P3 未开工前这条必须成立
+  // E4 · B9/B10 参考费率【在册】+ 引擎实装边界（🔴 §14.3 重基线 · D53）
+  //   旧判据（P3 未开工时代）：引擎里【不得】出现加盟费率 —— 防"半接一半"（接了展示忘改结算，或反过来）。
+  //   §14.3（D53-a/b/c）把 P3 拆成两步并已开工第一步 ⇒ 旧判据的前提消失，但【意图不变】：
+  //   仍要机器判死"半接"，只是边界改成 D53 的边界：
+  //     ① 月度费率（管理费 + CRS）必须【经单源】接入结算 —— 不许只在展示层
+  //     ② capex / 一次性费用【不得】进引擎（D53-c：另立概念、后续批次）
+  //     ③ 引擎里不得出现费率字面量（费率只许来自 src/franchiseFees.mjs）
   const fm = readFileSync('src/franchiseModel.mjs', 'utf8')
   const 费率在册 = /0\.05/.test(fm) && /0\.08/.test(fm) && /0\.035/.test(fm)
-  const 引擎未实装 = !/0\.035/.test(st) && !/管理费/.test(st)
+  const 月度费率已接 = /from '\.\/franchiseFees\.mjs'/.test(st) && /franchiseFees\(/.test(st)
+  const capex未接 = !/单房造价|保证金|筹备费|加盟费/.test(st)
+  const 费率无字面量 = !/revenue \* 0\.0(5|8|24|74)/.test(st)
   if (!费率在册) termFindings.push({ rule: 'E4(费率在册)', file: 'src/franchiseModel.mjs', line: 0, ctx: '管理费 5% / CRS 8% / 官方渠道上限 3.5% 三者未同时存在', expect: '缺口表 B9/B10 的参考费率必须登记在册' })
-  if (!引擎未实装) termFindings.push({ rule: 'E4(未实装状态)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现了加盟费率字样 ⇒ 与"P3 未开工"不符', expect: 'P3 开工前引擎不得含加盟费率（要么全接，要么不动；不许半接）' })
-  if (费率在册 && 引擎未实装) eNotes.push('E4 加盟费率：在册（5%/8%/3.5%）且引擎未实装 ⇒ 与 P3 未开工状态自洽')
+  if (!月度费率已接) termFindings.push({ rule: 'E4(月度费率未接)', file: 'src/settlement.js', line: 0, ctx: '未从 franchiseFees.mjs 单源计费', expect: 'D53-b：管理费+CRS 必须经单源进结算（不许只在展示层）' })
+  if (!capex未接) termFindings.push({ rule: 'E4(capex越界)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现 capex/一次性费用科目', expect: 'D53-c：capex 与一次性费用不进引擎（另立批次）' })
+  if (!费率无字面量) termFindings.push({ rule: 'E4(费率字面量)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现"营收 × 费率"字面量', expect: '费率只许来自 src/franchiseFees.mjs（单源）' })
+  if (费率在册 && 月度费率已接 && capex未接 && 费率无字面量) eNotes.push('E4 加盟费率：在册（5%/8%/3.5%）· 月度费率经单源已接（D53-b）· capex 未接（D53-c）⇒ 与 §14.3 决策边界自洽')
 
   // E5 · C3/C4 回收期链（缺口表给的外部权威答案）：华住链 ⇒ 现金流 136.875 万 ⇒ 回收期 ≈ 4.5 年
   const 年现金流 = 6570000 - 6570000 * 0.45 - 1916250 - 328500   // 按缺口表：年收入 − 部门成本45% − 租金 − 特许费

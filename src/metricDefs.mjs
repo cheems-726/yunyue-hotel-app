@@ -12,7 +12,7 @@ export const GOP_LABEL = 'GOP（经营毛利）'
 export const GOP_SHORT = 'GOP'   // 紧凑行（列表/导出表头）用短式；长式用于明细/总结
 export const GOP_DEF = 'GOP（经营毛利）＝ 营收 −（变动成本 + 部门固定成本 + 营销 + OTA佣金）；★ 不含租金/加盟费/利息'
 export const NET_LABEL = '净利润'
-export const NET_DEF = '净利润 ＝ GOP − 租金 − 超售赔偿 − 改造投资 − 事件罚款；★ 期末评分基准'
+export const NET_DEF = '净利润 ＝ GOP − 租金 − 超售赔偿 − 改造投资 − 事件罚款 − 加盟两费（管理费 + CRS）；★ 期末评分基准'
 
 // 单周读数。GOP 仅新口径周具备（旧档周无该字段 → null，界面显示"—"，不编造）；
 // 净利润与既有 profit 同值（引擎恒等式 netProfit === profit），旧档回退读 profit 不算编造。
@@ -82,6 +82,15 @@ export function scoreOf(history) {
   const grade = finalScore >= 90 ? 'S · 标杆酒店' : finalScore >= 80 ? 'A · 优秀经营' : finalScore >= 70 ? 'B · 良好经营' : finalScore >= 60 ? 'C · 合格经营' : 'D · 需改进'
   return { totalProfit, avgOccupancy: avgOcc, avgGoodRate: avgGood, totalNegative: totalNeg, avgHandleRate: handleRate, profitScore, reputationScore, occupancyScore, negativeScore, finalScore, grade }
 }
+
+// ── 🔴 §14.3（G3 第二步）· 加盟两费（管理费 + CRS）单源 ──────────────────
+//   引擎自 §14.3 起对 汉庭/全季/海友 按营收实收两费（唯一计算点 = src/franchiseFees.mjs）。
+//   本处只提供【读取口径】：界面（周报/终局/教师端）要露这笔钱就读这里，
+//   不许各自去 history[i].weeklyExpenses 里翻键名 —— 那又是两套命名（BL-7 同族）。
+export const FEE_LABEL = '加盟两费（管理费 + CRS）'
+export const FEE_DEF = '加盟两费 ＝ 加盟管理费（营收 × 5%）+ 加盟CRS（营收 × 有效 2.4% = 名义 8% × 渠道占比 30%）；★ 只对 汉庭/全季/海友 实收；其余品牌费率待补（不计费、不编造）'
+export const franchiseFeeOf = (h) => (h && h.franchiseFees && Number.isFinite(h.franchiseFees.合计) ? h.franchiseFees.合计 : 0)
+export const sumFranchiseFee = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + franchiseFeeOf(h), 0)
 
 // 周环比用的"上一周分数"（去掉最后一周再算；不足 2 周 → null）
 export const prevScore = (history) => {

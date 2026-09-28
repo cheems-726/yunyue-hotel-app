@@ -3,7 +3,7 @@
 // ★ 口径（决策端 2026-09-27 拍板）：**选项 (b) 本店实测口径**
 //   · ADR / OCC ：取【引擎确定性单周】的实收结果（settle 固定种子 `week*100+7`，"同一周全班同结果"）
 //                  —— 不是拍脑袋的参考值，也不是华住样板
-//   · CRS       ：按加盟资料【单列展示、不并入成本】（避免与 5% 管理费重复计）
+//   · CRS       ：§14.3 起【并入引擎成本】（营收 × 有效 2.4% = 名义 8% × 渠道占比 30%）；本页读引擎实收，不再自算
 //   · 回本周期   ：W4 裁决 = 外推法 ⇒ 页面必须标注"外推，非实际发生"
 //
 // ★ 与任务包原式的一处【明示偏差】（留痕，便于决策端否决/回退）：
@@ -14,18 +14,18 @@
 //
 // ★ 硬约束：只加展示、不改结算（纯函数；不被 settlement.js 引用 —— 守门会断言）
 import { settle, parseRooms } from './settlement.js'
-import { FRANCHISE_MODEL } from './franchiseModel.mjs'
+import { 费用清单, franchiseFeeStatus } from './franchiseFees.mjs'   // §14.3 单源：加盟两费只读引擎实收，页面不另乘一遍
 // ★ STATUS 与报价单【共用同一个】状态词表（engineBarrel 的导出名冲突守门抓到我原先重复定义了一个）
 import { propertyQuote, STATUS } from './propertyQuote.mjs'
 import { DEPT_COST_LINES } from './deptCosts.mjs'
 
 export const WEEKS_PER_YEAR = 52          // 年化基准：周值 × 52（与引擎周口径一致）
 export const EXTRAPOLATION_NOTE = '外推：按基准单周年化，非实际发生（W4 裁决：外推法）'
-// ★ 引擎当前缺口（P3 暂缓 · 决策端 2026-09-27 定）：结算【不】收加盟费/保证金/管理费/CRS。
-//   本页按加盟资料把【管理费】计入现金流 ⇒ 本页比游戏内实际更保守；差额恰好 = 管理费。
-//   实测证据（tests/onePageLedger.test.mjs）：全季（无费率数据）时 现金流 === 引擎利润年化（差 0）；
-//   汉庭（有费率）时 差额 === 年管理费。P3 落地后本页无需改（届时引擎自己也会扣）。
-export const ENGINE_GAP_NOTE = '引擎当前未对加盟费/管理费计费（P3 待定）—— 故游戏内实际会比本页乐观；本页按加盟资料计入管理费'
+// ★ §14.3（2026-09-28 · D53）：引擎【已】对 汉庭/全季/海友 实收加盟两费（管理费 5% + CRS 有效 2.4%，按营收）。
+//   ⇒ 本页不再自己乘一遍：两费直接读引擎实收（w.franchiseFees，单源），故
+//      【年现金流 === 引擎利润年化】恒成立（差 0，含接入品牌）—— 页面与游戏内不再有缺口。
+//   其余品牌费率待补 ⇒ 引擎不计费、本页也按 0（条目里如实标"待补"，不拿别家费率冒充）。
+export const ENGINE_FEE_NOTE = '引擎自 §14.3 起对 汉庭/全季/海友 实收加盟管理费（营收 5%）+ CRS（营收有效 2.4%）；其余品牌费率待补 ⇒ 不计费也不编造'
 
 // 基准决策 = "常规经营"（与批次报告/单配置锚点同源的 7 项），不是"不作为"的空决策
 export const BASE_DECISIONS = {
@@ -50,17 +50,19 @@ export function onePageLedger({ brand, property, districtAttrs }) {
   const occ = w.occupancy                       // 0-100（引擎口径）
   const adr = w.occupiedRooms > 0 ? Math.round(w.revenue / (w.occupiedRooms * 7)) : null   // 实收均价（T1.4/B2）
 
-  const t = (brand?.name && FRANCHISE_MODEL[brand.name]) || null
-  const 管理费率 = t?.管理费?.费率?.值 ?? null
-  const CRS费率 = t?.中央预订系统_CRS?.费率?.值 ?? null
-
   const 年营收 = w.revenue * WEEKS_PER_YEAR
   const 年租金 = w.rentCost * WEEKS_PER_YEAR
   const 年部门固定 = w.deptCost * WEEKS_PER_YEAR                       // 按可售房发生（固定）
-  const 年变动与其他 = (w.totalCost - w.rentCost - w.deptCost) * WEEKS_PER_YEAR   // 变动+营销+OTA+超售+改造+罚款（引擎实测）
-  const 年管理费 = 管理费率 != null ? 年营收 * 管理费率 : null
-  const 年CRS = CRS费率 != null ? 年营收 * CRS费率 : null              // ★ 单列，不并入
-  const 年现金流 = 年营收 - 年租金 - 年部门固定 - 年变动与其他 - (年管理费 ?? 0)
+
+  // ★ §14.3：加盟两费【只读引擎实收】（单源 franchiseFees）—— 本页不再乘费率：
+  //   原来的"年管理费 = 年营收 × 管理费率"正是 BL-7（两套算法两个数）同族：引擎已实收，
+  //   页面再乘一遍就是【重复计】，且费率一改页面就静默漂移。
+  const 两费周 = w.franchiseFees ? w.franchiseFees.合计 : 0
+  const 年加盟两费 = w.franchiseFees ? 两费周 * WEEKS_PER_YEAR : null          // null = 该品牌未接入（待补，不补数）
+  const 年变动与其他 = (w.totalCost - w.rentCost - w.deptCost - 两费周) * WEEKS_PER_YEAR   // 引擎实测；已剔除两费避免重复计
+  const 年现金流 = 年营收 - 年租金 - 年部门固定 - 年变动与其他 - (年加盟两费 ?? 0)
+  const 费用条款 = 费用清单(brand?.name)
+  const 费用状态 = franchiseFeeStatus(brand?.name)
 
   const quote = propertyQuote(brand, property, districtAttrs)
   const 总投资 = quote.lines.find(l => l.label === '总投资（估算）').value
@@ -75,25 +77,26 @@ export function onePageLedger({ brand, property, districtAttrs }) {
     { label: '年部门成本（固定）', value: 年部门固定, unit: '元/年', fmt: 'wan', status: STATUS.DERIVED,
       note: `按可售房发生：${部门固定合计.toFixed(1)} 元/间·天 × ${rooms} 间 × 365（含人力固定 ${人力固定?.单价} 元/间·天）` },
     { label: '年变动与其他', value: 年变动与其他, unit: '元/年', fmt: 'wan', status: STATUS.DERIVED, note: '变动成本 + 营销 + OTA佣金 + 超售赔偿（引擎实测）' },
-    { label: '年管理费（特许费）', value: 年管理费, unit: '元/年', fmt: 'wan', status: 年管理费 != null ? STATUS.DERIVED : STATUS.MISSING,
-      note: 年管理费 != null ? `月营收 × ${(管理费率 * 100).toFixed(1)}%（加盟资料三件套）⇒ 年化 = 年营收 × 费率` : `${brand?.name || '该品牌'} 的管理费率暂无来源数据` },
+    { label: '年加盟两费（管理费 + CRS）', value: 年加盟两费, unit: '元/年', fmt: 'wan',
+      status: 年加盟两费 != null ? STATUS.DERIVED : STATUS.MISSING,
+      note: 年加盟两费 != null
+        ? `引擎实收（单源 franchiseFees）：基准周两费 ${两费周} 元 × ${WEEKS_PER_YEAR} —— 管理费 ${(w.franchiseFees.费率.管理费 * 100).toFixed(1)}% + CRS 有效 ${(w.franchiseFees.费率.CRS有效 * 100).toFixed(1)}%（均按营收）`
+        : `【待补】${brand?.name || '该品牌'}：${费用状态.原因} ⇒ 引擎未计费，本页也不补数` },
     { label: '年现金流（本页口径）', value: 年现金流, unit: '元/年', fmt: 'wan', status: STATUS.DERIVED,
-      note: 年管理费 != null
-        ? '年营收 − 年租金 − 年部门成本(固定) − 年变动与其他 − 年管理费'
-        : '年营收 − 年租金 − 年部门成本(固定) − 年变动与其他。★ 管理费缺来源数据【未计入】⇒ 实际现金流更低，别当净利看' },
-    { label: 'CRS（单列·不并入）', value: 年CRS, unit: '元/年', fmt: 'wan', status: 年CRS != null ? STATUS.DERIVED : STATUS.MISSING,
-      note: 年CRS != null ? `中央预订系统抽成 ${(CRS费率 * 100).toFixed(1)}% × 年营收 —— 按决策端口径【仅展示，不并入成本】` : 'CRS 费率暂无来源数据' },
+      note: '年营收 − 年租金 − 年部门成本(固定) − 年变动与其他 − 年加盟两费；★ 与引擎利润年化【恒等】（差 0）' },
   ]
 
   return {
     brand: brand?.name || null, property: property?.name || null,
     rooms, occ, adr, weeks: WEEKS_PER_YEAR,
     baseWeek: { revenue: w.revenue, rentCost: w.rentCost, deptCost: w.deptCost, totalCost: w.totalCost, occupiedRooms: w.occupiedRooms, occupancy: w.occupancy },
-    yearly: { 营收: 年营收, 租金: 年租金, 部门固定: 年部门固定, 变动与其他: 年变动与其他, 管理费: 年管理费, CRS: 年CRS, 现金流: 年现金流 },
+    yearly: { 营收: 年营收, 租金: 年租金, 部门固定: 年部门固定, 变动与其他: 年变动与其他, 加盟两费: 年加盟两费, 现金流: 年现金流 },
     总投资, 回本年, lines,
     extrapolation: EXTRAPOLATION_NOTE,
-    engineGap: ENGINE_GAP_NOTE,
-    // ★ 与引擎的一致性锚点：无管理费数据时 现金流 === 引擎利润年化（差 0）；有费率时差额 === 管理费
+    engineFeeNote: ENGINE_FEE_NOTE,
+    费用状态,                      // { 品牌, 接入, 原因 }（§14.3：哪些费率已实收、哪些待补）
+    加盟条款: 费用条款,             // 逐项状态：已实收 / 待接入 / 不接
+    // ★ 与引擎的一致性锚点：现金流 === 引擎利润年化（广义恒等：接入与未接入品牌都差 0）
     引擎利润年化: (w.revenue - w.totalCost) * WEEKS_PER_YEAR,
     missing: lines.filter(l => l.status === STATUS.MISSING).map(l => l.label),
   }
