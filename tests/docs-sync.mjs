@@ -221,26 +221,31 @@ const FACTS = [
     expect: true,
   },
   {
-    // ★ §17.1-①（2026-09-28 · D58）：记录必须能回答「**哪个树**被 gate 过」。
+    // ★ §17.1-①（2026-09-28 · D58）建立；★ §18.0（D59）改进：改比 **codeTree**（影响门禁的子树）
     //   起因（决策端实核抓到）：报告称"全量 1501/0"，但 `_last-gate.json` 的 full.head = 131580d
-    //   而 HEAD = 4b2e6d1 ⇒ **全量是在上一个提交上跑的**，那一批的改动只有快检覆盖。
-    //   这是「数字对≠引用它的地方都对」的同族：**数字对，但要对在正确的版本上**。
+    //   而 HEAD = 4b2e6d1 ⇒ **全量是在上一个提交上跑的**。这是「数字对≠引用它的地方都对」的同族：
+    //   **数字对，但要对在正确的版本上**。
+    //   ★ D59 改进理由：**文档不改变引擎数字** ⇒ 只提交文档（如 AGENTS.md）不该逼着再跑一轮全量。
+    //     ⇒ 比较对象从【整树 tree】改为【codeTree = src/tests/scripts/根配置 的子树摘要】；
+    //       `dirty` 仍判死（它是"数字是否来自 HEAD 内容"的唯一判据），但同样只按【代码子树】算。
     //   判据（三条，缺一即红）：
-    //     ① 最近一次【全量】记录必须带 tree（能回答"哪个树"）
-    //     ② 那次全量必须是在【干净树】上跑的（dirty=false）—— 否则数字不对应任何提交
-    //     ③ 那次全量的 tree === 当前 HEAD 的 tree —— 否则数字是旧版本的
-    //   ★ 为什么要求"干净树"：脏树上跑出来的数字无法对到任何 commit（工作区内容不在版本库里）。
-    name: '门禁记录能回答「哪个树被 gate 过」（全量 · 干净树 · tree === HEAD tree）',
+    //     ① 最近一次【全量】记录必须带 codeTree
+    //     ② 那次全量必须是在【代码子树干净】时跑的（dirty=false）
+    //     ③ 那次全量的 codeTree === 当前 HEAD 的 codeTree
+    name: '门禁记录能回答「哪个代码树被 gate 过」（全量 · 代码子树干净 · codeTree === HEAD codeTree）',
     actual: () => {
       const rec = 门禁记录()
       if (!rec.full) return true                      // 还没跑过全量 ⇒ 不判（首次）
-      if (!rec.full.tree) return false                // ① 缺 tree
-      if (rec.full.dirty) return false                // ② 脏树上跑的
-      const r = spawnSync('git', ['rev-parse', 'HEAD^{tree}'], { cwd: APP, encoding: 'utf8', shell: false })
-      const now = (r.status === 0 ? (r.stdout || '') : '').trim()
-      return !!now && rec.full.tree === now           // ③ 树一致
+      if (!rec.full.codeTree) return false            // ① 缺 codeTree（旧记录 ⇒ 跑一次全量即可刷新）
+      if (rec.full.dirty) return false                // ② 代码子树脏
+      // ③ 与当前 HEAD 的代码子树比对（与 run-all 里同一套路径与截断规则）
+      const CODE_PATHS = ['src', 'tests', 'scripts', 'package.json', 'package-lock.json', 'vite.config.js', 'vite.config.mjs', 'index.html', 'build.mjs', 'supabase']
+      const now = CODE_PATHS
+        .map(p => { const r = spawnSync('git', ['rev-parse', 'HEAD:' + p], { cwd: APP, encoding: 'utf8', shell: false }); return r.status === 0 ? (r.stdout || '').trim().slice(0, 12) : null })
+        .filter(Boolean).join('-')
+      return !!now && rec.full.codeTree === now
     },
-    docSays: 'tests/_last-gate.json 的 full 档（tree === 当前 HEAD 的 tree · 且 dirty=false）',
+    docSays: 'tests/_last-gate.json 的 full 档（codeTree === 当前 HEAD 的 codeTree · 且 dirty=false）',
     docs: ['hotel-app（跑一次全量即可刷新记录）'],
     expect: true,
   },

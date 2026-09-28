@@ -247,7 +247,17 @@ if (!failed || 仅本套件失败) {
     }
     const head = gitOut(['rev-parse', '--short', 'HEAD'])
     const tree = gitOut(['rev-parse', 'HEAD^{tree}'])
-    const dirty = gitOut(['status', '--porcelain']).length > 0
+    // ★ §18.0（2026-09-28 · D59）：新增【codeTree】= 影响门禁的子树集合的哈希摘要。
+    //   依据：**文档不改变引擎数字** ⇒ 只提交文档不该逼着再跑一轮全量。
+    //   子树 = src / tests / scripts / 根配置（package.json 等）—— 这些变了，数字才可能变。
+    //   `tree`（整树）与 `dirty` 都保留：tree 供追溯，dirty 是"数字是否来自 HEAD 内容"的唯一判据。
+    const CODE_PATHS = ['src', 'tests', 'scripts', 'package.json', 'package-lock.json', 'vite.config.js', 'vite.config.mjs', 'index.html', 'build.mjs', 'supabase']
+    const codeTree = CODE_PATHS
+      .map(p => { const h = gitOut(['rev-parse', 'HEAD:' + p]); return h ? h.slice(0, 12) : null })
+      .filter(Boolean).join('-')
+    // dirty 也按【同一子树】判 —— 否则"改了文档（如 AGENTS.md）"又会把树标脏，等于没简化
+    const dirty = gitOut(['status', '--porcelain', '--', ...CODE_PATHS]).length > 0
+    const fullDirty = gitOut(['status', '--porcelain']).length > 0
     const P = new URL('./_last-gate.json', import.meta.url)
     let prev = {}
     try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
@@ -256,13 +266,16 @@ if (!failed || 仅本套件失败) {
       [FAST ? 'fast' : 'full']: {
         ranAt: new Date().toISOString(), 通过: 记通过, 失败: 记失败, 跳过: skipped,
         head: head || null,
-        tree: tree || null,          // ★ 哪个树被 gate 过（可回答"数字对在哪个版本上"）
-        dirty,                       // ★ true = 在脏树上跑的 ⇒ 数字无法对到某个提交
+        tree: tree || null,          // ★ 哪个树被 gate 过（整树，供追溯）
+        codeTree: codeTree || null,  // ★ §18.0：影响门禁的子树摘要（docs-sync 比的就是它）
+        dirty,                       // ★ true = 【codeTree 子树】有未提交改动 ⇒ 数字无法对到某个提交
+        fullDirty,                   // 仅供参考：整仓是否脏（含文档）
       },
       已知红: knownReds.map(x => x.name),
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
-    console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过}/0 · head=${head || '?'} · tree=${(tree || '?').slice(0, 12)}… · ${dirty ? '⚠ 工作区脏（数字不对应任何提交）' : '✅ 干净树'}`)
+    // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
+    console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过}/0 · head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
   } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
 
