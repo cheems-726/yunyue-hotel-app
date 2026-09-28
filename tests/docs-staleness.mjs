@@ -189,7 +189,9 @@ if (process.argv.includes('--gate')) {
     gok(kw.some(k => t.slice(0, 1200).includes(k)), `${path2.basename(p)}：顶部带作废/取代标注`)
   }
   const lr = rd(path2.join(ROOT2, '4-审计与报告', '18周（126天）长跑报告.md')) || ''
-  gok(/v3（本报告）/.test(lr) && /真实链路/.test(lr), '长跑报告 = v3 现行（真实链路）')
+  // ★ §15.1-B（2026-09-28）：长跑报告已重跑为 **v4（含加盟两费）** ⇒ 本断言随之更新（原写 v3）。
+  //   口径标注的**完整守门**在 tests/reportCaliber.test.mjs（本处只判"现行版本 + 真实链路"两件事）。
+  gok(/v4（本报告）/.test(lr) && /真实链路/.test(lr), '长跑报告 = v4 现行（真实链路 · 含加盟两费）')
 
   console.log(`\n结果: ${gp} 通过 / ${gf} 失败（--gate 判死模式）`)
   console.log('RV：把 AGENTS.md 门禁数字改成 9999 ⇒ 本模式必红（夜跑已实测 docs-sync 对它失明）')

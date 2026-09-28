@@ -60,6 +60,8 @@ const SUITES = [
   { name: 'labelCoverage（映射表覆盖度·§13.1）', file: 'tests/labelCoverage.test.mjs' },
   // §14.1 元断言：断言不得恒真/恒假（tests/** 正式套件扫描）
   { name: 'assertionSanity（断言不得恒真·§14.1）', file: 'tests/assertionSanity.test.mjs' },
+  // §15.1-C 制度性守门：凡引用引擎数值的产物报告必须标注【口径版本】+ 覆盖度（防"数字对≠引用处都对"再生）
+  { name: 'reportCaliber（产物报告口径版本·§15.1C）', file: 'tests/reportCaliber.test.mjs' },
   // §14.3 G3 二步：加盟两费进资金流（零变化、守恒、单源）
   { name: 'franchiseFees（加盟两费·§14.3）', file: 'tests/franchiseFees.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
@@ -88,12 +90,21 @@ const SUITES = [
   //    ★ 但门禁阈值仍是「成本结构改动之前」的旧标准 ≤15% ⇒ 依旧红，且 23.1% > 15% ⇒ 调了也绿不了，
   //      所以本项【不是"调参数变绿"】，是改教学难度基准。阈值对齐与否待用户拍板（见 reason）。
   //    ⇒ 门禁把它显示为「⏳ 已知红」并写明理由，不计入失败数，但【仍在门禁内、仍然会跑】。
+  // ★★ §15.1-A（2026-09-28）：本理由里的数字【不再手写】——改为 {死亡选址} 占位符，
+  //    打印时用【本轮实跑输出】解析出的数字替换（见 动态字段）。根因：§14.3 加盟两费进引擎后
+  //    "40.4%" 过期了两个批次没人发现（决策端抽查抓到）⇒ 只要数字是"存的副本"就会再过期一次。
+  //    现在是"实跑→解析→打印"，改引擎数值不可能让本行过期。★ 判据与阈值一个字没改。
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', knownRed: {
-      reason: '★ 2026-09-27 选址数据任务后【真实路径】实测 21/52 = 40.4%：'
+      reason: '★ 【口径：含加盟两费（§14.3 起）】本轮实测 {死亡选址}：'
         + '① A-1 的 23.1% 是在"竞品/客群失效"的路径上量的（前端只传 attrs、丢了 district ⇒ 竞品压力恒 0）'
         + '② 修好 district 传递链 + 补上 121 家真实竞品后，13 个原本无竞品的区位首次产生竞争压力 ⇒ 死亡选址回升'
-        + '③ 门禁阈值仍是旧标准 ≤15% ⇒ 依旧红（40.4% > 15%，调了也绿不了）'
+        + '③ §14.3 加盟两费（营收 7.40%）开始扣 ⇒ 由两费前 21/52 = 40.4% 再升（差集见《18周（126天）长跑报告》v4 §三）'
+        + '④ 门禁阈值仍是旧标准 ≤15% ⇒ 依旧红（调了也绿不了）'
         + '★ 是否再调租金曲线把真实路径压回 20–30% ⇒ 教学难度基准变更，待用户拍板（不许为过断言调参）',
+      动态字段: (out) => {
+        const m = /重亏组合（<-2万）:\s*(\d+)\s*\/\s*(\d+)/.exec(out || '')
+        return m ? { 死亡选址: `${m[1]}/${m[2]} = ${(m[1] / m[2] * 100).toFixed(1)}%` } : null
+      },
       since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
@@ -177,7 +188,14 @@ if (knownReds.length) {
   console.log('\n⏳ 已知红（在门禁内保留 · 断言未改动 · 不计入失败数）：')
   knownReds.forEach(r => {
     console.log(`  · ${r.name}`)
-    console.log(`    理由：${r.knownRed.reason}`)
+    // ★ §15.1-A：理由里的 {占位符} 一律用【本轮实跑输出】解析填充（防"存的数字过期"）。
+    //   解析不到 ⇒ 明写"解析失败"，绝不静默留占位符或退回旧数字（那正是本批要治的病）。
+    let reason = r.knownRed.reason
+    for (const k of [...reason.matchAll(/\{([^}]+)\}/g)].map(x => x[1])) {
+      const 值 = r.knownRed.动态字段 ? (r.knownRed.动态字段(r.out) || {})[k] : null
+      reason = reason.replace(`{${k}}`, 值 != null ? 值 : `〔${k}：本轮输出解析失败，请人工核对〕`)
+    }
+    console.log(`    理由：${reason}`)
     console.log(`    拍板：${r.knownRed.decision}（${r.knownRed.since}）· 归属：${r.knownRed.owner}`)
   })
   // 🔴 A-1（2026-09-27）：本行原写「不许调阈值 / 不许调租金曲线来变绿」——D39 冻结期的措辞。

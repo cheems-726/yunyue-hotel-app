@@ -96,8 +96,15 @@ console.log('\n[4] 已跟踪的证据图（_shot-*.png）必须有引用；无�
       orphans.forEach(o => console.log('       · ' + o))
     }
     ok(true, `已跟踪证据图 ${pngs.length} 张：有引用 ${pngs.length - orphans.length} · 无引用 ${orphans.length}（无引用只提示，不自动判死）`)
+    // 🔴 §15.2 总验收发现（2026-09-28）：本行原写
+    //      `ok(citedByDoc.length === pngs.length || citedByDoc.length >= 0, …)`
+    //    —— 右侧 `>= 0` **恒真** ⇒ 整条断言**从不判断任何东西**（BL 族「断言恒真」，
+    //    与 §14.1 立的 assertionSanity 要治的是同一类；那个套件只认 `|| true` 字面量，故漏网）。
+    //    ⇒ 改为断言【扫描本身没空转】：只要存在证据图，引用扫描就必须至少命中一条引用。
+    //      （判据未放宽内容：原先就没判"是否被 md 引用"，这里只是把它换成一条**真会红**的检查。）
     const citedByDoc = pngs.filter(g => (refs.get(g) || []).some(x => x.endsWith('.md')))
-    ok(citedByDoc.length === pngs.length || citedByDoc.length >= 0, `其中被 .md 文档引用 ${citedByDoc.length} 张（这批不可删，删了文档证据就断）`)
+    ok(refs.size > 0, `证据图引用扫描非空转（命中 ${refs.size} 个引用者 · 其中被 .md 引用 ${citedByDoc.length} 张）`,
+      'refs 为空 ⇒ 扫描路径/扩展名过滤坏了（不是"没有引用"，是"没扫到"）')
   }
 }
 
