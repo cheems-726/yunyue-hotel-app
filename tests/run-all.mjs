@@ -232,7 +232,19 @@ if (!failed || 仅本套件失败) {
   const 记通过 = 仅本套件失败 ? total + totalFail : total
   const 记失败 = 仅本套件失败 ? 0 : totalFail
   try {
-    const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8', shell: false })
+    // ★ §17.1-①（2026-09-28 · D58）：记录必须能回答「**哪个树**被 gate 过」——
+    //   原先只记 commit 短哈希 ⇒ 出现"报告称全量 1501/0，但全量是在【上一个提交】上跑的"
+    //   （决策端实测抓到：full.head=131580d ≠ HEAD 4b2e6d1）。
+    //   这是「数字对≠引用它的地方都对」的同族：**数字对，但要对在正确的版本上**。
+    //   现在同时记：head（commit）· tree（HEAD^{tree}）· dirty（工作区是否脏）。
+    //   ⇒ 断言（tests/docs-sync.mjs）要求：最后一次全量必须是【干净树】上跑的，且 tree === 当前 HEAD 的 tree。
+    const gitOut = (args) => {
+      const r = spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8', shell: false })
+      return (r.status === 0 ? (r.stdout || '') : '').trim()
+    }
+    const head = gitOut(['rev-parse', '--short', 'HEAD'])
+    const tree = gitOut(['rev-parse', 'HEAD^{tree}'])
+    const dirty = gitOut(['status', '--porcelain']).length > 0
     const P = new URL('./_last-gate.json', import.meta.url)
     let prev = {}
     try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
@@ -240,11 +252,14 @@ if (!failed || 仅本套件失败) {
       ...prev,
       [FAST ? 'fast' : 'full']: {
         ranAt: new Date().toISOString(), 通过: 记通过, 失败: 记失败, 跳过: skipped,
-        head: (head.stdout || '').trim() || null,
+        head: head || null,
+        tree: tree || null,          // ★ 哪个树被 gate 过（可回答"数字对在哪个版本上"）
+        dirty,                       // ★ true = 在脏树上跑的 ⇒ 数字无法对到某个提交
       },
       已知红: knownReds.map(x => x.name),
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
+    console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过}/0 · head=${head || '?'} · tree=${(tree || '?').slice(0, 12)}… · ${dirty ? '⚠ 工作区脏（数字不对应任何提交）' : '✅ 干净树'}`)
   } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
 

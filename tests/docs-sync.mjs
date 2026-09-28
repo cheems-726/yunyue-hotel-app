@@ -221,6 +221,30 @@ const FACTS = [
     expect: true,
   },
   {
+    // ★ §17.1-①（2026-09-28 · D58）：记录必须能回答「**哪个树**被 gate 过」。
+    //   起因（决策端实核抓到）：报告称"全量 1501/0"，但 `_last-gate.json` 的 full.head = 131580d
+    //   而 HEAD = 4b2e6d1 ⇒ **全量是在上一个提交上跑的**，那一批的改动只有快检覆盖。
+    //   这是「数字对≠引用它的地方都对」的同族：**数字对，但要对在正确的版本上**。
+    //   判据（三条，缺一即红）：
+    //     ① 最近一次【全量】记录必须带 tree（能回答"哪个树"）
+    //     ② 那次全量必须是在【干净树】上跑的（dirty=false）—— 否则数字不对应任何提交
+    //     ③ 那次全量的 tree === 当前 HEAD 的 tree —— 否则数字是旧版本的
+    //   ★ 为什么要求"干净树"：脏树上跑出来的数字无法对到任何 commit（工作区内容不在版本库里）。
+    name: '门禁记录能回答「哪个树被 gate 过」（全量 · 干净树 · tree === HEAD tree）',
+    actual: () => {
+      const rec = 门禁记录()
+      if (!rec.full) return true                      // 还没跑过全量 ⇒ 不判（首次）
+      if (!rec.full.tree) return false                // ① 缺 tree
+      if (rec.full.dirty) return false                // ② 脏树上跑的
+      const r = spawnSync('git', ['rev-parse', 'HEAD^{tree}'], { cwd: APP, encoding: 'utf8', shell: false })
+      const now = (r.status === 0 ? (r.stdout || '') : '').trim()
+      return !!now && rec.full.tree === now           // ③ 树一致
+    },
+    docSays: 'tests/_last-gate.json 的 full 档（tree === 当前 HEAD 的 tree · 且 dirty=false）',
+    docs: ['hotel-app（跑一次全量即可刷新记录）'],
+    expect: true,
+  },
+  {
     name: '会话交接卡 ①–⑥ 六段各恰好一次（无重复段）',
     actual: () => {
       const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
