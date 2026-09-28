@@ -111,10 +111,17 @@ console.log('\n[4] 引擎/属性表里引用的决策 id 必须真实存在（at
   // attrs.js 有 applyDecisionToAttrs 的 id 分支（'投150万改造' 这类【选项值】不是 id，跳过）
   const idsInAttrs = [...attrs.matchAll(/['"]([a-z][a-z-]{3,})['"]\s*[:)]/g)].map(x => x[1])
   const 可疑 = [...new Set(idsInAttrs)].filter(id => !IDS.includes(id) && !['quality', 'reputation', 'morale', 'case', 'delta', 'else'].includes(id))
-  // 白名单：attrs.js 里这些是【属性名/局部词】，不是决策 id
-  const ALLOW_ATTRS = ['init', 'label', 'icon', 'note', 'type', 'desc', 'from', 'into', 'none', 'name', 'self', 'keep', 'cost', 'rate']
+  // 白名单：attrs.js 里这些是【属性名/局部词/JS类型字面量】，不是决策 id（§14.1 返修：逐条补全理由 ⇒ 死断言复活）
+  //   实测命中全集：number / est-supplier / buy-a / buy-b / buy-c / object / string（2026-09-28 跑出）
+  const ALLOW_ATTRS = [
+    'init', 'label', 'icon', 'note', 'type', 'desc', 'from', 'into', 'none', 'name', 'self', 'keep', 'cost', 'rate',
+    'number', 'object', 'string',            // JS 类型注记（normalize 的 typeof 分支）
+    'est-supplier',                          // 筹建期选择键（estChoices.supplier 的选项值，非 18 项决策）
+    'buy-a', 'buy-b', 'buy-c',               // 筹建期"物资采购"的渠道选项键（同上，非 18 项决策）
+  ]
   const 真可疑 = 可疑.filter(id => !ALLOW_ATTRS.includes(id) && id.length > 4)
-  ok(真可疑.length === 0 || true, `attrs.js 扫描完成（可疑 ${真可疑.length}，白名单外为 0 才算红）—— 详见输出`, 真可疑.slice(0, 5).join(','))
+  ok(真可疑.length === 0, `attrs.js 引用的键（白名单外）全部可解释为非决策 id（可疑 ${真可疑.length}）`,
+    真可疑.slice(0, 5).join(','))
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

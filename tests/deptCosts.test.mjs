@@ -62,7 +62,11 @@ console.log('\n[1] ① 科目齐全 + 每条带三件套')
   const bad = DEPT_COST_LINES.filter(l => !l.来源 || !l.取数日期 || !l.置信度 || !(l.单价 > 0))
   ok(bad.length === 0, `每条四字段齐全（来源/取数日期/置信度/单价）${bad.length ? ' → 缺 ' + bad.map(b => b.名称) : ''}`)
   ok(DEPT_COST_LINES.every(l => l.置信度 === '中'), '各条置信度均标「中」（未联网核验，不冒充权威）')
-  ok(/未联网核验/.test(DEPT_COST_LINES[0].来源 + (DEPT_COST_LINES[0].置信度 || '') + JSON.stringify(DEPT_COST_LINES[0])) === false || true, '（置信度口径见文件头声明）')
+  // 🔴 §14.1 返修（2026-09-28）：原行写 `… === false || true` ⇒ 恒真死断言（被 assertionSanity 元断言抓到）。
+  //   原意是"来源字段应已含'未联网核验'字样"⇒ 按 deptCosts.mjs 的诚实声明（文件头）钉成真断言：
+  //   每条 LINE 的来源必须含「未联网核验」字样（数据出处口径不撒谎）。
+  ok(DEPT_COST_LINES.every(l => /未联网核验/.test(String(l.来源))),
+    '每条部门成本的来源都如实标注「未联网核验」（诚实声明落到每条数据，不靠文件头口头）')
 }
 
 console.log('\n[2] ★② 与 variableCost 去重（计费基数不同、语义互斥）')

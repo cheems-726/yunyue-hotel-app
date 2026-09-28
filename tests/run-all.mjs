@@ -56,6 +56,8 @@ const SUITES = [
   { name: 'realtimeDecision（E3 实时决策）', file: 'tests/realtimeDecision.test.mjs' },
   // §13.1 返修：决策 id 映射表覆盖度（元断言 —— 防"表在但没盖全"）
   { name: 'labelCoverage（映射表覆盖度·§13.1）', file: 'tests/labelCoverage.test.mjs' },
+  // §14.1 元断言：断言不得恒真/恒假（tests/** 正式套件扫描）
+  { name: 'assertionSanity（断言不得恒真·§14.1）', file: 'tests/assertionSanity.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
