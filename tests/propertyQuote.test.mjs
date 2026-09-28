@@ -8,7 +8,8 @@
 //   ④ 零影响层：模块是纯函数 + settlement.js 不引用它 ⇒ 结算输出在构造上不可能变
 import { readFileSync, readdirSync } from 'node:fs'
 import { propertyQuote, quoteSummary, brandTerms, rentPerRoomDay, STATUS } from '../src/propertyQuote.mjs'
-import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
+import { FRANCHISE_MODEL, 半接入品牌, 半接入禁止字段 } from '../src/franchiseModel.mjs'
+import { 已接入品牌, franchiseFees } from '../src/franchiseFees.mjs'
 import { parseRooms, settle } from '../src/settlement.js'
 
 let pass = 0, fail = 0
@@ -52,12 +53,13 @@ console.log('\n[1] 口径层：每个数字都能追到已有口径')
 // ── ② 不编造层 ────────────────────────────────────────────────────────
 console.log('\n[2] 不编造层：缺来源 ⇒ 必须是"待补"')
 {
-  // §14.3 重基线：全季已补来源条款 ⇒ 本层改用【真正无条款】的桔子做「不编造」用例
-  const 桔子 = { name: '桔子', standard: '客房70间起' }
-  const q = propertyQuote(桔子, 物业, 区县)
+  // 🔴 §16.2-B1 重基线：原用例用【桔子】做"无条款"样本 —— 但 B1 起桔子有了官方造价/门槛（半接入）
+  //   ⇒ 本层改用**真正无任何条目**的星程（franchiseModel 里没有它）
+  const 星程 = { name: '星程', standard: '客房70间起' }
+  const q = propertyQuote(星程, 物业, 区县)
   const s = quoteSummary(q)
   ok(s.待补字段.includes('单房造价') && s.待补字段.includes('加盟费') && s.待补字段.includes('保证金') && s.待补字段.includes('筹备费'),
-    '无经济条款的品牌：四项全部标「待补」（不拿别家费率冒充）', s.待补字段.join(','))
+    '无经济条款的品牌（星程）：四项全部标「待补」（不拿别家费率冒充）', s.待补字段.join(','))
   ok(s.房量 > 0 && s.年租金 > 0 && s.总投资 === null,
     '但房量/年租金仍有值（来自引擎口径），总投资因缺造价而为空 —— 该有的不该误标待补', JSON.stringify(s))
   // §14.3 反向：已接入品牌【不许】被标待补（否则「接入」白做）
@@ -72,6 +74,76 @@ console.log('\n[2] 不编造层：缺来源 ⇒ 必须是"待补"')
     '缺面积 ⇒ 只有"租金单价"待补（年租金不依赖面积，不该被牵连）', 待补2.join(','))
 }
 
+// ── ②b §16.2-B1：半接入四品牌（造价/门槛进报价单 · 费率待补 · 引擎不计费）────
+console.log('\n[2b] §16.2-B1 半接入四品牌：造价/门槛有来源 · 费率缺就是缺 · 引擎不计费')
+{
+  ok(半接入品牌.length === 4, `半接入名单 = 4 个品牌（${半接入品牌.join('、')}）`)
+  // ① 数据纪律：造价/门槛必须有【官方现行 API】来源 + 置信度高；费率类字段必须【不存在】
+  const 缺造价 = 半接入品牌.filter(n => !FRANCHISE_MODEL[n]?.单房造价?.新建?.值)
+  const 缺门槛 = 半接入品牌.filter(n => !FRANCHISE_MODEL[n]?.物业门槛 || Object.keys(FRANCHISE_MODEL[n].物业门槛).length === 0)
+  ok(缺造价.length === 0, '四个品牌都有单房造价（官方现行 API）', 缺造价.join(','))
+  ok(缺门槛.length === 0, '四个品牌都有物业门槛（官方现行 API）', 缺门槛.join(','))
+  const 来源不对 = 半接入品牌.filter(n => {
+    const c = FRANCHISE_MODEL[n].单房造价.新建
+    return !/API brand\/\d+/.test(c.来源) || c.置信度 !== '高'
+  })
+  ok(来源不对.length === 0, '造价来源可追溯到 API brand/{id} 且置信度=高（不是转述/估值）', 来源不对.join(','))
+  const 有费率 = 半接入品牌.filter(n => 半接入禁止字段.some(f => FRANCHISE_MODEL[n][f]))
+  ok(有费率.length === 0, '【缺就是缺】四个品牌都没有管理费/CRS 字段（不拿别家费率冒充）', 有费率.join(','))
+  // ② 报价单：总投资可算，且口径明写"哪几项未计入"
+  const 桔子 = { name: '桔子', standard: '客房80间起' }
+  const s桔 = quoteSummary(propertyQuote(桔子, 物业, 区县))
+  // ★ 期望值从源头推导（房量走 parseRooms 权威），不贴死数字 —— 品牌标准一改这里不用重挂
+  const 桔子房量 = parseRooms(桔子.standard)
+  ok(s桔.总投资 === 桔子房量 * FRANCHISE_MODEL['桔子'].单房造价.新建.值,
+    `半接入品牌总投资可算 = 造价 × 房量 = ${s桔.总投资}（房量 ${桔子房量} 来自 parseRooms）`, String(s桔.总投资))
+  ok(/加盟费/.test(s桔.总投资口径) && /保证金/.test(s桔.总投资口径) && /未计入/.test(s桔.总投资口径),
+    '总投资口径【逐项点名】未计入项（否则会被读成"就这么多"）', s桔.总投资口径)
+  ok(!!s桔.来源 && s桔.置信度 === '高', '三件套随行：半接入品牌也能 hover 到来源/置信度', `${s桔.来源} · ${s桔.置信度}`)
+  // ③ 引擎不计费：接入名单仍只有 3 个；半接入 ⇒ franchiseFees 返回 null ⇒ 结算逐字节不变
+  ok(已接入品牌.length === 3 && 已接入品牌.join() === '汉庭,全季,海友',
+    `接入名单未被本批改动（${已接入品牌.join('、')}）—— 半接入 ≠ 接入`)
+  const 半接入计费 = 半接入品牌.map(n => franchiseFees({ name: n }, 100000)).filter(x => x !== null)
+  ok(半接入计费.length === 0, '四个半接入品牌 franchiseFees(...) 全部返回 null（引擎不计费）')
+  // 零变化：同名品牌换成一个"完全不存在"的名字 ⇒ 结算输出逐字节相同（证明计费没发生）
+  const base = { price: '260-380元', standard: '客房80间起', level: '中档' }
+  const dec = { pricing: '不跟降', shifts: '满编保服务' }
+  const r桔 = settle({ site: 区县, brand: { name: '桔子', ...base }, decisions: dec, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
+  const r无 = settle({ site: 区县, brand: { name: '不存在的品牌', ...base }, decisions: dec, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
+  ok(JSON.stringify(r桔) === JSON.stringify(r无), '零变化：桔子 与"不存在品牌"结算输出【逐字节相同】⇒ 确实未计费')
+  ok(r桔.franchiseFees === undefined, '结算结果里没有 franchiseFees 字段（未接入的既有语义不变）')
+  // ④ 界面：费率栏必须显式"待补"（不许再出现手写的"约N元/间"）
+  const ui = src('BrandSelection.jsx')
+  const 待补卡片 = 半接入品牌.filter(n => ui.includes(`name: '${n}'`))
+  ok(待补卡片.length >= 3, `界面可选列表里有 ${待补卡片.length} 个半接入品牌（CitiGO 未进列表，理由见 franchiseModel）`)
+  const 无待补标注 = 待补卡片.filter(n => {
+    const m = new RegExp(`name: '${n}'[^}]*?fee: '([^']*)'`).exec(ui)
+    return !m || !/待补/.test(m[1])
+  })
+  ok(无待补标注.length === 0, '半接入品牌的「加盟费/费率」栏一律显示"待补"（撤掉原先的无来源数字）', 无待补标注.join(','))
+}
+
+// ── ②c 覆盖度：界面品牌列表 要么有单源条目、要么显式登记为"无官方来源" ────────
+console.log('\n[2c] 覆盖度：界面品牌 × franchiseModel（表在但没盖全 = BL 族）')
+{
+  const ui = src('BrandSelection.jsx')
+  const ui品牌 = [...ui.matchAll(/\{\s*name: '([^']+)',\s*icon:/g)].map(m => m[1])
+  ok(ui品牌.length >= 18, `抓到界面品牌 ${ui品牌.length} 个`)
+  const 有单源 = ui品牌.filter(n => !!FRANCHISE_MODEL[n])
+  // ★ 无官方来源名单（显式登记 ⇒ 缺口可见、可追；★ 本名单是**如实记录**，不是"放行"）
+  const 无官方来源 = ['宜必思', '星程', '漫心', '全季大观', '城际', '美居', '美仑', '禧玥', '花间堂', '施柏阁', '诺富特', '宋品', '施柏阁大观']
+  const 漏登 = ui品牌.filter(n => !有单源.includes(n) && !无官方来源.includes(n))
+  ok(漏登.length === 0, '界面品牌 = 有单源条目 ∪ 无官方来源名单（无漏网）', 漏登.join(','))
+  // 死条目自检：名单里的品牌必须真的"不在模型里"
+  const 死条目 = 无官方来源.filter(n => !!FRANCHISE_MODEL[n])
+  ok(死条目.length === 0, '无官方来源名单无死条目（进了模型就该从名单删掉）', 死条目.join(','))
+  // 反向：有单源的品牌也不能虚列（名单与模型必须对得上）
+  const 虚列 = 有单源.filter(n => !ui品牌.includes(n))
+  ok(虚列.length === 0, '模型里有、界面却查不到的品牌 ⇒ 也报出来（模型与界面不许各说各话）', 虚列.join(','))
+  ok(无官方来源.length > 0 && 有单源.length >= 6,
+    `现状：有单源 ${有单源.length} 个 · 无官方来源 ${无官方来源.length} 个（★ 后者是**登记在案的缺口**，见批次报告诚实记录）`)
+}
+
 // ── ③ 一致性层 ────────────────────────────────────────────────────────
 console.log('\n[3] 一致性层：物业数据的两份表示必须一致（防漂移）')
 {
@@ -82,6 +154,27 @@ console.log('\n[3] 一致性层：物业数据的两份表示必须一致（防�
   const bad = pairs.filter(p => p.area !== p.areaNum)
   ok(bad.length === 0, '每组的 areaNum 与 area 字符串一致', bad.map(b => JSON.stringify(b)).join(' '))
   ok(/rooms:\s*'\d+间'/.test(claim) && !/roomsNum/.test(claim), '房量仍只以字符串展示（真值走 parseRooms，不另设数字字段防两套）')
+
+  // ★ §16.2-B1 补充：**fmt 词表 × 渲染器** 必须对得上（"表在但没盖全"同族 ——
+  //   新增一个 fmt 却没人渲染 ⇒ 掉进万元分支 ⇒ 渲染成 "NaN 万"，本批真踩过一次）
+  const 已知fmt = ['wan', 'num', 'fixed2', 'text']
+  const 用到fmt = new Set()
+  for (const b of [{ name: '汉庭', standard: '客房70间起' }, { name: '全季', standard: '客房80间起' },
+    { name: '桔子', standard: '客房80间起' }, { name: '你好', standard: '客房60间起' },
+    { name: 'CitiGO 欢阁', standard: '客房60间起' }, { name: '星程', standard: '客房70间起' }]) {
+    // ★ 只收【有值】的行：待补行没有 fmt（渲染层一律显示"待补"，不碰 fmt）
+    for (const l of propertyQuote(b, 物业, 区县).lines) if (l.status !== STATUS.MISSING) 用到fmt.add(l.fmt)
+  }
+  const 未登记fmt = [...用到fmt].filter(f => !已知fmt.includes(f))
+  ok(未登记fmt.length === 0, `报价单只使用已登记的 fmt 词表（${[...用到fmt].join('/')}）`, 未登记fmt.join(','))
+  // ★ 必须先【剥注释】再查渲染器 —— 否则注释里写的 `'text'` 会让本断言恒绿（D33/§14 踩过的同一坑）
+  const 渲染器缺分支 = 已知fmt.filter(f => !new RegExp(`'${f}'`).test(strip(claim)))
+  ok(渲染器缺分支.length === 0, 'Claim.jsx 的 fmtLine 覆盖全部已知 fmt（剥注释后判定；新 fmt 不许静默 NaN）', 渲染器缺分支.join(','))
+  // 区间类门槛必须已在【单源里】转成展示字符串 —— 渲染层拿数组会渲染成 "60,200"
+  const 区间行 = propertyQuote({ name: '你好', standard: '客房60间起' }, 物业, 区县).lines
+    .filter(l => /区间/.test(l.label) && l.status === STATUS.OK)
+  ok(区间行.length > 0 && 区间行.every(l => typeof l.value === 'string' && /–/.test(l.value)),
+    '区间类门槛在 propertyQuote 内已转展示字符串（不让渲染层处理数组）', JSON.stringify(区间行.map(l => l.value)))
 
   // ── 界面层（静态）：认领页必须真的渲染报价单（R3 反向验证：删块即红）──
   ok(/from '\.\/propertyQuote\.mjs'/.test(claim) && /propertyQuote\(brand, selectedProperty, location\?\.attrs\)/.test(claim),

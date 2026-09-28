@@ -23,6 +23,8 @@ import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, quali
 import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 // 🔴 E3（N-3）：三档节奏（实时/周期/一次性）在界面上必须可辨 —— 档位口径来自 decisionCadence（单源）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
+// §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
+import { settleInputsFrom } from './weekInputs.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { teachingDayNo } from './teachingClock.mjs'
@@ -1789,7 +1791,17 @@ export default function App() {
 
   // 云端同步：真实登录时防抖 800ms 上传经营状态（教师端可见）；失败 3s 后自动重试 1 次，仍失败则提示
   // 🔴 批次 B1.5：云端上传 payload 也必须盖版本戳（原先直接漏掉了 scaleVersion）
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })
+  // 🔴 §16.2-B7（2026-09-28）：payload 还要带【本周周内输入】——
+  //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
+  //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
+  //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, weekInputs: (() => {
+    try {
+      const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+      const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
+      return settleInputsFrom({ reviews: rv, week, crisis: cr })
+    } catch (e) { return null }
+  })() })
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring) return
     const gk = groupKeyOf(user.className, user.groupNo)
@@ -1959,32 +1971,14 @@ export default function App() {
     //    2026-09-22 因 bizMode 激活后出现真差评、断言才暴露）。作用域提到函数顶层，杜绝复发。
     let reviews = []
     try { reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]') } catch (e) { reviews = [] }
-    // 读取口碑页差评状态：未处理数压口碑，已整改数给奖励
-    let pendingNegatives = 0
-    let resolvedCount = 0
-    let liveNegCount = 0
-    let livePosCount = 0
-    try {
-      // 🔴 口径（2026-09-22 审计后修）：欠账与整改【只统计结算生成的卡片】（id 形如 w<周>-n0）
-      //   排除 ① 口碑页演示初值（数字 id，会每周白扣 0.06 好评率）
-      //       ② 实时评价卡（出现时机取决于"学生开着 App 多久"，是设备/时长相关 →
-      //          若计入欠账会破坏"不同在线时长、同决策 → 同结果"的公平性红线）
-      //   教学语义不变：结算生成的差评同样是"欠着不处理会发酵"，且完全确定性。
-      const settleCards = reviews.filter(r => /^w\d+-/.test(String(r.id)))
-      pendingNegatives = settleCards.filter(r => r.status === 'pending' || r.status === 'ignored').length
-      resolvedCount = settleCards.filter(r => r.status === 'resolved').length
-      // 本周实时流水里已经产生过的评价（live 标记）——结算只补差额，
-      // 否则会出现"实时已出 2 条、结算又整批出 4 条"的重复与数字对不上
-      const weekLive = reviews.filter(r => r.live === true && Number(r.liveWeek) === week)
-      liveNegCount = weekLive.filter(r => Number(r.stars) <= 3).length
-      livePosCount = weekLive.filter(r => Number(r.stars) >= 4).length
-    } catch (e) {}
-    // 好评率跨周延续：用上一周的好评率做基准；上周危机应对选择影响本周
-    let crisisResponse = null
-    try {
-      const saved = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
-      if (saved && saved.week === week - 1) crisisResponse = saved.choice
-    } catch (e) {}
+    // 危机应对：上周选、本周结算时用
+    let crisis = null
+    try { crisis = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null') } catch (e) { crisis = null }
+    // ★ §16.2-B7：周内输入改为走【单一派生点】src/weekInputs.mjs ——
+    //   原来这 5 个量的口径写在本函数里，服务端补算却一个都拿不到 ⇒ 含实时评价的周两边对不上。
+    //   现在客户端与服务端共用同一个函数（口径单源），且这份派生结果会随存档上传（见 cloudState.weekInputs）。
+    const 输入 = settleInputsFrom({ reviews, week, crisis })
+    const { pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse } = 输入
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
     // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
     //     + bizMode（否则认领页选的"平台合作"在引擎侧永远走不到，帮助页承诺的 15% 佣金与流量加成失效）

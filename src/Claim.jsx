@@ -60,8 +60,12 @@ export default function Claim({ brand, location, onComplete }) {
   const payback = ledger ? paybackText(ledger) : null
   const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补')
   // 报价单与钱账共用的行格式化（口径：缺来源 ⇒ "待补"，不是空/0）
+  // 🔴 §16.2-B1（2026-09-28）：新增 'text' 分支 —— 物业门槛里的「城市限定」是文字（如"限一二线城市"），
+  //   原先没有 text 分支 ⇒ 会掉进万元分支做 `字符串 / 10000` ⇒ 渲染成 "NaN 万"（自造错，已修）。
   const fmtLine = (l) => l.status === STATUS.MISSING ? '待补 · 无来源数据'
-    : (l.fmt === 'fixed2' ? Number(l.value).toFixed(2) : l.fmt === 'num' ? String(l.value) : (l.value / 10000).toFixed(1) + ' 万')
+    : (l.fmt === 'text' ? String(l.value)
+      : l.fmt === 'fixed2' ? Number(l.value).toFixed(2)
+        : l.fmt === 'num' ? String(l.value) : (l.value / 10000).toFixed(1) + ' 万')
 
   function propertyResult(p) {
     const rentHigh = p.rent.includes('高') || p.rent.includes('很高') || p.rent.includes('极高')

@@ -17,6 +17,8 @@
 // 不再结算（advanced=false）⇒ 结果逐字节相同。
 import { settle, DAYS_PER_WEEK, buildDailyReport } from './engine/index.js'
 import { dayToWeekDay } from './weeklyAuto.mjs'   // E2：周↔天换算唯一来源（本文件不再自己算）
+// §16.2-B7：周内输入（欠账/整改/实时评价/危机）与客户端【同一派生点】——补算 === 在线 的前置
+import { weekInputsOf, 空周输入 } from './weekInputs.mjs'
 export { DAYS_PER_WEEK }   // W1-5：进度口径需要它（周↔天换算），属 tick 的公开面
 // W1-4：哈希链抽到独立模块（单一实现，避免 serverTick 与防作弊模块各写一份）
 import { fnv1a, entryIdOf, chainHash } from './decisionLogIntegrity.mjs'
@@ -137,6 +139,12 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   const decisions = opts.decisions || src.lastDecisions || src.doneDecisions || {}
   const bounds = validateDecisions(decisions)
   const prev = history.length ? history[history.length - 1] : null
+  // ★ §16.2-B7：周内输入（欠账/整改/实时评价/危机）必须与客户端【同一个来源】——
+  //   原先这 5 个一个都不传 ⇒ 含实时评价的周"补算 === 在线"不成立（已如实挂账）。
+  //   现在从存档的 `weekInputs` 读（客户端随存档带上来的同一份派生结果，单源 src/weekInputs.mjs）。
+  //   ★ 读不到（旧档 / 周号不符）⇒ 用【空输入】兜底，并把来源标出来（不静默假装拿到过）。
+  const 存档输入 = weekInputsOf(src, week)
+  const 输入 = 存档输入 || 空周输入(week)
   const result = settle({
     site: src.location,
     brand: src.brand,
@@ -146,6 +154,11 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     prevGoodRate: prev ? prev.finalGoodRate : null,
     prevCapital: Number.isFinite(src.capital) ? src.capital : null,
     bizMode: src.bizMode === 'ota' ? 'ota' : 'direct',
+    pendingNegatives: 输入.pendingNegatives,
+    resolvedCount: 输入.resolvedCount,
+    liveNegCount: 输入.liveNegCount,
+    livePosCount: 输入.livePosCount,
+    crisisResponse: 输入.crisisResponse,
   })
 
   const nextSave = { ...src, week, capital: result.capital, attrs: result.attrsAfter, history: [...history, result] }
@@ -157,6 +170,7 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     save: nextSave,
     violations: [...(bounds.ok ? [] : bounds.violations.map(x => `${x.id}: ${x.why}`)), ...stateBounds.violations],
     engineVersion: TICK_VERSION,
+    inputsSource: 存档输入 ? 'save' : 'default',      // §16.2-B7：'default' = 存档没带本周输入（补算口径会与在线不同）
   }
 }
 

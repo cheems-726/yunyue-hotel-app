@@ -32,6 +32,21 @@ export { rentPerRoomDay }
 const 待补 = (label, why) => ({ label, status: STATUS.MISSING, note: why })
 const 元 = (v) => (Number.isFinite(v) ? Math.round(v) : null)
 
+// §16.2-B1：把品牌【真的声明过的】物业门槛渲染成报价单行（各家表述不同 ⇒ 逐项按存在性生成）
+//   ★ 一项都没有 ⇒ 只出一行「品牌物业门槛 · 待补」（而不是伪造四五种"缺项"）
+function 门槛行(门槛, 品牌名) {
+  const out = []
+  const 出 = (label, 值, unit, fmt, note) => out.push({ label, value: 值, unit, fmt, status: STATUS.OK, note })
+  if (门槛?.最少房量) 出('品牌最少房量', 门槛.最少房量.值, '间', 'num', `品牌方要求 ≥${门槛.最少房量.值} 间（${门槛.最少房量.来源}）`)
+  // 区间类统一转成【展示字符串】（值 "60–200" + 单位 间）—— 渲染层不认数组，直接给数组会渲染成 "60,200"
+  if (门槛?.房量区间) 出('品牌房量区间', `${门槛.房量区间.值[0]}–${门槛.房量区间.值[1]}`, '间', 'num', `品牌方要求 ${门槛.房量区间.值[0]}–${门槛.房量区间.值[1]} 间（${门槛.房量区间.来源}）`)
+  if (门槛?.建筑面积下限) 出('品牌面积下限', 门槛.建筑面积下限.值, '㎡', 'num', `品牌方要求 ≥${门槛.建筑面积下限.值} ㎡（${门槛.建筑面积下限.来源}）`)
+  if (门槛?.建筑面积区间) 出('品牌面积区间', `${门槛.建筑面积区间.值[0]}–${门槛.建筑面积区间.值[1]}`, '㎡', 'num', `品牌方要求 ${门槛.建筑面积区间.值[0]}–${门槛.建筑面积区间.值[1]} ㎡（${门槛.建筑面积区间.来源}）`)
+  if (门槛?.城市限定) 出('城市限定', 门槛.城市限定.值, '', 'text', `品牌方原文：${门槛.城市限定.值}（${门槛.城市限定.来源}）`)
+  if (out.length === 0) out.push(待补('品牌物业门槛', `${品牌名 || '该品牌'} 的房量/面积门槛暂无来源数据`))
+  return out
+}
+
 /**
  * 物业报价单（纯函数）
  * @param {{name:string, standard:string}} brand   品牌（房量取 brand.standard）
@@ -48,6 +63,7 @@ export function propertyQuote(brand, property, districtAttrs) {
   const 租金单价 = (面积 && 年租金) ? 年租金 / 面积 / 365 : null
 
   const t = brandTerms(brand?.name)
+  const 门槛 = t?.物业门槛 ?? null          // §16.2-B1：品牌方物业门槛（房量/面积/城市限定）
   const 单房造价 = t?.单房造价?.新建?.值 ?? null
   const 加盟费单价 = t?.加盟费?.单价?.值 ?? null
   const 加盟费下限 = t?.加盟费?.下限?.值 ?? null
@@ -56,7 +72,27 @@ export function propertyQuote(brand, property, districtAttrs) {
   const 筹备费 = t?.筹备费?.值 ?? null
   const 总投资 = (rooms && 单房造价) ? (rooms * 单房造价) + (加盟费 ?? 0) + (保证金 ?? 0) + (筹备费 ?? 0) : null
 
-  const 源 = t ? { 来源: t.加盟费?.单价?.来源 || '任务包 §十七·七（转述华住官网/加盟开发手册）', 取数日期: t.加盟费?.单价?.取数日期, 置信度: t.加盟费?.单价?.置信度 } : null
+  // ★ §16.2-B1（2026-09-28）：总投资是【四项之和】——但半接入品牌只有造价一项有来源。
+  //   原先那句 note 一律写"单房造价×房量 + 加盟费 + 保证金 + 筹备费"，对缺项品牌会**读成四项都算进去了**
+  //   （那就是"空位填了≠填的是真的"的同族）。⇒ 这里逐项点名：算进去的 / 待补的，写在口径里。
+  const 四项 = [
+    { 名: '单房造价×房量', 值: (rooms && 单房造价) ? rooms * 单房造价 : null },
+    { 名: '加盟费', 值: 加盟费 },
+    { 名: '保证金', 值: 保证金 },
+    { 名: '筹备费', 值: 筹备费 },
+  ]
+  const 已计入 = 四项.filter(x => x.值 != null).map(x => x.名)
+  const 未计入待补 = 四项.filter(x => x.值 == null).map(x => x.名)
+  const 总投资口径 = 总投资 == null ? null
+    : (未计入待补.length === 0
+      ? `= ${已计入.join(' + ')}（四项齐全）`
+      : `= ${已计入.join(' + ')}；★ ${未计入待补.join('、')} **无来源 ⇒ 未计入**（总投资被低估，不是"就这么多"）`)
+
+  const 源 = t ? (() => {
+    // 三件套随行：优先取【加盟费】的来源；半接入品牌没有加盟费 ⇒ 退到【单房造价】；再退到【物业门槛】
+    const c = t.加盟费?.单价 || t.单房造价?.新建 || t.物业门槛?.最少房量 || t.物业门槛?.建筑面积下限
+    return c ? { 来源: c.来源, 取数日期: c.取数日期, 置信度: c.置信度 } : null
+  })() : null
 
   const lines = [
     { label: '建筑面积', value: 面积, unit: '㎡', fmt: 'num', status: 面积 ? STATUS.OK : STATUS.MISSING,
@@ -67,6 +103,10 @@ export function propertyQuote(brand, property, districtAttrs) {
       note: 租金单价 ? '由引擎租金口径反推（年租金 ÷ 面积 ÷ 365）' : '缺面积 ⇒ 无法反推' },
     { label: '年租金', value: 年租金, unit: '元/年', fmt: 'wan', status: 年租金 ? STATUS.OK : STATUS.MISSING,
       note: `引擎口径（A-1 单源）：房量 × rentPerRoomDay(租金档 ${Number.isFinite(租金档) ? 租金档 : 3}) × 365` },
+    // ★ §16.2-B1（2026-09-28）：物业门槛进报价单 —— 学生要能自己核对"这个物业够不够开这个品牌"。
+    //   ★ 只列【该品牌真的声明过的】门槛项 —— 不许把"品牌没这么写"渲染成"待补"
+    //     （各家用不同表述：汉庭/全季写"面积区间"，桔子/CitiGO 写"面积下限"，你好写"房量区间"）
+    ...门槛行(门槛, brand?.name),
     { label: '单房造价', value: 单房造价, unit: '元/间', fmt: 'wan', status: 单房造价 ? STATUS.OK : STATUS.MISSING,
       note: 单房造价 ? '新建标准（franchiseModel 三件套）' : `${brand?.name || '该品牌'} 的经济条款暂无来源数据` },
     { label: '加盟费', value: 加盟费, unit: '元', fmt: 'wan', status: 加盟费 ? STATUS.OK : STATUS.MISSING,
@@ -76,12 +116,24 @@ export function propertyQuote(brand, property, districtAttrs) {
     { label: '筹备费', value: 筹备费, unit: '元', fmt: 'wan', status: 筹备费 ? STATUS.OK : STATUS.MISSING,
       note: 筹备费 ? '开业筹备（franchiseModel 三件套）' : '筹备费暂无来源数据' },
     { label: '总投资（估算）', value: 总投资, unit: '元', fmt: 'wan', status: 总投资 ? STATUS.DERIVED : STATUS.MISSING,
-      note: 总投资 ? '单房造价 × 房量 + 加盟费 + 保证金 + 筹备费（未含装修档/软装/IT/布草——见 W3-3 待补）' : '缺单房造价 ⇒ 无法估算' },
+      note: 总投资
+        ? `投资侧口径 ${总投资口径}（未含装修档/软装/IT/布草——见 W3-3 待补）`
+        : '缺单房造价 ⇒ 无法估算' },
   ]
+
+  // 门槛核对（能核就核，不能核就明说缺哪边 —— 不猜）
+  const 门禁核对 = (() => {
+    const 项 = []
+    if (门槛?.最少房量 && rooms) 项.push({ 项: '房量 ≥ 最少房量', 过: rooms >= 门槛.最少房量.值, 实: `${rooms} 间`, 要求: `≥${门槛.最少房量.值} 间` })
+    if (门槛?.房量区间 && rooms) 项.push({ 项: '房量落在区间内', 过: rooms >= 门槛.房量区间.值[0] && rooms <= 门槛.房量区间.值[1], 实: `${rooms} 间`, 要求: `${门槛.房量区间.值[0]}–${门槛.房量区间.值[1]} 间` })
+    if (门槛?.建筑面积下限 && 面积) 项.push({ 项: '面积 ≥ 面积下限', 过: 面积 >= 门槛.建筑面积下限.值, 实: `${面积} ㎡`, 要求: `≥${门槛.建筑面积下限.值} ㎡` })
+    return { 项, 全部通过: 项.length > 0 && 项.every(x => x.过), 可核对: 项.length }
+  })()
 
   return {
     brand: brand?.name || null, property: property?.name || null,
     rooms, 面积, 租金档, 日租PerRoomDay: 日租, lines, sources: 源,
+    总投资口径, 门禁核对,
     missing: lines.filter(l => l.status === STATUS.MISSING).map(l => l.label),
   }
 }
@@ -93,5 +145,7 @@ export function quoteSummary(q) {
     房量: q.rooms, 面积: q.面积,
     年租金: get('年租金'), 单房造价: get('单房造价'), 加盟费: get('加盟费'),
     保证金: get('保证金'), 总投资: get('总投资（估算）'), 待补字段: q.missing,
+    总投资口径: q.总投资口径,          // §16.2-B1：算进去的 / 未计入待补的，逐项点名
+    来源: q.sources?.来源 ?? null, 置信度: q.sources?.置信度 ?? null,
   }
 }

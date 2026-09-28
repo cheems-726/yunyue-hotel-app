@@ -13,6 +13,7 @@ import { dayToWeekDay, shouldAutoSettle, autoSettleKey, classDayFromLocal, diffD
 import { decisions as DEC_ALL } from '../src/decisions.js'
 const NAMES = Object.fromEntries(DEC_ALL.map(d => [d.id, d.name]))
 import { advanceGroupOneDay, tickKey } from '../src/serverTick.mjs'
+import { WEEK_INPUTS_VERSION, settleInputsFrom, weekInputsOf } from '../src/weekInputs.mjs'
 import { settle } from '../src/settlement.js'
 import { ATTR_INIT } from '../src/attrs.js'
 
@@ -74,10 +75,60 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
   const 比 = ['revenue', 'totalCost', 'profit', 'gop', 'netProfit', 'occupancy', 'finalGoodRate', 'capital', 'deptCost', 'rentCost']
   const 不等 = 比.filter(k => 服务端周报[k] !== 客户端周报[k])
   ok(不等.length === 0, `10 个关键字段逐项相等（不同 ${不等.length}）`, 不等.map(k => `${k}:${服务端周报[k]}≠${客户端周报[k]}`).join(' '))
-  // ★ 已知差异（记账给 E4）：客户端会额外传"实时评价计数/危机应对/处理数"，服务端没有这些入参
-  const withLive = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', liveNegCount: 3, livePosCount: 5, crisisResponse: '全额赔付', resolvedCount: 2 })
-  ok(JSON.stringify(withLive) !== JSON.stringify(客户端周报),
-    '★ 记账（E4 待治）：客户端独有的入参（实时评价/危机/处理数）确实会改变结果 ⇒ 服务端补算目前无法复现它们')
+  // ★ §16.2-B7（2026-09-28）：原来这条只是【记账】——"客户端独有入参确实会改变结果 ⇒ 服务端补算复现不了"。
+  //   现在改为【真做】的断言：把周内输入随存档带上 ⇒ 服务端补算与在线结算【逐字节一致】。
+  const 输入 = { pendingNegatives: 2, resolvedCount: 1, liveNegCount: 1, livePosCount: 2, crisisResponse: '逐条真诚回复' }
+  const 在线 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', ...输入 })
+  const 带输入的存档 = { ...存档, weekInputs: { 版本: WEEK_INPUTS_VERSION, week: 1, ...输入 } }
+  const 补算 = advanceGroupOneDay(带输入的存档, 7, { decisions: DEC })
+  ok(补算.inputsSource === 'save', `服务端确认采用了存档里的周内输入（inputsSource=${补算.inputsSource}）`)
+  ok(JSON.stringify(补算.save.history[0]) === JSON.stringify(在线),
+    '★ B7：含实时评价/欠账/整改/危机的周，服务端【补算 === 在线】逐字节一致')
+  // 反向验证靶子：不带 weekInputs（旧档形态）⇒ 必然不同 ⇒ 证明上面的一致不是"两边都忽略输入"
+  const 旧档 = advanceGroupOneDay(存档, 7, { decisions: DEC })
+  ok(JSON.stringify(旧档.save.history[0]) !== JSON.stringify(在线),
+    '反证：存档不带周内输入 ⇒ 补算 ≠ 在线（说明该断言确实在判东西，不是恒真）')
+  // ★ 公平性红线（D2）的机器化：实时评价数是【在线时长相关】的输入，
+  //   它只决定"哪些卡已在实时里出过"，**不许改变任何业务数字**（实证：只有卡片数变）
+  const 业务字段 = ['revenue', 'totalCost', 'profit', 'netProfit', 'gop', 'capital', 'occupancy', 'finalGoodRate', 'negativeCount', 'reviewCount', 'deptCost', 'rentCost']
+  const 无实时 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct' })
+  const 有实时 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', liveNegCount: 3, livePosCount: 5 })
+  const 被改动 = 业务字段.filter(k => JSON.stringify(无实时[k]) !== JSON.stringify(有实时[k]))
+  ok(被改动.length === 0, `★ 公平性：实时评价数（在线时长相关）【不改变任何业务数字】（${业务字段.length} 项全同）`, 被改动.join(','))
+  ok(无实时.generatedReviews.length !== 有实时.generatedReviews.length,
+    '但它确实减少"结算再出一次"的卡片数（实时已出过的不重复出）⇒ 两件事都要成立')
+}
+
+// ── [3b] §16.2-B7：周内输入的【派生规则】本身（从 App.jsx 迁出，口径必须逐字保持不变）──
+console.log('\n[3b] §16.2-B7 周内输入派生（单源 src/weekInputs.mjs）')
+{
+  const 流水 = [
+    { id: '1', status: 'pending' },                       // 演示初值（数字 id）——【不算】欠账
+    { id: 'w1-n0', status: 'pending' },                   // 结算卡 ⇒ 欠账
+    { id: 'w1-n1', status: 'ignored' },                   // 结算卡 ignored ⇒ 也算欠账
+    { id: 'w1-n2', status: 'resolved' },                  // 结算卡已整改 ⇒ 算 resolved
+    { id: 'w2-n0', status: 'pending' },                   // 往周结算卡 ⇒ 跨周累计
+    { id: 'live-a', live: true, liveWeek: 2, stars: 2 },  // 本周实时差评
+    { id: 'live-b', live: true, liveWeek: 2, stars: 5 },  // 本周实时好评
+    { id: 'live-c', live: true, liveWeek: 1, stars: 1 },  // 往周实时 —— 不该混进本周
+  ]
+  const r = settleInputsFrom({ reviews: 流水, week: 2, crisis: { week: 1, choice: '不理会' } })
+  ok(r.pendingNegatives === 3, `欠账 = 结算卡 pending/ignored（跨周累计）= 3（实测 ${r.pendingNegatives}）`)
+  ok(r.resolvedCount === 1, `已整改 = 结算卡 resolved = 1（实测 ${r.resolvedCount}）`)
+  ok(r.liveNegCount === 1 && r.livePosCount === 1, `本周实时：差评 1 / 好评 1（往周实时不混入）`)
+  ok(r.crisisResponse === '不理会', '危机选择生效（crisis.week === week-1）')
+  ok(settleInputsFrom({ reviews: 流水, week: 3, crisis: { week: 1, choice: '不理会' } }).crisisResponse === null,
+    '隔了两周的危机选择【不生效】（只在 week-1 用一次）')
+  // weekInputsOf：周号/版本对不上 ⇒ 一律视为"没有"（不敢拿来用），而不是拿错周的数据硬套
+  const 存档 = { weekInputs: { 版本: WEEK_INPUTS_VERSION, week: 2, pendingNegatives: 5, resolvedCount: 0, liveNegCount: 0, livePosCount: 0, crisisResponse: null } }
+  ok(weekInputsOf(存档, 2)?.pendingNegatives === 5, 'weekInputsOf：周号相符 ⇒ 采用')
+  ok(weekInputsOf(存档, 3) === null, 'weekInputsOf：周号不符 ⇒ null（不拿别周的输入硬套）')
+  ok(weekInputsOf({ weekInputs: { ...存档.weekInputs, 版本: 99 } }, 2) === null, 'weekInputsOf：版本不符 ⇒ null（口径变了不敢用旧派生）')
+  ok(weekInputsOf({}, 2) === null, 'weekInputsOf：旧档没有该字段 ⇒ null（服务端走空输入兜底）')
+  // 空输入必须全 0：服务端兜底口径 = "什么都没发生"，不能凭空造欠账
+  const 空 = settleInputsFrom({ reviews: [], week: 5 })
+  ok(空.pendingNegatives === 0 && 空.resolvedCount === 0 && 空.liveNegCount === 0 && 空.livePosCount === 0 && 空.crisisResponse === null,
+    '空输入：全 0 / 无危机（服务端兜底口径）')
 }
 
 // ── [4] 幂等：同一天/同一周不重复成报 ───────────────────────────
