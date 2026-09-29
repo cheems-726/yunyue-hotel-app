@@ -207,6 +207,31 @@ const FACTS = [
     expect: true,
   },
   {
+    // ★ §24.1②（2026-09-29 第十二批）：过审包是【决策端过审入口】，而它的门禁数字历来是**手抄**的
+    //   （§23.4 实测事故：正文停在「全量 1607/0 · 未推 3」，两个批次没人发现 ⇒ "声明≠实现"）。
+    //   判据与交接卡 ⑥ **同源同实现**（`_docsSyncCompare` 是唯一比对点）：精确相等、无容差。
+    //   ★ 为什么放本套件而不是 reportCaliber：本套件属 run-all 的【文档类】——
+    //     有一红就"按修好后计数记"的【记录写入策略】兜住自指；reportCaliber 不属该类，
+    //     它一红会把"门禁计数自身的漂移"搅成自指（每改一条断言都得重写过审包）。见其 [7] 末尾注释。
+    name: '全日过审包「门禁数字」行 === 最近一次门禁记录（精确相等）',
+    actual: () => {
+      const doc = readIf(path.join(ROOT, '4-审计与报告', '全日过审包-20260929.md'))
+      if (!doc) return true        // 文件缺失由 reportCaliber 台账死条目断言负责，此处不重复判
+      const 行 = /门禁数字\*\*：([^\n]*)/.exec(doc)
+      if (!行) return false        // 有文件却没这行 ⇒ 数字无权威可对（§24.1② 硬验收）
+      const rec = 门禁记录()
+      const 档 = []
+      if (rec.fast && rec.fast.head) 档.push(rec.fast.通过)
+      if (rec.full && rec.full.head) 档.push(rec.full.通过)
+      if (!档.length) return true  // 还没有记录（首次跑）⇒ 不判
+      const 数 = 抽数字(行[1])
+      return 档.every(值 => 数字匹配(数, 值))
+    },
+    docSays: '全日过审包（「门禁数字」行须精确等于最近一次门禁记录的快检/全量通过数 · 手抄错一格即红）',
+    docs: ['4-审计与报告/全日过审包-20260929.md'],
+    expect: true,
+  },
+  {
     name: '会话交接卡 ⑥ 段「未推 N」与实际一致',
     actual: () => {
       const card = readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))
