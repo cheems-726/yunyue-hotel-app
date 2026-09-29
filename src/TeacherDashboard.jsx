@@ -6,6 +6,7 @@ import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
+import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
@@ -185,6 +186,34 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
                 </div>
               )
             })}
+          </div>
+        )
+      })()}
+      {/* 🔴 §22.3-C4（2026-09-29）：老师可查【每人操作】—— 聚合存档里的 operatorLogs（C3 产生）：
+          按人分组（谁 · 几条 · 碰了哪些决策 · 职位分布 · 净利影响），旧档无记录 ⇒ 如实显示"无操作记录"。
+          数据面单源 = src/operatorLog.mjs 的 按人聚合()（与 C2 按职位聚合同一模块）。 */}
+      {(() => {
+        const logs = Array.isArray(s.operatorLogs) ? s.operatorLogs : []
+        if (!logs.length) return null
+        const 人 = 按人聚合(logs)
+        return (
+          <div style={{ marginBottom: 10, padding: '8px 10px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>👥 每人操作记录（{logs.length} 条 · 按人聚合）</div>
+            {人.map(p => (
+              <div key={p.operatorId} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px dashed #DBEAFE', lineHeight: 1.7 }}>
+                <b>{p.operatorName || p.operatorId}</b>
+                <span style={{ color: '#6B7280' }}>（{p.operatorId === '未记录' ? '旧档未记录' : p.operatorId}）</span>
+                {' · '}操作 <b>{p.条数}</b> 条 · 周 {p.周.join(',')}
+                {' · '}决策：{[...new Set(logs.filter(x => (x.operatorId || '未记录') === p.operatorId).map(x => x.决策名))].join('、')}
+                {p.净利影响 !== 0 && (
+                  <span style={{ color: p.净利影响 > 0 ? '#15803D' : '#DC2626' }}> · 净利影响 {p.净利影响 > 0 ? '+' : ''}{p.净利影响.toLocaleString()} 元</span>
+                )}
+                <span style={{ color: '#9CA3AF' }}> · 职位：{Object.entries(p.职位).map(([k, v]) => `${k}×${v}`).join(' / ')}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>
+              旧档/未登录的操作会标"未记录"（系统不编人名）；"净利影响"按决策记录当时点估算，仅供参考。
+            </div>
           </div>
         )
       })()}

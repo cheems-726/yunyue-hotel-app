@@ -25,6 +25,7 @@ import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
 import { settleInputsFrom } from './weekInputs.mjs'
+import { 记录一条 } from './operatorLog.mjs'                       // §22.3-C3：操作者记录单源
 import { settleWeekSegmented } from './weekSegments.mjs'          // §19.1 单元1·B4：引擎级分段
 import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：变更记录 → 按天生效的决策
 // §16.2-B5：投资项档位 → 品质联动（系数单源在该模块）
@@ -1683,6 +1684,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   const [doneDecisions, setDoneDecisions] = useState(saved.doneDecisions || {}) // 已完成的决策
+  // §22.3-C3：操作者记录（每条含 操作者/职位/决策/时间）—— 供教师端按人查（C4）与职位归属（C2）
+  const [operatorLogs, setOperatorLogs] = useState(Array.isArray(saved.operatorLogs) ? saved.operatorLogs : [])
   // RPG 属性池（品质/声誉/士气）：旧档无 attrs 时用 normalizeAttrs 兜底，保证不 NaN 不报错
   const [attrs, setAttrs] = useState(() => normalizeAttrs(saved.attrs))
   // 属性变化飘字（规格 §8）：App 权威下发增量，供经营页属性条飘「品质 +5」
@@ -1782,7 +1785,7 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })))
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
 
@@ -1799,7 +1802,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -1919,6 +1922,7 @@ export default function App() {
           setDoneDecisions(cloudSaved.doneDecisions || {})
           if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
           if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
+        setOperatorLogs(Array.isArray(cloudSaved.operatorLogs) ? cloudSaved.operatorLogs : [])
           setReport(cloudSaved.report || null)
           setWeek(cloudSaved.week || 1)
           setHistory(cloudSaved.history || [])
@@ -2290,6 +2294,18 @@ export default function App() {
               }).catch(() => {})   // 双保险：函数内部已 catch，这里再兜一层
             }
             setDoneDecisions({ ...doneDecisions, [id]: answer })
+            // ★ §22.3-C3：操作者记录落存档（每条含 操作者/职位/决策/时间）——
+            //   教师端"按人查"（C4）与职位归属（C2）都从这里聚合（operatorLog 单源）。
+            //   旧档/未登录 ⇒ operatorId 缺省 ⇒ 如实标"未记录"（operatorLog 内置兜底，不崩）。
+            setOperatorLogs(prev => {
+              const rec = 记录一条({
+                decisionId: id, answer,
+                operatorId: user?.uid || null, operatorName: user?.name || null,
+                week, classDay: (typeof classDayLocal === 'number' || typeof classDayLocal === 'object') ? (classDayLocal?.valueOf?.() ?? null) : (classDayLocal ?? null),
+                profitImpact: null,
+              })
+              return rec ? [...(prev || []), rec] : (prev || [])
+            })
             setCurrentDecision(null)
             const dName = decisions.find(d => d.id === id)?.name || '决策'
             // 与上周选择对比（换思路提醒）：上周选择来自最近一周的决策快照
