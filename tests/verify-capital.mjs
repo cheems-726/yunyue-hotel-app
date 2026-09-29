@@ -2,6 +2,7 @@
 // 运行：npm run build && node tests/verify-capital.mjs
 // 只走离线演示路径（不登录云端、不写生产数据）
 import { chromium } from 'playwright-core'
+let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 // 🔴 W2-2 重基线（D38-B）：资金三数/版本号【从源头推导】，不再贴死数字 —— 口径再变无需重挂
@@ -43,7 +44,13 @@ const state = (page) => page.evaluate(() => { try { return JSON.parse(localStora
 
 if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
 let server, browser
-server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true , windowsHide: true })
+// ★ 复用优先：端口已在监听 ⇒ 直接用常驻服务（**不 spawn、不清杀** —— 避免起停抖动/窗口闪烁）
+复用常驻 = await fetch(BASE).then(r => r.ok).catch(() => false)
+if (!复用常驻) {
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+} else {
+  console.log('▶ 检测到 ' + PORT + ' 已有常驻预览服务 ⇒ 直接复用（不起新进程）')
+}
 for (let i = 0; i < 30; i++) { try { const r = await fetch(BASE); if (r.ok) break } catch (e) {} await sleep(300) }
 browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
@@ -216,6 +223,6 @@ try {
 } finally {
   console.log(`\n========== 结果: ${results.filter(r => r.pass).length} 通过 / ${results.filter(r => !r.pass).length} 失败 ==========`)
   try { await browser.close() } catch (e) {}
-  try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
+  try { if (server?.pid && !复用常驻) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
 }
 process.exit(results.some(r => !r.pass) ? 1 : 0)

@@ -2,6 +2,7 @@
 // 运行：先 npm run build，再 node tests/ui-smoke.mjs（脚本自动起 preview 服务器）
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
 import { chromium } from 'playwright-core'
+let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { TEST_TEACHER, TEST_STUDENT } from './testEnv.mjs'
@@ -141,7 +142,13 @@ async function assertLayout(pg, label) {
 
 const page = await (async () => {
   if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true , windowsHide: true })
+  // ★ 复用优先：端口已在监听 ⇒ 直接用常驻服务（**不 spawn、不清杀** —— 避免起停抖动/窗口闪烁）
+复用常驻 = await fetch(BASE).then(r => r.ok).catch(() => false)
+if (!复用常驻) {
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+} else {
+  console.log('▶ 检测到 ' + PORT + ' 已有常驻预览服务 ⇒ 直接复用（不起新进程）')
+}
   for (let i = 0; i < 30; i++) {
     try { const r = await fetch(BASE); if (r.ok) break } catch (e) {}
     await new Promise(r => setTimeout(r, 300))
@@ -592,5 +599,5 @@ const failed = results.filter(r => !r.pass)
 console.log('\n========== 结果: ' + (results.length - failed.length) + ' 通过 / ' + failed.length + ' 失败 ==========')
 for (const f of failed) console.log('  ✗ ' + f.name)
 try { await browser?.close() } catch (e) {}
-try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
+try { if (server?.pid && !复用常驻) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
 process.exit(failed.length ? 1 : 0)

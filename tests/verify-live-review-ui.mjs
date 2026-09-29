@@ -11,6 +11,7 @@
 //    再配合高位属性（p 大）与高入住（crowd=1），让"命中时刻"可预期。
 
 import { chromium } from 'playwright-core'
+let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { CAUSE_SOURCE } from '../src/guests.js'
@@ -63,7 +64,13 @@ const reviews = (page) => page.evaluate(() => { try { return JSON.parse(localSto
 
 if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
 
-server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true , windowsHide: true })
+// ★ 复用优先：端口已在监听 ⇒ 直接用常驻服务（**不 spawn、不清杀** —— 避免起停抖动/窗口闪烁）
+复用常驻 = await fetch(BASE).then(r => r.ok).catch(() => false)
+if (!复用常驻) {
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+} else {
+  console.log('▶ 检测到 ' + PORT + ' 已有常驻预览服务 ⇒ 直接复用（不起新进程）')
+}
 for (let i = 0; i < 30; i++) { try { const r = await fetch(BASE); if (r.ok) break } catch (e) {} await sleep(300) }
 browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
@@ -395,7 +402,7 @@ try {
   console.log(`\n========== 结果: ${results.filter(r => r.pass).length} 通过 / ${results.filter(r => !r.pass).length} 失败 ==========`)
   try { await browser.close() } catch (e) {}
   try {
-    if (server?.pid) {
+    if (server?.pid && !复用常驻) {
       if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true })
       else server.kill('SIGTERM')
     }
