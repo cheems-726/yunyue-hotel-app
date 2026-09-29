@@ -1,3 +1,8 @@
+// ★★ §23.1(a) 正名（D65）：本套件 = 【引擎长稳压力测试（18 周 · 非学期口径）】——
+//   它跑的是学生永远玩不到的时长（学期 = 12 周，semester.mjs 单源），
+//   其"期末资金"是【18 周后的资金】，**不是学期末成绩**，不许被当作"期末"引用。
+//   学期口径的六组数字在 tests/semesterRun12.test.mjs（12 周，同源 TOTAL_WEEKS）。
+//   ★ 口径守卫：若产品学期被改成 18 周 ⇒ 本套件红（长稳压测与学期同长 = 失去意义，需人工复核）。
 // 批次 B2-1 · 126 天长跑（18 周）+ 故障注入
 // 运行：node tests/longRun126.test.mjs [--report]   （--report 额外打印落文档用的表格）
 //
@@ -13,6 +18,7 @@ import { settle } from '../src/settlement.js'
 import { SCALE } from '../src/stateMigration.mjs'   // W5-1：预警线单源（原写死 100.4 万 = W2-2 之前的旧口径）
 import { decisions as DECISIONS } from '../src/decisions.js'
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
+import { TOTAL_WEEKS } from '../src/semester.mjs'
 
 const WEEKS = 18
 const DAYS = 7
@@ -90,10 +96,14 @@ function run18(dec, resolve, mode = 'straight', k = 6) {
   return { weeks, issues }
 }
 
-console.log('▶ 批次 B2-1 · 126 天长跑（18 周 × 6 组）+ 故障注入')
+console.log('▶ 引擎长稳压力测试（18 周 · 非学期口径 · §23.1a 正名）· 126 天 × 6 组 + 故障注入')
 console.log(`  规模：${WEEKS} 周 = ${WEEKS * DAYS} 游戏日 · 6 组 · 决策项 ${DECISIONS.length} 项`)
 ok(DECISIONS.length === 18, `决策项数 = 18（实测 ${DECISIONS.length}）`)
 ok(Object.keys(FULL18).length === 18, `全 18 项答案集齐备（${Object.keys(FULL18).length} 项）`)
+// ★ §23.1(a) 口径守卫（跨口径误用检测 · RV 靶子）：本套件是【长稳压测·非学期口径】——
+//   与学期长度必须不同（互斥由机器钉住）。若产品学期被改为 18 周 ⇒ 本套件红（长稳压测与学期
+//   同长 = 失去意义，需人工复核口径）。学期口径的六组数字在 tests/semesterRun12.test.mjs。
+ok(TOTAL_WEEKS !== WEEKS, `★ 口径守卫：学期（${TOTAL_WEEKS} 周）≠ 长稳压测（${WEEKS} 周）⇒ 两口径互斥（D65 正名）`)
 
 // ── 主跑 ──
 const runs = {}

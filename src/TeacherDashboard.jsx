@@ -195,6 +195,9 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
       {(() => {
         const logs = Array.isArray(s.operatorLogs) ? s.operatorLogs : []
         if (!logs.length) return null
+        // ★ §23.3-①【错误操作高亮】：净利为负的周 ⇒ 该周的操作记录标红色"亏损周"标签。
+        //   数据驱动（历史周真实净利），不做"对错"主观评判；供课堂复盘快速定位亏损周的决策。
+        const 亏损周 = new Set(hist.filter(h => Number.isFinite(h.netProfit ?? h.profit) && (h.netProfit ?? h.profit) < 0).map(h => h.week))
         const 人 = 按人聚合(logs)
         return (
           <div style={{ marginBottom: 10, padding: '8px 10px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8 }}>
@@ -203,7 +206,9 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               <div key={p.operatorId} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px dashed #DBEAFE', lineHeight: 1.7 }}>
                 <b>{p.operatorName || p.operatorId}</b>
                 <span style={{ color: '#6B7280' }}>（{p.operatorId === '未记录' ? '旧档未记录' : p.operatorId}）</span>
-                {' · '}操作 <b>{p.条数}</b> 条 · 周 {p.周.join(',')}
+                {' · '}操作 <b>{p.条数}</b> 条 · 周 {p.周.map(w => 亏损周.has(w)
+                  ? <span key={w} title="该周净利为负（亏损）" style={{ color: '#DC2626', fontWeight: 700 }}>第{w}周⚠</span>
+                  : <span key={w}>第{w}周</span>)}
                 {' · '}决策：{[...new Set(logs.filter(x => (x.operatorId || '未记录') === p.operatorId).map(x => x.决策名))].join('、')}
                 {p.净利影响 !== 0 && (
                   <span style={{ color: p.净利影响 > 0 ? '#15803D' : '#DC2626' }}> · 净利影响 {p.净利影响 > 0 ? '+' : ''}{p.净利影响.toLocaleString()} 元</span>

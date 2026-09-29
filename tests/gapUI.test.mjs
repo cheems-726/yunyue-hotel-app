@@ -29,6 +29,8 @@ console.log('\n[C4] 老师可查每人操作：按人视图 + 单源聚合')
   ok(/operatorLogs/.test(dash), '读存档 operatorLogs（C3 落盘的数据）')
   ok(/未记录/.test(dash), '旧档/未登录如实标"未记录"（不编人名）')
   ok(!/setOperatorLogs/.test(dash), '教师端只读（不产生操作记录 —— 那是学生提交决策时的事）')
+  // ★ §23.3-①【错误操作高亮】：净利为负的周 ⇒ 该周操作标红（数据驱动，不主观评判）
+  ok(/亏损周/.test(dash), '「错误操作高亮」在位：净利为负的周，其操作记录标红色"亏损周"标签（数据驱动）')
   const app = src('App.jsx')
   ok(/记录一条\(/.test(app) && /setOperatorLogs/.test(app), '学生端提交决策时产生记录（App.jsx 接线）')
   ok(/operatorLogs, repo/.test(app) && /operatorLogs, report/.test(app), '记录随存档持久化（本地 + 云端双路）')

@@ -89,6 +89,20 @@ export function scoreOf(history) {
 //   不许各自去 history[i].weeklyExpenses 里翻键名 —— 那又是两套命名（BL-7 同族）。
 export const FEE_LABEL = '加盟两费（管理费 + CRS）'
 export const FEE_DEF = '加盟两费 ＝ 加盟管理费（营收 × 5%）+ 加盟CRS（营收 × 有效 2.4% = 名义 8% × 渠道占比 30%）；★ 只对 汉庭/全季/海友 实收；其余品牌费率待补（不计费、不编造）'
+// ★ §23.2（D65）：净利率【分口径】—— B2 后 week1 含开业一次性费用（全季 80 间 = 34.9 万），
+//   它会淹没经营差异（2.9 万/周 的费用 vs 几千的周净利）⇒ 两个口径必须各起名、各标清：
+//     「资金口径」= 净利润（含开业费用与保证金退还）—— 用于讲【现金流/开店成本】
+//     「经营口径」= 净利润 + 一次性净额（加回开业费、减去退还）—— 用于讲【经营好坏 · 教学引用用这个】
+//   ★ 凡出现"净利率"的地方必须标口径（报告/全景表/长跑/台账 —— reportCaliber/gapUI 有守门）。
+export const 净利率口径 = {
+  资金: '含开业一次性费用与保证金退还（现金流视角）',
+  经营: '剔除一次性项（经营好坏视角 · 教学引用用这个）',
+}
+// 一次性净额 = 开业费用 − 保证金退还（正 = 期初净流出；week12 退还后部分回冲）
+export const oneTimeNetOf = (h) => (h && h.oneTimeFees ? h.oneTimeFees.开业费用 - h.oneTimeFees.保证金退还 : 0)
+// 经营净利（周）= 资金净利 + 一次性净额（把一次性项加回）
+export const opNetOf = (h) => (Number.isFinite(netOf(h)) ? netOf(h) + oneTimeNetOf(h) : null)   // 经营 = 资金 + 净额（把开业费加回）
+
 export const franchiseFeeOf = (h) => (h && h.franchiseFees && Number.isFinite(h.franchiseFees.合计) ? h.franchiseFees.合计 : 0)
 export const sumFranchiseFee = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + franchiseFeeOf(h), 0)
 

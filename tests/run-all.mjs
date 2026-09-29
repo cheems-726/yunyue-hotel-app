@@ -81,7 +81,9 @@ const SUITES = [
   { name: 'stateMigration（存档口径迁移·批次 B1）', file: 'tests/stateMigration.test.mjs' },
   { name: 'stateMigrationCompat（旧档+续营3周·无混口径）', file: 'tests/stateMigrationCompat.test.mjs' },
   { name: 'cloudMigration（云端路径补迁·批次 B1.5）', file: 'tests/cloudMigration.test.mjs' },
-  { name: 'longRun126（126天长跑+故障注入·批次 B2）', file: 'tests/longRun126.test.mjs' },
+  { name: 'longRun126（长稳压测·18周·非学期口径·§23.1）', file: 'tests/longRun126.test.mjs' },
+  // §23.1(b)：学期口径（12 周）—— 与 longRun126（长稳）互为口径对照，互斥由两套件守卫钉住
+  { name: 'semesterRun12（学期版·12周·§23.1）', file: 'tests/semesterRun12.test.mjs' },
   { name: 'dailyReport（日报 T3.3/T3.4·批次 B2）', file: 'tests/dailyReport.test.mjs' },
   { name: 'engineBarrel（引擎统一出口 T3.1·批次 B2）', file: 'tests/engineBarrel.test.mjs' },
   { name: 'dbLayer（数据层职责抽查 T3.5·批次 B2）', file: 'tests/dbLayer.test.mjs' },
@@ -124,6 +126,11 @@ const SUITES = [
 
 const rows = []
 let failed = 0, skipped = 0
+// ★ §23.3-③（D65 · 《测试质量审计》真技术债）：套件【退出 0 但解析不出计数】与"真的 0 条"不可区分
+//   ⇒ 立期望计数基线：各套件的通过数记入 _last-gate.json.perSuite；解析失败 ⇒ 直接计失败（不再静默 '-'
+//   通过）；与基线的漂移只 ⚠ 提示（计数随批次合法增长，不作失败——但**可见**，不静默）。
+let 解析失败 = 0
+let 上次perSuite快照 = null   // §23.3-③：上次运行的各套件计数（漂移提示用）
 
 function run(cmd, args, label) {
   const t0 = Date.now()
@@ -183,6 +190,11 @@ for (const s of SUITES) {
   }
   const state = r.code === 0 ? '✓' : '✗'
   if (r.code !== 0) failed++
+  // ★ §23.3-③：解析失败（退出 0 但无计数）⇒ 直接计失败（"解析失败与真的 0 条不可区分"技术债的修复）
+  if (r.code === 0 && r.pass == null) {
+    failed++; 解析失败++
+    console.log(`${s.name.padEnd(38)} ✗ 退出 0 但解析不出计数（按失败计 —— 不许与"真的 0 条"混淆）`)
+  }
   console.log(`${s.name.padEnd(38)} ${state} ${r.pass != null ? r.pass + ' 通过 / ' + r.fail + ' 失败' : ''} (${r.secs}s)`)
   rows.push({ name: s.name, state, pass: r.pass ?? '-', fail: r.fail ?? '-', secs: r.secs, out: r.out })
 }
@@ -266,6 +278,7 @@ if (!failed || 仅本套件失败) {
     const P = new URL('./_last-gate.json', import.meta.url)
     let prev = {}
     try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
+    上次perSuite快照 = prev.perSuite || null   // §23.3-③：覆盖前捕获上次基线（供尾部漂移提示）
     const next = {
       ...prev,
       [FAST ? 'fast' : 'full']: {
@@ -277,12 +290,29 @@ if (!failed || 仅本套件失败) {
         fullDirty,                   // 仅供参考：整仓是否脏（含文档）
       },
       已知红: knownReds.map(x => x.name),
+      // ★ §23.3-③：期望计数基线（各套件通过数快照）—— 下次运行时与本次对比，
+      //   漂移 ⚠ 提示（计数随批次合法增长，不作失败）；真正的失败判定是上面的「解析失败」。
+      perSuite: Object.fromEntries(rows.filter(x => Number.isFinite(Number(x.pass)) && x.state !== '⏭ 跳过（--fast）')
+        .map(x => [x.name, Number(x.pass)])),
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
     console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过}/0 · head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
   } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
+
+// ★ §23.3-③：与上次基线的计数漂移提示（⚠ 可见但不作失败 —— 计数随批次合法增长/减少）
+// 上次基线已在写记录前捕获（上次perSuite快照）
+try {
+  const prevSuite = 上次perSuite快照 || {}
+  const curSuite = Object.fromEntries(rows.filter(x => Number.isFinite(Number(x.pass))).map(x => [x.name, Number(x.pass)]))
+  const 漂移 = Object.entries(curSuite).filter(([n, v]) => prevSuite[n] != null && prevSuite[n] !== v)
+  if (漂移.length) {
+    console.log('\n⚠ 计数基线漂移（与上次运行比 · 通常 = 新增/修改了断言，可见即可）：')
+    漂移.slice(0, 8).forEach(([n, v]) => console.log(`   · ${n}: ${prevSuite[n]} → ${v}`))
+    if (漂移.length > 8) console.log(`   … 另 ${漂移.length - 8} 项`)
+  }
+} catch (e) { /* 基线不存在（首次）⇒ 跳过 */ }
 
 if (failed) {
   console.log('\n✗ 失败项详情（尾部 40 行）：')
