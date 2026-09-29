@@ -48,45 +48,6 @@ function roomTypes(total, basePrice) {
   ]
 }
 
-// 按游戏内时刻生成一条运营动态：{ clock, text, amt }（amt=资金流水，0 为服务性事件）
-function genEvent(gameMin, phase, price) {
-  const roll = Math.random()
-  const clockTag = fmtGameClock(gameMin)
-  const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
-  const roomFee = () => Math.round(price * (0.85 + Math.random() * 0.3))
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)]
-  const h = Math.floor(((gameMin % 1440) + 1440) % 1440 / 60)
-  if (phase.checkout > 0 && roll < 0.42) {
-    return { clock: clockTag, text: `🧳 ${room}房退房结账（12:00 前退房）`, amt: roomFee() }
-  }
-  if (phase.checkout > 0 && roll < 0.58) {
-    return { clock: clockTag, text: `🧹 客房部抢清 ${2 + Math.floor(Math.random() * 6)} 间退房客房`, amt: 0 }
-  }
-  if (phase.checkin > 0 && roll < 0.42) {
-    return { clock: clockTag, text: `🛎️ ${room}房办理入住（14:00 后）· ${pick(['商务出差', '家庭出游', '旅行散客', '会议客人'])}客人`, amt: roomFee() }
-  }
-  if (phase.checkin > 0 && roll < 0.55) {
-    return { clock: clockTag, text: `🛄 提前到店客人的行李已寄存前台`, amt: 0 }
-  }
-  if (h >= 23 || h < 6) {
-    if (roll < 0.3) return { clock: clockTag, text: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 }
-    if (roll < 0.55) return { clock: clockTag, text: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(price * 0.9) }
-    if (roll < 0.75) return { clock: clockTag, text: `🔧 值班工程师完成锅炉房夜间巡检`, amt: 0 }
-    return { clock: clockTag, text: `🌃 出租率保持稳定，夜班一切正常`, amt: 0 }
-  }
-  if (roll < 0.3) return { clock: clockTag, text: `🧹 客房部完成 ${2 + Math.floor(Math.random() * 6)} 间客房清扫`, amt: 0 }
-  if (roll < 0.38) return { clock: clockTag, text: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) }
-  if (roll < 0.46) return { clock: clockTag, text: `💬 前台收到客人口头表扬 · 服务亲切`, amt: 0 }
-  if (roll < 0.53) return { clock: clockTag, text: `💳 为 ${room}房客人退还押金`, amt: -100 }
-  if (roll < 0.6) return { clock: clockTag, text: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 }
-  if (roll < 0.67) return { clock: clockTag, text: `📞 商务客人来电咨询长租协议价`, amt: 0 }
-  if (roll < 0.73) return { clock: clockTag, text: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) }
-  if (roll < 0.79) return { clock: clockTag, text: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) }
-  if (roll < 0.85) return { clock: clockTag, text: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) }
-  if (roll < 0.91) return { clock: clockTag, text: `🍳 餐厅备餐（明日早餐 6:30-10:00）`, amt: 0 }
-  return { clock: clockTag, text: `🚕 前台协助退房客人叫车搬运行李`, amt: 0 }
-}
-
 // 实时运营流：游戏内时钟连续流动（现实2秒=游戏1分钟），
 // 事件按概率随机触发；流水/统计持久化到 localStorage（按日期+周为键），刷新不回退
 // 退房后进入待清扫队列，到期自动生成清扫事件并扣耗材成本
@@ -95,11 +56,20 @@ function genEvent(gameMin, phase, price) {
 const EVENT_PROB = { checkout: 0.04, checkin: 0.03, misc: 0.006, night: 0.006 }
 const CLEAN_FEE = 25
 
-function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisions, onStats }) {
+function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisions, onStats, dayFlows, dayIndex }) {
   const [feed, setFeed] = useState([])
   const [flows, setFlows] = useState([]) // 结构化流水明细
   const [detailOpen, setDetailOpen] = useState(false) // 明细展开
   const flowsRef = React.useRef([]) // 流水明细唯一数据源：渲染与持久化都读它（与 flows 同步）
+  // ★★ §26.3（P0b · 用户 2026-09-29 第二次投诉「面板是第二本账 · 数据之间没有联动」）：
+  //    今日流水**唯一来源 = 引擎日快照**（`settle().dailySnapshots[今天]`；由 App 用【与 doSettle 同一套入参】
+  //    跑预览结算得到）—— 面板**不再自记金额**。Σ7天 === 周值 由引擎恒等式保证（`semesterRun12` 已钉）。
+  //    取不到快照（预览失败/旧档）⇒ 显示「—」并明示"待结算"，**不许退化成编造数字**（那正是本次翻车原因）。
+  const 日快照 = Array.isArray(dayFlows) && dayFlows.length === 7 ? dayFlows : null
+  const 今天 = 日快照 && Number.isInteger(dayIndex) && dayIndex >= 0 && dayIndex < 7 ? 日快照[dayIndex] : null
+  const 今日流水 = 今天 ? { 入账: Math.round(今天.revenue || 0), 支出: Math.round(今天.cost || 0) } : null
+  const 本周累计 = 日快照 ? 日快照.slice(0, (Number.isInteger(dayIndex) ? dayIndex : 0) + 1)
+    .reduce((a, d) => ({ 入账: a.入账 + Math.round(d.revenue || 0), 支出: a.支出 + Math.round(d.cost || 0) }), { 入账: 0, 支出: 0 }) : null
   // 实时评价上下文：走 ref 读取 —— 属性/决策变化不重启 LiveFeed 定时器（重启会打断流水节奏）
   const rvCtxRef = React.useRef({ attrs: {}, brandLevel: '', decisions: {} })
   rvCtxRef.current = { attrs: attrs || {}, brandLevel: brandLevel || '', decisions: decisions || {} }
@@ -125,13 +95,11 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     } catch (e) { st = null }
     if (!st || typeof st.income !== 'number') {
       const nowH = new Date().getHours()
-      let inc = 0, exp = 0
-      if (nowH >= 6) { inc = Math.round(occupiedRooms * p * 0.5); exp = 120 }
-      if (nowH >= 14) inc += Math.round(occupiedRooms * p * 0.35)
-      if (nowH >= 20) { inc += Math.round(occupiedRooms * p * 0.1); exp += 200 }
       const n = new Date()
+      // ★ §26.3（P0b）：无存档时**不再按当前小时编造收支**（原 inc/exp 估算已删）——
+      //   金额一律来自引擎日快照（见 props dayFlows）；这里只初始化计数类状态。
       st = {
-        income: inc, expense: exp, checkout: 0, checkin: 0,
+        income: 0, expense: 0, checkout: 0, checkin: 0,
         guests: Math.max(4, Math.round(occupiedRooms * 2 - 3)),
         gameMin: nowH * 60 + n.getMinutes(), pendingClean: [], feed: [],
       }
@@ -229,50 +197,48 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
       const roll = Math.random()
 
-      // 到期的清扫任务：退房后 15-35 游戏分钟完成，扣耗材成本
+      // 到期的清扫任务：退房后 15-35 游戏分钟完成
+      // ★ §26.3（P0b）：清扫耗材成本**不再由面板自记**（引擎周成本已含部门成本）⇒ 此处只报事件，不动任何金额
       const due = pendingClean.filter(x => x.due <= gameMin)
       if (due.length) {
         pendingClean = pendingClean.filter(x => x.due > gameMin)
         due.forEach(x => {
-          apply({ expense: statsRef.current.expense + CLEAN_FEE })
-          pushFeed(`🧹 [${clockTag}] ${x.room}房退房清扫完成，耗材成本 ${CLEAN_FEE} 元`, -CLEAN_FEE)
+          pushFeed(`🧹 [${clockTag}] ${x.room}房退房清扫完成`, 0)
         })
       }
 
       if (ph.checkout > 0 && roll < EVENT_PROB.checkout && s.checkout + s.checkin < Math.round(occupiedRooms * 0.8)) {
-        const fee = Math.round(p * (0.85 + Math.random() * 0.3))
+        // ★ §26.3（P0b）：房费金额**不再由面板随机造**（原 `price × (0.85 + Math.random()*0.3)`）——
+        //   今日/本周流水一律取引擎日快照（同源）；这里只推进"已退房"计数与文案。
         pendingClean.push({ room, due: gameMin + 15 + Math.floor(Math.random() * 20) })
-        apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2), income: s.income + fee })
-        pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房），收款 ${fee} 元`, fee)
+        apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2) })
+        pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房）`, 0)
         tryLiveReview(true, clockTag, room)   // 退房时段：正常概率（实时评价主要来源）
       } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && s.checkin < Math.round(occupiedRooms * 0.6)) {
-        const fee = Math.round(p * (0.85 + Math.random() * 0.3))
         const g = ['商务出差', '家庭出游', '旅行散客', '会议客人'][Math.floor(Math.random() * 4)]
-        apply({ checkin: s.checkin + 1, guests: s.guests + 2, income: s.income + fee })
-        pushFeed(`🛎️ [${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人，收房费 ${fee} 元`, fee)
+        apply({ checkin: s.checkin + 1, guests: s.guests + 2 })
+        pushFeed(`🛎️ [${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
+        // ★ §26.3（P0b）：事件文案保留（教学趣味），但**金额一律为 0** —— 文案不许再自造金额
         const evs = [
-          { t: `🔧 ${room}房空调维修，更换零件`, amt: -(80 + Math.floor(Math.random() * 220)) },
-          { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）`, amt: -(60 + Math.floor(Math.random() * 120)) },
-          { t: `🍬 大堂便利角售出零食饮料`, amt: 15 + Math.floor(Math.random() * 60) },
-          { t: `😤 处理客诉，赠送果盘致歉`, amt: -(50 + Math.floor(Math.random() * 100)) },
-          { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果`, amt: -15 },
-          { t: `💳 为 ${room}房客人退还押金`, amt: -100 },
+          { t: `🔧 ${room}房空调维修，更换零件` },
+          { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）` },
+          { t: `🍬 大堂便利角售出零食饮料` },
+          { t: `😤 处理客诉，赠送果盘致歉` },
+          { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果` },
+          { t: `💳 为 ${room}房客人退还押金` },
         ]
         const ev = evs[Math.floor(Math.random() * evs.length)]
-        if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
-        else if (ev.amt < 0) apply({ expense: statsRef.current.expense - ev.amt })
-        pushFeed(`🕐 [${clockTag}] ${ev.t}`, ev.amt)
+        pushFeed(`🕐 [${clockTag}] ${ev.t}`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
         const evs = [
-          { t: `🌙 夜班保安巡场完毕，楼层安静`, amt: 0 },
-          { t: `🔦 夜班前台接待 1 位深夜到店客人`, amt: Math.round(p * 0.9) },
+          { t: `🌙 夜班保安巡场完毕，楼层安静` },
+          { t: `🔦 夜班前台接待 1 位深夜到店客人` },
         ]
         const ev = evs[Math.floor(Math.random() * evs.length)]
-        if (ev.amt > 0) apply({ income: statsRef.current.income + ev.amt })
-        pushFeed(`🌙 [${clockTag}] ${ev.t}`, ev.amt)
+        pushFeed(`🌙 [${clockTag}] ${ev.t}`, 0)
         tryLiveReview(false, clockTag, room)   // 深夜时段 ×1/5
       }
       persist()
@@ -323,15 +289,15 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #FBE3B3' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#F0FDF4', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>+{stats.income.toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? '#16A34A' : '#9CA3AF' }}>{今日流水 ? '+' + 今日流水.入账.toLocaleString() : '—'}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日入账</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#FEF2F2', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>-{stats.expense.toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? '#DC2626' : '#9CA3AF' }}>{今日流水 ? '-' + 今日流水.支出.toLocaleString() : '—'}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日支出</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: '#EFF6FF', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: stats.income - stats.expense >= 0 ? '#1D4ED8' : '#DC2626' }}>{stats.income - stats.expense >= 0 ? '+' : ''}{(stats.income - stats.expense).toLocaleString()}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: !今日流水 ? '#9CA3AF' : (今日流水.入账 - 今日流水.支出 >= 0 ? '#1D4ED8' : '#DC2626') }}>{!今日流水 ? '—' : ((今日流水.入账 - 今日流水.支出 >= 0 ? '+' : '') + (今日流水.入账 - 今日流水.支出).toLocaleString())}</div>
           <div style={{ fontSize: 9, color: '#9CA3AF' }}>今日净流入</div>
         </div>
       </div>
@@ -355,12 +321,16 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
           {f}
         </div>
       ))}
-      <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6, textAlign: 'center' }}>今日流水为模拟估算，实际收支以每周结算为准</div>
+      <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6, textAlign: 'center' }}>
+        {日快照
+          ? `今日流水取自引擎日快照（本周第 ${(Number.isInteger(dayIndex) ? dayIndex : 0) + 1}/7 天）· 本周累计 入账 +${本周累计.入账.toLocaleString()} / 支出 -${本周累计.支出.toLocaleString()} · 第 7 天 === 周报周值`
+          : '今日流水待本周结算后显示（引擎日快照未就绪）'}
+      </div>
     </div>
   )
 }
 
-export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions }) {
+export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
   // 🔴 E1（二期 · 唯一账本）：累计利润改走 metricDefs.sumNet —— 原自算 `Σ h.profit` 与
@@ -452,9 +422,15 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const roomsCell = [
     { l: '今日已退房', v: (liveStats ? liveStats.checkout : checkoutDone) + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
     { l: '今日已入住', v: liveStats ? liveStats.checkin + ' 间' : (dayProgress >= 14 ? checkinDone + ' 间' : '未开始'), c: '#16A34A', sub: '14:00 开办入住' },
-    // 🔴 口径修正（2026-09-22）：原来把"由间合成的人数"直接标成「在店客人 N 人」，且同屏房型在店数是另一套口径，
-    //    学生看到「63 人」与房型 36+21+6=63 会以为是同一件事（实际是巧合）。现在间与人分列、并标明"估算"。
-    { l: '在店客房', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 间', c: '#1D4ED8', live: true },
+    // 🔴 §26.2 P0a（2026-09-29 · 用户投诉「60 间店里显示在店客房 75 间」）：
+    //    原来这一格取的是 **人数**（liveStats.guests / liveGuests）而单位写「间」⇒ 屏幕上出现
+    //    「在店客房 75 间」> 总房量 60 间（一眼即知不可能）。现在【间与人分列】：
+    //    · 「在店客房」= **occRooms 口径**（与 settlement.occupiedRooms 同源 · **不许另算**）
+    //    · 「在店客人」= guests（**人** · 显式标「估算」）
+    //    ★ 守门：dataDict V5 已改成语义判据（「客房/房间/房量」标签的行里不得出现 guests 系标识符）——
+    //      所以"人"这一格的标签必须**不含**房间类词，否则会被自己的判据抓到。
+    { l: '在店客房', v: occRooms + ' 间', c: '#1D4ED8', live: true, sub: `出租率 ${occupancy}%` },
+    { l: '在店客人', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 人', c: '#7C3AED', live: true, sub: '按时段曲线估算' },
     { l: '明日预抵', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280' },
   ]
 
@@ -608,14 +584,16 @@ export default function HotelStatus({ report, brand, property, week, history, at
             <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{tp.name}</div>
               <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700 }}>{tp.price}元/晚</div>
-              <div style={{ fontSize: 9, color: '#9CA3AF' }}>{tp.total} 间 · 在店 {Math.round(tp.total * tp.occRate)}</div>
+              <div style={{ fontSize: 9, color: '#9CA3AF' }}>{tp.total} 间 · 在店 {occByType[idx]}</div>
             </div>
           ))}
         </div>
         <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
       </div>
 
-      <LiveFeed occupiedRooms={occRooms} price={price} week={week} rooms={rooms} brandLevel={brand?.level} attrs={A} decisions={decisions} onStats={setLiveStats} />
+      {/* ★ §26.3：dayFlows = App 以【与 doSettle 同一套入参】跑出的预览结算的 dailySnapshots（7 天）
+          ⇒ 面板"今日流水"与周报/结算**同源**。dayIndex 由 App 传 1-based（教学日序号推导），此处转 0-based。 */}
+      <LiveFeed occupiedRooms={occRooms} price={price} week={week} rooms={rooms} brandLevel={brand?.level} attrs={A} decisions={decisions} onStats={setLiveStats} dayFlows={dayFlows} dayIndex={(Number(dayIndex) || 1) - 1} />
 
       <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周

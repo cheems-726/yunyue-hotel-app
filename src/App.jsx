@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import SiteSelection from './SiteSelection.jsx'
 import { migrateSave, withScaleVersion, restoreFromCloud, SCALE } from './stateMigration.mjs'
 import BrandSelection from './BrandSelection.jsx'
@@ -278,8 +278,11 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         })()}</div>
       </div>
 
-      {/* 酒店状态面板（RPG属性） */}
-      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions} />
+      {/* 酒店状态面板（RPG属性）
+          ★ §26.3（P0b）：dayFlows = 本周【预览结算】的引擎日快照（7 天）· dayIndex = 教学日推得的本周第几天
+          ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。 */}
+      <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions}
+        dayFlows={weekPreview?.dailySnapshots} dayIndex={dayToWeekDay(classDayLocal).dayIndex} />
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -1976,6 +1979,33 @@ export default function App() {
       doSettle()
     }
   }
+  // ★★ §26.3（P0b · 2026-09-29 · 用户投诉「面板是第二本账 · 数据之间没有联动」）：
+  //   面板"今日流水/本周累计"必须与周报/结算**同源** ⇒ 这里按【与 doSettle 完全相同的入参派生】跑一次
+  //   **预览结算**（**无副作用**：不写 localStorage、不推 history、不写回 capital、不清危机应答）。
+  //   面板读它的 `dailySnapshots[本周第几天]`；Σ7天 === 周值 由引擎恒等式保证（`semesterRun12` 已钉 210 条）。
+  //   ★ 与 doSettle 的一致性由「同一套派生函数」保证：settleInputsFrom / decisionsByDayFrom / settleWeekSegmented
+  //     （不是复制公式）—— 若哪天 doSettle 换了入参派生点，本处必须同步，否则会退化成"两套口径"。
+  const weekPreview = useMemo(() => {
+    try {
+      if (!established || !brand) return null
+      const site = { ...(location?.attrs || { 客流: 3 }), district: location?.district }
+      let reviews = []
+      try { reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]') } catch (e) { reviews = [] }
+      let crisis = null
+      try { crisis = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null') } catch (e) { crisis = null }
+      const 输入 = settleInputsFrom({ reviews, week, crisis })
+      const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
+      const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
+      const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
+      return settleWeekSegmented({
+        site, brand, decisions: doneDecisions, decisionsByDay, week,
+        pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
+        liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount, crisisResponse: 输入.crisisResponse,
+        prevGoodRate, attrs, prevCapital: capital, bizMode,
+      })
+    } catch (e) { return null }   // 预览失败 ⇒ 面板显示"待结算"，绝不自造数字
+  }, [established, brand, location?.district, location?.attrs, doneDecisions, decisionChanges, week, attrs, capital, bizMode, history.length])
+
   // 🔴 E2：自动/手动【同一条路径】—— 自动成报就是调用本函数（参数只多一个 meta），
   //   所以「自动成报 === 手动结算」是结构保证，不是靠两处实现碰巧一致。
   function doSettle(meta = {}) {

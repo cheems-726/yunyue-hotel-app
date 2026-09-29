@@ -28,14 +28,42 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { settle, rentPerRoomDay } from '../src/settlement.js'   // 华住 B 分项要在真引擎上验 RevPAR 恒等式
 import { runSeason6 } from './_season6.mjs'      // W2-4：六组赛季聚合（与 W14 同一份场景，避免两处口径漂移）
 
-const VIOLATION_PATTERNS = [
+// ★ §26（2026-09-29）：导出违规模式表 —— 供 tests/livePanel.test.mjs 复用同一份判据做【判据自检】
+//   （"判据必须能抓到合成违规样本"）。**判据只有一份实现**，不在别处再写第二份正则。
+export const VIOLATION_PATTERNS = [
   { id: 'V1', desc: '本地重算资金（双重扣成本旧公式）', re: /500000\s*-\s*history\.reduce/g, whitelist: [] },
   { id: 'V2', desc: '房量读 property.rooms（应走 parseRooms）', re: /property\?\.rooms|property\.rooms/g, whitelist: ['src/Claim.jsx'] },   // Claim 物业卡展示话术已标注，允许
   { id: 'V3', desc: '组件端重算成本构成', re: /occupied\s*\*\s*\d+\s*:\s*\d+/g, whitelist: [] },
   // reviewRate.js 的 1 处 = rnd 兜底分支（`typeof rnd === 'function' ? rnd() : Math.random()`），
   // guests.test.mjs 的 T4 断言已精确限制它必须在兜底行 → 这里白名单放行，避免两套口径
   { id: 'V4', desc: '源码出现 Math.random（评价相关模块零容忍，其余 UI 动画允许）', re: /Math\.random/g, whitelist: ['src/HotelStatus.jsx', 'src/App.jsx', 'src/Reputation.jsx', 'src/Establishment.jsx', 'src/WeeklyReport.jsx', 'src/reviewRate.js'] },
-  { id: 'V5', desc: '把在店"间"标成"人"', re: /在店客人/, whitelist: [] },
+  // ═══ §26.2 / §26.4（2026-09-29 · P0a · 用户投诉「60 间店里显示在店客房 75 间」）═══════
+  // 🔴 V5 原写法查的是**旧字面「在店客人」**：标签 2026-09-22 改名「在店客房」后，
+  //    这条判据**永久绿（空转）** —— "声明了却抓不到"的典型（BL-11/13 + 扫描器空转双重复现）。
+  //    现改【按语义判】：**房间类标签**（客房/房间/房量）的渲染表达式里不得出现**人数系标识符**。
+  { id: 'V5', desc: '把"间"标成人数（房间类标签的行里出现 guests 系标识符）',
+    re: /l:\s*'[^']*(客房|房间|房量)[^']*'[^\n]*(guests|liveGuests|targetGuests)/g, whitelist: [] },
+  // 🔴 V6（新）：房型明细不得再用 `tp.total × tp.occRate` 这套**独立估算** ——
+  //    它与 occByType（最大余数法 · **Σ === occRooms**）不同源 ⇒ 同屏 45/48 打脸。
+  { id: 'V6', desc: '房型明细自造在店数（应走 occByType · Σ === occRooms）',
+    re: /tp\.total\s*\*\s*tp\.occRate/g, whitelist: [] },
+  // 🔴 V4b（V4 白名单**收窄** · §26.4）：白名单文件里 **金额路径禁止 Math.random**。
+  //    原白名单等于"HotelStatus.jsx 里任意 Math.random 都合法" ⇒ **自造金额永远合法** ⇒ 这正是本次翻车原因。
+  //    判据：同一行里既有 Math.random 又有金额关键词 ⇒ 违规（只允许动画/文案用随机）。
+  //    ⚠️ 已知边界（实测抓到自己的洞）：`const fee = Math.round(p * (0.85 + Math.random()*0.3))` 这一行
+  //       **不含**金额关键词（变量名是 p/fee）⇒ V4b 漏抓 ⇒ 故再加 V7/V8 两条**结构性**判据兜底。
+  { id: 'V4b', desc: '金额路径出现 Math.random（白名单只允许动画/文案）',
+    re: /Math\.random[^\n]*(金额|amt|income|expense|revenue|cost|price|流水)[^\n]*|(金额|amt|income|expense|revenue|cost|price|流水)[^\n]*Math\.random/g,
+    whitelist: [] },
+  // 🔴 V7（结构 · §26.3 P0b）：**面板不得自记收支** —— `apply({ income/expense: ... })` 一律违规。
+  //    今日流水必须来自引擎日快照（同源）；面板只推进计数（退房/入住/在店人数）。
+  { id: 'V7', desc: '面板自行累加收支（应取引擎日快照 · 两本账根因）',
+    re: /apply\(\{[^}]*\b(income|expense)\b/g, whitelist: [] },
+  // 🔴 V8（结构 · §26.3）：事件文案**不得自带金额** —— 两种写法都要抓：
+  //    ① 对象字段 `amt: <非 0>` ② 位置参数 `pushFeed('...', <非 0>)`
+  //    （★ 实测教训：RV-5 注入 `pushFeed(\`...\`, -80)` 时只查 `amt:` 的版本**漏抓** ⇒ 判据当场被自己的 RV 抓出来）
+  { id: 'V8', desc: '事件文案自造金额（金额应为 0 · 一律取引擎快照）',
+    re: /amt:\s*(?!0\b)[-+]?[\d(]|pushFeed\([^,]+,\s*(?!0\b\s*\))[-+]?[\d(]/g, whitelist: [] },
 ]
 
 const files = readdirSync('src').filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
