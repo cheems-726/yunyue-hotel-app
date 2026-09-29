@@ -142,6 +142,14 @@ console.log(`\n[5] ④ 不出界 + ★ 学期终点核对（第 ${TOTAL_WEEKS} �
   // 保证金退还发生的证据：期末净利合计含 +保证金（week12 那周 profit 偏高）
   const w12profit = runs['1勤奋型'].weeks[TOTAL_WEEKS - 1].profit
   ok(Number.isFinite(w12profit), `第 ${TOTAL_WEEKS} 周结算可运行（含保证金退还钩子路径）`)
+
+  // ★★ §24.2（P1 口径钉子）：【产物数字断言】—— 学期末六组期末资金钉进测试（值 = 当前实跑）。
+  //   此前六组数字只活在 console 输出与文档表格里 ⇒ 引擎一改 ⇒ 文档静默变旧
+  //   （"数字对≠引用它的地方都对"家族 · 本项目已犯 4 次）。失败信息指向对应文档。
+  const 钉子 = { '1勤奋型': 1773090, '2省钱型': 1339540, '3中间型': 1284009, '4躺平型': 1277999, '5激进型': 1231355, '6逆袭型': 1360278 }
+  const 钉坏 = Object.entries(钉子).filter(([n, v]) => runs[n].weeks[TOTAL_WEEKS - 1].capital !== v)
+  ok(钉坏.length === 0, '★★ 产物数字钉子：学期末六组期末资金 === 钉死值（变了 ⇒ 更新《数值平衡与口径总览》§四 与报告）',
+    钉坏.map(([n, v]) => `${n} 实跑 ${runs[n].weeks[TOTAL_WEEKS - 1].capital} ≠ 钉值 ${v}`).join(' | '))
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

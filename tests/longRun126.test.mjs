@@ -218,5 +218,15 @@ if (WANT_REPORT) {
   console.log(`\n（起始资金 = SCALE.IC_NEW = ${SCALE.IC_NEW.toLocaleString()} 元 · WEEKS=${WEEKS}）`)
 }
 
+// ★★ §24.2（P1 口径钉子）：【产物数字断言】—— 18 周长稳六组期末资金钉进测试（值 = 当前实跑）。
+//   失败信息指向对应文档（《18周（126天）长跑报告》§二 · 长稳口径 · 不当学期成绩引用）。
+//   注意：这些是【压测口径】的钉子；学期口径的钉子在 tests/semesterRun12.test.mjs（互斥口径各钉各的）。
+{
+  const 钉子 = { '1勤奋型': 1942060, '2省钱型': 1345868, '3中间型': 1283768, '4躺平型': 1257676, '5激进型': 1188509, '6逆袭型': 1334446 }
+  const 钉坏 = Object.entries(钉子).filter(([n, v]) => runs[n].weeks[WEEKS - 1].capital !== v)
+  ok(钉坏.length === 0, '★★ 产物数字钉子：18 周长稳六组期末资金 === 钉死值（变了 ⇒ 更新《18周（126天）长跑报告》§二）',
+    钉坏.map(([n, v]) => `${n} 实跑 ${runs[n].weeks[WEEKS - 1].capital} ≠ 钉值 ${v}`).join(' | '))
+}
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 process.exit(fail ? 1 : 0)

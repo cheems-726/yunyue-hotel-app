@@ -160,6 +160,53 @@ console.log('\n[6] §23.2 净利率分口径：引用净利率的现行报告必
   // RV 靶子：删掉任一报告的口径标注 ⇒ 本套件红
 }
 
+// ── [7] §24.2（P1 口径钉子）：两份现行文档的六组数字 === 测试钉值 ──
+//   链条：文档数字 === 套件钉值（本处断言）· 钉值 === 引擎实跑（semesterRun12 / longRun126 各自断言）
+//   ⇒ 引擎一改 ⇒ 套件钉子先红 ⇒ 文档数字再红（"文档静默变旧"被机器钉死 · 本项目已犯 4 次的家族）
+console.log('\n[7] §24.2 产物数字：两份现行文档的六组期末资金 === 套件钉值')
+{
+  const 取钉 = (测试文件) => {
+    const 测试路径 = path.join(APP, 'tests', 测试文件)
+    const m = /钉子 = \{([^}]+)\}/.exec(readFileSync(测试路径, 'utf8').replace(/\/\/.*$/gm, ''))
+    const out = {}
+    if (m) for (const [, k, v] of m[1].matchAll(/'([^']+)':\s*(\d+)/g)) out[k] = Number(v)
+    return out
+  }
+  const 取文档六组 = (文档文本, 表头片段) => {
+    // 定位表头片段所在表，逐行取【组名 + 第一个千分位数字】
+    const i = 文档文本.indexOf(表头片段)
+    if (i < 0) return null
+    const 段 = 文档文本.slice(i, i + 2500).split('\n').filter(l => l.startsWith('| '))
+    const out = {}
+    for (const line of 段) {
+      for (const [name, cap] of [['1勤奋型'], ['2省钱型'], ['3中间型'], ['4躺平型'], ['5激进型'], ['6逆袭型']]) {
+        if (!line.includes(name) || out[name]) continue
+        const m = /(\d{1,3}(?:,\d{3}){2,})/.exec(line)
+        if (m) out[name] = Number(m[1].replace(/,/g, ''))
+      }
+    }
+    return out
+  }
+  // ① 学期口径：数值平衡总览 §四 === semesterRun12 钉值
+  const 学期钉 = 取钉('semesterRun12.test.mjs')
+  const 平衡表 = 取文档六组(rd(path.join(DIR, '数值平衡与口径总览-20260929.md')) || '', '学期末资金（12 周 · 教学引用）')
+  ok(!!Object.keys(学期钉).length, 'semesterRun12 钉值可解析（6 组）', JSON.stringify(学期钉))
+  ok(!!平衡表 && Object.keys(平衡表).length === 6, '数值平衡总览 §四：六组可解析', JSON.stringify(平衡表))
+  const 学期差 = Object.keys(学期钉).filter(n => 平衡表[n] !== 学期钉[n])
+  ok(学期差.length === 0, '★ 学期口径：文档六组 === semesterRun12 钉值（数字对在口径上）',
+    学期差.map(n => `${n} 文档 ${平衡表[n]} ≠ 钉 ${学期钉[n]}`).join(' | '))
+  // ② 长稳口径：长跑报告 §二（B2 后现行列）=== longRun126 钉值
+  const 长稳钉 = 取钉('longRun126.test.mjs')
+  const 长跑表 = 取文档六组(rd(path.join(DIR, '18周（126天）长跑报告.md')) || '', '期末资金（B2 后 · 现行）')
+  ok(!!长跑表 && Object.keys(长跑表).length === 6, '长跑报告 §二：六组可解析（B2 后现行列）', JSON.stringify(长跑表))
+  const 长稳差 = Object.keys(长稳钉).filter(n => 长跑表[n] !== 长稳钉[n])
+  ok(长稳差.length === 0, '★ 长稳口径：文档六组 === longRun126 钉值（数字对在口径上）',
+    长稳差.map(n => `${n} 文档 ${长跑表[n]} ≠ 钉 ${长稳钉[n]}`).join(' | '))
+  // 两口径互斥的数值佐证（≠ 对方 ⇒ 拿错口径会用错数）
+  ok(Object.keys(学期钉).every(n => 学期钉[n] !== 长稳钉[n]), '两口径六组数值两两不同（拿错口径 ⇒ [7] 必红）')
+  // RV 靶子：改文档任一格数字 ⇒ [7] 必红
+}
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('验收口径：口径一改，凡引用该数值的产物报告若不重跑/不标注，门禁即红（§15.5 纪律机器化）')
 process.exit(fail ? 1 : 0)
