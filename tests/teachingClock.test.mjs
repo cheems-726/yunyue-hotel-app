@@ -1,7 +1,7 @@
 // T2.3 / Phase E1 · 教学日历时钟验收
 // 运行：node tests/teachingClock.test.mjs
 // 判据（§十七·六 E1）：早 8 点前 / 晚 23 点后，dateKey 与教学日历日一致；★ 对外数值零变化
-import { teachingDayKey, teachingDayNo, teachingDayOfMonth, inTeachingHours, TEACHING_DAY_START_HOUR } from '../src/teachingClock.mjs'
+import { teachingDayKey, teachingDayNo, teachingDayOfMonth, inTeachingHours, TEACHING_DAY_START_HOUR, nowMinutes, nowClockTag } from '../src/teachingClock.mjs'
 import { readFileSync, readdirSync } from 'node:fs'
 
 let pass = 0, fail = 0
@@ -71,6 +71,36 @@ console.log('\n[5] 对外数值零变化：结算链路不依赖本模块')
   const offenders = files.filter(f => f === 'settlement.js' || f === 'dayEngine.js' || f === 'attrs.js' || f === 'guests.js' || f === 'reviewRate.js')
     .filter(f => /teachingClock/.test(readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')))
   ok(offenders.length === 0, `结算/引擎模块不 import teachingClock（${offenders.length ? offenders.join(',') : '0 个'}）⇒ 对外数值零变化`)
+}
+
+console.log('\n[6] §26.5（P0d）面板时钟口径：真实时间 · 单一时钟源（用户第三次投诉）')
+{
+  const src = readFileSync(new URL('../src/HotelStatus.jsx', import.meta.url), 'utf8')
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  // ① 自走钟必须消失（原 `gameMin += 1` 每 2 秒 +1 分钟 = ×30 速 ⇒ 一个游戏日 48 真实分钟绕一圈）
+  ok(!/gameMin\s*\+=\s*1/.test(code), '★ 面板无自走游戏钟（`gameMin += 1` 已删 · 原为 ×30 速）')
+  ok(/gameMin\s*=\s*nowMinutes\(\)/.test(code), '★ 每 tick 重取真实时间（gameMin = nowMinutes()）')
+  ok(/nowClockTag\(\)/.test(code), '★ 流水时间戳走 nowClockTag()（与 nowMinutes 同源）')
+  // ② 单一时钟源：所有 phaseOf() 调用都从 nowMinutes 派生（同屏不再有两套时段）
+  const 时段调用 = code.split('\n').filter(l => /phaseOf\(/.test(l))
+  const 非真实源 = 时段调用.filter(l => !/nowMinutes/.test(l) && !/function phaseOf/.test(l) && !/const ph = phaseOf\(h\)/.test(l))
+  ok(非真实源.length === 0, '★ 所有 phaseOf() 调用都从 nowMinutes 派生（同屏不再有两套时段）', 非真实源.join(' | '))
+  ok(时段调用.length >= 2, `phaseOf 调用点解析到 ${时段调用.length} 处（判据有靶子 · 非空转）`)
+  // ③ simDate 不再混算（设备年 / getDay() 当周内偏移）
+  ok(/function simDate\(\)/.test(code), '★ simDate 已重定义为无参纯函数（只读本地真实日期）')
+  ok(!/new Date\(\)\.getFullYear\(\)/.test(code), '★ 源码不再读设备年当"游戏年历"起点（原混算来源之一）')
+  // ④ 教学日口径：日计数不再用"游戏日"
+  ok(!/Math\.floor\(gameMin \/ 1440\)/.test(code), '★ 日计数改教学日口径（原 floor(gameMin/1440) 是游戏日）')
+  // ⑤ nowMinutes / nowClockTag 语义（可确定复算 · 不依赖跑测时刻）
+  const d = new Date(2026, 8, 29, 8, 30, 0)   // 本地 2026-09-29 08:30
+  ok(nowMinutes(d) === 510, `nowMinutes(08:30) === 510（实际 ${nowMinutes(d)}）`)
+  ok(nowClockTag(d) === '08:30', `nowClockTag(08:30) === '08:30'（实际 ${nowClockTag(d)}）`)
+  ok(nowMinutes(d) === d.getHours() * 60 + d.getMinutes(), 'nowMinutes === 本地 h*60+m（本地时区 · 非 UTC）')
+  // ⑥ 模块内不得出现 UTC ISO 当日键（"早 8 点前落昨天"的旧坑）
+  //   ★ 必须先剥 `//` 行注释（模块头部就在讲"收编前用的是 toISOString"——不剥会把说明文字当违规）
+  const tc = readFileSync(new URL('../src/teachingClock.mjs', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  ok(!/toISOString/.test(tc), '★ teachingClock 不含 toISOString（UTC 零点为界的旧坑不存在）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

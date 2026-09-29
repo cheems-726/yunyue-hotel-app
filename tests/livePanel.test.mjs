@@ -64,12 +64,15 @@ console.log('\n[2] §26.2 P0a 结构断言：间 ≤ rooms（60）')
   ok(超.length === 0, `★ 写死数字的「间」格全部 ≤ ${ROOMS}（RV-2：把在店客房改成 999 ⇒ 此处必红）`,
     超.map(g => `${g.标签}=${g.n}`).join(' | '))
   // 非字面的格子：值必须来自白名单来源（房间/计数 · 且**已在 [1] 排除人数系**）
-  //   白名单 = 房间来源（occRooms/rooms/occByType…）+ 当日计数（已退房/已入住 —— 它们本身也是"间"的计数，
-  //   上界由源码的 0.8/0.6×occRooms 约束；这里放行是因为它们**不是人数**，且不以房量为分母）
-  const 白名单 = /^(occRooms|rooms|report\?\.rooms|occByType\b|Math\.(max|round|min)\()|liveStats\.(checkout|checkin)|checkoutDone|checkinDone|dayProgress/
+  //   ★ §26.3 P0b④（2026-09-29）：白名单从「本地计数」升级为**引擎日快照**——
+  //     今日已退房/已入住现在取 `今日快照.checkouts/checkins`（同源）；旧的
+  //     `liveStats.checkout / checkoutDone`（面板自行模拟）**不再放行**（那正是"两本账"的一种）。
+  const 白名单 = /^(occRooms|rooms|report\?\.rooms|occByType\b|Math\.(max|round|min)\()|今日快照\.(checkouts|checkins)/
   const 越界 = 间格.filter(g => g.n == null && !白名单.test(g.值))
-  ok(越界.length === 0, '★ 非字面「间」格的来源在房间白名单内（occRooms/rooms/occByType…）',
+  ok(越界.length === 0, '★ 非字面「间」格的来源在白名单内（occRooms/rooms/occByType/引擎日快照）',
     越界.map(g => `${g.标签} → ${g.值}`).join(' | '))
+  ok(!间格.some(g => /liveStats\.(checkout|checkin)|checkoutDone|checkinDone/.test(g.值)),
+    '★ 面板不再用自行模拟的退房/入住计数（那两格已改引擎日快照）')
   // 引擎侧真值：occupiedRooms ≤ rooms（拿真引擎跑，不是算术自证）
   const r = settle({ site: { 客流: 3 }, brand: '全季', decisions: {}, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
   ok(r.occupiedRooms <= r.rooms, `引擎实跑：occupiedRooms ${r.occupiedRooms} ≤ rooms ${r.rooms}（结构上不可能倒挂）`)
@@ -125,10 +128,34 @@ console.log('\n[5] §26.3 日快照恒等式：Σ7天 === 周值 · 第 7 天即
     ok(和('revenue') === r.revenue, `★ Σ日 revenue ${和('revenue')} === 周值 ${r.revenue}`)
     ok(和('cost') === r.totalCost, `★ Σ日 cost ${和('cost')} === 周值 ${r.totalCost}`)
     ok(和('occupied') === r.occupiedRooms, `★ Σ日 occupied === 周值 ${r.occupiedRooms}`)
+    // ★ §26.3 P0b④：逐日入住/退房 === 引擎周值（模型：一周内每间在店客房周转一次）
+    ok(和('checkins') === r.occupiedRooms, `★ Σ日 checkins === occupiedRooms ${r.occupiedRooms}（原为 0 = 缺口）`, `实际 ${和('checkins')}`)
+    ok(和('checkouts') === r.occupiedRooms, `★ Σ日 checkouts === occupiedRooms ${r.occupiedRooms}`, `实际 ${和('checkouts')}`)
+    ok(ds.some(d => d.checkouts > 0) && ds.some(d => d.checkins > 0),
+      '★ 逐日入住/退房非全零（防"改成 0 也算通过"）—— 面板那两格现在有真源')
     // 第 7 天 = 面板"第 7 天累计"的最后一项；累计到第 7 天即 === 周值（上面已证）
     ok(ds[6] && Number.isFinite(ds[6].revenue), '第 7 天快照存在且 revenue 有限（面板累计的末端）')
   }
   ok(r.revenue > 0 && r.totalCost > 0, `周值非零（防"全 0 也算过"）· revenue=${r.revenue} cost=${r.totalCost}`)
+}
+
+// ── [6] §26.7（P0e②）：教学日来源必须可见（服务端权威 / 离线本地推算 · 不许静默退化）──
+console.log('\n[6] §26.7 P0e② 教学日来源：消费服务端 classDay + 离线显式标注')
+{
+  const app = readFileSync(path.join(APP, 'src', 'App.jsx'), 'utf8')
+  ok(/fetchClassDay/.test(app), '★ App 确实取服务端 classDay（fetchClassDay）—— 原实现从未取过（权威缺席）')
+  ok(/serverClassDay/.test(app) && /权威日/.test(app), '★ App 有「服务端值优先、本地兜底」的解析（权威日）')
+  // ★ 收紧：必须核对**解析式本身**（只查"出现过 serverClassDay"太弱 —— 改成本地优先也照样出现 ⇒ RV-9 实测抓到）
+  ok(/const 权威日 = Number\.isFinite\(serverClassDay\)[^\n]*\? serverClassDay : classDayLocal/.test(app),
+    '★ 解析式 = 服务端优先、本地兜底（不是本地优先 —— 那等于权威缺席）')
+  ok(/日来源/.test(app) && /daySource=\{日来源\}/.test(app), '★ App 把来源传给面板（daySource）')
+  ok(/dayToWeekDay\(权威日\)/.test(app), '★ 日序号由权威日派生（不是各处分头读本地推算）')
+  ok(/classDay: \(typeof 权威日/.test(app), '★ 上传给服务端的 classDay 也是权威日（两端同一天）')
+  ok(/离线 · 本地推算/.test(HS), '★ 面板有「离线 · 本地推算」徽标（取不到服务端值时**可见**）')
+  ok(/daySource === 'local'/.test(HS), '★ 徽标只在本地兜底时出现（不是常驻噪声）')
+  // 判据自检：把"服务端优先"改成本地优先 ⇒ 解析式不再成立（防"改了也看不出来"）
+  const 合成 = 'const 权威日 = classDayLocal'
+  ok(!/受/i.test(合成) && !/serverClassDay/.test(合成), '判据自检：本地优先的写法不含 serverClassDay ⇒ 会被上面第 2 条抓到（判据非空转）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

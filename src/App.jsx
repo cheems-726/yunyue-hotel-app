@@ -13,7 +13,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -233,7 +233,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -283,7 +283,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。
           ★ 本组件（Business）自己**不**算预览 —— 由主组件算好传下来（weekPreview 在主组件作用域）。 */}
       <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions}
-        dayFlows={dayFlows} dayIndex={classDayIndex} />
+        dayFlows={dayFlows} dayIndex={classDayIndex} daySource={daySource} />
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -2074,21 +2074,35 @@ export default function App() {
     const first = Number.isFinite(openDayNo) ? openDayNo : (today - (Array.isArray(history) ? history.length : 0) * 7)
     return classDayFromLocal(first, today)
   })()
+  // ★★ §26.7（P0e②③ · 2026-09-29 · 用户第四次投诉「哪怕手机不打开数据也在跑？时间日期也是错的」）：
+  //   T9 明文写着「**服务端 classDay 才是唯一权威；本地只做等效显示**」，但客户端从头到尾**没取过**它
+  //   ⇒ 权威缺席 ⇒ 全班看到的日子由各自手机决定（老师推的周与学生看到的天必然错位）。
+  //   现在：① 取服务端值（`class_day_now`）；② 取到 ⇒ **一律用服务端值**；
+  //   ③ 取不到（`<= 0` = RPC 不可用/未部署）⇒ 用本地推算，但**必须显式标「离线 · 本地推算」**
+  //      （**不许静默退化** —— 静默退化正是"日期随机"的根因）。
+  const [serverClassDay, setServerClassDay] = useState(null)
+  useEffect(() => {
+    let 活 = true
+    fetchClassDay().then(d => { if (活 && Number(d) > 0) setServerClassDay(Number(d)) }).catch(() => {})
+    return () => { 活 = false }
+  }, [])
+  const 权威日 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? serverClassDay : classDayLocal
+  const 日来源 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? 'server' : 'local'
   const autoInfo = !established || !brand || finished
     ? { due: false, reason: '未进入经营' }
-    : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, classDayLocal, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
+    : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, 权威日, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
 
   // 🔴 E2：决策改动 → 本周流水（第几天改了什么）。只记【改动】，不记首次填写（首次填写不算"改"）
   const prevDecisionsRef = React.useRef(null)
   React.useEffect(() => {
     if (!established || !brand) return
-    const day = dayToWeekDay(classDayLocal).dayIndex
+    const day = dayToWeekDay(权威日).dayIndex
     const prev = prevDecisionsRef.current
     if (prev == null) { prevDecisionsRef.current = doneDecisions; return }
     const rows = diffDecisions(prev, doneDecisions, { day })
     prevDecisionsRef.current = doneDecisions
     if (rows.length) setDecisionChanges(list => [...list, ...rows])
-  }, [doneDecisions, established, brand, classDayLocal])
+  }, [doneDecisions, established, brand, 权威日])
 
   // 🔴 E2 自动成报：7 个游戏日满 ⇒ 自动出周报（学生不用点任何按钮）
   React.useEffect(() => {
@@ -2332,7 +2346,7 @@ export default function App() {
               const rec = 记录一条({
                 decisionId: id, answer,
                 operatorId: user?.uid || null, operatorName: user?.name || null,
-                week, classDay: (typeof classDayLocal === 'number' || typeof classDayLocal === 'object') ? (classDayLocal?.valueOf?.() ?? null) : (classDayLocal ?? null),
+                week, classDay: (typeof 权威日 === 'number' || typeof 权威日 === 'object') ? (权威日?.valueOf?.() ?? null) : (权威日 ?? null),
                 profitImpact: null,
               })
               return rec ? [...(prev || []), rec] : (prev || [])
@@ -2374,7 +2388,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(classDayLocal).dayIndex} dayFlows={weekPreview?.dailySnapshots} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,

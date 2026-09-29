@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const HS = path.join(APP, 'src', 'HotelStatus.jsx')
+const APPJS = path.join(APP, 'src', 'App.jsx')
 
 const 跑 = (文件) => {
   try {
@@ -28,12 +29,12 @@ const 跑DD = () => 跑(path.join(APP, 'tests', 'dataDict.check.mjs'))
 const 判据 = (跑fn, 片段) => Object.assign(跑fn, { 红: r => r.code !== 0 && (!片段 || r.out.includes(片段)) })
 
 let 全过 = true
-const 例 = (label, 旧, 新, 判) => {
-  const 备份 = readFileSync(HS, 'utf8')
+const 例 = (label, 旧, 新, 判, 文件 = HS) => {
+  const 备份 = readFileSync(文件, 'utf8')
   if (!备份.includes(旧)) { console.log(`     ❌ 找不到靶子：${label}\n        （期望片段：${旧.slice(0, 80)}）`); 全过 = false; return }
-  writeFileSync(HS, 备份.replace(旧, 新))
+  writeFileSync(文件, 备份.replace(旧, 新))
   const r = 判()
-  writeFileSync(HS, 备份)
+  writeFileSync(文件, 备份)
   const 掉红 = 判.红(r)
   const 还原 = 判()
   const 复绿 = 还原.code === 0
@@ -77,5 +78,15 @@ console.log('【RV §26 P0a/P0b】面板口径三种缺陷逐一注入（改一�
   "          : '今日流水待本周结算后显示（引擎日快照未就绪）'}\n      <div>今日流水为模拟估算，实际收支以每周结算为准</div>",
   判据(跑LP, '模拟估算'))
 
-console.log(`\n判定：${全过 ? '✓ §26 RV 全过（7 条靶子 · 红→绿可逆）' : '❌ 有靶子未按预期变红/还原'}`)
+例('RV-8 删掉「离线 · 本地推算」徽标（退回"静默退化"）',
+  "        {daySource === 'local' && (",
+  "        {false && (",
+  判据(跑LP, '离线 · 本地推算'))
+
+例('RV-9 把"服务端优先"改成本地优先（权威缺席 · 静默退化）',
+  "const 权威日 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? serverClassDay : classDayLocal",
+  "const 权威日 = classDayLocal",
+  判据(跑LP, 'serverClassDay'), APPJS)
+
+console.log(`\n判定：${全过 ? '✓ §26 RV 全过（9 条靶子 · 红→绿可逆）' : '❌ 有靶子未按预期变红/还原'}`)
 process.exit(全过 ? 0 : 1)

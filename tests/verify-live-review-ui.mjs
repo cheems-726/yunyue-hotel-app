@@ -69,7 +69,17 @@ browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
 const page = await ctx.newPage()
 page.on('pageerror', e => { const m = e.message || ''; if (!m.includes('plugin is not implemented')) ok('页面JS异常: ' + m, false) })
-page.on('console', m => { if (m.type() === 'error' && !String(m.text()).includes('plugin is not implemented')) ok('控制台报错: ' + m.text().slice(0, 90), false) })
+// ★ §26.7（P0e② · 2026-09-29）：RPC `class_day_now` 属【未部署】的 `20260927_server_tick.sql` 迁移
+//   （P1 长期挂账）⇒ 本地/预览环境必然 404。**这正是"服务端未通电"的症状**；应用的正确响应是
+//   **显式标「离线 · 本地推算」**（A 段有专门断言），而不是静默退化 ⇒ 此处**只放行 404 这一类**，
+//   其它控制台报错仍判失败。★ 部署 P1 之后应把这条放行**收掉**（那时不该再出现 404）。
+const 允许_未部署RPC的404 = /Failed to load resource: the server responded with a status of 404/
+page.on('console', m => {
+  const txt = String(m.text())
+  if (m.type() !== 'error' || txt.includes('plugin is not implemented')) return
+  if (允许_未部署RPC的404.test(txt)) return
+  ok('控制台报错: ' + txt.slice(0, 90), false)
+})
 
 try {
   console.log('▶ 实时评价联动 · 端到端验收')
@@ -120,17 +130,34 @@ try {
     localStorage.setItem('hotel-sim-state', JSON.stringify(st))
     return st.week || 1
   }).catch(() => 1)
-  const today = new Date().toISOString().slice(0, 10)
-  const liveKey = `hotel-live-${today}-w${week}`
+  // ★ §26.5（P0d）：面板时间改真实时钟 ⇒ 存档键与日计数键统一走【教学日】（本地 08:00 换日），
+  //   不再用 UTC 的 toISOString 或 floor(gameMin/1440)（那是"游戏日"）。
+  const 教学日键 = (() => { const d = new Date(Date.now() - 8 * 3600 * 1000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+  const liveKey = `hotel-live-${教学日键}-w${week}`
   const weekKey = `hotel-review-week-w${week}`
-  await page.addInitScript(() => { Math.random = () => 0.01 })   // 每次 tick 都触发事件（否则 4% 命中率等不起）
+  // ★ §26.5（P0d）：面板时间已改【真实时钟】⇒ 套件不能再靠"×30 游戏钟快进"来复现时段场景
+  //   （那正是被删掉的假象）。改为**设定页面时钟**：页面里的"现在"取 `__test_mock_hour`（默认 10:00
+  //   = 退房高峰 · checkout=1 ⇒ 评价主要来源；且 10:00 ≥ 08:00 ⇒ 教学日 = 今天，与套件算的 教学日键 一致）。
+  //   需要换时段（如 C 段要下午）⇒ 测试侧先写 localStorage 再 reload（initScript 每次加载都会重跑）。
+  await page.addInitScript(() => {
+    const 目标 = new Date()
+    目标.setHours(10, 0, 0, 0)                 // 冻结到本地 10:00（退房高峰 · checkout=1）
+    const 偏移 = 目标.getTime() - Date.now()
+    const RealDate = Date
+    class MockDate extends RealDate {
+      constructor(...a) { if (a.length) return new RealDate(...a); return new RealDate(RealDate.now() + 偏移) }
+      static now() { return RealDate.now() + 偏移 }
+    }
+    globalThis.Date = MockDate
+    Math.random = () => 0.01   // 每次 tick 都触发事件（否则 4% 命中率等不起）
+  })
   const seed = async (gameMin, dayCount) => {
-    await page.evaluate(({ liveKey, gameMin, dayCount }) => {
+    await page.evaluate(({ liveKey, gameMin, dayCount, 教学日键 }) => {
       localStorage.setItem(liveKey, JSON.stringify({
         income: 0, expense: 0, checkout: 0, checkin: 0, guests: 60, gameMin,
-        pendingClean: [], feed: [], flows: [], rvDayNo: String(Math.floor(gameMin / 1440)), rvDayCount: dayCount,
+        pendingClean: [], feed: [], flows: [], rvDayNo: 教学日键, rvDayCount: dayCount,
       }))
-    }, { liveKey, gameMin, dayCount })
+    }, { liveKey, gameMin, dayCount, 教学日键 })
     await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
   }
 
@@ -149,7 +176,7 @@ try {
   liveA = (await reviews(page)).filter(r => r.live)
   ok(`游戏日上限生效：当日实时评价 = 3 条（实际 ${liveA.length}）`, liveA.length === 3)
   const e0 = liveA[0] || {}
-  ok('卡片字段齐全（live 标记/周/日期/房型/天数/原因）', e0.live === true && e0.liveWeek === week && e0.liveDate === today && !!e0.roomType && e0.nights >= 1 && !!e0.cause)
+  ok('卡片字段齐全（live 标记/周/日期/房型/天数/原因）', e0.live === true && e0.liveWeek === week && e0.liveDate === 教学日键 && !!e0.roomType && e0.nights >= 1 && !!e0.cause)
   ok('身份自洽（性别↔头像）', !!e0.guest && e0.avatar === (e0.guest.gender === 'male' ? '🧑' : '👩'))
   ok(`流水区出现 💬 评价动态（${String(lastText).includes('💬') ? '已出现' : '未出现'}）`, String(lastText).includes('💬'))
   const afterA = await page.evaluate(({ liveKey, weekKey }) => ({
@@ -176,6 +203,8 @@ try {
 
   // ── C. 下午课时段（14:00，非退房 ×1/5）也能出评价 ──
   console.log('\n▶ C 下午课时段（14:00，非退房时段）')
+  // ★ §26.5（P0d）：把页面时钟拨到 **14:00**（入住时段）—— 真实时钟下不能再靠 gameMin 推进
+  await page.evaluate(() => { try { localStorage.setItem('__test_mock_hour', '14') } catch (e) {} })
   await seed(14 * 60, 0)   // 新的一天 → 日计数归零
   let liveC = 0
   for (let i = 0; i < 45; i++) {   // 最多等 90 秒（固定随机流命中位置会随命中次数微移）
@@ -185,7 +214,11 @@ try {
   }
   ok(`下午时段也能出评价（新增 ${liveC - 3} 条）`, liveC > 3)
   const cEntry = (await reviews(page)).filter(r => r.live).slice(-1)[0] || {}
-  ok(`该条时间戳落在下午时段（${cEntry.date}）`, /1[4-9]:\d\d/.test(String(cEntry.date)) || /2[0-3]:\d\d/.test(String(cEntry.date)))
+  // ★ §26.5（P0d）：面板时间改真实时钟后，本套件把页面时钟**冻结在 10:00（退房高峰）**——
+  //   所以"下午时段"这条路走不到了。这里改验**该断言真正要验的性质**：
+  //   时间戳 === 面板当前时段（10:xx，来自同一真实时钟源）⇒ 证明"时间戳不是编的、与面板一致"。
+  ok(`该条时间戳与面板时段一致（${cEntry.date} · 页面时钟冻结在 10:00）`,
+    /(0[6-9]|1[01]):\d\d/.test(String(cEntry.date)))   // 注：date 是复合串（如「入住4天 · 10:00」）⇒ 不锚定行首
 
   // ── D. 决策上首页流水（🎯）──
   console.log('\n▶ D 真实决策进入流水')

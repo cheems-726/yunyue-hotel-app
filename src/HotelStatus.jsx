@@ -4,21 +4,23 @@ import { parseRooms } from './settlement.js'
 import { normalizeAttrs, ATTR_LABELS, applyDecisionToAttrs } from './attrs.js'
 import { rollLiveReview } from './liveReview.js'
 import { guestsRng } from './guests.js'
-import { teachingDayKey, teachingDayOfMonth } from './teachingClock.mjs'
+import { teachingDayKey, teachingDayOfMonth, nowMinutes, nowClockTag } from './teachingClock.mjs'
 import { decisions as DEC_CATALOG } from './decisions.js'
 import { sumNet } from './metricDefs.mjs'
 
 // 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
-// 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按"游戏内时间片"（15/30/60分钟）推进
-const OPENING = { month: 3, day: 1 }
+// 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按真实作息的时段权重推进
+// ★ §26.5（P0d）：原 `OPENING = { month: 3, day: 1 }`（「游戏年历起点」）在 simDate 重定义为
+//   教学日历（本地真实日期）后**已无消费者** ⇒ 删除（不留"看着像时间源"的死常量）。
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-function simDate(week) {
-  const base = new Date(new Date().getFullYear(), OPENING.month - 1, OPENING.day)
-  const today = new Date()
-  const offset = (week - 1) * 7 + today.getDay()
-  const d = new Date(base.getTime() + offset * 86400000)
-  return { text: `${d.getMonth() + 1}月${d.getDate()}日`, weekday: WEEKDAYS[today.getDay()] }
+// ★ §26.5（P0d）：simDate 重定义为【教学日历 = 本地真实日期】—— 原实现把
+//   「设备当前年 + 设备 getDay() + week」三处**混算** ⇒ 既不是真实日历也不是游戏日历（第三套时钟的来源）。
+//   现口径 = **本地真实日期**（依据第一性目标「1 真实日 = 1 游戏日」⇒ 面板日历就该是真实日历）；
+//   经营周号另有 week 显示（服务端 classDay 权威时以它为准）。**不读设备年、不用 getDay() 当周内偏移。**
+function simDate() {
+  const d = new Date()                     // 本地时区
+  return { text: `${d.getMonth() + 1}月${d.getDate()}日`, weekday: WEEKDAYS[d.getDay()] }
 }
 
 function fmtGameClock(mins) {
@@ -105,12 +107,16 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       }
     }
     if (!Array.isArray(st.pendingClean)) st.pendingClean = []
+    // ★ §26.5（P0d）：旧档的 due 是「游戏分钟」（分钟级），改真实毫秒后必然立即到期 ⇒ 直接丢弃陈旧条目
+    st.pendingClean = st.pendingClean.filter(x => x && typeof x.due === 'number' && x.due > 1e12)
     if (!Array.isArray(st.feed)) st.feed = []
     if (!Array.isArray(st.flows)) st.flows = []
     setStats({ checkout: st.checkout, checkin: st.checkin, income: st.income, expense: st.expense, guests: st.guests })
     setFeed(st.feed)
     flowsRef.current = st.flows // 恢复流水明细（ref 为唯一数据源，重启后不回退）
-    let gameMin = st.gameMin || new Date().getHours() * 60 + new Date().getMinutes()
+    // ★ §26.5（P0d）：不再从存档续「游戏钟」（那正是"关掉就冻结 / 越跑越偏"的来源）——
+    //   初值即真实时间；此后每 tick 由 nowMinutes() 重取（存档里的 gameMin 仅作追溯，不参与显示）
+    let gameMin = nowMinutes()
     let pendingClean = st.pendingClean
     // 实时评价计数（口径②·刷新不归零）：游戏日计数随 LiveFeed 存档走，当周计数用独立键
     let rvDayNo = st.rvDayNo || ''
@@ -161,7 +167,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     function tryLiveReview(isCheckout, clockTag, room) {
       try {   // 实时评价是锦上添花：任何异常都不许打断经营流水
         if (document.hidden) return
-        const dayNo = String(Math.floor(gameMin / 1440))
+        const dayNo = teachingDayKey()   // ★ §26.5（P0d）：教学日口径（原 floor(gameMin/1440) = 游戏日，与教学日界线不一致）
         if (dayNo !== rvDayNo) { rvDayNo = dayNo; rvDayCount = 0 }   // 跨游戏日 → 当日计数归零
         const list = readRvList()
         const ctx = rvCtxRef.current
@@ -188,10 +194,14 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     const loop = () => {
       // 页面不可见时暂停推进（省电）：保持定时器节奏，但跳过时钟推进/状态更新/写盘
       if (document.hidden) { timer = setTimeout(loop, 2000); return }
-      gameMin += 1
-      const hm = ((gameMin % 1440) + 1440) % 1440
-      const h = Math.floor(hm / 60)
-      const clockTag = `${String(h).padStart(2, '0')}:${String(hm % 60).padStart(2, '0')}`
+      // ★★ §26.5（P0d · 2026-09-29 · 用户第三次投诉「时间的实时，现在哪里？」）：
+      //   【删除自走游戏钟】—— 原 `gameMin += 1`（每 2 秒 +1 分钟 = **×30 速**）会让游戏时间
+      //   与真实时间彻底脱钩（一个游戏日 48 真实分钟绕一圈，屏幕上是 07:xx 而时段条走真实 8:30 档）。
+      //   现在**每 tick 重取真实时间**（唯一来源 = teachingClock.nowMinutes）⇒ 面板时间 === 真实时间。
+      //   依据：帮助页自己声明的设计意图「随真实时间流动」+ 第一性目标「1 真实日 = 1 游戏日」。
+      gameMin = nowMinutes()
+      const h = Math.floor(gameMin / 60)
+      const clockTag = nowClockTag()
       const ph = phaseOf(h)
       const s = statsRef.current
       const room = 100 + Math.floor(Math.random() * 5) * 100 + Math.floor(Math.random() * 8) + 1
@@ -199,7 +209,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
 
       // 到期的清扫任务：退房后 15-35 游戏分钟完成
       // ★ §26.3（P0b）：清扫耗材成本**不再由面板自记**（引擎周成本已含部门成本）⇒ 此处只报事件，不动任何金额
-      const due = pendingClean.filter(x => x.due <= gameMin)
+      const due = pendingClean.filter(x => x.due <= Date.now())   // ★ P0d：真实时间比较
       if (due.length) {
         pendingClean = pendingClean.filter(x => x.due > gameMin)
         due.forEach(x => {
@@ -210,7 +220,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       if (ph.checkout > 0 && roll < EVENT_PROB.checkout && s.checkout + s.checkin < Math.round(occupiedRooms * 0.8)) {
         // ★ §26.3（P0b）：房费金额**不再由面板随机造**（原 `price × (0.85 + Math.random()*0.3)`）——
         //   今日/本周流水一律取引擎日快照（同源）；这里只推进"已退房"计数与文案。
-        pendingClean.push({ room, due: gameMin + 15 + Math.floor(Math.random() * 20) })
+        pendingClean.push({ room, due: Date.now() + (15 + Math.floor(Math.random() * 20)) * 60000 })   // ★ P0d：真实毫秒（原为「gameMin+15」的分钟制）
         apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2) })
         pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房）`, 0)
         tryLiveReview(true, clockTag, room)   // 退房时段：正常概率（实时评价主要来源）
@@ -330,7 +340,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
   )
 }
 
-export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex }) {
+export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex, daySource }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
   // 🔴 E1（二期 · 唯一账本）：累计利润改走 metricDefs.sumNet —— 原自算 `Σ h.profit` 与
@@ -375,8 +385,12 @@ export default function HotelStatus({ report, brand, property, week, history, at
     const t = setInterval(() => setClock(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
-  const phase = phaseOf(clock.getHours())
+  // ★ §26.5（P0d）：单一时钟源 —— 顶栏时段与 LiveFeed 都从 nowMinutes() 派生（不再各读各的时钟）
+  const phase = phaseOf(Math.floor(nowMinutes(clock) / 60))
   const dayProgress = clock.getHours() + clock.getMinutes() / 60
+  // ★ §26.3 P0b④：本周第几天（0 基）与「今日已退房/已入住」的**引擎同源**取值
+  const 日序 = (Number(dayIndex) || 1) - 1
+  const 今日快照 = Array.isArray(dayFlows) && dayFlows.length === 7 && 日序 >= 0 && 日序 < 7 ? dayFlows[日序] : null
 
   const fullGuests = occRooms * 2 - 3
   const targetGuests = Math.max(2, Math.round(fullGuests * phase.curve))
@@ -417,11 +431,13 @@ export default function HotelStatus({ report, brand, property, week, history, at
 
   const hasData = report || history.length > 0
   const title = getTitle(occupancy, goodRate, quality)
-  const dateInfo = useMemo(() => simDate(week), [week])
+  const dateInfo = useMemo(() => simDate(), [teachingDayKey(clock)])
 
   const roomsCell = [
-    { l: '今日已退房', v: (liveStats ? liveStats.checkout : checkoutDone) + ' 间', c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
-    { l: '今日已入住', v: liveStats ? liveStats.checkin + ' 间' : (dayProgress >= 14 ? checkinDone + ' 间' : '未开始'), c: '#16A34A', sub: '14:00 开办入住' },
+    // ★ §26.3 P0b④：今日已退房/已入住改取**引擎日快照**的 checkins/checkouts（同源）
+    //   —— 原值由面板按 0.4/0.35 系数自行模拟（与引擎不同源）。取不到快照 ⇒ 显示「—」（不编造）。
+    { l: '今日已退房', v: (今日快照 ? 今日快照.checkouts + ' 间' : '—'), c: '#D97706', sub: phase.name === '退房高峰' ? '高峰进行中' : '12:00 前退房' },
+    { l: '今日已入住', v: (今日快照 ? 今日快照.checkins + ' 间' : '—'), c: '#16A34A', sub: '14:00 开办入住' },
     // 🔴 §26.2 P0a（2026-09-29 · 用户投诉「60 间店里显示在店客房 75 间」）：
     //    原来这一格取的是 **人数**（liveStats.guests / liveGuests）而单位写「间」⇒ 屏幕上出现
     //    「在店客房 75 间」> 总房量 60 间（一眼即知不可能）。现在【间与人分列】：
@@ -509,6 +525,14 @@ export default function HotelStatus({ report, brand, property, week, history, at
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF4E0', borderRadius: 10, padding: '7px 12px', marginBottom: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>📅 今天是 {dateInfo.text}（{dateInfo.weekday}）</span>
+        {/* ★ §26.7（P0e②）：教学日的**来源必须可见** —— 服务端权威 vs 本地推算。
+            「取不到就静默用本地」正是"日期随机"的根因（T9：服务端 classDay 才是唯一权威）。 */}
+        {daySource === 'local' && (
+          <span title="未取到服务端教学日（class_day_now 不可用）⇒ 本机推算。日期可能与其他组/老师不同步。"
+            style={{ fontSize: 9, fontWeight: 700, color: '#B45309', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 6, padding: '1px 5px', marginLeft: 6 }}>
+            离线 · 本地推算
+          </span>
+        )}
         <span style={{ fontSize: 10, color: '#9CA3AF' }}>第 {week} 周 · 开业第 {(week - 1) * 7 + new Date().getDay() + 1} 天</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10, padding: '6px 12px', marginBottom: 12 }}>
