@@ -40,11 +40,16 @@ for (const [name, dec] of Object.entries(CASES)) {
 // 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
 //   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
 //   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
+// 🔴 §22.2 重基线（2026-09-29 · B2）：week1 收【开业一次性费用】、week12 退【保证金】
+//   （单源 franchiseFees.一次性费用清单；结果字段 oneTimeFees）⇒ 恒等式再加两项：
+//     totalCost 含 +开业费用 −保证金退还。GOP 本身【不含】两者（筹建期费用 / 资产回冲）。
 const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
+const 开业费 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 : 0)
+const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     // ① GOP 恒等式（本批决策均不含 renovation ⇒ 无需扣改造费）
     // W10 口径：GOP = 营收 −（变动成本 + 固定部门成本 + 营销 + OTA）；
-    //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款)
-    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0) - 两费(n))
+    //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款 − 两费 − 开业费 + 退还)
+    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0) - 两费(n) - 开业费(n) + 退还(n))
     if (n.gop !== expectGop) { idOK = false; rows.push(`w${w} gop=${n.gop} 期望=${expectGop}`) }
     // ③ gopRate
     const expectRate = n.revenue > 0 ? n.gop / n.revenue : 0
@@ -52,9 +57,11 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
     if (!(n.rentCost > 0)) rentOK = false
     // ② 零变化：既有三个数值必须与"改前引擎"逐项一致（T1.1 的 ×7 已由 shadow/severity 证明，这里只钉 B3 的拆租金动作）
     // B 类重基线：结构不变量（营收/租金/房价/房量/出租率）必须零漂移；成本差额必须恰为 deptCost
+    // ★ §22.2：差额恒等式按 B2 新科目扩展（− o 是【改前引擎】settle-old 快照，它没有 B2 科目 ⇒ 新科目全算在 Δ 里）
     const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
-    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) || n.profit !== o.profit - n.deptCost - Δrent - 两费(n)) {
+    const Δ开业 = 开业费(n), Δ退还 = 退还(n)
+    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital

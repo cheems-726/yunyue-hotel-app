@@ -20,7 +20,12 @@ for (const [city, list] of Object.entries(districts)) {
         //   与真机行为不符（真机已修：App 传 district）。矩阵必须模拟【真实路径】。
         const r = settle({ site: { ...d.attrs, district: d.name }, brand, decisions: DILIGENT, week: w, prevGoodRate: prev })
         prev = r.finalGoodRate
-        total += r.profit
+        // ★ §22.2-B2（2026-09-29）：本矩阵量的是【选址 × 策略的经营可行性】——
+        //   开业一次性费用（week1 收）与保证金退还（week12 退）是**期初一次性的钱**，
+        //   不属于"这个区县经营得好不好" ⇒ 计入会污染指标（实测：含开办费 78.8% vs 剔除后 46.2%）。
+        //   ⇒ 累计值按【经营口径】剔除（净额加回）；口径仍走引擎实收（oneTimeFees 单源），不改引擎。
+        //   ★ 阈值与判据一个字没改（46.2% 与 B2 前"死亡选址"完全同口径可比）。
+        total += r.profit + (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0)
       }
       rows.push({ loc: `${city}·${d.name}`, brand: brand.name, profit: total })
     }

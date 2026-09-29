@@ -131,11 +131,12 @@ const eNotes = []
   if (r.occupancy !== occ期望) termFindings.push({ rule: 'E1(OCC恒等式)', file: 'src/settlement.js', line: 0, ctx: `occupancy ${r.occupancy} ≠ round(occupiedRooms/rooms×100) = ${occ期望}`, expect: 'OCC = 售出间夜 ÷ 可售间夜（缺口表 A2）' })
 
   // E2 · B6 单房运营成本 CPOR：运营成本 ÷ 售出间夜，且必须 0 < CPOR < ADR（单房经济性常识）
+  // ★ §22.2-B2：CPOR 是【运营】口径 ⇒ 剔除开业一次性费用/保证金退还（它们不是"每卖一间房的成本"）
   const 售出间夜 = r.occupiedRooms * 7
-  const CPOR = (r.totalCost - r.rentCost) / 售出间夜
+  const CPOR = (r.totalCost - r.rentCost - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0)) / 售出间夜
   const ADR = r.revenue / 售出间夜
-  if (!(CPOR > 0 && CPOR < ADR)) termFindings.push({ rule: 'E2(CPOR)', file: 'src/settlement.js', line: 0, ctx: `CPOR ${CPOR.toFixed(1)} 不在 (0, ADR ${ADR.toFixed(1)}) 区间内`, expect: '每卖一间房的运营成本应低于房价（缺口表 B6）' })
-  else eNotes.push(`E2 CPOR：${CPOR.toFixed(1)} 元/间夜 < ADR ${ADR.toFixed(1)} 元/间夜 ⇒ 单房经济性成立（缺口表 B6）`)
+  if (!(CPOR > 0 && CPOR < ADR)) termFindings.push({ rule: 'E2(CPOR)', file: 'src/settlement.js', line: 0, ctx: `CPOR ${CPOR.toFixed(1)} 不在 (0, ADR ${ADR.toFixed(1)}) 区间内`, expect: '每卖一间房的运营成本应低于房价（缺口表 B6 · B2 起按经营口径剔一次性项）' })
+  else eNotes.push(`E2 CPOR：${CPOR.toFixed(1)} 元/间夜 < ADR ${ADR.toFixed(1)} 元/间夜 ⇒ 单房经济性成立（缺口表 B6 · 剔一次性项）`)
 
   // E3 · B8 OTA 佣金率：登记在案的 15%（平台合作）/ 11%（自营投放）必须在源码里以该形态存在
   const st = codeOnly(readFileSync('src/settlement.js', 'utf8'))
@@ -149,18 +150,22 @@ const eNotes = []
   //   §14.3（D53-a/b/c）把 P3 拆成两步并已开工第一步 ⇒ 旧判据的前提消失，但【意图不变】：
   //   仍要机器判死"半接"，只是边界改成 D53 的边界：
   //     ① 月度费率（管理费 + CRS）必须【经单源】接入结算 —— 不许只在展示层
-  //     ② capex / 一次性费用【不得】进引擎（D53-c：另立概念、后续批次）
+  //     ② ★ §22.2-B2（2026-09-29）更新：一次性费用（加盟费/保证金/筹备费/PMS初装）**已经进引擎**
+  //        （D53-c 说的"另立批次"就是本批）⇒ ①② 的边界更新为：【经单源 一次性费用清单()】接入；
+  //        **capex（单房造价）仍然不得进引擎**（B3 只立"投资总额"展示口径，不动 E1 账本）
   //     ③ 引擎里不得出现费率字面量（费率只许来自 src/franchiseFees.mjs）
   const fm = readFileSync('src/franchiseModel.mjs', 'utf8')
   const 费率在册 = /0\.05/.test(fm) && /0\.08/.test(fm) && /0\.035/.test(fm)
   const 月度费率已接 = /from '\.\/franchiseFees\.mjs'/.test(st) && /franchiseFees\(/.test(st)
-  const capex未接 = !/单房造价|保证金|筹备费|加盟费/.test(st)
+  const 一次性已接单源 = /一次性费用清单\(/.test(st) && /from '\.\/franchiseFees\.mjs'/.test(st)
+  const capex未接 = !/单房造价/.test(st)                                   // ★ B2 后只禁 capex（造价），其余已合法接入
   const 费率无字面量 = !/revenue \* 0\.0(5|8|24|74)/.test(st)
   if (!费率在册) termFindings.push({ rule: 'E4(费率在册)', file: 'src/franchiseModel.mjs', line: 0, ctx: '管理费 5% / CRS 8% / 官方渠道上限 3.5% 三者未同时存在', expect: '缺口表 B9/B10 的参考费率必须登记在册' })
   if (!月度费率已接) termFindings.push({ rule: 'E4(月度费率未接)', file: 'src/settlement.js', line: 0, ctx: '未从 franchiseFees.mjs 单源计费', expect: 'D53-b：管理费+CRS 必须经单源进结算（不许只在展示层）' })
-  if (!capex未接) termFindings.push({ rule: 'E4(capex越界)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现 capex/一次性费用科目', expect: 'D53-c：capex 与一次性费用不进引擎（另立批次）' })
+  if (!一次性已接单源) termFindings.push({ rule: 'E4(一次性未经单源)', file: 'src/settlement.js', line: 0, ctx: '引擎用了一次性费用但未经 一次性费用清单() 单源', expect: '§22.2-B2：一次性费用必须经单源进结算（不许在引擎另写一份清单）' })
+  if (!capex未接) termFindings.push({ rule: 'E4(capex越界)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现 capex（单房造价）科目', expect: 'D53-c：capex 不进 E1 账本（B3 只立展示口径「投资总额」，不改结算）' })
   if (!费率无字面量) termFindings.push({ rule: 'E4(费率字面量)', file: 'src/settlement.js', line: 0, ctx: '引擎里出现"营收 × 费率"字面量', expect: '费率只许来自 src/franchiseFees.mjs（单源）' })
-  if (费率在册 && 月度费率已接 && capex未接 && 费率无字面量) eNotes.push('E4 加盟费率：在册（5%/8%/3.5%）· 月度费率经单源已接（D53-b）· capex 未接（D53-c）⇒ 与 §14.3 决策边界自洽')
+  if (费率在册 && 月度费率已接 && 一次性已接单源 && capex未接 && 费率无字面量) eNotes.push('E4 加盟费率：在册（5%/8%/3.5%）· 月度费率经单源已接（D53-b）· 一次性费用经单源已接（§22.2-B2）· capex 未接（D53-c）⇒ 与当前决策边界自洽')
 
   // E5 · C3/C4 回收期链（缺口表给的外部权威答案）：华住链 ⇒ 现金流 136.875 万 ⇒ 回收期 ≈ 4.5 年
   const 年现金流 = 6570000 - 6570000 * 0.45 - 1916250 - 328500   // 按缺口表：年收入 − 部门成本45% − 租金 − 特许费

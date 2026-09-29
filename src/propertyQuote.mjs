@@ -70,16 +70,20 @@ export function propertyQuote(brand, property, districtAttrs) {
   const 加盟费 = (rooms && 加盟费单价) ? Math.max(rooms * 加盟费单价, 加盟费下限 ?? 0) : null
   const 保证金 = t?.保证金?.值 ?? null
   const 筹备费 = t?.筹备费?.值 ?? null
-  const 总投资 = (rooms && 单房造价) ? (rooms * 单房造价) + (加盟费 ?? 0) + (保证金 ?? 0) + (筹备费 ?? 0) : null
+  // ★ §22.2-B3：投资总额口径补 PMS 初装（= 造价×房量 + 加盟费 + 保证金 + 筹备费 + PMS初装）
+  //   与引擎 B2 的一次性费用同源（franchiseModel 三件套）⇒ 报价单总投资 === 开业一次性费用合计（含造价）
+  const PMS初装 = t?.PMS?.初装?.值 ?? null
+  const 总投资 = (rooms && 单房造价) ? (rooms * 单房造价) + (加盟费 ?? 0) + (保证金 ?? 0) + (筹备费 ?? 0) + (PMS初装 ?? 0) : null
 
   // ★ §16.2-B1（2026-09-28）：总投资是【四项之和】——但半接入品牌只有造价一项有来源。
   //   原先那句 note 一律写"单房造价×房量 + 加盟费 + 保证金 + 筹备费"，对缺项品牌会**读成四项都算进去了**
   //   （那就是"空位填了≠填的是真的"的同族）。⇒ 这里逐项点名：算进去的 / 待补的，写在口径里。
-  const 四项 = [
+  const 四项 = [   // ★ B3：实为五项（历史变量名保留）
     { 名: '单房造价×房量', 值: (rooms && 单房造价) ? rooms * 单房造价 : null },
     { 名: '加盟费', 值: 加盟费 },
     { 名: '保证金', 值: 保证金 },
     { 名: '筹备费', 值: 筹备费 },
+    { 名: 'PMS初装', 值: PMS初装 },
   ]
   const 已计入 = 四项.filter(x => x.值 != null).map(x => x.名)
   const 未计入待补 = 四项.filter(x => x.值 == null).map(x => x.名)
@@ -117,7 +121,7 @@ export function propertyQuote(brand, property, districtAttrs) {
       note: 筹备费 ? '开业筹备（franchiseModel 三件套）' : '筹备费暂无来源数据' },
     { label: '总投资（估算）', value: 总投资, unit: '元', fmt: 'wan', status: 总投资 ? STATUS.DERIVED : STATUS.MISSING,
       note: 总投资
-        ? `投资侧口径 ${总投资口径}（未含装修档/软装/IT/布草——见 W3-3 待补）`
+        ? `投资侧口径 ${总投资口径}（未含装修档/软装/IT/布草——见 W3-3 待补；★ 保证金期末可退，实际占用更少）`
         : '缺单房造价 ⇒ 无法估算' },
   ]
 

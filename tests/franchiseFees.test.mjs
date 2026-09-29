@@ -10,7 +10,7 @@
 //   [6] 界面标注层：哪些费率"已实收"、哪些"待接入"必须如实标注
 import { readFileSync } from 'node:fs'
 import { settle } from '../src/settlement.js'
-import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比 } from '../src/franchiseFees.mjs'
+import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比, 一次性费用清单 } from '../src/franchiseFees.mjs'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
 
 let pass = 0, fail = 0
@@ -176,7 +176,10 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
 {
   const 非货币 = (r) => {
     const c = { ...r }
-    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees']) delete c[k]
+    // ★ §22.2 重基线：oneTimeFees 也是【货币字段】（B2 开业费用/保证金退还）⇒ 一并剥掉再比非货币
+    // ★ insights 也是【货币派生展示】（文案按本周盈/亏分支；实测 diff 仅此一处且正是 盈利→亏损）——
+    //   随机序列是否被扰动由 events/generatedReviews/goodRate/attrsAfter 等 rand 驱动字段兜住。
+    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees', 'oneTimeFees', 'insights']) delete c[k]
     return c
   }
   const bad = []
@@ -185,34 +188,43 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
     if (JSON.stringify(非货币(now)) !== JSON.stringify(非货币(base))) bad.push(名)
   }
   ok(bad.length === 0, '★ 事件/差评/好评率/竞品/口碑等【非货币字段】逐字节不变（费用是纯算术，随机序列未动）', bad.join(','))
-  // 差量对拍：货币字段的差额必须【恰好】等于两费
+  // 差量对拍：货币字段的差额必须【恰好】等于 两费 + 开业一次性费用
+  // ★ §22.2 重基线（B2）：week1 结算现在还收【开业一次性费用】（加盟费/保证金/筹备/筹备保证金/PMS初装）
+  //   ⇒ 差额恒等式扩展为「+两费 +开业费用」；金额全部从【单源】推导，不写死
   const 差坏 = []
   for (const 名 of 已接入品牌) {
     for (const mode of ['direct', 'ota']) {
       const now = 跑(名, 1, null, mode), base = fixture.用例[`${名}|${mode}|w1`]
       const f = franchiseFees(名, base.revenue)
-      const 期望合计 = Math.round(base.revenue * 0.05) + Math.round(base.revenue * 0.024)
+      const 一次性 = 一次性费用清单(品牌[名])
+      const 期望合计 = Math.round(base.revenue * 0.05) + Math.round(base.revenue * 0.024) + 一次性.合计
       if (now.totalCost - base.totalCost !== 期望合计) 差坏.push(`${名}·${mode} 成本差 ${now.totalCost - base.totalCost}≠${期望合计}`)
       if (base.netProfit - now.netProfit !== 期望合计) 差坏.push(`${名}·${mode} 净利差`)
       if (base.capital - now.capital !== 期望合计) 差坏.push(`${名}·${mode} 资金差`)
       if (now.revenue !== base.revenue) 差坏.push(`${名}·${mode} 营收被改`)
       if (now.franchiseFees.合计 !== f.合计) 差坏.push(`${名}·${mode} 返回的 franchiseFees 与单源不一致`)
+      if (now.oneTimeFees?.开业费用 !== 一次性.合计) 差坏.push(`${名}·${mode} oneTimeFees 与单源不一致`)
     }
   }
-  ok(差坏.length === 0, '★ 差量对拍：成本 +两费 · 净利 −两费 · 资金 −两费 · 营收不变（6 个用例逐一）', 差坏.join(' '))
-  // 死亡选址/难度结论的连带（报告复述用）：六组净利率整体下移 ~7.4pp —— 此处只锁"下移量 === 费率"
-  const 全季base = fixture.用例['全季|direct|w1'], 全季now = 跑('全季')
-  const 下移pp = (全季base.netProfit / 全季base.revenue - 全季now.netProfit / 全季now.revenue) * 100
-  ok(Math.abs(下移pp - 7.4) < 0.05, '★ 净利率下移 ≈ 7.4 个百分点（决策端"全体降档、排序不变"证据在实际引擎路径上复现）', 下移pp.toFixed(3) + 'pp')
+  ok(差坏.length === 0, '★ 差量对拍：成本/净利/资金 差额 === 两费+开业一次性费用 · 营收不变（6 个用例逐一）', 差坏.join(' '))
+  // 死亡选址/难度结论的连带（报告复述用）：两费使净利率下移 ~7.4pp
+  // ★ §22.2 重基线：week1 净利率现在被开业费用主导 ⇒ 本证据改按【剔除一次性费用后的经营口径】测
+  //   （下移 = (净利+两费)/营收 − 净利/营收，与开业费用无关 —— 恰好隔离出"两费"这一个因素）
+  const 全季now = 跑('全季')
+  const 两费 = 全季now.franchiseFees.合计
+  const 下移pp = ((全季now.netProfit + 两费) / 全季now.revenue - 全季now.netProfit / 全季now.revenue) * 100
+  ok(Math.abs(下移pp - 7.4) < 0.05, '★ 两费净利率下移 ≈ 7.4 个百分点（剔除 B2 开业费用后隔离测量；排序不变证据不变）', 下移pp.toFixed(3) + 'pp')
 }
 
 // ── [5] 单源纪律层（BL-7 同族守门）────────────────────────────────────
 console.log('\n[5] 单源纪律：引擎里不许出现第二份加盟费率公式')
 {
   const engine = strip(src('settlement.js'))
-  ok(/import\s*\{\s*franchiseFees\s*\}\s*from\s*'\.\/franchiseFees\.mjs'/.test(engine), '引擎从 franchiseFees.mjs 引入计费（单一计算点）')
+  ok(/import\s*\{[^}]*franchiseFees[^}]*一次性费用清单[^}]*\}\s*from\s*'\.\/franchiseFees\.mjs'/.test(engine), '引擎从 franchiseFees.mjs 引入计费（单一计算点 · B2 起含一次性费用清单）')
   ok(!/revenue\s*\*\s*0\.0(5|08|24|74)/.test(engine), '引擎里没有任何"营收 × 费率"字面量（费率只许来自 franchiseFees）')
-  ok(!/管理费|保证金|筹备费|单房造价/.test(engine), '引擎里不出现加盟科目名（科目名只许来自单源的 依据[]）')
+  // ★ §22.2：引擎新增「开业一次性费用/保证金退还」两个显示键 —— 金额全部来自单源 一次性费用清单()，
+  //   本处禁列不含『保证金』（退还键是资产回冲的展示名，不是第二份费率公式）；费率类科目名仍禁。
+  ok(!/管理费|筹备费|单房造价/.test(engine), '引擎里不出现加盟【费率类】科目名（科目名只许来自单源；B2 的退还键已核不计入）')
   const 计费 = strip(src('franchiseFees.mjs'))
   ok(!/0\.024|0\.074|7\.4/.test(计费) || !/Math\.round\([^)]*\*\s*0\.024/.test(计费),
     '计费模块里不硬编码 2.4%/7.4%（有效费率由 名义 × 渠道占比 推出）')
@@ -233,8 +245,11 @@ console.log('\n[6] 界面标注：哪些费率已实收 / 哪些仍是待补')
   const 已收 = 清单.filter(x => x.状态 === '已实收').map(x => x.科目)
   const 待 = 清单.filter(x => x.状态 !== '已实收')
   ok(已收.includes('加盟管理费') && 已收.includes('加盟CRS'), '已实收：管理费 + CRS（与引擎实收科目一致）', 已收.join(','))
-  ok(待.some(x => /加盟费/.test(x.科目)) && 待.some(x => /保证金/.test(x.科目)) && 待.some(x => /capex|单房造价/.test(x.科目)),
-    '★ 待接入如实列出：加盟费 · 保证金 · 筹备费/PMS · capex（不许让学生以为全是真金）', 待.map(x => x.科目).join(','))
+// ★ §22.2 重基线（B2）：加盟费/保证金/筹备费/PMS 已翻为【已实收】；capex 仍『不接』（D53-c）
+  //   （★ 已收 是【科目字符串数组】—— x 直接是字符串，不是对象）
+  ok(已收.some(x => /加盟费/.test(x)) && 已收.some(x => /保证金/.test(x)) && 已收.some(x => /筹备费|PMS/.test(x)),
+    '★ B2 一次性费用已实收：加盟费 · 保证金 · 筹备费/PMS（不再是待接入）', 已收.join(','))
+  ok(待.some(x => /capex|单房造价/.test(x.科目)), '★ capex 仍如实标『不接』（D53-c：另立概念，不在资金流）', 待.map(x => x.科目).join(','))
   ok(待.every(x => x.说明 && x.说明.length > 6), '每项待接入都写了【为什么不接】（不是空白或"其他"）')
   const 未清单 = 费用清单('汉庭快捷')
   ok(未清单.length === 1 && 未清单[0].状态 === '待补' && /缺/.test(未清单[0].说明),

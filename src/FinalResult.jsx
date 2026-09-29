@@ -7,6 +7,7 @@ import { fetchMyNotes } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { qualityOf } from './attrs.js'
 import { GOP_LABEL, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, wan2, scoreOf, totalRevenue } from './metricDefs.mjs'
+import { TOTAL_WEEKS, 学期口径说明 } from './semester.mjs'   // §22.2-B2：学期长度单源（保证金退还周）
 
 // 最终成绩：12周经营结束后，按四维评分
 // 评分权重：利润40% / 口碑25% / 出租率20% / 差评处理率15%
@@ -21,7 +22,6 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   }, [user?.uid])
   // 品质分唯一来源 = 属性池（N2 统一；旧档经 normalizeAttrs 兜底回退 60）
   const quality = qualityOf(attrs)
-  const TOTAL_WEEKS = 12
 
   // 汇总12周经营数据
   // 🔴 W2-3（W10 正名）：评分基准 = 【净利润】。净利润与既有 profit 同值（引擎恒等式 netProfit === profit），
@@ -42,6 +42,11 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   const negativeScore = S.negativeScore
   const finalScore = S.finalScore
   const grade = S.grade
+
+  // ★ §22.2-B2（2026-09-29）：保证金在【第  周结算时】退还（引擎钩子）。
+  //   若本学期没跑到第  周（老师提前结业/锁周），退款没发生 ⇒ 如实标注（不假装退过）。
+  const 保证金未退 = (history.length > 0 && history.length < TOTAL_WEEKS && history[0]?.oneTimeFees?.保证金)
+    ? history[0].oneTimeFees.保证金 : null   // 实收多少退多少 —— 读 week1 结算的快照（单源，不重算）
 
   const dimensions = [
     // 🔴 W2-3：40% 维度的名字 = 【累计净利润】（= 评分基准）；数值口径未变（netProfit === profit）
@@ -87,6 +92,15 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
             </div>
           </div>
         ))}
+        {/* ★ §22.2-B2：保证金在【第 {TOTAL_WEEKS} 周结算时】退还（引擎钩子）。
+            本学期没跑满 ⇒ 退款未发生 ⇒ 如实标注（不假装退过、也不把它算进成绩）。
+            金额读 week1 结算快照的实收（单源），不在此重算。 */}
+        {保证金未退 != null && (
+          <div style={{ fontSize: 11, color: '#92400E', background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '6px 8px', lineHeight: 1.7 }}>
+            ℹ️ 本学期经营了 {history.length}/{TOTAL_WEEKS} 周 —— 开业缴存的保证金 {(保证金未退 / 10000).toFixed(1)} 万
+            <b>尚未退还</b>（按口径在第 {TOTAL_WEEKS} 周结算时全额退还）。{学期口径说明}
+          </div>
+        )}
       </div>
 
       {/* 学期回顾：策略画像 + 称号轨迹 */}

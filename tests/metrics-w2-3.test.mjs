@@ -27,14 +27,17 @@ console.log('\n[1] 引擎层：恒等式（六组 × 12 周 = 72 周）')
   let idBad = [], rateBad = [], sepBad = [], proNameBad = [], basisBad = []
   for (const g of perGroup) {
     for (const r of g.weeksList) {
-      // §14.3：加盟两费也进净利链（GOP 口径不含它，但净利润含）—— 恒等式随口径同步
-      const expectNet = r.gop - r.rentCost - (r.overbookCompensation || 0) - (r.renovationCost || 0) - (r.eventFine || 0)
+    // §14.3：加盟两费也进净利链（GOP 口径不含它，但净利润含）—— 恒等式随口径同步
+    // ★ §22.2-B2：开业一次性费用（week1）/保证金退还（week12）也进净利链（GOP 仍不含）⇒ 恒等式再加两项
+    const expectNet = r.gop - r.rentCost - (r.overbookCompensation || 0) - (r.renovationCost || 0) - (r.eventFine || 0)
         - (r.franchiseFees ? r.franchiseFees.合计 : 0)
+        - (r.oneTimeFees ? r.oneTimeFees.开业费用 : 0) + (r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
       if (r.netProfit !== expectNet) idBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.gopRate - (r.revenue > 0 ? r.gop / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.netProfitRate - (r.revenue > 0 ? r.netProfit / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week} net`)
-      // 两个指标必须真的分开：GOP 不含租金 ⇒ 租金 > 0 时 GOP > 净利润
-      if (!(r.gop > r.netProfit)) sepBad.push(`${g.name} w${r.week} gop=${r.gop} net=${r.netProfit}`)
+      // 两个指标必须真的分开：GOP 不含租金/一次性项 ⇒ 常规周（租金>0 且无一次性项）GOP > 净利润
+      // ★ §22.2-B2：week1（开业费）/week12（退还）是口径内合法例外 —— 这两周不约束大小关系
+      if (!r.oneTimeFees && !(r.gop > r.netProfit)) sepBad.push(`${g.name} w${r.week} gop=${r.gop} net=${r.netProfit}`)
     }
     // ★ 正名不改数值语义：净利润 === 既有 profit（★ 这条是"零变化"的根）
     if (g.weeksList.some(r => r.netProfit !== r.profit)) proNameBad.push(g.name)

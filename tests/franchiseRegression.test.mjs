@@ -63,11 +63,15 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   const 未给 = settle({ ...BASE })
   const ota = settle({ ...BASE, bizMode: 'ota' })
   // 自营锚点 = 各批次报告引用的"单配置"（与 W2/W3 报告同源）
-  ok(direct.revenue === 126140 && direct.totalCost === 81087 && direct.netProfit === 45053,   // 🔴 §14.3 重基线：+加盟两费 9334
-    `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（与文档锚点一致）`)
+  // 🔴 §22.2 重基线（B2）：week1 结算含【开业一次性费用】（全季 80 间 = 349,000）
+  //    ⇒ totalCost 81087+349000=430087 · netProfit 45053−349000=−303947 · 营收不变
+  ok(direct.revenue === 126140 && direct.totalCost === 430087 && direct.netProfit === -303947,
+    `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（§22.2 锚点：含开业一次性费用 349,000）`)
+  ok(direct.oneTimeFees?.开业费用 === 349000, `开业一次性费用明细随行（${direct.oneTimeFees?.开业费用}）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')
-  ok(ota.revenue === 168980 && ota.totalCost === 118425 && ota.netProfit === 50555,   // 🔴 §14.3 重基线：+加盟两费 12505
-    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（各自锚点，与自营不同属正常）`)
+  // 🔴 §22.2 重基线：OTA 同受 B2 影响 ⇒ 118425+349000=467425 · 50555−349000=−298445 · 营收不变
+  ok(ota.revenue === 168980 && ota.totalCost === 467425 && ota.netProfit === -298445,
+    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（§22.2 锚点）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
     `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}`)
   ok(direct.weeklyExpenses['OTA佣金'] === 0, '自营模式不收 OTA 佣金')
@@ -122,8 +126,9 @@ console.log('\n[B] 加盟数值：费率 / 年现金流 / 回本年数')
   ok(Math.abs(l.yearly.现金流 - (l.yearly.营收 - l.yearly.租金 - l.yearly.部门固定 - l.yearly.变动与其他 - l.yearly.加盟两费)) < 1e-9,
     `年现金流口径自洽 = ${Math.round(l.yearly.现金流)}（营收 − 租金 − 部门固定 − 变动 − 加盟两费，读引擎实收）`)
   // 与 W3-1 同源锚点（此处复核一条，证明"加盟数值与引擎同源"）
-  ok(Math.abs(l.yearly.现金流 - l.引擎利润年化) < 1e-9,   // 🔴 §14.3：钱账改读引擎实收 ⇒ 两者恒等（差 0）
-    `同源锚点复核：现金流 === 引擎利润年化 ${Math.round(l.引擎利润年化)}（含两费，差 0）`)
+  // 🔴 §22.2-B2：锚点恒等式更新 —— 现金流 === 引擎利润年化 + 一次性项年化（两边都剔开业费用，差 0）
+  ok(Math.abs(l.yearly.现金流 - (l.引擎利润年化 + l.一次性项年化)) < 1e-9,
+    `同源锚点复核：现金流 === 引擎利润年化 ${Math.round(l.引擎利润年化)} + 一次性项年化 ${Math.round(l.一次性项年化)}（含两费 · 剔一次性，差 0）`)
   // 回本 = 总投资 ÷ 年现金流（正分支/负分支都要如实）
   const p = paybackText(l)
   if (l.yearly.现金流 > 0) ok(Math.abs(l.回本年 - 报价总投资 / l.yearly.现金流) < 1e-9 && /约 [\d.]+ 年（外推/.test(p.text),

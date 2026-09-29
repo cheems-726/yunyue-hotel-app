@@ -10,7 +10,8 @@ import { SCALE } from './stateMigration.mjs'
 // §14.3 G3 二步：加盟两费（管理费 + CRS）进资金流——只对【汉庭 / 全季 / 海友】计费，
 //   未接入品牌返回 null ⇒ 本文件对它们的输出【逐字节不变】（水位线；守门 tests/franchiseFees.test.mjs）
 //   纪律：计费在 src/franchiseFees.mjs 【唯一计算点】—— 本处只调用，不重写公式（E1 账本单源）
-import { franchiseFees } from './franchiseFees.mjs'
+import { franchiseFees, 一次性费用清单 } from './franchiseFees.mjs'
+import { TOTAL_WEEKS } from './semester.mjs'
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -539,17 +540,30 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
-  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费
+  // ★ §22.2-B2（2026-09-29）· 一次性费用进资金流（开业收 · 保证金期末退）
+  //    【唯一计算点】在 franchiseFees.一次性费用清单 —— 本处只调用，不重写公式（E1 账本单源）。
+  //    · 开业（week === 1）⇒ 加盟费/保证金/筹备费/筹备保证金/PMS初装 **计入 totalCost**
+  //      ⇒ "选加盟开局直接少四分之一"（全季 80 间 ≈ 34.9 万 ≈ IC 的 23%）
+  //    · 期末（week === TOTAL_WEEKS）⇒ **保证金全额退还**（负成本科目）⇒ 资金自动加回
+  //    · 未接入品牌 ⇒ 清单为 null ⇒ 两项都为 0 ⇒ **结算输出逐字节不变**（水位线同 §14.3）
+  //    · 幂等：settle 是纯函数（同 week 同结果），且"每周只结算一次"由上层幂等键保证
+  //      ⇒ 重复结算同周不会重复收/退
+  //    · ★ 口径注：GOP【不含】一次性费用（筹建期费用不属经营毛利）；净利润【含】（学生真金白银）
+  const 一次性 = 一次性费用清单(brand)
+  const 开业费用 = (week === 1 && 一次性) ? 一次性.合计 : 0
+  const 保证金退还 = (week === TOTAL_WEEKS && 一次性) ? (一次性.保证金 ?? 0) : 0
+  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还
 
   // 10. 利润
   const profit = revenue - totalCost
   // 🔴 T1.4/B3：GOP（经营毛利）= 营收 −（变动成本 + 营销 + OTA佣金 + 其他部门成本）
   //    口径【不含】租金 / 加盟费 / 利息（术语表 §B1）；"其他部门成本"本模型尚未建模 ⇒ 记 0。
   //    ⚠️ 因此本项目的 GOP 率会高于华住真实口径 —— 属【模型范围差异】，不是算错（见 §〇.9）。
+  //    ★ §22.2-B2：开业一次性费用/保证金退还也【不进 GOP】（筹建期/资产回冲，不属经营毛利）。
   const gopDeptCost = variableCost + deptCost
   const gop = revenue - (gopDeptCost + marketingCost + otaCommission)   // gopDeptCost = 变动+固定部门成本（勿再叠加 variableCost）
   const gopRate = revenue > 0 ? gop / revenue : 0
-  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine - 加盟两费
+  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine - 加盟两费 - 开业费用 + 保证金退还
   const netProfitRate = revenue > 0 ? netProfit / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
@@ -767,6 +781,9 @@ for (let i = 0; i < reviewCount; i++) {
     // §14.3：未接入品牌不加任何键（否则输出字节会变）⇒ 用条件展开
     //   键名/金额均取自 franchiseFees 的 依据[]（单源：界面与断言都读同一份）
     ...(加盟 ? Object.fromEntries(加盟.依据.map(x => [x.科目, x.金额])) : {}),
+    // ★ §22.2-B2：开业一次性费用 / 保证金退还（负成本）—— 未接入品牌同样不加键（水位线）
+    ...(开业费用 ? { 开业一次性费用: 开业费用 } : {}),
+    ...(保证金退还 ? { 保证金退还: -保证金退还 } : {}),
   }
   const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
 
@@ -843,6 +860,8 @@ for (let i = 0; i < reviewCount; i++) {
     weeklyExpenses,
     // §14.3：未接入品牌不发这个键 ⇒ 返回值逐字节不变（零变化水位线）
     ...(加盟 ? { franchiseFees: 加盟 } : {}),
+  // ★ §22.2-B2：一次性费用随行（UI 标"这笔钱期末会回来"；断言读同一份）—— 未接入品牌不带键（水位线）
+  ...(开业费用 || 保证金退还 ? { oneTimeFees: { 开业费用, 保证金退还, 清单: 一次性?.项 ?? [], 合计: 一次性?.合计 ?? 0, 保证金: 一次性?.保证金 ?? 0 } } : {}),
     capital: Math.round(capital),
     isBankrupt, isWarning, bizMode,
     competitors: competitorActions,

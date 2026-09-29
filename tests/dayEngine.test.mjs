@@ -132,7 +132,9 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
 const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
       // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加【历史周租差】（旧引擎不暴露 rentCost）
   const Δ租 = r.rentCost - 旧租周(r, dec)
-  if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r)) {
+  // 🔴 §22.2-B2：week1 开业费用 / week12 保证金退还 —— 同为“未被 ×7 的科目”（null-safe）
+const 一次性净额 = (x) => (x && x.oneTimeFees ? x.oneTimeFees.开业费用 - x.oneTimeFees.保证金退还 : 0)
+if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) + 一次性净额(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r) - 一次性净额(r)) {
         zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
       }
       pg = r.finalGoodRate; cap = r.capital

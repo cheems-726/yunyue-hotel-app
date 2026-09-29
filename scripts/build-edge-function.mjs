@@ -40,6 +40,7 @@ const MODULES = [
   'weeklyAuto.mjs',   // E2（N-2）：自动周报纯核心（serverTick 依赖它 ⇒ 必须一起组装）
   'weekInputs.mjs',   // §16.2-B7（铺满批次）：周内输入单源（serverTick 依赖它 ⇒ 必须一起组装）
   'weekSegments.mjs', // §19.1（单元1·B4）：周内分段定价（serverTick 依赖它 ⇒ 必须一起组装）
+  'semester.mjs',     // §22.2-B2：学期长度单源（TOTAL_WEEKS；settlement/franchiseFees 依赖 ⇒ 必须一起组装）
                       //   ★ 漏登后果与 §14.3 那次同族：部署后 Edge Function import 404。
                       //     本批我是先漏登、被 serverTick 的「导入闭包」断言当场拦下的 —— 守门在跑。
   'deptCosts.mjs',

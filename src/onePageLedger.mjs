@@ -59,7 +59,10 @@ export function onePageLedger({ brand, property, districtAttrs }) {
   //   页面再乘一遍就是【重复计】，且费率一改页面就静默漂移。
   const 两费周 = w.franchiseFees ? w.franchiseFees.合计 : 0
   const 年加盟两费 = w.franchiseFees ? 两费周 * WEEKS_PER_YEAR : null          // null = 该品牌未接入（待补，不补数）
-  const 年变动与其他 = (w.totalCost - w.rentCost - w.deptCost - 两费周) * WEEKS_PER_YEAR   // 引擎实测；已剔除两费避免重复计
+  // ★ §22.2-B2：一次性费用【不年化】—— 开业费用/保证金退还是期初一次性的钱，
+  //   按 52 周外推会把 34.9 万放大成 1800 万（荒谬）⇒ 年化口径只含【经营性】科目。
+  const 一次性周 = (w.oneTimeFees ? w.oneTimeFees.开业费用 - w.oneTimeFees.保证金退还 : 0)
+  const 年变动与其他 = (w.totalCost - w.rentCost - w.deptCost - 两费周 - 一次性周) * WEEKS_PER_YEAR   // 引擎实测；已剔两费与一次性项避免重复/误摊
   const 年现金流 = 年营收 - 年租金 - 年部门固定 - 年变动与其他 - (年加盟两费 ?? 0)
   const 费用条款 = 费用清单(brand?.name)
   const 费用状态 = franchiseFeeStatus(brand?.name)
@@ -96,8 +99,10 @@ export function onePageLedger({ brand, property, districtAttrs }) {
     engineFeeNote: ENGINE_FEE_NOTE,
     费用状态,                      // { 品牌, 接入, 原因 }（§14.3：哪些费率已实收、哪些待补）
     加盟条款: 费用条款,             // 逐项状态：已实收 / 待接入 / 不接
-    // ★ 与引擎的一致性锚点：现金流 === 引擎利润年化（广义恒等：接入与未接入品牌都差 0）
+    // ★ 与引擎的一致性锚点（§22.2 更新）：年现金流 === 引擎利润年化 + 一次性项年化（差 0 · 经营口径 = 引擎口径加回开业费用）。
+    //   两者都剔掉一次性费用 ⇒ 锚点仍恒等、且两边口径一致（B2 前该锚点就是广义恒等，B2 后保持）。
     引擎利润年化: (w.revenue - w.totalCost) * WEEKS_PER_YEAR,
+    一次性项年化: 一次性周 * WEEKS_PER_YEAR,
     missing: lines.filter(l => l.status === STATUS.MISSING).map(l => l.label),
   }
 }

@@ -41,7 +41,8 @@ console.log('\n[1] 口径层：每个数字都能追到已有口径')
   const 加盟费应 = Math.max(rooms * t.加盟费.单价.值, t.加盟费.下限.值)
   ok(q.lines.find(l => l.label === '加盟费').value === 加盟费应,
     `加盟费 = max(元/间 × 房量, 下限) = ${加盟费应}（含下限守卫）`)
-  const 总投应 = rooms * t.单房造价.新建.值 + 加盟费应 + t.保证金.值 + t.筹备费.值
+  // ★ §22.2-B3：投资总额口径含 PMS 初装（与引擎开业一次性费用同源）
+  const 总投应 = rooms * t.单房造价.新建.值 + 加盟费应 + t.保证金.值 + t.筹备费.值 + (t.PMS?.初装?.值 ?? 0)
   ok(q.lines.find(l => l.label === '总投资（估算）').value === 总投应,
     `总投资 = 单房造价×房量 + 加盟费 + 保证金 + 筹备费 = ${总投应}`)
   ok(!!q.sources && !!q.sources.来源 && !!q.sources.置信度, '三件套随行（来源/取数日期/置信度）可 hover 追溯',
@@ -204,8 +205,29 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   ok(JSON.stringify(物业) === frozen, '不改动入参对象（无副作用）')
   // 引擎锚点：确定性单配置（与批次报告一致）—— 若有人把报价单接进结算，这里会红
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
-  ok(r.revenue === 126140 && r.totalCost === 81087 && r.netProfit === 45053,
-    '引擎锚点（§14.3 重基线：全季已收加盟两费 9334 ⇒ 成本 +9334 / 净利 −9334；营收不变）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
+  // 🔴 §22.2 重基线（B2）：week-1 结算现在含【开业一次性费用】（全季 80 间 = 349,000）
+  //   ⇒ totalCost 81087+349000=430087 · netProfit 45053−349000=−303947 · 营收/GOP 不变
+  ok(r.revenue === 126140 && r.totalCost === 430087 && r.netProfit === -303947,
+    '引擎锚点（§22.2 重基线：B2 开业一次性费用 349,000 计入 week-1；营收/GOP 不变）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
+}
+
+// ── ⑤ §22.2-B3：两笔钱【同页可辨、不混淆】（IC ≠ 投资总额）────────────────
+console.log('\n[5] §22.2-B3 两笔钱：IC（运营启动资金）≠ 投资总额（capex）· 同页并排')
+{
+  const claim = src('Claim.jsx')
+  // ① 字面：两个概念的名字都出现在同一文件（同页可辨的字面证据）
+  ok(/运营启动资金/.test(claim) && /投资总额/.test(claim), 'Claim 页同时出现「运营启动资金」与「投资总额」两个名字')
+  // ② 数值：IC（SCALE 单源）≠ 投资总额（报价单口径）—— 两个字面断言钉住
+  ok(/SCALE\.IC_NEW/.test(claim), 'IC 取自 SCALE 单源（不写死数字）')
+  ok(/总投资（估算）/.test(claim), '投资总额读报价单（与结算同源的口径）')
+  const 全季t = FRANCHISE_MODEL['全季']
+  const rooms全季 = parseRooms(全季.standard)
+  const ic = 1490000
+  const capex = rooms全季 * 全季t.单房造价.新建.值 + Math.max(rooms全季 * 全季t.加盟费.单价.值, 全季t.加盟费.下限.值) + 全季t.保证金.值 + (全季t.筹备费?.值 ?? 0) + (全季t.PMS?.初装?.值 ?? 0)
+  ok(ic !== capex && capex > ic * 2, `数值可辨：IC ${ic} ≠ 投资总额 ${capex}（capex 是 IC 的 ${(capex / ic).toFixed(1)} 倍 ⇒ 不可能混淆）`)
+  // ③ 缺项品牌：待补不参与计算（星程无造价 ⇒ 投资总额为 null）
+  const 星程q = propertyQuote({ name: '星程', standard: '客房70间起' }, 物业, 区县)
+  ok(星程q.lines.find(x => x.label === '总投资（估算）').value === null, '缺造价品牌 ⇒ 投资总额待补（不编）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

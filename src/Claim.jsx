@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
+import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -223,9 +224,33 @@ export default function Claim({ brand, location, onComplete }) {
               </div>
             )}
 
+            {/* 🔴 §22.2-B3（2026-09-29）：两笔钱【并排且区分】—— 学生必须一眼看出这是两笔不同的钱：
+                「运营启动资金（IC）」= 系统统一提供、我手里的钱、用来周转经营（不动）；
+                「投资总额（capex）」= 开店要花的钱（造价×房量 + 加盟费 + 保证金 + 筹备费 + PMS初装）。
+                ★ 回本周期已改用投资总额算（一页钱账 B3）；缺项品牌显式"待补"，不参与计算（不编）。 */}
+            {step === 3 && quote && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <div style={{ flex: 1, padding: '10px 12px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF' }}>💰 运营启动资金（IC）</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1E40AF', margin: '2px 0' }}>约 {SCALE.IC_NEW / 10000} 万</div>
+                  <div style={{ fontSize: 10, color: '#1E40AF', lineHeight: 1.6 }}><b>我手里的钱</b> —— 系统统一提供、全班一致，用来<b>周转经营</b>（发工资/付租金/交两费都从这里出）。</div>
+                </div>
+                <div style={{ flex: 1, padding: '10px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E' }}>🏗️ 投资总额（capex）</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', margin: '2px 0' }}>
+                    {quote.lines.find(x => x.label === '总投资（估算）').value != null
+                      ? <>约 {(quote.lines.find(x => x.label === '总投资（估算）').value / 10000).toFixed(0)} 万</>
+                      : '待补'}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#92400E', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装（缺项"待补"）。</div>
+                </div>
+              </div>
+            )}
+
             {/* 🔴 W3-1（口径 (b) 本店实测）+ W3-5 回本周期（外推）：一页钱账 —— ★ 只加展示，不改结算
                 收益侧取【引擎确定性单周】（固定种子，"同一周全班同结果"）⇒ 与后续真实结算同源。
-                §14.3 起加盟两费（管理费+CRS）已由引擎按营收实收；回本周期必须带"外推"标注（W4 裁决）。 */}
+                §14.3 起加盟两费（管理费+CRS）已由引擎按营收实收；回本周期必须带"外推"标注（W4 裁决）。
+                🔴 §22.2-B3：回本周期【改用投资总额】算（onePageLedger 已是）；并排区分两笔钱（下方 B3 块）。 */}
             {step === 3 && ledger && (
               <div style={{ marginTop: 12, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', marginBottom: 8 }}>

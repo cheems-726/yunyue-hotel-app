@@ -61,11 +61,14 @@ console.log('\n[3] 与 shadow-reviews 基线口径比对')
   //    ★ 出租率 68% 【前后未变】—— 这是"改动只碰钱、没碰经营结构"的独立佐证（A 类红旗判据）
   const 旧租周 = (r) => (r.rooms || 0) * (35 + 3 * 10) * 7   // 旧曲线历史值（旧引擎不暴露 rentCost）
   // 🔴 §14.3 重基线：全季自 §14.3 起按营收计加盟两费 ⇒ 58167 − 9687 = 48480（本次唯一变动项）
+  // 🔴 §22.2-B2 重基线（2026-09-29）：week1 再收【开业一次性费用】（全季 80 间 = 349,000）
+  //    ⇒ 48480 − 349000 = −300520（occ 仍 68% —— 改动仍只碰钱、没碰经营结构）
   const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
-  ok(r.occupancy === 68 && r.profit === 48480,
-    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/48480 = 58167 − 两费 9687）`)
-  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)) - 两费(r),
-    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)}) − 加盟两费 ${两费(r)}`)
+  const 开业费 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 : 0)
+  ok(r.occupancy === 68 && r.profit === -300520,
+    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/−300520 = 58167 − 两费 9687 − 开业费 349000）`)
+  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)) - 两费(r) - 开业费(r),
+    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)}) − 加盟两费 ${两费(r)} − 开业费 ${开业费(r)}`)
 }
 
 // ── 步骤4 · dayEngine 的 Node 可运行性（C2 前置）──
