@@ -86,6 +86,10 @@ function 未推计数() {
 }
 // ★ §25.2（D68-e）：收尾指纹 —— 四处收尾文件必须写同一对 (HEAD, 未推)，且 === 实读。
 //   判据【只认这一个机器可读片段】：`HEAD <hash> · 未推 <N>`（紧邻才算 ⇒ 老段里 "HEAD x · 全量 … · 未推 y" 不会误命中）
+function gitOut2(args) {
+  const r = spawnSync('git', args, { cwd: APP, encoding: 'utf8', shell: false })
+  return r.status === 0
+}
 function 指纹(文本) {
   // ★ 优先取【语义化指纹行】（`收尾指纹：HEAD … · 未推 …`）—— §28.1 实测教训：
   //   交接卡 ① 段有【决策端写的基线行】（HEAD d8d2808 · 未推 12 · 那是**发布时点**，不是当前值），
@@ -294,7 +298,14 @@ const FACTS = [
       if (读.some(([, f]) => f.head !== 首.head || f.未推 !== 首.未推)) return false   // 四处不一致 ⇒ 红
       const rec = 门禁记录()
       const 记head = rec.full && rec.full.head ? String(rec.full.head) : null
-      if (记head && !记head.startsWith(首.head) && !首.head.startsWith(记head)) return false
+      // ★ §28.1 实测踩坑：判据的语义应是「指纹的 head === 门禁【跑过的那个提交】」，而门禁跑完后
+      //   执行端往往还会提交【纯文档】（指纹/数字回刷）⇒ 两个 head 天然差一截 —— 这不是漂移，是
+      //   D59 的正常节奏（纯文档不必重跑全量）。⇒ 比对改为：指纹 head 必须是【记录 head 的祖先】
+      //   （即：记录 head 往回数能在指纹 head 处停 —— 用 merge-base 判祖先关系），而不是前缀相等。
+      if (记head && 首.head) {
+        const mb = gitOut2(['merge-base', '--is-ancestor', 首.head, 记head])
+        if (mb === false) return false   // 指纹 head 不是记录 head 的祖先 ⇒ 真漂移 ⇒ 红
+      }
       const 实未推 = 未推计数()
       if (实未推 != null && 实未推 !== 首.未推) return false
       return true
