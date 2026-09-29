@@ -811,7 +811,14 @@ for (let i = 0; i < reviewCount; i++) {
   // 🔴 Phase D/C2 · D1：周值 → simulateWeek 拆 7 天（整数分摊 + 余数补偿 ⇒ Σ7天 === 周值，逐项精确）
   //    天数据【不持久化】：算完即弃，不进存档（用户 2026-09-22 约束②）
   //    seed 用 week ⇒ 同周同权重（确定性）；不参与任何数值计算，纯派生
-  //    checkins/checkouts：本引擎按【周】建模、未拆到天 ⇒ 传 0（不臆造）。二期逐日计算时自然产生
+  // ★ §26.3 P0b④（2026-09-29 · 用户投诉「数据之间没有联动」）：**补上逐日入住/退房的真实缺口**
+  //   （原传 0 ⇒ 面板「今日已退房/已入住」只能由客户端自己模拟 ⇒ 与引擎不同源）。
+  //   模型假设（写清 · 不臆造）：一周内**每间在店客房周转一次**（入/退各 1 次）
+  //     ⇒ 周值 checkins = checkouts = occupiedRooms；
+  //     逐日分布沿用本引擎既有的 7 天权重（`dayWeights(seed)` ⇒ 与营收同作息），
+  //     不另编"周几集中退房"（**无数据支撑**）；日内"上午退房 / 下午入住"由面板时段文案表达。
+  //   ★ 水位线自查：`simulateDay` 只把周值拆成快照、**不回流**任何金额或结算结果
+  //     ⇒ 本次改动只让 `dailySnapshots[].checkins/checkouts` 由 0 变真实值，**其它输出逐字节不变**。
   const dailySnapshots = simulateWeek({
     decisions,
     state: { price: Math.round(price) },
@@ -819,8 +826,8 @@ for (let i = 0; i < reviewCount; i++) {
     weekTotals: {
       revenue,
       cost: totalCost,
-      checkins: 0,
-      checkouts: 0,
+      checkins: occupiedRooms,
+      checkouts: occupiedRooms,
       occupied: occupiedRooms,
       reviews: reviewCount,
       cashDelta: profit,

@@ -50,3 +50,24 @@ export function inTeachingHours(now = new Date()) {
   const h = (now instanceof Date ? now : new Date(now)).getHours()
   return h >= TEACHING_DAY_START_HOUR && h < 23
 }
+
+// ── ★ §26.5（P0d · 2026-09-29 · 用户第三次投诉「时间的实时，现在哪里？」）───────────────
+//   面板此前有**三套"现在几点"**互不同源：
+//     ① 顶层显示条 `clock = new Date()`（真实墙钟 · 每 30s 刷新）
+//     ② LiveFeed 的 `gameMin`（初值取真实时刻，此后每 2000ms **+1 分钟**
+//        ⇒ **游戏钟 = 真实钟 ×30 速**，一个游戏日 48 真实分钟绕一圈 ⇒ 越跑越偏；
+//        屏幕上是 07:xx 而时段条已按真实时钟走 8:30 档 —— 用户看到的正是这个）
+//     ③ `simDate()` 用「设备年 + getDay() + week」混算（既不是真实日历也不是游戏日历）
+//   修法：**面板时间一律来自真实时钟，且只此一处**（本模块）。
+//   依据不止用户口述 —— 帮助页自己写的设计意图就是「随真实时间流动」；且第一性目标 =
+//   「1 真实日 = 1 游戏日」⇒ 面板时间**就该是真实时间**（不是"游戏加速时间"）。
+export function nowMinutes(now = new Date()) {
+  const d = now instanceof Date ? now : new Date(now)   // 本地时区（与 teachingDayKey 同源）
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+// 'HH:MM' 时钟标签（与 nowMinutes 同源 · 供流水时间戳）
+export function nowClockTag(now = new Date()) {
+  const m = nowMinutes(now)
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`
+}
