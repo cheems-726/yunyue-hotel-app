@@ -53,6 +53,34 @@ function gitShortHead() {
     return (r.status === 0 ? (r.stdout || '').trim() : null)
   } catch { return null }
 }
+// ★ §25.2②（2026-09-29 · D68-e）：未推计数 —— 首选 git 权威解（`rev-list --count origin/main..HEAD`）；
+//   git 不可用/超时的环境下**必须仍有答案**，故从 `logs/HEAD`（reflog）尾部回退计数：
+//   从 HEAD 往回数 `commit:` 行，**剔除 `reset: moving to HEAD` 之类非提交行**（决策端实读就踩到：15 − 1 = 14）。
+function 未推计数() {
+  const n = gitCount(['rev-list', '--count', 'origin/main..HEAD'])
+  if (n != null && Number.isFinite(n)) return n
+  try {
+    const head = gitShortHead()
+    const log = readIf(path.join(APP, '.git', 'logs', 'HEAD')) || ''
+    if (!head || !log) return null
+    const 行s = log.split('\n').filter(Boolean).reverse()
+    let 见 = 0, 数 = 0
+    for (const l of 行s) {
+      const m = /^([0-9a-f]{40})\s+([0-9a-f]{40})\s+(.*)$/.exec(l)
+      if (!m) continue
+      const 事 = m[3].split('\t')[1] || ''
+      if (事.startsWith('commit')) { 数++; 见++ } else 见++      // 非 commit 行（reset/checkout）不计入
+      if (见 > 500) break
+    }
+    return 数 > 0 ? 数 : null
+  } catch { return null }
+}
+// ★ §25.2（D68-e）：收尾指纹 —— 四处收尾文件必须写同一对 (HEAD, 未推)，且 === 实读。
+//   判据【只认这一个机器可读片段】：`HEAD <hash> · 未推 <N>`（紧邻才算 ⇒ 老段里 "HEAD x · 全量 … · 未推 y" 不会误命中）
+function 指纹(文本) {
+  const m = /HEAD\s*`?([0-9a-f]{7,40})`?\s*·\s*未推\s*\**\s*(\d+)/.exec(文本 || '')
+  return m ? { head: m[1], 未推: Number(m[2]) } : null
+}
 // 监控文档清单：三份原有 + 交接卡 + 索引 + 现行目录全部任务包
 function monitoredDocs() {
   const list = [
@@ -229,6 +257,36 @@ const FACTS = [
     },
     docSays: '全日过审包（「门禁数字」行须精确等于最近一次门禁记录的快检/全量通过数 · 手抄错一格即红）',
     docs: ['4-审计与报告/全日过审包-20260929.md'],
+    expect: true,
+  },
+  {
+    // ★ §25.2（2026-09-29 · D68-e）：**head/未推 也要入判据** —— 起因（决策端实核抓到的第二处）：
+    //   §24 收尾文件在 `1adc629` 时写定，之后又提交 `fadaa79` ⇒ 四处仍写 `1adc629` · 未推 13（实为 14），
+    //   而上面那条判据**只比通过数**（1657/1517）⇒ **head 与未推在判据眼皮底下漂移**。这是新变体：
+    //   「数字对 ≠ 引用它的地方都对」→「计数对 ≠ 版本/待推数也对」。
+    //   判据（五条，缺一即红）：四处收尾文件各含**同一对** `HEAD <hash> · 未推 <N>`，
+    //   且 head === 最近一次【全量】记录的 head（前缀比）· 且 未推 === 实读（`origin/main..HEAD`）。
+    name: '收尾指纹：闸门 / 队列顶部 / 过审包 / 交接卡⑥ 四处 HEAD+未推 逐字一致且 === 实读',
+    actual: () => {
+      const 处 = [
+        ['闸门', readIf(path.join(ROOT, '9-夜间自动化', '夜间开工闸门.txt'))],
+        ['队列顶部', (readIf(path.join(ROOT, '9-夜间自动化', 'night-run-log.md')) || '').slice(0, 6000)],
+        ['过审包', readIf(path.join(ROOT, '4-审计与报告', '全日过审包-20260929.md'))],
+        ['交接卡', readIf(path.join(ROOT, '4-审计与报告', '会话交接卡.md'))],
+      ]
+      const 读 = 处.map(([名, t]) => [名, 指纹(t)])
+      if (读.some(([, f]) => !f)) return false                       // 有人没写指纹 ⇒ 红（判据不能被"省略"绕过）
+      const [首名, 首] = 读[0]
+      if (读.some(([, f]) => f.head !== 首.head || f.未推 !== 首.未推)) return false   // 四处不一致 ⇒ 红
+      const rec = 门禁记录()
+      const 记head = rec.full && rec.full.head ? String(rec.full.head) : null
+      if (记head && !记head.startsWith(首.head) && !首.head.startsWith(记head)) return false
+      const 实未推 = 未推计数()
+      if (实未推 != null && 实未推 !== 首.未推) return false
+      return true
+    },
+    docSays: '四份收尾文件（各写一行 `HEAD <hash> · 未推 <N>` · 四处逐字一致 · head === 全量记录 head · N === origin/main..HEAD）',
+    docs: ['9-夜间自动化/夜间开工闸门.txt', '9-夜间自动化/night-run-log.md', '4-审计与报告/全日过审包-20260929.md', '4-审计与报告/会话交接卡.md'],
     expect: true,
   },
   {
