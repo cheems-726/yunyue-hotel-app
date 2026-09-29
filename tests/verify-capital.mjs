@@ -43,7 +43,7 @@ const state = (page) => page.evaluate(() => { try { return JSON.parse(localStora
 
 if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
 let server, browser
-server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true })
+server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true , windowsHide: true })
 for (let i = 0; i < 30; i++) { try { const r = await fetch(BASE); if (r.ok) break } catch (e) {} await sleep(300) }
 browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
@@ -216,6 +216,6 @@ try {
 } finally {
   console.log(`\n========== 结果: ${results.filter(r => r.pass).length} 通过 / ${results.filter(r => !r.pass).length} 失败 ==========`)
   try { await browser.close() } catch (e) {}
-  try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' }); else server.kill('SIGTERM') } } catch (e) {}
+  try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
 }
 process.exit(results.some(r => !r.pass) ? 1 : 0)

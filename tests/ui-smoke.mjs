@@ -141,7 +141,7 @@ async function assertLayout(pg, label) {
 
 const page = await (async () => {
   if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true })
+  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true , windowsHide: true })
   for (let i = 0; i < 30; i++) {
     try { const r = await fetch(BASE); if (r.ok) break } catch (e) {}
     await new Promise(r => setTimeout(r, 300))
@@ -592,5 +592,5 @@ const failed = results.filter(r => !r.pass)
 console.log('\n========== 结果: ' + (results.length - failed.length) + ' 通过 / ' + failed.length + ' 失败 ==========')
 for (const f of failed) console.log('  ✗ ' + f.name)
 try { await browser?.close() } catch (e) {}
-try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore' }); else server.kill('SIGTERM') } } catch (e) {}
+try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}
 process.exit(failed.length ? 1 : 0)

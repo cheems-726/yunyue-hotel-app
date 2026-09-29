@@ -17,7 +17,7 @@ const NO_BUILD = process.argv.includes('--no-build')
 //   为什么不是静默修复：同步后**显式打印**（有变化就写"★ 已重跑并更新"）——
 //   engine-parity（紧随其后）仍是**最终裁判**：它逐字节比对 22 个模块，能判死。
 {
-  const r = spawnSync(process.execPath, ['scripts/build-edge-function.mjs'], { cwd: process.cwd(), encoding: "utf8", shell: false })
+  const r = spawnSync(process.execPath, ['scripts/build-edge-function.mjs'], { cwd: process.cwd(), encoding: "utf8", shell: false , windowsHide: true })
   const 输出 = (r.stdout || '') + (r.stderr || '')
   console.log('  ▸ Edge 组装物自动同步：' + (r.status === 0 ? '✓ 已跑（若 src 有改动则刚刚同步；下面的 engine-parity 是最终裁判）' : '✗ 同步脚本失败 —— 见 engine-parity 结论'))
 }
@@ -147,7 +147,7 @@ let 上次perSuite快照 = null   // §23.3-③：上次运行的各套件计数
 
 function run(cmd, args, label) {
   const t0 = Date.now()
-  const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', shell: process.platform === 'win32' })
+  const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', shell: process.platform === 'win32' , windowsHide: true })
   const out = (r.stdout || '') + (r.stderr || '')
   const secs = ((Date.now() - t0) / 1000).toFixed(1)
   // 解析尾部的「N 通过 / M 失败」或「N 通过, M 失败」
@@ -272,7 +272,7 @@ if (!failed || 仅本套件失败) {
     //   现在同时记：head（commit）· tree（HEAD^{tree}）· dirty（工作区是否脏）。
     //   ⇒ 断言（tests/docs-sync.mjs）要求：最后一次全量必须是【干净树】上跑的，且 tree === 当前 HEAD 的 tree。
     const gitOut = (args) => {
-      const r = spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8', shell: false })
+      const r = spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8', shell: false , windowsHide: true })
       return (r.status === 0 ? (r.stdout || '') : '').trim()
     }
     const head = gitOut(['rev-parse', '--short', 'HEAD'])
