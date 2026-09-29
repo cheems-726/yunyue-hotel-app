@@ -40,7 +40,22 @@ const 非负整数 = (v) => Math.max(0, Math.floor(Number(v) || 0))
  * @returns {{版本:number, week:number, pendingNegatives:number, resolvedCount:number,
  *            liveNegCount:number, livePosCount:number, crisisResponse:string|null}}
  */
-export function settleInputsFrom({ reviews, week, crisis = null } = {}) {
+// ★ §27.3-②a（2026-09-29 · D75）：`emergency`（突发事件处置 · 决策面板会渲染的**计时决策**）
+//   此前**零消费** —— 选项落实审计（D74）判为"装饰品"：学生会答，但没有任何后果。
+//   现在**接进既有危机机制**（与 WeeklyReport 那套危机应对**合并**，不另立第二套）：
+//     · 优先级：WeeklyReport 危机卡**已选** ⇒ 以它为准（不覆盖学生的显式选择）；
+//       危机卡未选（或周号对不上）⇒ 用 emergency 的处置作为本周的危机应对。
+//     · 映射按**语义**（处置得当 / 态度好但可能延误 / 推卸责任 ↔ 公开整改 / 逐条回复 / 不理会）——
+//       三个落点都是 `settle` **已有**的消费值 ⇒ **不为它改引擎**（§27.6 边界）。
+//   ★ 放在本函数（唯一派生点）的理由：doSettle 与面板预览都从这里取
+//     ⇒ 两端天然一致（§16.2-B7 立的"口径单源"纪律）。
+const 突发处置映射 = {
+  '立即送医+道歉': '立即公开整改+补偿',
+  '先安抚再处理': '逐条真诚回复',
+  '推卸责任': '不理会',
+}
+
+export function settleInputsFrom({ reviews, week, crisis = null, decisions = {} } = {}) {
   const 流水 = Array.isArray(reviews) ? reviews : []
   const w = Number(week)
   // ① 结算卡（跨周累计）—— 欠账/整改只认它们（确定性；实证见文件头 ①）
@@ -52,7 +67,10 @@ export function settleInputsFrom({ reviews, week, crisis = null } = {}) {
   const liveNegCount = 本周实时.filter(r => Number(r.stars) <= 3).length
   const livePosCount = 本周实时.filter(r => Number(r.stars) >= 4).length
   // ③ 危机应对：上周选、本周用
-  const crisisResponse = (crisis && Number(crisis.week) === w - 1 && crisis.choice) ? crisis.choice : null
+  //   ★ §27.3-②a：危机卡**未选**时回落到 `emergency`（突发事件处置）的映射值 —— 让那个决策有真实后果
+  const 危机卡选 = (crisis && Number(crisis.week) === w - 1 && crisis.choice) ? crisis.choice : null
+  const 处置 = 突发处置映射[decisions && decisions.emergency] || null
+  const crisisResponse = 危机卡选 || 处置
   return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse }
 }
 

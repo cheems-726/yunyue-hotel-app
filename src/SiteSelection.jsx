@@ -5,6 +5,8 @@ import RadarChart from './RadarChart.jsx'
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
+// ★ §27.3-②b：**未接线**的选址维（守门 tests/consumptionCoverage.test.mjs 的登记表与这里必须一致）
+const 未接线维 = ['房价', '人力', '波动']
 
 // 🔴 T1.4/B5：数据来源分级 —— siteLocations 的 confidence 字段此前【全项目无人读取、界面看不到】，
 //    本处把它显式化，让学生能分辨"有公开来源的数字"与"人工分级"。
@@ -206,7 +208,20 @@ export default function SiteSelection({ onConfirm }) {
 
             {Object.entries(d.attrs).map(([k, val]) => (
               <div className="attr-row" key={k}>
-                <div className="attr-label">{attrLabels[k]}</div>
+                <div className="attr-label">
+                  {attrLabels[k]}
+                  {/* ★ §27.3-②b（2026-09-29 · D74/D75）：六维里【房价/人力/波动】**目前不影响结算**
+                      （引擎按品牌与决策定价、部门成本按标准比例、随机性由 seed 决定 ⇒ 不读这三维）。
+                      原界面上它们与"真在用"的三维长得一模一样 ⇒ 学生会以为选了就算数（D74 判为"装饰品"）。
+                      选择：**显式标注**（不删维、不接线 —— 接线 = 引擎级重基线，见 §27.6 边界）。
+                      守门在 `tests/consumptionCoverage.test.mjs`（登记表不腐烂）。 */}
+                  {未接线维.includes(k) && (
+                    <span title="该维目前不进入结算公式：引擎按品牌与决策定价、部门成本按标准比例、随机性由 seed 决定。"
+                      style={{ marginLeft: 4, fontSize: 8, fontWeight: 700, color: '#B45309', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 4, padding: '0 3px' }}>
+                      暂不影响结算
+                    </span>
+                  )}
+                </div>
                 <div className="attr-bar-bg">
                   <div className={`attr-bar ${barCls(val)}`} style={{ width: `${val * 20}%` }}></div>
                 </div>

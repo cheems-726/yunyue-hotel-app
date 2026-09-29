@@ -70,6 +70,7 @@ const SUITES = [
   { name: 'operatorLog（操作记录+职位·§22.3）', file: 'tests/operatorLog.test.mjs' },
   { name: 'gapUI（C2/C4/C5 界面·§22.3）', file: 'tests/gapUI.test.mjs' },
   { name: 'livePanel（实时面板口径·§26 P0a/b）', file: 'tests/livePanel.test.mjs' },
+  { name: 'consumptionCoverage（决策/选址消费点·§27.3）', file: 'tests/consumptionCoverage.test.mjs' },
   // §17.1-③（C1）：承诺一致性 M1 —— 文案里的数值承诺 ↔ 代码里的权重计算必须对得上。
   //   ★ 此前它**不在门禁内**（所以"评分公式搬到 .mjs 后它就瞎了"没人发现）；本批修好 + 挂进来。
   { name: 'promise-consistency（M1 承诺一致性·§17.1C1）', file: 'tests/promise-consistency.mjs' },

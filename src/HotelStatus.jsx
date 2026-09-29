@@ -447,7 +447,10 @@ export default function HotelStatus({ report, brand, property, week, history, at
     //      所以"人"这一格的标签必须**不含**房间类词，否则会被自己的判据抓到。
     { l: '在店客房', v: occRooms + ' 间', c: '#1D4ED8', live: true, sub: `出租率 ${occupancy}%` },
     { l: '在店客人', v: (liveStats ? liveStats.guests : (liveGuests ?? targetGuests)) + ' 人', c: '#7C3AED', live: true, sub: '按时段曲线估算' },
-    { l: '明日预抵', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280' },
+    // ★ §27.3-①（2026-09-29 · D75）：本格是【面板自造的估算】，不是引擎值 —— 原写法是裸数字 ⇒
+    //   看起来像真数据（决策端两次实读点名）。引擎按【周】建模，给不出"明日"的真值 ⇒ 三选一里选
+    //   **(c) 显式标「估算」+ 依据**（不删格：预抵排房是有效教学点；不为它改引擎 —— §27.6 明列不做）。
+    { l: '明日预抵（估算）', v: Math.max(0, Math.round(occRooms * 0.3 + (seed % 6))) + ' 间', c: '#6B7280', sub: '按在店×30%＋波动推算 · 非引擎值' },
   ]
 
   // 属性池渲染块：结算前后共用（属性是做决策当场变化的真实状态，不该等结算才解锁）
@@ -565,12 +568,13 @@ export default function HotelStatus({ report, brand, property, week, history, at
       </div>
       {/* 明日预抵构成（按客群与房型拆分） */}
       {preOpen && (() => {
+        // ★ §27.3-①：与格子同源（估算），展开视图也必须带"估算"字样 —— 否则换个视图又像真数据
         const total = Math.max(0, Math.round(occRooms * 0.3 + (seed % 6)))
         const biz = Math.round(total * 0.5), tour = Math.round(total * 0.3), fam = total - biz - tour
         const big = Math.round(total * 0.5), twin = Math.round(total * 0.35), suite = total - big - twin
         return (
           <div style={{ marginBottom: 12, padding: '8px 10px', background: '#F8FAFC', borderRadius: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>📋 预抵客人构成（按客群）</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>📋 预抵客人构成（按客群 · <span style={{ color: '#B45309' }}>估算</span>）</div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10, background: '#EFF6FF', color: '#1E40AF', borderRadius: 5, padding: '2px 8px' }}>商务 {biz} 间</span>
               <span style={{ fontSize: 10, background: '#ECFDF5', color: '#065F46', borderRadius: 5, padding: '2px 8px' }}>旅游 {tour} 间</span>
@@ -583,6 +587,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
               <span style={{ fontSize: 10, background: '#F9FAFB', color: '#374151', borderRadius: 5, padding: '2px 8px' }}>套房 {suite} 间</span>
             </div>
             <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 5 }}>💡 建议按预抵构成提前排房：团队连排、商务高楼层、家庭相邻间</div>
+            <div style={{ fontSize: 9, color: '#B45309', marginTop: 3 }}>⚠️ 本组数字为**面板估算**（按在店×30%＋波动推算）· <b>不影响任何结算</b>；引擎按周建模，无"明日"真值</div>
           </div>
         )
       })()}

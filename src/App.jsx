@@ -1994,7 +1994,7 @@ export default function App() {
       try { reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]') } catch (e) { reviews = [] }
       let crisis = null
       try { crisis = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null') } catch (e) { crisis = null }
-      const 输入 = settleInputsFrom({ reviews, week, crisis })
+      const 输入 = settleInputsFrom({ reviews, week, crisis, decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
       const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
       const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
       const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
@@ -2027,7 +2027,7 @@ export default function App() {
     // ★ §16.2-B7：周内输入改为走【单一派生点】src/weekInputs.mjs ——
     //   原来这 5 个量的口径写在本函数里，服务端补算却一个都拿不到 ⇒ 含实时评价的周两边对不上。
     //   现在客户端与服务端共用同一个函数（口径单源），且这份派生结果会随存档上传（见 cloudState.weekInputs）。
-    const 输入 = settleInputsFrom({ reviews, week, crisis })
+    const 输入 = settleInputsFrom({ reviews, week, crisis, decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
     const { pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse } = 输入
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
     // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
