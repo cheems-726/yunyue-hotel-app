@@ -6,7 +6,11 @@ import RadarChart from './RadarChart.jsx'
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
 // ★ §27.3-②b：**未接线**的选址维（守门 tests/consumptionCoverage.test.mjs 的登记表与这里必须一致）
-const 未接线维 = ['房价', '人力', '波动']
+// 🔴 §28.1-① 返修（2026-09-29 · D76）：**删 `'波动'`** —— 它**确实进入结算**（`settlement.js:319`
+//   `volatility` → `:320 marketWave` → `:324 demandStrength` → 出租率 → 营收；实跑 波动1→5 ⇒ 营收 123,760→133,280）。
+//   此前误标系**守门假阳性**所致：该守门原版只用一组配置做扰动，其基准下出租率撞 0.98 上限
+//   ⇒ 凡只作用于"数量级"的维度全部看不出变化 ⇒ 被误判"零消费"。守门已改为**多配置 + 阳性对照自校准**。
+const 未接线维 = ['房价', '人力']
 
 // 🔴 T1.4/B5：数据来源分级 —— siteLocations 的 confidence 字段此前【全项目无人读取、界面看不到】，
 //    本处把它显式化，让学生能分辨"有公开来源的数字"与"人工分级"。
@@ -210,13 +214,13 @@ export default function SiteSelection({ onConfirm }) {
               <div className="attr-row" key={k}>
                 <div className="attr-label">
                   {attrLabels[k]}
-                  {/* ★ §27.3-②b（2026-09-29 · D74/D75）：六维里【房价/人力/波动】**目前不影响结算**
-                      （引擎按品牌与决策定价、部门成本按标准比例、随机性由 seed 决定 ⇒ 不读这三维）。
-                      原界面上它们与"真在用"的三维长得一模一样 ⇒ 学生会以为选了就算数（D74 判为"装饰品"）。
-                      选择：**显式标注**（不删维、不接线 —— 接线 = 引擎级重基线，见 §27.6 边界）。
-                      守门在 `tests/consumptionCoverage.test.mjs`（登记表不腐烂）。 */}
+                  {/* ★ §27.3-②b（D74/D75）：未接线维显式标注；★ §28.1-① 返修（D76）：
+                      「波动」**确实**进入结算（settlement.js:319-320 volatility → marketWave → demandStrength
+                      → 出租率 → 营收），已从本名单**移除** —— 此前误标系守门假阳性所致（该守门原版只用
+                      一组"撞 0.98 出租率上限"的配置做扰动 ⇒ 数量级类维度全部看不出变化）。
+                      现仅剩【房价 / 人力】两维未接线；守门已改多配置 + 阳性对照自校准（不再会这样骗人）。 */}
                   {未接线维.includes(k) && (
-                    <span title="该维目前不进入结算公式：引擎按品牌与决策定价、部门成本按标准比例、随机性由 seed 决定。"
+                    <span title="该维目前不进入结算公式：引擎按品牌与决策定价、部门成本按标准比例。"
                       style={{ marginLeft: 4, fontSize: 8, fontWeight: 700, color: '#B45309', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 4, padding: '0 3px' }}>
                       暂不影响结算
                     </span>
