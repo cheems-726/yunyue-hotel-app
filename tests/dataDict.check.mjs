@@ -300,5 +300,11 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('\\').pop(
   console.log(`\n  华住分项对拍（§五·步骤5 · D16 修正版 · W2-4 解锁 F 现金流率）：${hzFindings.length === 0 ? '✅ A~F 全过' : '✗ ' + hzFindings.length + ' 项不符'}`)
   hzNotes.forEach(n => console.log('   ' + n))
   hzFindings.forEach(t => console.log(`   ✗ [${t.rule}] ${t.ctx}\n     期望：${t.expect}`))
+  // ★ §23.3-③：补标准计数尾行（run-all 解析「N 通过 / M 失败」）—— 此前退出 0 但无计数，
+  //   被 run-all 的"解析失败判死"新守门按失败计（技术债本体：解析失败与真的 0 条不可区分）。
+  //   通过数 = eNotes + hzNotes（正向对拍条目）；失败数 = 三类 findings。
+  const dd通过 = eNotes.length + hzNotes.length
+  const dd失败 = violations.length + termFindings.length + hzFindings.length
+  console.log(`\ndataDict 术语与对拍: ${dd通过} 通过 / ${dd失败} 失败`)
   process.exit((violations.length || termFindings.length || hzFindings.length) ? 1 : 0)
 }
