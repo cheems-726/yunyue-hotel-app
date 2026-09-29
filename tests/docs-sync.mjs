@@ -59,20 +59,29 @@ function gitShortHead() {
 function 未推计数() {
   const n = gitCount(['rev-list', '--count', 'origin/main..HEAD'])
   if (n != null && Number.isFinite(n)) return n
+  // 回退（git 不可用/超时）：从 reflog 往回数，**数到 origin/main 的提交为止**。
+  // ★ 实测踩坑：第一版回退**没有终止条件** ⇒ 把整个 reflog 的历史全数进来（数字巨大 ⇒ 判据永远红）。
   try {
     const head = gitShortHead()
     const log = readIf(path.join(APP, '.git', 'logs', 'HEAD')) || ''
     if (!head || !log) return null
+    // origin/main 的哈希：先 refs 文件，再 packed-refs
+    let 远端 = (readIf(path.join(APP, '.git', 'refs', 'remotes', 'origin', 'main')) || '').trim()
+    if (!远端) {
+      const packed = readIf(path.join(APP, '.git', 'packed-refs')) || ''
+      const m = /^([0-9a-f]{40})\s+refs\/remotes\/origin\/main$/m.exec(packed)
+      远端 = m ? m[1] : ''
+    }
+    if (!远端) return null
     const 行s = log.split('\n').filter(Boolean).reverse()
-    let 见 = 0, 数 = 0
+    let 数 = 0
     for (const l of 行s) {
       const m = /^([0-9a-f]{40})\s+([0-9a-f]{40})\s+(.*)$/.exec(l)
       if (!m) continue
-      const 事 = m[3].split('\t')[1] || ''
-      if (事.startsWith('commit')) { 数++; 见++ } else 见++      // 非 commit 行（reset/checkout）不计入
-      if (见 > 500) break
+      if (m[2] === 远端) break                  // ★ 到达 origin/main ⇒ 停止（这才是"未推"的边界）
+      if ((m[3].split('\t')[1] || '').startsWith('commit')) 数++
     }
-    return 数 > 0 ? 数 : null
+    return 数
   } catch { return null }
 }
 // ★ §25.2（D68-e）：收尾指纹 —— 四处收尾文件必须写同一对 (HEAD, 未推)，且 === 实读。
