@@ -324,7 +324,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6, textAlign: 'center' }}>
         {日快照
           ? `今日流水取自引擎日快照（本周第 ${(Number.isInteger(dayIndex) ? dayIndex : 0) + 1}/7 天）· 本周累计 入账 +${本周累计.入账.toLocaleString()} / 支出 -${本周累计.支出.toLocaleString()} · 第 7 天 === 周报周值`
-          : '今日流水待本周结算后显示（引擎日快照未就绪）'}
+          : '今日流水待引擎日快照就绪后显示（预览未成功 · 不显示估算值）'}
       </div>
     </div>
   )

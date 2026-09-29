@@ -145,8 +145,26 @@ if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(
   }
   ok(idBad === 0, `接线后 Σ7天 === 周值（逐项）：3 策略 × 12 周 = ${idCases} 周全部成立`)
   ok(zeroBad === 0, '结构不变量零漂移 + Δcost === deptCost（36 周，W2 重基线）')
-  // ③ 天数据不持久化：dailySnapshots 不得出现在任何存档写入路径
-  ok(!/dailySnapshots/.test(readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')), 'dailySnapshots 未进 App 存档路径（一期天数据不持久化）')
+  // ③ 天数据不持久化：dailySnapshots 不得出现在任何【存档写入】路径
+  //   ★ §26.3（2026-09-29 · P0b）判据升级 —— 原因：**面板现在必须消费引擎日快照**（用户投诉"数据没有联动"），
+  //     App.jsx 里必然出现该字段；而原判据是"App.jsx 全文不许出现 dailySnapshots"的**子串检查**
+  //     ⇒ 一是变假红，二是它本就不精确：该禁的是**持久化**，不是"出现"（天数据算完即弃 · 用户 2026-09-22 约束②）。
+  //   新判据（三条，比原来更准，不是放宽）：
+  //     ① 存档载荷行里不得出现 dailySnapshots（withScaleVersion / localStorage.setItem / cloudState）
+  //     ② 每一处出现都必须是【只读消费】形态（`?.dailySnapshots` 或作为 prop 传给面板）
+  //     ③ 自检：合成的"写进存档"样本必须被①抓到（判据非空转）
+  const appSrc = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
+  // ★ 必须先剥注释（本项目已踩过 3 次："注释里提到模式名也算违规"）
+  const appCode = appSrc.split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  const 存档行 = appCode.split(/\r?\n/).filter(l => /dailySnapshots/.test(l) && /(withScaleVersion|localStorage\.setItem|cloudState)/.test(l))
+  ok(存档行.length === 0, 'dailySnapshots 未进 App 存档路径（一期天数据不持久化）', 存档行.join(' | '))
+  const 读法行 = appCode.split(/\r?\n/).filter(l => /dailySnapshots/.test(l))
+  const 非法读法 = 读法行.filter(l => !/\?\.dailySnapshots|dayFlows=\{[^}]*dailySnapshots/.test(l))
+  ok(非法读法.length === 0, 'dailySnapshots 在 App.jsx 里每一处都是【只读消费】（传面板）· 不参与任何写盘',
+    非法读法.join(' | '))
+  const 合成 = 'cloudState = withScaleVersion({ weekInputs: x, dailySnapshots: y })'
+  ok(/(withScaleVersion|localStorage\.setItem|cloudState)/.test(合成) && /dailySnapshots/.test(合成),
+    '判据自检：合成的"把 dailySnapshots 写进存档"样本会被①抓到（判据非空转）')
 }
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`)
