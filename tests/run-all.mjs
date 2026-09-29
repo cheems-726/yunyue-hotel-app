@@ -11,6 +11,17 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 const FAST = process.argv.includes('--fast')
 const NO_BUILD = process.argv.includes('--no-build')
 
+// ★ §27.3（2026-09-29 · D75）：**组装物自动同步** —— 消除"改了 src/ 忘跑组装"这一类错
+//   （本会话已犯 **4 次**：weekInputs / teachingClock / settlement / 又一次 weekInputs）。
+//   为什么不靠"记得跑"：这属于【反复复发的人为失误】，靠提醒治不好 ⇒ 让门禁自己先同步。
+//   为什么不是静默修复：同步后**显式打印**（有变化就写"★ 已重跑并更新"）——
+//   engine-parity（紧随其后）仍是**最终裁判**：它逐字节比对 22 个模块，能判死。
+{
+  const r = spawnSync(process.execPath, ['scripts/build-edge-function.mjs'], { cwd: process.cwd(), encoding: "utf8", shell: false })
+  const 输出 = (r.stdout || '') + (r.stderr || '')
+  console.log('  ▸ Edge 组装物自动同步：' + (r.status === 0 ? '✓ 已跑（若 src 有改动则刚刚同步；下面的 engine-parity 是最终裁判）' : '✗ 同步脚本失败 —— 见 engine-parity 结论'))
+}
+
 // 期望通过数（脚本自报尾行解析，这里只做"红/绿 + 计数"汇总）
 const SUITES = [
   { name: 'settlement（结算引擎）', file: 'tests/settlement.test.mjs' },
