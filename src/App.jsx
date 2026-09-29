@@ -233,7 +233,7 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -279,10 +279,11 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       </div>
 
       {/* 酒店状态面板（RPG属性）
-          ★ §26.3（P0b）：dayFlows = 本周【预览结算】的引擎日快照（7 天）· dayIndex = 教学日推得的本周第几天
-          ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。 */}
+          ★ §26.3（P0b）：dayFlows = 本周【预览结算】的引擎日快照（7 天）· dayIndex = 本周第几天
+          ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。
+          ★ 本组件（Business）自己**不**算预览 —— 由主组件算好传下来（weekPreview 在主组件作用域）。 */}
       <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions}
-        dayFlows={weekPreview?.dailySnapshots} dayIndex={dayToWeekDay(classDayLocal).dayIndex} />
+        dayFlows={dayFlows} dayIndex={classDayIndex} />
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -2373,7 +2374,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(classDayLocal).dayIndex} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(classDayLocal).dayIndex} dayFlows={weekPreview?.dailySnapshots} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} />,
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
