@@ -87,7 +87,22 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
   ok(/接线前/.test(fixture.生成时间), '基线 fixture 标记为"接线前"生成（可信来源：不是改动后自造）', fixture.生成时间)
   const 未接入用例 = Object.keys(fixture.用例).filter(k => /^(汉庭快捷|你好|桔子|无品牌)\|/.test(k) && !k.endsWith('链3周'))
   ok(未接入用例.length === 8, '基线含 8 个未接入/无品牌单周用例（4 品牌 × direct/ota）', String(未接入用例.length))
-  const 逐字节 = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  // ★ §26.3 P0b④（2026-09-29 · D70 · 重基线）：本套件的「零变化」断言从「整体逐字节」改为
+  //   「**除 dailySnapshots[].checkins/checkouts 外**逐字节」 —— 起因：本次**有意**补上逐日入住/退房
+  //   （原传 0 = 已记录的缺口，见 settlement 注释），而 dailySnapshots 是 settle 返回值的一部分 ⇒ 整体比对必然变。
+  //   ★ 这**不是放宽**：被排除的只有那两个字段，且它们的新值由下面**专门断言**钉住（Σ7天 === occupiedRooms）。
+  const 剥日入住退房 = (o) => {
+    if (!o || typeof o !== 'object') return o
+    const c = JSON.parse(JSON.stringify(o))
+    // 每天有两层：顶层 slices 与嵌套 dailySnapshot —— **两层都要剥**（实测：只剥顶层 ⇒ 比对照样不同）
+    if (Array.isArray(c.dailySnapshots)) c.dailySnapshots = c.dailySnapshots.map(d => {
+      const { checkins, checkouts, ...rest } = d
+      if (rest.dailySnapshot) { const { checkins: _c1, checkouts: _c2, ...ds } = rest.dailySnapshot; rest.dailySnapshot = ds }
+      return rest
+    })
+    return c
+  }
+  const 逐字节 = (a, b) => JSON.stringify(剥日入住退房(a)) === JSON.stringify(剥日入住退房(b))
 
   const bad = []
   for (const k of 未接入用例) {
@@ -95,7 +110,13 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
     const now = 跑(名, 1, null, mode)
     if (!逐字节(now, fixture.用例[k])) bad.push(k)
   }
-  ok(bad.length === 0, '★ 零变化：8 个未接入用例（含 OTA 模式）输出逐字节不变', bad.join(','))
+  ok(bad.length === 0, '★ 零变化：8 个未接入用例（含 OTA 模式）输出逐字节不变（除 dailySnapshots 的逐日入住/退房 · §26.3 有意补齐）', bad.join(','))
+  // ★ 被排除的两个字段：新值必须等于引擎周值（不是 0、也不是编的）
+  const 日入住退房坏 = 未接入用例.filter(k => {
+    const [名, mode] = k.split('|'); const r = 跑(名, 1, null, mode); const ds = r.dailySnapshots || []
+    return !(ds.length === 7 && ds.reduce((a, d) => a + (d.checkins || 0), 0) === r.occupiedRooms && ds.reduce((a, d) => a + (d.checkouts || 0), 0) === r.occupiedRooms)
+  })
+  ok(日入住退房坏.length === 0, '★ 逐日 checkins/checkouts 的 Σ7天 === occupiedRooms（原为 0 = 缺口已补 · §26.3 P0b④）', 日入住退房坏.join(','))
   ok(未接入用例.every(k => !('franchiseFees' in fixture.用例[k])), '基线里确实没有 franchiseFees 键（fixture 是改动前的）')
 
   // 多周链（资金累积 ⇒ 更能抓"悄悄扣费"）
@@ -109,7 +130,7 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
       cap = r.capital
     }
   }
-  ok(链坏.length === 0, '★ 零变化：3 周链（含 prevCapital 传递）逐字节不变', 链坏.join(','))
+  ok(链坏.length === 0, '★ 零变化：3 周链（含 prevCapital 传递）逐字节不变（同上排除口径）', 链坏.join(','))
 
   // ★ 双向证明：同一个比较器，对未接入说"没变"、对已接入必须说"变了"
   //   否则"零变化"可能只是比较器坏了（永远相等）—— 那是最典型的假绿
