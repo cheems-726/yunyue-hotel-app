@@ -12,6 +12,7 @@ import { SCALE } from './stateMigration.mjs'
 //   纪律：计费在 src/franchiseFees.mjs 【唯一计算点】—— 本处只调用，不重写公式（E1 账本单源）
 import { franchiseFees, 一次性费用清单 } from './franchiseFees.mjs'
 import { TOTAL_WEEKS } from './semester.mjs'
+import { 校验等级限制 } from './tierLimit.mjs'   // ★ §31.2-A1 ③：等级限制真强制（超档 ⇒ throw）
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -215,6 +216,10 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
 const s = (site && typeof site.attrs === 'object' && site.attrs)
   ? { ...site.attrs, district: site.district || site.name }
   : (site || {})
+
+  // ★ §31.2-A1 ③（2026-09-30）：【等级限制真强制】引擎侧校验 —— 归一化之后立即判
+  //   （三层强制的第三层：前端禁选 / 点击拒绝 / **结算入口 throw**）。超档 ⇒ 显式报错，绝不静默降级。
+  校验等级限制({ site: s, brand })
 
   // 1. 城市客流系数（选址"客流"属性 1-5 → 0.5-1.5）
   const cityFlow = 0.5 + (s.客流 || 3) * 0.2

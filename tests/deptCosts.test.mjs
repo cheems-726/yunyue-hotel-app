@@ -76,7 +76,9 @@ console.log('\n[2] ★② 与 variableCost 去重（计费基数不同、语义�
 {
   const r = settle({ site: SITE, brand: BRAND, decisions: D, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
   // 变动成本随【入住量】；部门固定成本随【可售房】——用两个不同入住率的配置验证斜率
-  const low = settle({ site: { ...SITE, 客流: 1, 房价: 2 }, brand: BRAND, decisions: D, week: 1, attrs: { quality: 40, reputation: 30, morale: 60 } })
+  // ★ §31.2-A1：客流 1 档 ⇒ 中档品牌（全季）被等级限制拒绝 ⇒ 换用**客流 2 档**（同样低入住量 · 合规）
+  // ★ §31.2-A1：低入住量用例 ⇒ 客流 2 档 + **经济型品牌**（客流2 上限=1，中档全季会被等级限制拒绝）
+  const low = settle({ site: { ...SITE, 客流: 2, 房价: 2 }, brand: { ...BRAND, name: '汉庭', level: '经济型 · 国民' }, decisions: D, week: 1, attrs: { quality: 40, reputation: 30, morale: 60 } })
   const ratioDept = r.deptCost / low.deptCost
   ok(Math.abs(ratioDept - 1) < 0.01, `部门成本与入住量无关：两配置同为 ${r.deptCost}（比 ${ratioDept.toFixed(3)}）⇒ 按可售房计`)
   const v1 = r.totalCost - r.rentCost - r.deptCost - 两费(r) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款

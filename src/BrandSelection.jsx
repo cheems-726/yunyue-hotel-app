@@ -61,6 +61,9 @@ export default function BrandSelection({ location, onConfirm }) {
   // 区域限开等级：客流≤2 → 仅经济型(1)；3 → 经济～中端(2)；≥4 → 全档次(5)
   const flow = location?.attrs?.客流 ?? 3
   const maxTier = flow >= 4 ? 5 : (flow >= 3 ? 2 : 1)
+  // ★ §31.2-A1（2026-09-30 · 等级限制【真强制】）：brandGroups 的下标 gi 即档次 1..5（经济型=1 … 奢华=5）。
+  //   原先只有红色横幅（下方渲染）而 handleBrandClick **完全不校验** ⇒ 超档品牌仍可点选（装饰品 · 审计 D83-c）。
+  //   现在三层强制：① 卡片 disabled ② 点击直接 return（双保险）③ 引擎侧 settle 校验（见 settlement.js）。
 
   // 每个品牌选择后的结果反馈
   function brandResult(b) {
@@ -78,11 +81,29 @@ export default function BrandSelection({ location, onConfirm }) {
     }
   }
 
-  function handleBrandClick(b, level) {
+  function handleBrandClick(b, level, gi) {
+    // ★ §31.2-A1【真强制】：超档品牌直接拒绝（反馈面板写明原因 —— 学生看得见为什么）
+    if (gi + 1 > maxTier) {
+      setFeedback({
+        title: `⛔「${b.name}」在当前区域不可选`,
+        changes: [
+          { label: '区域限制', value: `${location?.district ?? '本区域'}（客流 ${flow} 档）最高只能开档次 ${maxTier}`, dir: 'down' },
+          { label: '品牌档次', value: `第 ${gi + 1} 档（${g_levelName(gi)}）`, dir: '' },
+          { label: '原因', value: '低消费区开高端酒店必亏（教学口径 3.2-1）—— 请换经济型品牌，或返回选址重选', dir: '' },
+        ],
+        note: '这不是故障，是经营现实：选址决定你能做什么生意。',
+      })
+      return
+    }
     const brand = { ...b, level }
     setSelected(b.name)
     setFeedback(brandResult(brand))
     setConfirmBrand(brand)
+  }
+
+  // 档次名（§31.2-A1 · 供拒绝反馈用）
+  function g_levelName(gi) {
+    return ['经济型', '中端型', '中高端型', '高端型', '奢华型'][gi] || `第 ${gi + 1} 档`
   }
 
   return (
@@ -131,13 +152,20 @@ export default function BrandSelection({ location, onConfirm }) {
               </div>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407', marginBottom: 8, padding: '0 4px' }}>{g.level}</div>
-            {g.brands.map(b => (
+            {g.brands.map(b => {
+              const 超档 = gi + 1 > maxTier
+              return (
               <div
                 key={b.name}
                 className={`district-card ${selected === b.name ? 'selected' : ''}`}
-                onClick={() => handleBrandClick(b, g.level)}
-                style={{ marginBottom: 8, padding: 12 }}
+                onClick={() => handleBrandClick(b, g.level, gi)}
+                style={{ marginBottom: 8, padding: 12, ...(超档 ? { opacity: 0.45, cursor: 'not-allowed', background: '#F5F5F4' } : {}) }}
               >
+                {超档 && (
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#991B1B', marginBottom: 4 }}>
+                    ⛔ 超出本区档次上限（限开 {maxTier} 档）—— 不可选
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                   <span style={{ fontSize: 15, fontWeight: 700 }}>{b.icon} {b.name}</span>
                   {selected === b.name && (
@@ -152,7 +180,7 @@ export default function BrandSelection({ location, onConfirm }) {
                   <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>📋 {b.standard}</span>
                 </div>
               </div>
-            ))}
+              )})}
           </div>
         ))}
       </div>

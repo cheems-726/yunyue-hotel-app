@@ -43,6 +43,7 @@ const MODULES = [
   'semester.mjs',     // §22.2-B2：学期长度单源（TOTAL_WEEKS；settlement/franchiseFees 依赖 ⇒ 必须一起组装）
                       //   ★ 漏登后果与 §14.3 那次同族：部署后 Edge Function import 404。
                       //     本批我是先漏登、被 serverTick 的「导入闭包」断言当场拦下的 —— 守门在跑。
+  'tierLimit.mjs',    // §31.2-A1：等级限制真强制（settlement 依赖 ⇒ 必须一起组装；漏登 = 又一次 404）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
