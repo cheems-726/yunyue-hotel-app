@@ -110,9 +110,14 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 //   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
 const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   // 跨结构差异本身要可解释：新周利润 = 同周旧结构利润 − 部门成本（差额恒等式，D38-B 的统一手法）
-  const preW2 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: rowsM[0].week, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
-  ok(direct.profit === preW2.profit - direct.deptCost - (direct.rentCost - preW2.rentCost) - 两费(direct),   // 🔴 A-1：加租金项
-    `${name}：差额恒等式 新周利润 ${direct.profit} === 旧结构利润 ${preW2.profit} − 部门成本 ${direct.deptCost}`)
+  // ★ §32-U3：恒等式的前提是"两侧只差结构" —— 世界层（天气/淡旺季）自 w2 起改变需求 ⇒ 原 week=w5（旺季 1.10）
+  //   不再满足前提。⇒ 改在【世界中性周 w9（晴 ×1 · 平季 ×1）】上判（两引擎吃同一份输入）；
+  //   非中性周的世界层幅度由 tests/worldLayer.test.mjs 的比值恒等式归因（不在此混判）。
+  const 中性周 = 9
+  const direct9 = settle({ site: SITE, brand: BRAND, decisions: dec, week: 中性周, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
+  const preW29 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: 中性周, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
+  ok(direct9.profit === preW29.profit - direct9.deptCost - (direct9.rentCost - preW29.rentCost) - 两费(direct9),   // 🔴 A-1：加租金项
+    `${name}：差额恒等式（世界中性周 w${中性周}）新周利润 ${direct9.profit} === 旧结构利润 ${preW29.profit} − 部门成本 ${direct9.deptCost} − 租金差 − 两费`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）
   const rowsNo = continueWeeks({ ...legacy, capital: legacy.capital }, dec, 3)

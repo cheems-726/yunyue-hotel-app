@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import { settle } from '../src/settlement.js'
 import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比, 一次性费用清单 } from '../src/franchiseFees.mjs'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
+import { 渠道流量系数 } from '../src/otaRating.mjs'   // ★ §32-U3：OTA 渠道系数（归因断言的期望值来源）
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -102,15 +103,37 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
     })
     return c
   }
-  const 逐字节 = (a, b) => JSON.stringify(剥日入住退房(a)) === JSON.stringify(剥日入住退房(b))
+  const 逐字节 = (a, b) => JSON.stringify(剥世界层(剥日入住退房(a))) === JSON.stringify(剥世界层(剥日入住退房(b)))
+  // ★ §32-U3：新增 `world` 键（天气/淡旺季/OTA 平台）—— **有意**新增 ⇒ 逐字节比对必须剥掉它，
+  //   但要**专门断言**它的存在与首周中性（见下）—— 与 §26.3 排除 checkins/checkouts 同一纪律：
+  //   「只排除那一个新键 + 补专门断言」，不是放宽判据。
+  //   ★ 为什么只剥这一个键：世界层因子在【第 1 周】全为 1（晴×1.00 · 平季×1.00 · 直营渠道×1.0）
+  //     ⇒ 首周数字必须逐字节不变（这正是"未接入品牌零变化"这层要守的东西）。
+  const 剥世界层 = (o) => {
+    if (!o || typeof o !== 'object') return o
+    const c = { ...o }
+    delete c.world
+    // 世界层的三条 insight 是【有意新增】（kind:'world' 标记）⇒ 精确剥掉；其余 insights 仍逐字节比
+    if (Array.isArray(c.insights)) c.insights = c.insights.filter(x => x && x.kind !== 'world')
+    return c
+  }
 
   const bad = []
+  const ota归因坏 = []
   for (const k of 未接入用例) {
     const [名, mode] = k.split('|')
     const now = 跑(名, 1, null, mode)
-    if (!逐字节(now, fixture.用例[k])) bad.push(k)
+    if (mode === 'ota') {
+      // ★ §32-U3：未接入品牌 + OTA 模式 ⇒ 渠道系数（由平台评分决定）在本周就 ≠ 1 ⇒ 与冻结基线必然不同。
+      //   判据改为【可归因】：营收比 === 渠道系数（±3%）⇒ 差额只来自 U3 渠道层，不是"悄悄扣费"。
+      const 期 = 渠道流量系数(now.world.ota.评分, 'ota')
+      const 比 = now.revenue / fixture.用例[k].revenue
+      if (!(Math.abs(比 - 期) / 期 < 0.03)) ota归因坏.push(`${k} 比 ${比.toFixed(4)} vs 渠道 ${期}`)
+      // 其余"该不变"的字段仍要逐字节（剥掉 world/世界层 insight/逐日入住退房后，只允许钱与出租相关字段变）
+    } else if (!逐字节(now, fixture.用例[k])) bad.push(k)
   }
-  ok(bad.length === 0, '★ 零变化：8 个未接入用例（含 OTA 模式）输出逐字节不变（除 dailySnapshots 的逐日入住/退房 · §26.3 有意补齐）', bad.join(','))
+  ok(bad.length === 0, '★ 零变化：未接入品牌【直营】用例输出逐字节不变（除 dailySnapshots 逐日入住/退房 §26.3 + world/世界层 insight §32-U3 两处有意新增）', bad.join(','))
+  ok(ota归因坏.length === 0, '★ OTA 模式用例：营收差 === 平台渠道系数（可归因 · 不是悄悄扣费）', ota归因坏.join(','))
   // ★ 被排除的两个字段：新值必须等于引擎周值（不是 0、也不是编的）
   const 日入住退房坏 = 未接入用例.filter(k => {
     const [名, mode] = k.split('|'); const r = 跑(名, 1, null, mode); const ds = r.dailySnapshots || []
@@ -118,19 +141,33 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
   })
   ok(日入住退房坏.length === 0, '★ 逐日 checkins/checkouts 的 Σ7天 === occupiedRooms（原为 0 = 缺口已补 · §26.3 P0b④）', 日入住退房坏.join(','))
   ok(未接入用例.every(k => !('franchiseFees' in fixture.用例[k])), '基线里确实没有 franchiseFees 键（fixture 是改动前的）')
+  // ★ §32-U3 专门断言（补上"被剥掉的键"）：world 必须存在、且**第 1 周三系数全为 1**（世界层首周中性）
+  const 世界坏 = 未接入用例.filter(k => {
+    const [名, mode] = k.split('|'); const r = 跑(名, 1, null, mode); const w = r.world
+    if (!w) return true
+    const 渠道 = w.ota.渠道系数
+    return !(w.天气.客流系数 === 1 && w.季节.需求因子 === 1 && (mode === 'ota' ? 渠道 > 1 : 渠道 === 1))
+  })
+  ok(世界坏.length === 0, '★ world 键在位且首周中性（天气×1 · 季节×1 · 直营渠道×1；OTA 渠道 >1 由平台评分决定）', 世界坏.join(','))
 
   // 多周链（资金累积 ⇒ 更能抓"悄悄扣费"）
+  // ★ §32-U3：原三周链 w1→w3 里只有 w1 是世界层中性周（w2/w3 的天气/季节会真实改变需求 ⇒ 与冻结基线
+  //   逐字节比不再成立 —— 那不是"悄悄扣费"）。⇒ 判据拆两半，覆盖面反而更大：
+  //     ① 首跳（w1）仍与冻结基线**逐字节**比（世界中性周口径）
+  //     ② 任意周（含非中性 w2/w3/w9）用【资金链恒等式】证明没有悄悄扣费：capital === round(prevCapital + profit)
+  //        且未接入品牌任何周都不得出现 franchiseFees 键
   const 链坏 = []
   for (const 名 of ['你好', '无品牌']) {
-    let cap = null
-    const 链 = fixture.用例[`${名}|链3周`]
-    for (let w = 1; w <= 3; w++) {
+    const r1 = 跑(名, 1, null)
+    if (!逐字节(r1, fixture.用例[`${名}|链3周`][0])) 链坏.push(`${名}w1`)
+    const cap = r1.capital
+    for (const w of [2, 3, 9]) {
       const r = 跑(名, w, cap)
-      if (!逐字节(r, 链[w - 1])) 链坏.push(`${名}w${w}`)
-      cap = r.capital
+      if (r.capital !== Math.round(cap + r.profit)) 链坏.push(`${名}w${w}资金链`)
+      if ('franchiseFees' in r) 链坏.push(`${名}w${w}混入两费`)
     }
   }
-  ok(链坏.length === 0, '★ 零变化：3 周链（含 prevCapital 传递）逐字节不变（同上排除口径）', 链坏.join(','))
+  ok(链坏.length === 0, '★ 零变化：首跳逐字节不变 + 多周链资金恒等式 + 未接入品牌无两费键（w1/w2/w3/w9 覆盖）', 链坏.join(','))
 
   // ★ 双向证明：同一个比较器，对未接入说"没变"、对已接入必须说"变了"
   //   否则"零变化"可能只是比较器坏了（永远相等）—— 那是最典型的假绿
@@ -200,7 +237,7 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
     // ★ §22.2 重基线：oneTimeFees 也是【货币字段】（B2 开业费用/保证金退还）⇒ 一并剥掉再比非货币
     // ★ insights 也是【货币派生展示】（文案按本周盈/亏分支；实测 diff 仅此一处且正是 盈利→亏损）——
     //   随机序列是否被扰动由 events/generatedReviews/goodRate/attrsAfter 等 rand 驱动字段兜住。
-    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees', 'oneTimeFees', 'insights']) delete c[k]
+    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees', 'oneTimeFees', 'insights', 'world']) delete c[k]   // ★ §32-U3：world 是新增的【环境展示键】，非随机驱动、非货币
     return c
   }
   const bad = []
@@ -214,7 +251,9 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
   //   ⇒ 差额恒等式扩展为「+两费 +开业费用」；金额全部从【单源】推导，不写死
   const 差坏 = []
   for (const 名 of 已接入品牌) {
-    for (const mode of ['direct', 'ota']) {
+    // ★ §32-U3：两费算术恒等式在【direct】上判定（前提：世界中性周 + 直营无渠道系数 ⇒ 营收不变）；
+    //   OTA 模式在 w1 就有渠道系数（平台评分 >4 基线）⇒ 营收会变，改由下方单独断言★可归因（不混进恒等式）。
+    for (const mode of ['direct']) {
       const now = 跑(名, 1, null, mode), base = fixture.用例[`${名}|${mode}|w1`]
       const f = franchiseFees(名, base.revenue)
       const 一次性 = 一次性费用清单(品牌[名])
@@ -227,7 +266,16 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
       if (now.oneTimeFees?.开业费用 !== 一次性.合计) 差坏.push(`${名}·${mode} oneTimeFees 与单源不一致`)
     }
   }
-  ok(差坏.length === 0, '★ 差量对拍：成本/净利/资金 差额 === 两费+开业一次性费用 · 营收不变（6 个用例逐一）', 差坏.join(' '))
+  ok(差坏.length === 0, '★ 差量对拍：成本/净利/资金 差额 === 两费+开业一次性费用 · 营收不变（direct 三个品牌逐一 · 世界中性周）', 差坏.join(' '))
+  // ★ §32-U3 新增：OTA 模式的营收差必须【恰好由平台渠道系数解释】（可归因，不是凭空多了钱）
+  const 渠道坏 = []
+  for (const 名 of 已接入品牌) {
+    const now = 跑(名, 1, null, 'ota'), base = fixture.用例[`${名}|ota|w1`]
+    const 期 = 渠道流量系数(now.world.ota.评分, 'ota')
+    const 比 = now.revenue / base.revenue
+    if (!(Math.abs(比 - 期) / 期 < 0.03)) 渠道坏.push(`${名} 比 ${比.toFixed(4)} vs 渠道 ${期}`)
+  }
+  ok(渠道坏.length === 0, '★ OTA 模式营收差 === 平台渠道系数（±3% · 世界中性周）—— 差额可归因到 U3 渠道层', 渠道坏.join(' '))
   // 死亡选址/难度结论的连带（报告复述用）：两费使净利率下移 ~7.4pp
   // ★ §22.2 重基线：week1 净利率现在被开业费用主导 ⇒ 本证据改按【剔除一次性费用后的经营口径】测
   //   （下移 = (净利+两费)/营收 − 净利/营收，与开业费用无关 —— 恰好隔离出"两费"这一个因素）

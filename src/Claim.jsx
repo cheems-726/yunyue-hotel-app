@@ -3,6 +3,7 @@ import ResultFeedback from './ResultFeedback.jsx'
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
+import { OTA_RULES } from './otaRating.mjs'                   // ★ §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -161,6 +162,18 @@ export default function Claim({ brand, location, onComplete }) {
                   <span style={{ fontSize: 11, color: '#16A34A' }}>✓ {m.pros}</span>
                 </div>
                 <div style={{ fontSize: 11, color: '#EF4444', marginTop: 2 }}>✗ {m.cons}</div>
+                {/* ★ §32-U3-C：平台规则【明示】（学生选之前就该看见 —— 文案来自单源 otaRating.OTA_RULES，界面只渲染） */}
+                {m.mode === 'ota' && (
+                  <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, padding: '7px 9px', background: '#F9FAFB', borderRadius: 8, lineHeight: 1.7 }}>
+                    <b style={{ color: '#374151' }}>平台规则（会真实生效）：</b>
+                    {OTA_RULES.map((r, i) => <div key={i}>· {r}</div>)}
+                  </div>
+                )}
+                {m.mode === 'direct' && (
+                  <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, padding: '7px 9px', background: '#F9FAFB', borderRadius: 8, lineHeight: 1.7 }}>
+                    · 不受 OTA 平台评分与平台罚款影响（也没有 OTA 的线上流量加成）
+                  </div>
+                )}
               </div>
             ))}
           </div>

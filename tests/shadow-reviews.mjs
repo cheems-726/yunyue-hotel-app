@@ -6,6 +6,11 @@
 import { settle as settleNew, negativeTexts, positiveTexts } from '../src/settlement.js'
 import { settle as settleOld } from '../src/settle-old-rev.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, applyWeeklyDecay } from '../src/attrs.js'
+// ★ §32-U3：本套件是【与冻结的旧引擎对比】—— 旧引擎不知道世界层（天气/淡季旺季）⇒ 自第 2 周起
+//   两侧不再逐项可比。判据因此改成**集合判据**：差异只许出现在"世界层非中性"的周，且中性周必须
+//   逐项一致（那才是"随机流与经营结构未被污染"的原判据）。★ 未放宽任何算式，见下方注释。
+import { 天气客流系数 } from '../src/weather.mjs'
+import { 季节因子 } from '../src/season.mjs'
 
 // A-1 重基线用：旧租金曲线的历史周租（旧公式 35 + 档×10 元/间·天；档位 3）
 //   旧引擎把租金并入 fixedCost，返回值里没有 rentCost ⇒ 作为「历史常量」在此显式写出，
@@ -65,15 +70,27 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   //    拆三组：(甲) 结构不变量 全程一致  (乙) 钱用精确算式  (丙) 夹取周及其后的 float 允许 P4 差异
   //    P4（2026-09-22）：好评率被夹取到 ≥0（旧引擎会算出 −100%/−50%），并经 prevGoodRate 跨周传导。
   const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
+  // ★ §32-U3：世界层中性周（天气 ×1 且 季节 ×1）—— 这两周才能与"不知道世界层的旧引擎"逐项对比
+  const 中性 = (w) => 天气客流系数(w) === 1 && 季节因子(w) === 1
+  const 中性周 = rows.filter(r => 中性(r.w)).map(r => r.w)
+  const 非中性周 = rows.filter(r => !中性(r.w)).map(r => r.w)
   const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
-  ok(structDiff.length === 0,
-    `${name}：结构不变量（出租率/在店房数/好评率/评价条数）12 周全程完全一致${structDiff.length ? '（不符周 ' + structDiff.join('/w') + '）' : ''}`)
+  const 中性差异 = structDiff.filter(w => 中性(w))
+  ok(中性差异.length === 0,
+    `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量逐项一致 —— 随机流与经营结构未被污染【原判据保留在这一组】${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
+  const 集合同 = structDiff.every(w => 非中性周.includes(w))
+  ok(集合同,
+    `${name}：★ 差异只许出现在世界层非中性周（子集判据 · 全 12 周覆盖）：差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]`,
+    `越界周[${structDiff.filter(w => !非中性周.includes(w)).join('/')}]`)
+  //   ★ 为什么不做"两个方向都判"（差异集合 === 非中性集合）：实测 省钱型 w11 系数 = 雨0.90×旺季1.10 = **0.99**，
+  //     1% 的需求差会被【出租率取整 + 30%/98% 上下限】吸收 ⇒ "必须有差异"是不可靠的断言（假红）。
+  //     世界层的**幅度与方向**在 `tests/worldLayer.test.mjs` 用"比值恒等式"精确验证（那里没有旧引擎的混杂因素）。
   const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
   const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
   const floatDiff = rows.filter(r => r.w < firstClamp &&
-    (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w)
+    (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w).filter(w => 中性(w))
   ok(floatDiff.length === 0,
-    `${name}：夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前的 好评率/差评数 逐周完全一致；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
+    `${name}：夹取周(w${firstClamp === Infinity ? '—' : firstClamp})之前的 好评率/差评数 逐周完全一致（世界层中性周口径）；夹取周 ${clampWeeks.length} 周（${clampWeeks.length ? 'w' + clampWeeks.join('/w') : '无'}）及其后为 P4 预期差异`)
 // 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
 //   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
 //   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
@@ -84,7 +101,7 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   // (乙) ×7 精确算式：收入恒 7 倍；利润差额 = 6 × 【未被 ×7 的科目】
   const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
-  const moneyBad = rows.filter(r => {
+  const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
@@ -93,8 +110,11 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new)
   })
   ok(moneyBad.length === 0,
-    `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,
+    `${name}：×7 精确算式在世界层中性周成立（w${中性周.join('/w')} · 收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,
     moneyBad.slice(0, 2).map(r => `w${r.w} rev ${r.old.revenue}→${r.new.revenue} prof ${r.old.profit}→${r.new.profit}`).join(' | '))
+  // ★ §32-U3：非中性周的钱差**不在本套件判**（方向/幅度由 worldLayer 的比值恒等式精确验证）——
+  //   理由：本套件对比的是"冻结的旧引擎"，除世界层外还叠加了 P4 好评率夹取等历史差异 ⇒ 混在一起
+  //   无法把差异归因给世界层（那正是"归因不许含糊"的反面教材）。
 
   // 内容对比
   const oldTexts = rows.flatMap(r => r.old.generatedReviews.map(x => x.text))

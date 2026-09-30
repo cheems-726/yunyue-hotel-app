@@ -6,6 +6,9 @@
 //   ② 拆租金【不改变】任何既有数值：与 B3 之前的引擎（f884768 快照）逐项一致
 //   ③ gopRate 与 gop/revenue 一致；租金 > 0 且可对拍华住量级
 import { settle } from '../src/settlement.js'
+// ★ §32-U3：与冻结旧引擎的可比口径 = 世界层中性周（天气×1 且 季节×1）——非中性周由 worldLayer 比值恒等式验证
+import { 天气客流系数 } from '../src/weather.mjs'
+import { 季节因子 } from '../src/season.mjs'
 // 🔴 W2 重基线（D38-B）：基准从「B3 前」改为「W2 前」——B3 期的「逐项零变化」断言前提已被 W2 的
 //   部门成本改动覆盖（cost/profit 必然变）；现在改断【结构不变量零漂移 + 差额恒等式】
 import { settle as settleOld } from '../src/settle-old-w2.mjs'
@@ -61,7 +64,8 @@ const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
     const Δ开业 = 开业费(n), Δ退还 = 退还(n)
-    if (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还) {
+    const 世界中性 = 天气客流系数(w) === 1 && 季节因子(w) === 1
+    if (世界中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还)) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital
@@ -72,7 +76,7 @@ const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
   ok(idOK, `${name}：GOP 恒等式 12 周全成立（gop = 营收 −(变动+营销+OTA)）`, rows.slice(0, 2).join(' | '))
   ok(rateOK, `${name}：gopRate === gop/revenue`)
   ok(rentOK, `${name}：租金科目已独立列示且 > 0`)
-  ok(zeroOK, `${name}：结构不变量零漂移 + Δcost === deptCost+Δrent（A-1 重基线）`, rows.slice(0, 2).join(' | '))
+  ok(zeroOK, `${name}：结构不变量零漂移 + Δcost === deptCost+Δrent（A-1 重基线 · ★ 世界层中性周口径）`, rows.slice(0, 2).join(' | '))
 }
 
 // ③ 租金量级对拍（华住 52.5 元/间/天）

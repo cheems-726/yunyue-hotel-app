@@ -45,6 +45,9 @@ const MODULES = [
                       //     本批我是先漏登、被 serverTick 的「导入闭包」断言当场拦下的 —— 守门在跑。
   'tierLimit.mjs',    // §31.2-A1：等级限制真强制（settlement 依赖 ⇒ 必须一起组装；漏登 = 又一次 404）
   'hotReview.mjs',    // §32-U1 R2：上热门三级惩罚（settlement 依赖 ⇒ 必须一起组装）
+  'weather.mjs',      // §32-U3-A：天气（settlement 依赖 ⇒ 必须一起组装；漏登 = 部署后 import 404）
+  'season.mjs',       // §32-U3-B：淡旺季（settlement 依赖 ⇒ 必须一起组装）
+  'otaRating.mjs',    // §32-U3-C：OTA 平台评分 + 违规处罚（settlement 依赖 ⇒ 必须一起组装）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]

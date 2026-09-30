@@ -1,6 +1,9 @@
 // 第一期 D1 验收：日引擎（纯函数）—— 确定性 / Σ7天 ≡ 周 / 乱序补算一致 / 不碰全局随机
 // 运行：node tests/dayEngine.test.mjs
 import { simulateDay, simulateWeek, splitExact, dayWeights, DAYS_PER_WEEK } from '../src/dayEngine.js'
+// ★ §32-U3：与旧引擎的可比口径 = 世界层中性周（见下方 ② 项注释）
+import { 天气客流系数 } from '../src/weather.mjs'
+import { 季节因子 } from '../src/season.mjs'
 import { readFileSync } from 'node:fs'
 
 // A-1 重基线用：旧租金曲线的历史周租（旧公式 35 + 档×10 元/间·天；档位 3）
@@ -121,6 +124,10 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
         if (sum !== v) { idBad++; console.error(`   ✗ ${name} w${w} Σ${k}=${sum} ≠ 周值 ${v}`) }
       }
       // ② W2 重基线：结构不变量零漂移 + 成本差额恰为 deptCost
+      // 🔴 §32-U3 口径修正：本项对比的是【冻结的旧引擎】（不知道世界层：天气/淡旺季，自 w2 起改变需求）
+      //   ⇒ 只在【世界层中性周】上判"零漂移"（那里前提成立）；非中性周的世界层效应由
+      //     `tests/worldLayer.test.mjs` 的比值恒等式精确验证（不在本套件混判，避免归因含糊）。
+      const 世界中性 = 天气客流系数(w) === 1 && 季节因子(w) === 1
       // 🔴 A-1：rentCost 移出结构不变量（见上）
   // 🔴 A-1（2026-09-27）：rentCost 移出结构不变量 —— 租金曲线已按教学口径调整（35+档×10 → 25+档×5），
   //   它本就该变；差额恒等式改在下方单独加【历史周租差】项（Δcost === deptCost + Δ租）。
@@ -134,7 +141,7 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   const Δ租 = r.rentCost - 旧租周(r, dec)
   // 🔴 §22.2-B2：week1 开业费用 / week12 保证金退还 —— 同为“未被 ×7 的科目”（null-safe）
 const 一次性净额 = (x) => (x && x.oneTimeFees ? x.oneTimeFees.开业费用 - x.oneTimeFees.保证金退还 : 0)
-if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) + 一次性净额(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r) - 一次性净额(r)) {
+if (世界中性 && (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) + 一次性净额(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r) - 一次性净额(r))) {
         zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
       }
       pg = r.finalGoodRate; cap = r.capital
@@ -144,7 +151,7 @@ if (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(
     }
   }
   ok(idBad === 0, `接线后 Σ7天 === 周值（逐项）：3 策略 × 12 周 = ${idCases} 周全部成立`)
-  ok(zeroBad === 0, '结构不变量零漂移 + Δcost === deptCost（36 周，W2 重基线）')
+  ok(zeroBad === 0, '结构不变量零漂移 + Δcost === deptCost（★ 世界层中性周口径 · 非中性周由 worldLayer 比值恒等式单独验证）')
   // ③ 天数据不持久化：dailySnapshots 不得出现在任何【存档写入】路径
   //   ★ §26.3（2026-09-29 · P0b）判据升级 —— 原因：**面板现在必须消费引擎日快照**（用户投诉"数据没有联动"），
   //     App.jsx 里必然出现该字段；而原判据是"App.jsx 全文不许出现 dailySnapshots"的**子串检查**

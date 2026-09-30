@@ -379,6 +379,35 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         </div>
       )}
 
+      {/* ★ §32-U3 世界层：本周外部环境（天气/淡旺季/OTA 平台）—— 数据取自引擎 result.world（唯一查表点） */}
+      {result.world && (
+        <div className="card">
+          <div className="card-title">🌤 本周外部环境</div>
+          {[
+            { k: '天气', icon: result.world.天气.图标, 名: `天气 · ${result.world.天气.名}`, 值: `客流 ×${result.world.天气.客流系数}`, 好: result.world.天气.客流系数 >= 1, 注: '天气只影响客流，不影响房价与成本' },
+            { k: '季节', icon: '📅', 名: `淡旺季 · ${result.world.季节.名}`, 值: `需求 ×${result.world.季节.需求因子}`, 好: result.world.季节.需求因子 >= 1, 注: '淡旺季对全班所有店统一生效（不是选址维度）' },
+            result.world.ota.适用
+              ? { k: 'ota', icon: '📱', 名: `OTA 平台评分 · ${result.world.ota.评分}`, 值: `渠道流量 ×${result.world.ota.渠道系数}`, 好: result.world.ota.渠道系数 >= 1, 注: `评分由好评率 / 客诉率 / 差评回复决定（本周：好评率 ${result.world.ota.明细.好评率} · 客诉率 ${result.world.ota.明细.客诉率} · 积压 ${result.world.ota.明细.待处理} 条）` }
+              : { k: 'ota', icon: '🏪', 名: '自主直营 · 不受平台评分影响', 值: '渠道 ×1.0', 好: true, 注: '直营没有 OTA 流量加成，也没有平台罚款（口径分离）' },
+          ].map(row => (
+            <div key={row.k} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>{row.icon}</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{row.名}</span>
+                <span style={{ fontSize: 13, marginLeft: 8, color: row.好 ? '#065F46' : '#991B1B', fontWeight: 700 }}>{row.值}</span>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{row.注}</div>
+              </span>
+            </div>
+          ))}
+          {result.world.违规 && result.world.违规.length > 0 && (
+            <div style={{ marginTop: 8, padding: '8px 10px', background: '#FEF0EF', borderRadius: 8, fontSize: 12, color: '#991B1B', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              ⚖️ 本周平台处罚 {result.world.违规.length} 项（合计罚款 {result.world.违规罚款.toLocaleString()} 元，已计入本周成本）：
+              {result.world.违规.map(v => `\n· ${v.icon} ${v.名}（触发值 ${v.触发值}）→ 渠道流量 ×${v.降权}｜${v.tip}`).join('')}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 本周事件（条件触发：你的经营状态招来的好事/坏事；按 危机→负面→正面 排序） */}
       {result.events && result.events.length > 0 && (
         <div className="card">

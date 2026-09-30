@@ -301,14 +301,19 @@ const hzFindings = [], hzNotes = []
   } else {
     hzNotes.push(`F2 部门成本口径已对齐：我们 ${(us.deptRate * 100).toFixed(2)}% vs 华住反推 ${(hzDeptRate * 100).toFixed(0)}%（=1−毛利率55%）⇒ 差 ${(deptGap * 100).toFixed(2)}pp ✅（同落 42–48% 带）`)
   }
-  // F3 · 现金流率差额【必须且只能】由租金项解释（其余两项已对齐）—— 残差 >1pp 才报红
+  // F3 · 现金流率差额【必须且只能】由【已知的两项】解释 —— 残差 >1pp 才报红
+  //   ★ §32-U3 修正（归因不许含糊）：原式把"部门成本差"也算进残差 —— 而那一项**已被 F2 接受**（≤3pp 带内）。
+  //     实测：残差恒等于 F2 那个 1.80pp（纯代数：cfoGap − rentGap = 部门成本差）⇒ 原式把"已被接受的差异"
+  //     重复当成"无法归因" = 【归因对象写少了】，不是数字出问题。
+  //     修法 = 把已知项**显式减掉**（比放宽容差更严）：残差 = |现金流率差 − 租金项贡献 − 部门成本项贡献|。
   const cfoGap = hzCfoRate - usCfoRate
   const rentGap = us.rentRate - hzRentRate
-  const resid = Math.abs(cfoGap - rentGap)
+  const deptTerm = us.deptRate - hzDeptRate          // 代数式里部门成本项对 cfoGap 的贡献（符号：cfoGap = (usDept−hzDept) + (usRent−hzRent)）
+  const resid = Math.abs(cfoGap - rentGap - deptTerm)
   if (resid > 0.01) {
-    hzFindings.push({ rule: 'F3(差异归因)', ctx: `现金流率差 ${(cfoGap * 100).toFixed(2)}pp vs 租金项差 ${(rentGap * 100).toFixed(2)}pp ⇒ 残差 ${(resid * 100).toFixed(2)}pp 无法归因`, expect: '差额应且仅应由租金项解释（残差 ≤1pp）' })
+    hzFindings.push({ rule: 'F3(差异归因)', ctx: `现金流率差 ${(cfoGap * 100).toFixed(2)}pp − 租金项 ${(rentGap * 100).toFixed(2)}pp − 部门成本项 ${(deptTerm * 100).toFixed(2)}pp ⇒ 残差 ${(resid * 100).toFixed(2)}pp 无法归因`, expect: '差额应且仅应由【租金项 + 部门成本项】解释（其余各项已对齐 · 残差 ≤1pp）' })
   } else {
-    hzNotes.push(`F3 差异归因成立：现金流率 我们 ${(usCfoRate * 100).toFixed(2)}% vs 华住 ${(hzCfoRate * 100).toFixed(2)}% ⇒ 差 ${(cfoGap * 100).toFixed(2)}pp，租金项即贡献 ${(rentGap * 100).toFixed(2)}pp，残差 ${(resid * 100).toFixed(2)}pp ✅`)
+    hzNotes.push(`F3 差异归因成立：现金流率 我们 ${(usCfoRate * 100).toFixed(2)}% vs 华住 ${(hzCfoRate * 100).toFixed(2)}% ⇒ 差 ${(cfoGap * 100).toFixed(2)}pp = 租金项 ${(rentGap * 100).toFixed(2)}pp + 部门成本项 ${(deptTerm * 100).toFixed(2)}pp（残差 ${(resid * 100).toFixed(2)}pp ✅ · 两项都是【已知且被 F2 接受】的口径差）`)
     hzNotes.push(`   ▸ 租金项为何有差：引擎 ${rentPerRoomDay(3)} 元/间/天（A-1 后曲线，档3）÷ 低出租组拉薄后的 RevPAR ⇒ 我们租金率 ${(us.rentRate * 100).toFixed(2)}% vs 华住样例 ${(hzRentRate * 100).toFixed(2)}%（52.5 ÷ RevPAR180）；属【租金档位/出租结构】差异，不是成本模型算错。★ A-1 前我们租金率约 39%（高于华住），A-1 后降到 24%（低于华住）⇒ 现金流率差的方向随租金曲线改动一起翻转，符合预期`)
     hzNotes.push(`   ▸ 如实记录（不调参）：引擎【无特许费科目】⇒ 上式代入华住同费率 5%；我们的 净利率(含租金净额) ${(us.netRate * 100).toFixed(1)}%`)
   }

@@ -70,8 +70,10 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   ok(direct.oneTimeFees?.开业费用 === 349000, `开业一次性费用明细随行（${direct.oneTimeFees?.开业费用}）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')
   // 🔴 §22.2 重基线：OTA 同受 B2 影响 ⇒ 118425+349000=467425 · 50555−349000=−298445 · 营收不变
-  ok(ota.revenue === 168980 && ota.totalCost === 467425 && ota.netProfit === -298445,
-    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（§22.2 锚点）`)
+  // ★ §32-U3 重基线（世界层 · OTA 渠道系数）：w1 天气/季节中性，但 OTA 渠道系数 = 1.126（平台评分 4.7）
+  //   ⇒ OTA 锚点整体上移；direct 锚点**逐项不变**（上面那条即是水位线证据）。归因见批次报告-unit3「产物数字变动表」。
+  ok(ota.revenue === 185640 && ota.totalCost === 474586 && ota.netProfit === -288946,
+    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（§32-U3 新锚点）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
     `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}`)
   ok(direct.weeklyExpenses['OTA佣金'] === 0, '自营模式不收 OTA 佣金')
@@ -94,7 +96,9 @@ console.log('\n[A2b] C1 · 开店模式差异（可观察）+ 口径分离（门
   ok(ota.occupiedRooms > direct.occupiedRooms, `售出间夜同步更高：${ota.occupiedRooms} > ${direct.occupiedRooms}`)
   // ② 佣金差异是【按 bizMode】，不是按品牌 —— 换品牌（同为已接入）佣金率不变
   const 换品牌 = settle({ ...BASE, brand: 汉庭, bizMode: 'ota' })
-  ok(Math.abs(换品牌.weeklyExpenses['OTA佣金'] / 换品牌.revenue - 0.15) < 1e-9,
+  // ★ §32-U3：判据改成【佣金 === round(营收 × 15%)（±1 元）】—— 原 1e-9 比值断言依赖"旧营收恰好能被 20 整除"
+  //   （26663.5→26664 这类四舍五入会让比率 = 0.1500045 ⇒ 假红，且卡在浮点边界）。断言意图（佣金按 bizMode 恒 15%）不变。
+  ok(Math.abs(换品牌.weeklyExpenses['OTA佣金'] - Math.round(换品牌.revenue * 0.15)) <= 1,
     `换品牌后佣金率仍为 15%（佣金按 bizMode，不按品牌）`, String(换品牌.weeklyExpenses['OTA佣金'] / 换品牌.revenue))
   // ③ 加盟两费是【按品牌】，与 bizMode 无关 —— 费率一致（金额随营收变，那是正常的）
   const 费率集 = 已接入品牌.map(n => franchiseFees({ name: n }, 100000).费率.合计)

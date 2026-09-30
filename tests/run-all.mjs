@@ -110,6 +110,8 @@ const SUITES = [
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
   // ★ §32-U2：教师端一键图文经营报告（只读汇总 · 数字对权威源 · 不许第二本账）
   { name: 'teacherReport（教师经营报告·U2）', file: 'tests/teacherReport.test.mjs' },
+  // ★ §32-U3：世界层（天气/淡旺季/OTA 平台评分与违规）—— 确定性 + 接线因果 + 口径分离
+  { name: 'worldLayer（世界层·U3）', file: 'tests/worldLayer.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

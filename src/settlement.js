@@ -14,6 +14,10 @@ import { franchiseFees, 一次性费用清单 } from './franchiseFees.mjs'
 import { TOTAL_WEEKS } from './semester.mjs'
 import { 校验等级限制 } from './tierLimit.mjs'   // ★ §31.2-A1 ③：等级限制真强制（超档 ⇒ throw）
 import { shouldHotReview, hotCrisisWeeks, hotCrisisActive, hotCrisisPenalties, applyHotReviewImmediate, HOT_REVIEW_CONFIG } from './hotReview.mjs'   // ★ §32-U1 R2：差评上热门三级惩罚
+// ★ §32-U3 世界层（三件 · 全确定性：按教学周查表 / 由本周已有信号派生 ⇒ 同周全班同结果 · 不消耗随机位置）
+import { 天气, 天气客流系数, 天气文案 } from './weather.mjs'
+import { 季节, 季节因子, 季节文案 } from './season.mjs'
+import { 平台评分, 渠道流量系数, 违规判定, 违规后果 } from './otaRating.mjs'
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -333,7 +337,22 @@ if (bizMode === 'ota') {
 
   // 6. 客源强度
   // R0：品质→房价容忍度、声誉→出租率基线（两个乘数；中性值均为 1.0）
-  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc
+  // ★ §32-U3 世界层（三件 · 全部确定性；都乘在 demandStrength 上 ⇒ 影响的是"客流"，不动成本口径）：
+  //   ① 天气（按教学周查固定表）② 淡旺季（按教学周固定表 · 全班统一）③ OTA 平台渠道系数（仅 bizMode='ota'）
+  const 本周天气 = 天气(week)
+  const 本周季节 = 季节(week)
+  const 天气系数 = 天气客流系数(week)
+  const 季节系数 = 季节因子(week)
+  // OTA 平台评分：由【本周带入的信号】派生（本周好评率 + 本周实时评价数 + 差评积压）——
+  //   ★ 为什么不用"本周生成的 negativeCount"：它在本周结算的后半段才生成 ⇒ 用它算本周流量是【同周循环依赖】，
+  //     而且会 TDZ（实测：`Cannot access 'negativeCount' before initialization`）。
+  //   本函数不新增随机、不新增状态 ⇒ 同周全班同输入同结果。
+  const 平台 = 平台评分({ goodRate, negativeCount: liveNegCount, reviewCount: (liveNegCount + livePosCount), pendingNegatives })
+  const 渠道系数 = 渠道流量系数(平台.评分, bizMode)     // ★ direct ⇒ 恒 1（口径不串）
+  // OTA 违规（渠道侧 · 只对 ota 模式生效）：①差评长期不回复 ②超售导致到店无房 ⇒ 降权（此处）+ 罚款（下方计入 eventFine）+ 事件留痕
+  const ota违规s = bizMode === 'ota' ? 违规判定({ pendingNegatives, overbook: decisions.overbook || 0 }) : []
+  const ota后果 = 违规后果(ota违规s)
+  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6
@@ -353,6 +372,10 @@ if (bizMode === 'ota') {
 // 负向压力机制：属性推到极端会招来事件，教学生权衡而非刷满
 const events = []
 if (hotActiveThisWeek) addEvent({ type: 'crisis', icon: '📉', name: '舆情危机期·客流大跌', text: '差评上热门的持续影响：本周出租率 −30%（危机期内每周如此）', impact: '出租率 −30%', tip: '处理差评 + 老师裁量是唯二出路；危机期结束自动恢复' })
+// ★ §32-U3-C：OTA 违规留痕（罚款金额此处只入事件文案，钱在下方统一计入 eventFine —— 单一入账点）
+for (const v of ota违规s) {
+  addEvent({ type: 'bad', icon: v.icon, name: `平台处罚 · ${v.名}`, text: `${v.text}（触发值 ${v.触发值}）`, impact: `罚款 ${v.罚款} 元 · 渠道流量 ×${v.降权}`, tip: v.tip })
+}
 function addEvent(e) { events.push(e) }
 let negativeCount = 0
 let eventFine = 0
@@ -581,6 +604,9 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const 一次性 = 一次性费用清单(brand)
   const 开业费用 = (week === 1 && 一次性) ? 一次性.合计 : 0
   const 保证金退还 = (week === TOTAL_WEEKS && 一次性) ? (一次性.保证金 ?? 0) : 0
+  // ★ §32-U3-C：OTA 平台罚款并入 eventFine（**唯一入账点** —— 在所有事件赋值之后、算总成本之前，
+  //   否则会被既有 `eventFine = 消防罚款` 那类"整体赋值"静默清掉）。无违规 ⇒ ota后果.罚款 = 0 ⇒ 逐字节不变。
+  if (ota后果.罚款) eventFine += ota后果.罚款
   const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还
 
   // 10. 利润
@@ -681,6 +707,14 @@ for (let i = 0; i < reviewCount; i++) {
 
   if (pricing === '跟降 10%') insights.push({ good: occupancy >= 65, text: occupancy >= 65 ? '调价跟降 10% 拉住了客流，出租率达标' : '跟降 10% 客流仍不足，可能需要更大力度降价或提升口碑' })
   if (pricing === '不跟降') insights.push({ good: profit >= 0, text: profit >= 0 ? '不跟降保住了单间利润，本周盈利' : '不跟降保住了单价但客流流失严重，导致亏损' })
+  // ★ §32-U3 世界层：本周外部环境（天气/淡旺季）写进决策复盘 —— 文案由各模块单源生成（不在引擎里手拼百分比）
+  //   ★ `kind: 'world'` = 可识别标记：水位线比对（franchiseFees 零变化等）据此**精确剥掉这三条新增行**，
+  //     而不必放宽整段 insights 的比对（只排除"有意新增"，其余仍逐字节比）。
+  insights.push({ kind: 'world', good: 天气系数 >= 1, text: 天气文案(week).文案 + '（天气只影响客流，不影响房价与成本）' })
+  insights.push({ kind: 'world', good: 季节系数 >= 1, text: 季节文案(week).文案 + '（淡旺季对全班所有店统一生效）' })
+  if (bizMode === 'ota') {
+    insights.push({ kind: 'world', good: 渠道系数 >= 1, text: `OTA 平台评分 ${平台.评分} → 渠道流量 ×${渠道系数}${ota违规s.length ? `；本周有 ${ota违规s.length} 项平台处罚（见事件）` : ''}` })
+  }
   if (pricing === '降价 20% 抢客') insights.push({ good: profit >= 0, text: profit >= 0 ? '降价抢客拉高了出租率，薄利多销有效' : '降价 20% 客流涨了但利润被压垮，得不偿失' })
   if (decisions.shifts === '满编保服务') insights.push({ good: negativeCount <= 1, text: negativeCount <= 1 ? '满编排班保证了服务质量，差评少' : '满编排班成本高，但服务质量仍没跟上' })
   if (decisions.shifts === '精简省成本') insights.push({ good: negativeCount === 0, text: negativeCount === 0 ? '精简排班省了成本，且没影响服务' : '精简排班省了成本，但服务响应慢招来差评' })
@@ -911,6 +945,15 @@ for (let i = 0; i < reviewCount; i++) {
     generatedReviews,
     weeklyExpenses,
     totalExpenses,
+    // ★ §32-U3 世界层（确定性）：天气/淡旺季/OTA 平台 —— 面板与周报的"本周外部环境"唯一数据源。
+    //   为什么挂在这里而不是让界面自己查表：界面自己查就是【第二处查表点】，改系数必漏（BL-7 家族）。
+    world: {
+      天气: { 名: 本周天气.名, 图标: 本周天气.图标, 客流系数: 天气系数 },
+      季节: { 名: 本周季节.名, 需求因子: 季节系数 },
+      ota: { 评分: 平台.评分, 渠道系数, 适用: bizMode === 'ota', 明细: 平台.明细 },
+      违规: ota违规s,                                  // [] = 本周无违规（界面据此不渲染该行）
+      违规罚款: ota后果.罚款,
+    },
     // 🔴 Phase D/C2 · D2：7 天快照（供第 3 批日报用）；纯派生字段，不参与任何计算、不入存档
     //    ΣdailySnapshots[].revenue === revenue 等逐项成立（dayEngine.splitExact 保证）
     dailySnapshots,

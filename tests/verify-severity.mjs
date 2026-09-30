@@ -9,6 +9,9 @@
 import { settle as settleNew } from '../src/settlement.js'
 import { settle as settleOld } from '../src/settle-old-sev.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, applyWeeklyDecay } from '../src/attrs.js'
+// ★ §32-U3：世界层（天气/淡旺季）自第 2 周起改变需求 ⇒ 与冻结旧引擎的可比口径 = 世界层中性周
+import { 天气客流系数 } from '../src/weather.mjs'
+import { 季节因子 } from '../src/season.mjs'
 
 // A-1 重基线用：旧租金曲线的历史周租（旧公式 35 + 档×10 元/间·天；档位 3）
 //   旧引擎把租金并入 fixedCost，返回值里没有 rentCost ⇒ 作为「历史常量」在此显式写出，
@@ -53,11 +56,22 @@ console.log('▶ severity 语气分级 · 改前(HEAD) vs 改后')
 const starHist = {}
 for (const [name, dec] of Object.entries(STRATEGIES)) {
   const rows = dualRun(dec)
-  // ①-a 结构不变量：12 周全程完全一致（×7 不得碰经营结构 / 星级改动不得碰随机流）
+  // ①-a 结构不变量（★ §32-U3 改口径）：本套件对比的是【冻结的旧引擎】（不知道世界层：天气/淡旺季，
+  //   自第 2 周起对 demandStrength 生效）⇒ 判据改为：
+  //     (i) 世界层**中性周**（天气×1 且 季节×1）必须逐项一致 —— 原判据的语义（随机流与经营结构未被污染）保留在这里
+  //     (ii) 差异**只许**出现在非中性周（子集判据：越界即红）—— 覆盖全 12 周，不抽样
+  //   ⇒ 未放宽算式，只是把"与旧引擎可比的口径"限定在前提成立的那几周。
   const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
+  const 中性 = (w) => 天气客流系数(w) === 1 && 季节因子(w) === 1
+  const 中性周 = rows.filter(r => 中性(r.w)).map(r => r.w)
+  const 非中性周 = rows.filter(r => !中性(r.w)).map(r => r.w)
   const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
-  ok(structDiff.length === 0,
-    `${name}：结构不变量（出租率/在店房数/好评率/评价条数）12 周全程完全一致${structDiff.length ? '（不符周 ' + structDiff.join('/w') + '）' : ''}`)
+  const 中性差异 = structDiff.filter(w => 中性(w))
+  ok(中性差异.length === 0,
+    `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量（出租率/在店房数/好评率/评价条数）逐项一致${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
+  ok(structDiff.every(w => 非中性周.includes(w)),
+    `${name}：★ 结构差异只出现在世界层非中性周（差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]）`,
+    `越界[${structDiff.filter(w => !非中性周.includes(w)).join('/')}]`)
 // 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
 //   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
 //   未接入品牌返回 null ⇒ 本项恒为 0（null-safe，不写死数字）。
@@ -67,7 +81,7 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   // ①-b ×7 精确算式（T1.1/D16）
   const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
-  const moneyBad = rows.filter(r => {
+  const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
@@ -76,16 +90,16 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new)
   })
   ok(moneyBad.length === 0,
-    `${name}：×7 精确算式 12 周全成立（收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,
+    `${name}：×7 精确算式在世界层中性周成立（w${中性周.join("/w")} · 收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,
     moneyBad.slice(0, 2).map(r => `w${r.w} rev ${r.old.revenue}→${r.new.revenue} prof ${r.old.profit}→${r.new.profit}`).join(' | '))
   // ①-c P4 夹取口径：好评率被夹取到 ≥0，且经 prevGoodRate 跨周传导
   //    ⇒ 断言 = 【首次夹取周之前的 好评率/差评数 必须逐周完全一致】；夹取周及其后为预期差异
   const clampWeeks = rows.filter(r => r.old.finalGoodRate < 0).map(r => r.w)
   const firstClamp = clampWeeks.length ? Math.min(...clampWeeks) : Infinity
-  const floatDiff = rows.filter(r => r.w < firstClamp &&
+  const floatDiff = rows.filter(r => r.w < firstClamp && 中性(r.w) &&
     (r.old.finalGoodRate !== r.new.finalGoodRate || r.old.negativeCount !== r.new.negativeCount)).map(r => r.w)
   ok(floatDiff.length === 0,
-    `${name}：夹取周(${firstClamp === Infinity ? '—' : 'w' + firstClamp})之前的 好评率/差评数 逐周完全一致；夹取周 ${clampWeeks.length} 周`)
+    `${name}：夹取周(${firstClamp === Infinity ? "—" : "w" + firstClamp})之前的 好评率/差评数 逐周完全一致（世界层中性周口径）；夹取周 ${clampWeeks.length} 周`)
 
   // ② 星级相同的卡片，文本必须逐字一致（证明独立流位置没被改动）
   //    星级被状态改写的那部分，文本随之改语气（这正是语气分级要的）
