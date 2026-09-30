@@ -3,6 +3,7 @@ import ResultFeedback from './ResultFeedback.jsx'
 import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
 import { guestsRng, makeReview } from './guests.js'
 import { decisions as DEC_CATALOG } from './decisions.js'
+import { 建议职务文案 } from './roleBonus.mjs'   // ★ §32-U4-R4：职务加成提示（单源文案）
 
 // 差评数据（含处理状态）
 const initialReviews = [
@@ -35,7 +36,7 @@ const quickGoodReplies = [
   '好的，谢谢。',
 ]
 
-export default function Reputation({ report, history, week, attrs, decisions }) {
+export default function Reputation({ report, history, week, attrs, decisions, groupRole = null }) {   // ★ §32-U4-R4：处理人职务（未设 ⇒ null ⇒ 不影响）
   const [reviews, setReviews] = useState(loadReviews)
   const [replying, setReplying] = useState(null) // 正在回复的评价 { review, isGood }
   const [replyText, setReplyText] = useState('') // 自由输入的话术
@@ -151,7 +152,8 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
       })
       return
     }
-    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyText: text, replyTier: tier, resolvedAt: new Date().toISOString() } : x))
+    // ★ §32-U4-R4：处理时留痕【处理人职务】（handledByRole）⇒ 职务匹配则该次处理效果 ×1.3
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', replyText: text, replyTier: tier, resolvedAt: new Date().toISOString(), handledByRole: groupRole || null } : x))
     const newResolved = resolved.length + 1
     const newRate = Math.round((newResolved / (pending.length - 1 + newResolved || 1)) * 100)
     setReplying(null); setReplyText('')
@@ -169,7 +171,7 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
   }
 
   function handleResolve(r) {
-    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', resolvedAt: new Date().toISOString() } : x))
+    setReviews(reviews.map(x => x.id === r.id ? { ...x, status: 'resolved', resolvedAt: new Date().toISOString(), handledByRole: groupRole || null } : x))
     setFeedback({
       title: `标记整改「${r.name.split(' ·')[0]}」`,
       changes: [
@@ -367,6 +369,13 @@ export default function Reputation({ report, history, week, attrs, decisions }) 
               {r.source && (
                 <div style={{fontSize:10,color:'#991B1B',background:'#FEF2F2',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：{r.source.icon} {r.source.name}——这条差评本可避免
+                </div>
+              )}
+              {/* ★ §32-U4-R4：职务加成提示（谁处理不一样 · 但所有人都能处理 —— 不卡进度） */}
+              {r.cause && (
+                <div style={{ fontSize: 11, color: '#A96407', background: '#FFF9F0', borderRadius: 8, padding: '5px 9px', marginTop: 8, lineHeight: 1.6 }}>
+                  {建议职务文案(r.cause)}
+                  {groupRole ? `　· 你当前职务：${groupRole}` : '　· 你未设职务（效果按 ×1.0 计，仍可正常处理）'}
                 </div>
               )}
               <div style={{display:'flex',gap:6,marginTop:10}}>

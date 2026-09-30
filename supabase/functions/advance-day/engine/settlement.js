@@ -189,7 +189,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
   // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
   //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
   //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
@@ -199,6 +199,8 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   const numOr = (v, d) => (v === null || v === undefined || v === '' ? d : (Number.isFinite(Number(v)) ? Number(v) : d))
   pendingNegatives = numOr(pendingNegatives, 0)
   resolvedCount = numOr(resolvedCount, 0)
+  // ★ §32-U4-R4：有效处理权重（职务匹配 ×1.3）。缺省/非法 ⇒ 回退到 resolvedCount（零变化）
+  const 有效处理数 = Number.isFinite(Number(resolvedWeight)) && Number(resolvedWeight) > 0 ? Number(resolvedWeight) : resolvedCount
   prevGoodRate = numOr(prevGoodRate, null)
   prevCapital = numOr(prevCapital, null)
   liveNegCount = numOr(liveNegCount, 0)
@@ -429,9 +431,14 @@ if (shouldHotReview({ pendingNegatives })) {
   addEvent({ type: 'crisis', icon: '🚨', name: '差评上热门（全网热榜）', text: `${pendingNegatives} 条差评长期不处理，被顶上本地生活平台热榜第一，全网可见！声誉腰斩，进入 ${hotCrisisWeeks(week)} 周舆情危机期（出租率 −30% · 差评概率 ×2）`, impact: `声誉 ×${HOT_REVIEW_CONFIG.reputationCut} · 危机期 ${hotCrisisWeeks(week)} 周`, tip: '这是口碑页三级警告的最高级——差评处理节奏就是酒店的命' })
 }
 // ⑧ 整改获认可（正面）：认真整改差评，客人追加好评（设计文档§三闭环的奖励侧）
-if (resolvedCount >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVENT_CONFIG.renovationPraise.prob) {
-  goodRate = Math.min(goodRate + EVENT_CONFIG.renovationPraise.goodRateUp, 0.95)
-  addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位，客人主动修改评价并追加好评，口碑 +2%', impact: '口碑 +2%`, tip: '整改不是白干——认真处理差评会带来口碑回报' })
+if (有效处理数 >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVENT_CONFIG.renovationPraise.prob) {
+  // ★ §32-U4-R4（职务加成 ×1.3）：口碑增益 = 基数 × 有效权重比（1.0 或 1.3）
+  //   ★ 未设职务/旧存档 ⇒ 权重 = resolvedCount ⇒ 比例 1.0 ⇒ 数字与文案逐字节回到改前
+  //   ★ 顺手修真 bug（学生可见）：原文字符串把 `', impact: '口碑 +2%` 混进了正文（引号写崩）—— 一并修正
+  const 权重比 = resolvedCount > 0 ? 有效处理数 / resolvedCount : 1
+  const 增益 = EVENT_CONFIG.renovationPraise.goodRateUp * 权重比
+  goodRate = Math.min(goodRate + 增益, 0.95)
+  addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位（有效处理量 ${有效处理数.toFixed(1)}），客人主动修改评价并追加好评，口碑 +${(增益 * 100).toFixed(1)}%`, impact: `口碑 +${(增益 * 100).toFixed(1)}%`, tip: '整改不是白干——认真处理差评会带来口碑回报；对岗处理（职务匹配）效果 ×1.3' })
 }
 // ⑨ 消防检查：长期不深清洁/不维护的店容易被查出发隐患
 if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.fireInspection.minWeek && rand() < EVENT_CONFIG.fireInspection.prob) {

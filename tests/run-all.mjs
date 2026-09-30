@@ -112,6 +112,8 @@ const SUITES = [
   { name: 'teacherReport（教师经营报告·U2）', file: 'tests/teacherReport.test.mjs' },
   // ★ §32-U3：世界层（天气/淡旺季/OTA 平台评分与违规）—— 确定性 + 接线因果 + 口径分离
   { name: 'worldLayer（世界层·U3）', file: 'tests/worldLayer.test.mjs' },
+  // ★ §32-U4-R4：职务加成 ×1.3（对应职务处理更强 · 所有人仍能处理）
+  { name: 'roleBonus（职务加成·U4-R4）', file: 'tests/roleBonus.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

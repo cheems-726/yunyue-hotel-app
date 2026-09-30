@@ -13,6 +13,9 @@ import { settle } from '../src/settlement.js'
 import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比, 一次性费用清单 } from '../src/franchiseFees.mjs'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
 import { 渠道流量系数 } from '../src/otaRating.mjs'   // ★ §32-U3：OTA 渠道系数（归因断言的期望值来源）
+import { WEATHER_TABLE_CYCLE } from '../src/weather.mjs'     // ★ §32-U4-§1②：世界层强制中性（水位线加固）
+import { SEASON_TABLE } from '../src/season.mjs'
+import { OTA_RATING_CONFIG } from '../src/otaRating.mjs'
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -118,8 +121,29 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
     return c
   }
 
+  // ★★ §32-U4-§1②（水位线加固 · 比"资金恒等式"更强）：**临时把世界层改成中性**（天气/季节表全 1 ·
+  //   OTA trafficK=0 ⇒ 渠道系数 1），此时引擎应与"U3 之前冻结的基线"**逐字节**相同 ——
+  //   这就把「只有世界层变了」从"分周子集判据"升级为**全周逐字节**证据（含非中性周 w2/w3/w9）。
+  //   ★ 用 try/finally 保证还原：任何一步炸了都不许把表改坏（本项目血泪：临时改文件忘还原）。
+  const 世界层中性 = (fn) => {
+    const 天气备份 = WEATHER_TABLE_CYCLE.map(x => x.客流)
+    const 季节备份 = SEASON_TABLE.map(x => x.因子)
+    const k备份 = OTA_RATING_CONFIG.trafficK
+    try {
+      WEATHER_TABLE_CYCLE.forEach(x => { x.客流 = 1 })
+      SEASON_TABLE.forEach(x => { x.因子 = 1 })
+      OTA_RATING_CONFIG.trafficK = 0
+      return fn()
+    } finally {
+      WEATHER_TABLE_CYCLE.forEach((x, i) => { x.客流 = 天气备份[i] })
+      SEASON_TABLE.forEach((x, i) => { x.因子 = 季节备份[i] })
+      OTA_RATING_CONFIG.trafficK = k备份
+    }
+  }
+
   const bad = []
   const ota归因坏 = []
+  const ota中性坏 = []
   for (const k of 未接入用例) {
     const [名, mode] = k.split('|')
     const now = 跑(名, 1, null, mode)
@@ -129,11 +153,15 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
       const 期 = 渠道流量系数(now.world.ota.评分, 'ota')
       const 比 = now.revenue / fixture.用例[k].revenue
       if (!(Math.abs(比 - 期) / 期 < 0.03)) ota归因坏.push(`${k} 比 ${比.toFixed(4)} vs 渠道 ${期}`)
-      // 其余"该不变"的字段仍要逐字节（剥掉 world/世界层 insight/逐日入住退房后，只允许钱与出租相关字段变）
+      // ★ §32-U4-§1①（D90 尾巴 · 原注释承诺了逐字节却没调用 ⇒ 说做了没做）：**真补上逐字节比** ——
+      //   口径 = 世界层强制中性（此时 OTA 的渠道系数也被压成 1）⇒ 必须与冻结基线逐字节相同。
+      //   ★ 必须在【中性包装内】跑 settle —— 否则拿到的是非中性结果（实测踩过：先说"跑在中性外"）
+      if (!世界层中性(() => 逐字节(跑(名, 1, null, mode), fixture.用例[k]))) ota中性坏.push(k)
     } else if (!逐字节(now, fixture.用例[k])) bad.push(k)
   }
   ok(bad.length === 0, '★ 零变化：未接入品牌【直营】用例输出逐字节不变（除 dailySnapshots 逐日入住/退房 §26.3 + world/世界层 insight §32-U3 两处有意新增）', bad.join(','))
   ok(ota归因坏.length === 0, '★ OTA 模式用例：营收差 === 平台渠道系数（可归因 · 不是悄悄扣费）', ota归因坏.join(','))
+  ok(ota中性坏.length === 0, '★ OTA 模式用例：世界层强制中性后**逐字节**不变（与直营同款水位线 · 原注释承诺过却漏调）', ota中性坏.join(','))
   // ★ 被排除的两个字段：新值必须等于引擎周值（不是 0、也不是编的）
   const 日入住退房坏 = 未接入用例.filter(k => {
     const [名, mode] = k.split('|'); const r = 跑(名, 1, null, mode); const ds = r.dailySnapshots || []
@@ -160,14 +188,20 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
   for (const 名 of ['你好', '无品牌']) {
     const r1 = 跑(名, 1, null)
     if (!逐字节(r1, fixture.用例[`${名}|链3周`][0])) 链坏.push(`${名}w1`)
-    const cap = r1.capital
-    for (const w of [2, 3, 9]) {
-      const r = 跑(名, w, cap)
-      if (r.capital !== Math.round(cap + r.profit)) 链坏.push(`${名}w${w}资金链`)
+    let cap = r1.capital
+    // ★ §32-U4-§1②：三周链**恢复逐字节**（世界层中性口径）—— 比 U3 时的"资金恒等式"强一个量级。
+    //   ★★ 整条链都必须在【中性轨迹】里走：capital 只能取自中性周的结果 —— 否则 w3 的 prevCapital
+    //      来自非中性 w2 ⇒ 逐字节必然不同（实测踩过这一次）。
+    for (const [i, w] of [[1, 2], [2, 3]]) {
+      const r = 世界层中性(() => 跑(名, w, cap))
+      if (!逐字节(r, fixture.用例[`${名}|链3周`][i])) 链坏.push(`${名}w${w}中性逐字节`)
       if ('franchiseFees' in r) 链坏.push(`${名}w${w}混入两费`)
+      cap = r.capital
     }
+    const r9 = 跑(名, 9, cap)
+    if (r9.capital !== Math.round(cap + r9.profit)) 链坏.push(`${名}w9资金链`)
   }
-  ok(链坏.length === 0, '★ 零变化：首跳逐字节不变 + 多周链资金恒等式 + 未接入品牌无两费键（w1/w2/w3/w9 覆盖）', 链坏.join(','))
+  ok(链坏.length === 0, '★ 零变化：首跳逐字节 + 多周链【世界层中性下逐字节】+ 未接入品牌无两费键（w1/w2/w3/w9 覆盖）', 链坏.join(','))
 
   // ★ 双向证明：同一个比较器，对未接入说"没变"、对已接入必须说"变了"
   //   否则"零变化"可能只是比较器坏了（永远相等）—— 那是最典型的假绿

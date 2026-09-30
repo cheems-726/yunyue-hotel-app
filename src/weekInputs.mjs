@@ -1,5 +1,6 @@
 // §16.2-B7 · 周结算的【周内输入】单一来源（补算 === 在线 的前置）
 //
+import { 有效处理权重 } from './roleBonus.mjs'   // ★ §32-U4-R4：职务加成（×1.3）—— 唯一判定点（本模块只调用，不重写规则）
 // ── 为什么需要本模块（问题陈述）──────────────────────────────────
 //   `settle()` 除站点/品牌/决策外，还吃 5 个【周内产生】的输入：
 //     pendingNegatives（未处理差评欠账，压口碑）· resolvedCount（已整改数，触发追加好评）
@@ -55,13 +56,16 @@ const 突发处置映射 = {
   '推卸责任': '不理会',
 }
 
-export function settleInputsFrom({ reviews, week, crisis = null, decisions = {} } = {}) {
+export function settleInputsFrom({ reviews, week, crisis = null, decisions = {}, 处理人职务 = null } = {}) {
   const 流水 = Array.isArray(reviews) ? reviews : []
   const w = Number(week)
   // ① 结算卡（跨周累计）—— 欠账/整改只认它们（确定性；实证见文件头 ①）
   const 结算卡 = 流水.filter(r => /^w\d+-/.test(String(r && r.id)))
   const pendingNegatives = 结算卡.filter(r => r.status === 'pending' || r.status === 'ignored').length
   const resolvedCount = 结算卡.filter(r => r.status === 'resolved').length
+  // ★ §32-U4-R4：有效处理权重（已处理卡的 Σ 权重；匹配职务 ×1.3）
+  //   ★ 传空职务 ⇒ 全 1.0 ⇒ 与旧行为逐字节一致（未设职务的组/旧存档照常）
+  const resolvedWeight = 有效处理权重(结算卡.filter(r => r.status === 'resolved'), 处理人职务)
   // ② 本周实时流水已产出的评价 ⇒ 结算只补差额
   const 本周实时 = 流水.filter(r => r && r.live === true && Number(r.liveWeek) === w)
   const liveNegCount = 本周实时.filter(r => Number(r.stars) <= 3).length
@@ -71,7 +75,7 @@ export function settleInputsFrom({ reviews, week, crisis = null, decisions = {} 
   const 危机卡选 = (crisis && Number(crisis.week) === w - 1 && crisis.choice) ? crisis.choice : null
   const 处置 = 突发处置映射[decisions && decisions.emergency] || null
   const crisisResponse = 危机卡选 || 处置
-  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse }
+  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, resolvedWeight, liveNegCount, livePosCount, crisisResponse }
 }
 
 // 从存档里取【本周】的输入：版本/周号对不上 ⇒ 视为没有（返回 null，由调用方决定兜底）
