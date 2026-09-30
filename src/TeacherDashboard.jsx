@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { decisions, OWNER_LABELS } from './decisions.js'
+import { saveGameStateNow } from './supabaseClient.js'   // ★ §32-U1 R3：老师裁量写回学生存档（override）
+import { hotCrisisActive } from './hotReview.mjs'         // ★ R3：危机期是否仍生效（与引擎同一判定）
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
@@ -128,8 +130,27 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
   const s = gs.state || {}
   const hist = s.history || []
   const weekDecisions = s.doneDecisions ? Object.keys(s.doneDecisions).length : 0
+  // ★ §32-U1 R3：上热门危机【待复核】条目（引擎 hotReviewCrisis 随存档上来；老师可 维持/降级 · 默认不干预=照罚）
+  const crisis = s.hotReviewCrisis
+  const crisisLive = crisis && hotCrisisActive({ hotReviewCrisis: crisis }, s.week || 1)
+  const 裁量 = async (决定) => {
+    if (!crisis) return
+    const 新 = { ...crisis, override: 决定, overrideBy: name, overrideAt: new Date().toISOString() }
+    saveGameStateNow(gs.user_id, { ...s, hotReviewCrisis: 新 }, undefined)   // 写回该组存档（R3 留痕在 override 字段）
+  }
   return (
     <div style={{ padding: 12, background: '#F9FAFB', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
+      {crisisLive && (
+        <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>🚨 舆情危机期【待复核】（第 {crisis.startWeek} 周触发 · 还剩 {Math.max(0, crisis.startWeek + crisis.weeks - (s.week || 1))} 周）</div>
+          <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>原因：{crisis.source} · 后果：出租率 −30% · 差评概率 ×2（默认 = 照罚）</div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button onClick={() => 裁量('维持处罚')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: '#E5E7EB', color: '#374151', cursor: 'pointer' }}>维持处罚</button>
+            <button onClick={() => 裁量('降级为期末扣分')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: '#FEF3C7', color: '#92400E', cursor: 'pointer' }}>降级为期末扣分（当场解除持续期）</button>
+            <span style={{ fontSize: 9, color: '#9CA3AF', alignSelf: 'center' }}>不点 = 默认照罚{crisis.override ? ` · 已裁量：${crisis.override}（${crisis.overrideBy || '?'} · ${String(crisis.overrideAt || '').slice(0, 16)}）` : ''}</span>
+          </div>
+        </div>
+      )}
       <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
         {s.brand?.name || '—'}品牌 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
       </div>

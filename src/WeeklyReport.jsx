@@ -38,6 +38,29 @@ function CountNum({ n, wan = false }) {
 }
 
 // 危机事件限时应对卡：30秒内选方案，选择存档影响下周结算（超时=自动"不理会"，危机不应对就是最差应对）
+// ★ §32-U1 R2 三级视觉之 L3：上热门 = 全屏红色警示（不可跳过 · 强读 8 秒才出「我已知晓」）
+function HotReviewOverlay({ event, onDone }) {
+  const [hold, setHold] = useState(8)
+  useEffect(() => {
+    if (hold <= 0) return
+    const t = setTimeout(() => setHold(hold - 1), 1000)
+    return () => clearTimeout(t)
+  }, [hold])
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(153,27,27,0.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, color: '#fff' }}>
+      <div style={{ fontSize: 52, marginBottom: 12 }}>🚨</div>
+      <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>差评上热门 · 全网热榜第一</div>
+      <div style={{ fontSize: 13, lineHeight: 1.8, maxWidth: 420, textAlign: 'center', opacity: 0.95 }}>{event.text}</div>
+      <button
+        disabled={hold > 0}
+        onClick={onDone}
+        style={{ marginTop: 20, fontSize: 12, fontWeight: 700, background: hold > 0 ? 'rgba(255,255,255,0.15)' : '#fff', color: hold > 0 ? 'rgba(255,255,255,0.6)' : '#991B1B', border: 'none', borderRadius: 10, padding: '10px 22px', cursor: hold > 0 ? 'not-allowed' : 'pointer' }}>
+        {hold > 0 ? `请认真读 ${hold} 秒…` : '我已知晓，进入应对'}
+      </button>
+    </div>
+  )
+}
+
 function CrisisCard({ event, week }) {
   const CHOICES = [
     { label: '立即公开整改+补偿', effect: '下周口碑 +2%（最佳应对）' },
@@ -46,6 +69,8 @@ function CrisisCard({ event, week }) {
   ]
   const [timeLeft, setTimeLeft] = useState(30)
   const [choice, setChoice] = useState(null)
+  // ★ §32-U1 R2 L3：上热门事件先出全屏红警示（读 8 秒）⇒ 才进既有应对卡（三级视觉的最高级）
+  const [hotSeen, setHotSeen] = useState(event.name.includes('上热门') ? false : true)
   useEffect(() => {
     if (choice) return
     if (timeLeft <= 0) { pick('不理会'); return }
@@ -57,6 +82,7 @@ function CrisisCard({ event, week }) {
     setChoice(label)
     try { localStorage.setItem('hotel-sim-crisis-response', JSON.stringify({ week, choice: label })) } catch (e) {}
   }
+  if (!hotSeen) return <HotReviewOverlay event={event} onDone={() => setHotSeen(true)} />
   return (
     <div style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -1750,6 +1750,9 @@ export default function App() {
   const [openDayNo, setOpenDayNo] = useState(Number.isFinite(saved.openDayNo) ? saved.openDayNo : null)
   const [decisionChanges, setDecisionChanges] = useState(Array.isArray(saved.decisionChanges) ? saved.decisionChanges : [])
   const [autoSettled, setAutoSettled] = useState(Array.isArray(saved.__autoSettled) ? saved.__autoSettled : [])
+  // ★ §32-U1 R2/R3：上热门舆情危机状态（随存档走 · 引擎结算回传 hotReviewCrisis ⇒ 下周作为 hotState 输入；
+  //   R3 老师裁量写 override：null=默认照罚 / '维持处罚' / '降级为期末扣分'）
+  const [hotCrisis, setHotCrisis] = useState(saved.hotReviewCrisis || null)
   // 🔴 E2：周报出现后是否展开（允许「稍后再看」⇒ 学生可以先接着做决策，不被周报页锁住）
   const [reportOpen, setReportOpen] = useState(true)
 
@@ -1789,9 +1792,9 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled })))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis })))
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis])
 
   // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
   useEffect(() => {
@@ -1806,7 +1809,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2002,7 +2005,7 @@ export default function App() {
         site, brand, decisions: doneDecisions, decisionsByDay, week,
         pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
         liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount, crisisResponse: 输入.crisisResponse,
-        prevGoodRate, attrs, prevCapital: capital, bizMode,
+        prevGoodRate, attrs, prevCapital: capital, bizMode, hotState: hotCrisis,
       })
     } catch (e) { return null }   // 预览失败 ⇒ 面板显示"待结算"，绝不自造数字
   }, [established, brand, location?.district, location?.attrs, doneDecisions, decisionChanges, week, attrs, capital, bizMode, history.length])
@@ -2036,7 +2039,24 @@ export default function App() {
     //   周内无改动 ⇒ 段数=1 ⇒ settleWeekSegmented 内部原样走既有路径（逐字节水位线）。
     const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
     const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
-    const result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode })
+    // ★★ §31.9-A1-补①（2026-09-30 · D86）：结算调用的【超档兜底】—— A1 让引擎对超档组合 **throw**，
+    //   而 A1 之前的**旧超档存档**（手机上可能残留的测试档）走到结算才第一次撞上校验 ⇒ 若不接住
+    //   就是该组白屏/卡死。★ **不许静默吞掉**（BL-10）：给可读提示 + 一键回品牌页（唯一出路 = 换品牌）。
+    //   catch 里只处理【等级限制】类错误（re /等级限制/），其它异常照常抛出（不掩盖真 bug）。
+    let result
+    try {
+      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis })
+    } catch (e) {
+      if (!/等级限制/.test(String(e && e.message))) throw e
+      const 区 = location?.district ?? '本区域'
+      const 上限 = /上限为第 (\d+) 档/.exec(String(e.message))?.[1] ?? 'N'
+      const 消息 = `⛔「${brand?.name ?? '所选品牌'}」超出「${区}」可开档次（上限第 ${上限} 档），无法结算。\n这是旧存档与新版规则冲突 —— 请返回重选符合档位的品牌（低消费区开高端酒店必亏）。`
+      toast(消息)
+      if (window.confirm(消息 + '\n\n【确定】现在返回品牌选择页（必需步骤）')) {
+        setBrand(null); setTab('brand')
+      }
+      return   // 不结算 = 本周维持原状；学生已拿到明确出路
+    }
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
@@ -2047,6 +2067,7 @@ export default function App() {
     // R0 最后一公里：把引擎返回的属性（含每周自然衰减）写回 state
     // 没有这行，衰减与属性→经营只存在于引擎内部，玩家不可见、下周也用不上
     if (result.attrsAfter) setAttrs(result.attrsAfter)
+    if (result.hotReviewCrisis) setHotCrisis(result.hotReviewCrisis)   // ★ R2：危机期随结果存档（下周 hotState）
     if (typeof result.capital === 'number') setCapital(result.capital)   // 资金唯一权威：引擎返回即权威
     // A4（2026-09-22）：把当周"差评处理口径"快照进周报对象（随 history 持久化/云端同步）。
     //   🔴 前置坑：口碑页 kept 过滤只留当周卡 ⇒ 期末拿不到全学期处理率，必须逐周快照。

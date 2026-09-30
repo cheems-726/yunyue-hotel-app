@@ -13,6 +13,7 @@ import { SCALE } from './stateMigration.mjs'
 import { franchiseFees, 一次性费用清单 } from './franchiseFees.mjs'
 import { TOTAL_WEEKS } from './semester.mjs'
 import { 校验等级限制 } from './tierLimit.mjs'   // ★ §31.2-A1 ③：等级限制真强制（超档 ⇒ throw）
+import { shouldHotReview, hotCrisisWeeks, hotCrisisActive, hotCrisisPenalties, applyHotReviewImmediate, HOT_REVIEW_CONFIG } from './hotReview.mjs'   // ★ §32-U1 R2：差评上热门三级惩罚
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -184,7 +185,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0 }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
   // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
   //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
   //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
@@ -199,6 +200,7 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   liveNegCount = numOr(liveNegCount, 0)
   livePosCount = numOr(livePosCount, 0)
   const rand = seededRandom(week * 100 + 7) // 固定种子：同一周全班同结果
+  let hotOut = null   // ★ §32-U1 R2：上热门危机期（随结果返回 hotReviewCrisis · 存档回传后下周生效）
   // R0：属性 → 经营系数。attrs 缺失/旧档 → normalizeAttrs 兜底为中性值 → 全部系数 = 1.0（零变化）
   const A0 = normalizeAttrs(attrsIn)
   const fPriceTol = priceToleranceOf(A0.quality)   // 品质 → 客流（房价容忍度）
@@ -206,6 +208,11 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   const fCac = cacFactorOf(A0.reputation)          // 声誉 → 获客成本
   const moraleAdd = moraleBonusOf(A0.morale)       // 士气 → 好评率（加法）
   const fNeg = negFactorOf(A0.quality, A0.morale)  // 品质+士气 → 差评系数
+  // ★ §32-U1 R2（持续期 · 差评概率 ×2）：危机倍数在此处**先算**（出租率段用同一结果 · 不重复算两份）。
+  //   hotState 是结算入参（存档回传 ⇒ 补算同源）；非危机 = {occMul:1, badMul:1} ⇒ 式子逐位一致。
+  const hotPen = hotCrisisPenalties(hotState, week)
+  let hotActiveThisWeek = false   // §32-U1 R2：危机周标志（事件在 events 声明后统一补推）
+  const fNegHot = fNeg * hotPen.badMul
 // 🔴 选址数据任务（2026-09-27 · 重大修复）：site 在两条路径上有【两种历史形状】，各自断一半 ——
 //   ① 前端 App：传的是 `location.attrs`（六维齐全，但**丢了 district**）⇒ 竞品表/客群表永远查不到（键=''）
 //   ② 服务端 serverTick：传的是 `src.location` 原对象（**有 district，但六维散在 .attrs 里**）
@@ -331,6 +338,12 @@ if (bizMode === 'ota') {
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6
   let occupancy = Math.min(baseOccupancy * demandStrength, 0.98)
+  // ★ §32-U1 R2（持续期 · 出租率 −30%）：上热门危机期内逐周施加（相对惩罚 · 下限 30% 仍保）
+  //   危机状态从【存档输入】hotState 读（App/服务端随存档带上来 ⇒ 补算同源）；不含 rand（确定性）。
+  if (hotPen.occMul !== 1) {
+    occupancy = Math.max(occupancy * hotPen.occMul, 0.3)
+    hotActiveThisWeek = true   // ★ 事件推入延后（events 数组在下方才声明 ⇒ 此处只记标志，防 TDZ）
+  }
   // 超额预订：直接抬高本周满房率
   const overbook = decisions.overbook || 0
   if (overbook > 0) occupancy = Math.min(occupancy + overbook * 0.015, 1.0)
@@ -339,6 +352,7 @@ if (bizMode === 'ota') {
   // 7.5 条件触发事件系统（按设计文档：属性条件 + 固定种子概率，非纯随机）
 // 负向压力机制：属性推到极端会招来事件，教学生权衡而非刷满
 const events = []
+if (hotActiveThisWeek) addEvent({ type: 'crisis', icon: '📉', name: '舆情危机期·客流大跌', text: '差评上热门的持续影响：本周出租率 −30%（危机期内每周如此）', impact: '出租率 −30%', tip: '处理差评 + 老师裁量是唯二出路；危机期结束自动恢复' })
 function addEvent(e) { events.push(e) }
 let negativeCount = 0
 let eventFine = 0
@@ -380,6 +394,16 @@ if (decisions['member-convert'] === '强调品质' && rand() < EVENT_CONFIG.memb
 if (pendingNegatives >= EVENT_CONFIG.reviewFerment.minPending && rand() < EVENT_CONFIG.reviewFerment.prob) {
   goodRate = Math.max(goodRate - EVENT_CONFIG.reviewFerment.goodRateDown, 0.3)
   addEvent({ type: 'crisis', icon: '🔥', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, impact: '口碑 -3%', tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
+}
+// ★★ §32-U1 R2 · L3「差评上热门」（三级惩罚顶级 · **必触发非概率**）：
+//   触发 = 欠 ≥3 条未处理（pendingNegatives 是结算入参 ⇒ 确定性 · 全班同周同结果）。
+//   即时：声誉 ×0.5（落 attrsAfter ⇒ 写回属性池）；持续：建立「舆情危机期」2–3 周
+//   （hotOut 随结果返回 ⇒ 存档回传 ⇒ 下周起 hotState 生效：出租率−30% · 差评×2 · 见上方接线）。
+//   连续多周欠账 ⇒ 刷新 startWeek 重新计时；R3 降级后再犯 ⇒ 覆盖为新一轮（危机不因降级而免疫）。
+if (shouldHotReview({ pendingNegatives })) {
+  hotOut = { startWeek: week, weeks: hotCrisisWeeks(week), source: `欠 ${pendingNegatives} 条差评未处理 · 上热门`, override: null }
+  goodRate = Math.max(goodRate - 0.05, 0.3)
+  addEvent({ type: 'crisis', icon: '🚨', name: '差评上热门（全网热榜）', text: `${pendingNegatives} 条差评长期不处理，被顶上本地生活平台热榜第一，全网可见！声誉腰斩，进入 ${hotCrisisWeeks(week)} 周舆情危机期（出租率 −30% · 差评概率 ×2）`, impact: `声誉 ×${HOT_REVIEW_CONFIG.reputationCut} · 危机期 ${hotCrisisWeeks(week)} 周`, tip: '这是口碑页三级警告的最高级——差评处理节奏就是酒店的命' })
 }
 // ⑧ 整改获认可（正面）：认真整改差评，客人追加好评（设计文档§三闭环的奖励侧）
 if (resolvedCount >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVENT_CONFIG.renovationPraise.prob) {
@@ -624,7 +648,8 @@ for (let i = 0; i < reviewCount; i++) {
   // R0：差评概率 = (1-好评率) × negFactor
   // ⚠️ 必须写成 r >= 阈值 的等价形式：fNeg=1 时阈值为 goodRate，与改前【逐位一致】
   //    （若写成 r < (1-goodRate)*fNeg，概率虽同但同一颗随机数映射的事件变了 = 换随机序列）
-  if (rand() >= 1 - (1 - goodRate) * fNeg) negativeCount++
+  // ★ §32-U1 R2：fNegHot = fNeg × 危机倍数（危机期差评概率×2 · 非危机=1 ⇒ 式子逐位一致）
+  if (rand() >= 1 - (1 - goodRate) * fNegHot) negativeCount++
 }
   // 超售到店无房必招差评
   if (overbookCompensation > 0) {
@@ -795,7 +820,9 @@ for (let i = 0; i < reviewCount; i++) {
   // ⑧ 事件 → 属性（规格第六节）：只读取已收集的事件名，纯函数、不消耗 rand（公平红线不破）
   //    收尾统一处理：不侵入 ~20 个触发点；attrs.js 表里没有的事件名自动视为无影响
   const attrsBefore = normalizeAttrs(attrsIn)
-  let attrsAfter = attrsBefore
+  // ★ §32-U1 R2：若本周触发上热门（L401 已置 hotOut）⇒ 即时声誉×0.5 必须先落进【事件前基线】，
+  //   否则事件→属性与衰减会把它当"从未发生"。attrsAfter 在此声明（let · 触发块只置 hotOut，不碰属性）。
+  let attrsAfter = hotOut ? applyHotReviewImmediate(attrsBefore) : attrsBefore
   const eventAttrEffects = [] // 本周事件对属性的影响（周报展示用）：只含真正产生变化的事件
   for (const ev of events) {
     const mid = applyEventToAttrs(attrsAfter, ev.name)
@@ -866,6 +893,7 @@ for (let i = 0; i < reviewCount; i++) {
     // 属性池：本周事件对属性的影响 + 结算后属性（含每周自然衰减；周报展示用；旧调用方忽略即可）
     eventAttrEffects,
     attrsAfter: attrsAfterDecay,
+    ...(hotOut ? { hotReviewCrisis: hotOut } : {}),   // ★ §32-U1 R2：危机期状态·条件挂载（无危机不添键 ⇒ 零变化水位线保持）
     attrsAfterEvents: attrsAfter,   // 衰减前的值（便于对照"事件影响 vs 自然衰减"）
     decisions: { ...decisions },
     eventFine,

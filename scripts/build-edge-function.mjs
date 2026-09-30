@@ -44,6 +44,7 @@ const MODULES = [
                       //   ★ 漏登后果与 §14.3 那次同族：部署后 Edge Function import 404。
                       //     本批我是先漏登、被 serverTick 的「导入闭包」断言当场拦下的 —— 守门在跑。
   'tierLimit.mjs',    // §31.2-A1：等级限制真强制（settlement 依赖 ⇒ 必须一起组装；漏登 = 又一次 404）
+  'hotReview.mjs',    // §32-U1 R2：上热门三级惩罚（settlement 依赖 ⇒ 必须一起组装）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
