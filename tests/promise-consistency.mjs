@@ -83,6 +83,22 @@ const WEIGHT_PATTERNS = [
   /(?:finalScore|totalScore|score)\s*=\s*([^\n;]+)/g,
 ]
 const weightsFound = []   // { file, line, weights: [0.4, 0.25, ...], expr }
+// ★ §32-U2 修（判据的目标搬家了 ⇒ 判据必须跟上，而不是放宽）：
+//   四维权重自 U2 起提为 `metricDefs.SCORE_WEIGHTS`【命名单源】（报告页要显示权重；若各自手写
+//   40%/25%… 字符串，改权重必漏一处 —— BL-7 家族）。⇒ 加权式里的 `SCORE_WEIGHTS.xxx` 要能解析成数值，
+//   否则本脚本会以"权重式 0 个"空转（既假红、又失去判别力）。
+//   ★ 解析源 = 【单源自身】（只认 `export const SCORE_WEIGHTS = { 名: 数 }`），不做"全库找小数"（那是 §17.1 的血案）
+const 命名单源 = {}
+{
+  const md = readIf(path.join(SRC, 'metricDefs.mjs')) || ''
+  const m = /export\s+const\s+SCORE_WEIGHTS\s*=\s*\{([\s\S]*?)\}/.exec(md)
+  if (m) {
+    const re = /(\w+)\s*:\s*(0?\.\d+|\d+(?:\.\d+)?)/g
+    let x
+    while ((x = re.exec(m[1])) !== null) 命名单源[x[1]] = Number(x[2])
+  }
+  console.log('  （权重命名单源解析：' + (Object.keys(命名单源).length ? Object.entries(命名单源).map(([k, v]) => k + '=' + v).join(' · ') : '未找到 SCORE_WEIGHTS') + '）')
+}
 // 🔴 §17.1-③（2026-09-28）修复①·同前：权重式扫描也必须包含 .mjs
 //   （四维评分公式现居 src/metricDefs.mjs 的 scoreOf —— 只扫 .js/.jsx 会漏掉它）
 for (const f of walk(SRC, ['.js', '.jsx', '.mjs'])) {
@@ -95,9 +111,12 @@ for (const f of walk(SRC, ['.js', '.jsx', '.mjs'])) {
       const m = re.exec(lines[i])
       if (!m) continue
       const w = []
-      const wr = /\*\s*0\.(\d+)/g
+      const wr = /\*\s*(0\.\d+|SCORE_WEIGHTS\.(\w+))/g
       let wm
-      while ((wm = wr.exec(m[1])) !== null) w.push(Number('0.' + wm[1]))
+      while ((wm = wr.exec(m[1])) !== null) {
+        if (wm[2]) { if (Number.isFinite(命名单源[wm[2]])) w.push(命名单源[wm[2]]) }   // 命名权重 ⇒ 查单源
+        else w.push(Number(wm[1]))
+      }
       if (w.length) weightsFound.push({ file: path.relative(APP, f).replace(/\\/g, '/'), line: i + 1, weights: w, expr: m[1].trim().slice(0, 90) })
     }
   }

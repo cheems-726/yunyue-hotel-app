@@ -31,6 +31,8 @@ const sumBy = (read) => (history) => {
 }
 export const sumGop = sumBy(gopOf)
 export const sumNet = sumBy(netOf)
+// 累计比率（唯一算式点）：率 = 分子 / 分母，分母 ≤0 或非有限 ⇒ null（界面显示"—"，绝不臆造 0%）
+export const 率Of = (分子, 分母) => (Number.isFinite(分子) && Number.isFinite(分母) && 分母 > 0 ? 分子 / 分母 : null)
 
 // ── 🔴 E1（二期 · 唯一账本）· 聚合量与四维评分【单源】──────────────────────────
 // 起因（BL-7 同族：同一批"可由引擎周值导出的量"曾各写一份）：
@@ -63,6 +65,9 @@ export const totalRevenue = (history) => (Array.isArray(history) ? history : [])
 // 四维评分 + 评级（★ 学生端 FinalResult 与 教师端 TeacherDashboard 共用；口径 W10/W2-2/D20 已冻结）
 //   40% 累计净利润 · 25% 平均口碑 · 20% 平均出租率 · 15% 差评控制（有处理率快照则按处理率，否则按条数）
 //   ★ 空 history → finalScore 0（原教师端行为；学生端到不了这一步）
+// ★ U2：四维【权重】提为导出常量 —— 报告页要显示权重，若各自手写字符串 40%/25%/20%/15%，
+//   改权重时必漏一处（BL-7「同一个词两处各写一遍」家族）。权重值本身一字未改。
+export const SCORE_WEIGHTS = { profit: 0.4, reputation: 0.25, occupancy: 0.2, negative: 0.15 }
 export function scoreOf(history) {
   const arr = Array.isArray(history) ? history : []
   const totalProfit = sumNet(arr).value
@@ -78,7 +83,7 @@ export function scoreOf(history) {
     : handleRate != null
       ? (handleRate >= 0.9 ? 95 : handleRate >= 0.7 ? 85 : handleRate >= 0.5 ? 70 : handleRate >= 0.3 ? 55 : 40)
       : (totalNeg <= 5 ? 80 : totalNeg <= 10 ? 65 : 50)
-  const finalScore = arr.length ? Math.round(profitScore * 0.4 + reputationScore * 0.25 + occupancyScore * 0.2 + negativeScore * 0.15) : 0
+  const finalScore = arr.length ? Math.round(profitScore * SCORE_WEIGHTS.profit + reputationScore * SCORE_WEIGHTS.reputation + occupancyScore * SCORE_WEIGHTS.occupancy + negativeScore * SCORE_WEIGHTS.negative) : 0
   const grade = finalScore >= 90 ? 'S · 标杆酒店' : finalScore >= 80 ? 'A · 优秀经营' : finalScore >= 70 ? 'B · 良好经营' : finalScore >= 60 ? 'C · 合格经营' : 'D · 需改进'
   return { totalProfit, avgOccupancy: avgOcc, avgGoodRate: avgGood, totalNegative: totalNeg, avgHandleRate: handleRate, profitScore, reputationScore, occupancyScore, negativeScore, finalScore, grade }
 }
@@ -102,6 +107,14 @@ export const 净利率口径 = {
 export const oneTimeNetOf = (h) => (h && h.oneTimeFees ? h.oneTimeFees.开业费用 - h.oneTimeFees.保证金退还 : 0)
 // 经营净利（周）= 资金净利 + 一次性净额（把一次性项加回）
 export const opNetOf = (h) => (Number.isFinite(netOf(h)) ? netOf(h) + oneTimeNetOf(h) : null)   // 经营 = 资金 + 净额（把开业费加回）
+// ★ U2（§32 一键图文经营报告 · 单源）：经营口径累计净利 = Σ(净利 + 一次性净额)。
+//   ★ 必须声明在 opNetOf【之后】—— `sumBy(opNetOf)` 在模块初始化时就要读到它（提前 = TDZ 崩，实测踩过）
+export const sumOpNet = sumBy(opNetOf)
+// 累计净利率（★ 必须传口径；教学引用用「经营」）—— 两条口径说明见上方 `净利率口径`
+export const 累计净利率 = (history, 口径 = '经营') => 率Of(
+  口径 === '资金' ? sumNet(history).value : sumOpNet(history).value,
+  totalRevenue(history),
+)
 
 export const franchiseFeeOf = (h) => (h && h.franchiseFees && Number.isFinite(h.franchiseFees.合计) ? h.franchiseFees.合计 : 0)
 export const sumFranchiseFee = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + franchiseFeeOf(h), 0)

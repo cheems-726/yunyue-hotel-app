@@ -108,6 +108,8 @@ const SUITES = [
   { name: 'antiCheat（防作弊三件套·W1-4）', file: 'tests/antiCheat.test.mjs' },
   { name: 'progressLag（老师端进度提示·W1-5）', file: 'tests/progressLag.test.mjs' },
   { name: 'engine-parity（M4 同构验证）', file: 'tests/engine-parity.mjs' },
+  // ★ §32-U2：教师端一键图文经营报告（只读汇总 · 数字对权威源 · 不许第二本账）
+  { name: 'teacherReport（教师经营报告·U2）', file: 'tests/teacherReport.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

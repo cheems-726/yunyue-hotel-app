@@ -10,6 +10,7 @@ import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { normalizeAttrs, qualityOf } from './attrs.js'
+import TeacherReport from './TeacherReport.jsx'   // ★ §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -426,6 +427,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
+  const [reportUid, setReportUid] = useState(null)     // ★ §32-U2：正在看经营报告的组（null = 关）
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
   const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
@@ -778,7 +780,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}>✍️</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></span>
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city} {expanded ? '▲' : '▼'}</span>
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city}
+                      {/* ★ §32-U2：一键经营报告（stopPropagation ⇒ 不触发卡片展开） */}
+                      <button
+                        title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
+                        onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
+                        style={{ marginLeft: 8, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >📄 经营报告</button>
+                      {' '}{expanded ? '▲' : '▼'}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
                     <span>进度 <b style={{color:'#111827'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
@@ -1030,6 +1039,12 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
+                  {/* ★ §32-U2：排名行也能直接出经营报告（课堂上点排名即可讲评） */}
+                  <button
+                    title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
+                    onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
+                    style={{ marginTop: 4, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'block' }}
+                  >📄 经营报告</button>
                   {g.scorePrev != null && g.score !== g.scorePrev && (
                     <div style={{ fontSize: 10, fontWeight: 700, color: g.score > g.scorePrev ? '#10B981' : '#EF4444' }}>
                       {g.score > g.scorePrev ? '↑' : '↓'}{Math.abs(g.score - g.scorePrev)}
@@ -1248,6 +1263,19 @@ export default function TeacherDashboard({ user, onLogout }) {
         </button>
       ))}
     </div>
+    {/* ★ §32-U2：经营报告（全屏覆盖层 · 只读汇总 · 可打印） */}
+    {reportUid && (() => {
+      const g = (groups || []).find(x => x.uid === reportUid)
+      const gs = rawStates.find(x => x.user_id === reportUid)
+      return (
+        <TeacherReport
+          gs={gs}
+          组名={g ? g.name : ''}
+          批注={allNotes.filter(n => n.student_uid === reportUid)}
+          onClose={() => setReportUid(null)}
+        />
+      )
+    })()}
     </>
   )
 }
