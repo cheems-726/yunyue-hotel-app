@@ -10,7 +10,7 @@
 //   ★ 脚本会断言：搬运前后【除 import 路径外逐字节相同】，防止有人在这里偷偷改逻辑。
 //
 // 用法：node scripts/build-edge-function.mjs
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -48,7 +48,7 @@ const MODULES = [
   'weather.mjs',      // §32-U3-A：天气（settlement 依赖 ⇒ 必须一起组装；漏登 = 部署后 import 404）
   'season.mjs',       // §32-U3-B：淡旺季（settlement 依赖 ⇒ 必须一起组装）
   'otaRating.mjs',    // §32-U3-C：OTA 平台评分 + 违规处罚（settlement 依赖 ⇒ 必须一起组装）
-  'roleBonus.mjs',    // §32-U4-R4：职务加成 ×1.3（weekInputs 依赖 ⇒ 必须一起组装；漏登 = 部署后 404）    // §32-U3-C：OTA 平台评分 + 违规处罚（settlement 依赖 ⇒ 必须一起组装）
+  'roleBonus.mjs',    // §32-U4-R4：职务加成 ×1.3（weekInputs 依赖 ⇒ 必须一起组装）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
@@ -95,10 +95,31 @@ if (offenders.length) {
   offenders.slice(0, 6).forEach(o => console.error('   ' + o))
   process.exit(1)
 }
+// ★ §32-U4b（本轮实测抓到的**假绿**）：上面那条只查"路径写法"（../ 与 ./engine/），**不查目标是否存在**
+//   ⇒ MODULES 漏登依赖时照样 ✅ + exit 0，而生成物里确实缺文件 ⇒ 部署后 404（同类第 7 次的真凶）。
+//   本段补上**真闭包**：逐文件解析 import 目标，相对路径的必须在 engine/ 里存在（内建/裸包名跳过）。
+const 缺依赖 = []
+for (const f of readdirSync(OUT)) {
+  if (!f.endsWith('.mjs') && !f.endsWith('.ts')) continue
+  const src = readFileSync(join(OUT, f), 'utf8')
+  for (const m of src.matchAll(/from\s*['"]([^'"]+)['"]/g)) {
+    const 目标 = m[1]
+    if (!目标.startsWith('.')) continue                       // node: / 裸包名 ⇒ 部署环境自带，跳过
+    const 名 = 目标.replace(/^\.\//, '').replace(/^\.\.\//, '')
+    const 落 = join(OUT, 名)
+    if (!existsSync(落)) 缺依赖.push(`${f} → ${目标}（engine/ 里没有 ${名}）`)
+  }
+}
+if (缺依赖.length) {
+  console.error('✗ 组装闭包不完整（MODULES 漏登依赖 ⇒ 部署后 404）：')
+  const 去重 = Array.from(new Set(缺依赖))
+  去重.slice(0, 6).forEach(o => console.error('   ' + o))
+  process.exit(1)
+}
 
 console.log('▶ 组装 Edge Function 的 engine/（只搬运，不改逻辑）')
 report.forEach(r => console.log(r))
-console.log(`\n共 ${MODULES.length} 个模块；断言：除 import 路径外逐字节相同 ✅；engine/ 内无会 404 的 import ✅`)
+console.log(`\n共 ${MODULES.length} 个模块；断言：除 import 路径外逐字节相同 ✅；engine/ 内无会 404 的 import ✅；**闭包完整**（逐文件 import 目标都存在）✅`)
 console.log('输出目录：supabase/functions/advance-day/engine/')
 console.log('\n★ 部署（需用户执行，见 supabase/functions/advance-day/README.md）：')
 console.log('  1) npx supabase login')

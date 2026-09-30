@@ -387,7 +387,8 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
             { k: '天气', icon: result.world.天气.图标, 名: `天气 · ${result.world.天气.名}`, 值: `客流 ×${result.world.天气.客流系数}`, 好: result.world.天气.客流系数 >= 1, 注: '天气只影响客流，不影响房价与成本' },
             { k: '季节', icon: '📅', 名: `淡旺季 · ${result.world.季节.名}`, 值: `需求 ×${result.world.季节.需求因子}`, 好: result.world.季节.需求因子 >= 1, 注: '淡旺季对全班所有店统一生效（不是选址维度）' },
             result.world.ota.适用
-              ? { k: 'ota', icon: '📱', 名: `OTA 平台评分 · ${result.world.ota.评分}`, 值: `渠道流量 ×${result.world.ota.渠道系数}`, 好: result.world.ota.渠道系数 >= 1, 注: `评分由好评率 / 客诉率 / 差评回复决定（本周：好评率 ${result.world.ota.明细.好评率} · 客诉率 ${result.world.ota.明细.客诉率} · 积压 ${result.world.ota.明细.待处理} 条）` }
+              // ★ §32-U4b 顺手修：这里原样打印浮点（学生看到 `0.8908333333333334`）⇒ 统一按百分比 1 位小数显示
+              ? { k: 'ota', icon: '📱', 名: `OTA 平台评分 · ${result.world.ota.评分}`, 值: `渠道流量 ×${result.world.ota.渠道系数}`, 好: result.world.ota.渠道系数 >= 1, 注: `评分由好评率 / 客诉率 / 差评回复决定（本周：好评率 ${pct(result.world.ota.明细.好评率)} · 客诉率 ${pct(result.world.ota.明细.客诉率)} · 积压 ${result.world.ota.明细.待处理} 条）` }
               : { k: 'ota', icon: '🏪', 名: '自主直营 · 不受平台评分影响', 值: '渠道 ×1.0', 好: true, 注: '直营没有 OTA 流量加成，也没有平台罚款（口径分离）' },
           ].map(row => (
             <div key={row.k} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
