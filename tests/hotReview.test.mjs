@@ -81,5 +81,6 @@ console.log('\n[5] 零变化水位线（无危机输入 ⇒ 逐字节不变）')
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
-console.log('RV：triggerPending 3→99 ⇒ [1][2] 必红 · occPenalty→0 ⇒ [3] 必红 · 默认维持→默认不罚 ⇒ [4]① 必红')
+console.log('RV（可执行 · 已实测）：node tests/_rv-32u1.mjs —— 阈值 3→99 / 声誉 ×1 / 出租率 −0% / 默认改"不罚" 四靶子')
+console.log('   ⇒ 每条改后必红、还原必绿（★ 断言真覆盖"算式"而非只覆盖"声明"）')
 process.exit(fail ? 1 : 0)
