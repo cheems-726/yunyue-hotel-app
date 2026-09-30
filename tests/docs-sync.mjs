@@ -303,8 +303,10 @@ const FACTS = [
       //   D59 的正常节奏（纯文档不必重跑全量）。⇒ 比对改为：指纹 head 必须是【记录 head 的祖先】
       //   （即：记录 head 往回数能在指纹 head 处停 —— 用 merge-base 判祖先关系），而不是前缀相等。
       if (记head && 首.head) {
-        const mb = gitOut2(['merge-base', '--is-ancestor', 首.head, 记head])
-        if (mb === false) return false   // 指纹 head 不是记录 head 的祖先 ⇒ 真漂移 ⇒ 红
+        // ★ §32-U1 修向：两种合法节奏都放 —— ① 记录在前、指纹在后（门禁后提交了纯文档：记录 head 是指纹 head 的祖先）
+        //   ② 指纹在前、记录在后（§28.1 原设想）。判**同链**：互为祖先其一成立即可；分叉 ⇒ 真漂移 ⇒ 红。
+        const 同链 = gitOut2(['merge-base', '--is-ancestor', 记head, 首.head]) || gitOut2(['merge-base', '--is-ancestor', 首.head, 记head])
+        if (!同链) return false
       }
       const 实未推 = 未推计数()
       if (实未推 != null && 实未推 !== 首.未推) return false
