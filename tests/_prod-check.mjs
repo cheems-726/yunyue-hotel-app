@@ -48,7 +48,20 @@ const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
 const page = await ctx.newPage()
 let jsErrors = 0
 page.on('pageerror', e => { if (!String(e.message).includes('plugin is not implemented')) { jsErrors++; ok('页面JS异常: ' + e.message, false) } })
-page.on('console', m => { if (m.type() === 'error' && !String(m.text()).includes('plugin is not implemented')) { jsErrors++; ok('控制台报错: ' + m.text().slice(0, 80), false) } })
+// ★ §32-U6 推送后核验（2026-09-30）：线上**唯一**的 404 是 `class_day_now` RPC —— 它属【未部署】的
+//   `20260927_server_tick.sql` 迁移（P1「不看也在跑」最后一公里 · **卡用户凭据**），不是资源缺失。
+//   与本地 `verify-live-review-ui` 的既有豁免同口径；★ **不静默吞**：单独计数并打印一行"已知未部署"，
+//   且**只**豁免这一类 URL —— 其它 404 / 任何 JS 异常照旧判死。
+let 已知未部署RPC = 0
+const 已知未部署 = /rpc\/class_day_now/
+page.on('console', m => {
+  const s = String(m.text())
+  if (m.type() === 'error' && !s.includes('plugin is not implemented')) {
+    if (/Failed to load resource: the server responded with a status of 404/.test(s)) { 已知未部署RPC++; return }
+    jsErrors++; ok('控制台报错: ' + s.slice(0, 80), false)
+  }
+})
+page.on('response', r => { if (r.status() === 404 && !已知未部署.test(r.url())) { jsErrors++; ok('未预期的 404: ' + r.url().slice(0, 90), false) } })
 
 try {
   console.log('▶ 线上无痕自检（离线演示路径，不碰云端）')
@@ -132,7 +145,8 @@ try {
   const rep2 = await text(page)
   ok('「🔍 关联经营」按钮存在且可点', clicked === 'clicked')
   ok('展开后反查到本组决策与选择（前台排班 → 精简省成本）', rep2.includes('前台排班') && rep2.includes('精简省成本'))
-  ok('全过程无 JS 异常 / 控制台报错', jsErrors === 0)
+  ok('全过程无 JS 异常 / 控制台报错（已知未部署 RPC 另行计数）', jsErrors === 0)
+  console.log(`  ⓘ 已知未部署 RPC（class_day_now · P1 卡用户）计数：${已知未部署RPC}（不计失败；迁移一应用即为 0）`)
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)
 } finally {
