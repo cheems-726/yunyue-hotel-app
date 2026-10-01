@@ -195,6 +195,70 @@ if (process.argv.includes('--gate')) {
   //   判据跟着产物走（不是放宽：仍要求"现行版 + 真实链路"两件事齐备，只是版本号前进一档）。
   gok(/v6（本报告）/.test(lr) && /真实链路/.test(lr), '长跑报告 = v6 现行（真实链路 · 含两费/一次性费用/世界层）')
 
+  // ── ★ §33-V1（D100 · 2026-10-01）：进度文档锚点断言（[d] 段 · A01–A22）────────────
+  //   出处：`4-审计与报告/进度文档-锚点对照表.md` §四 —— "每个百分比都能指到可复跑的锚点"的机器化。
+  //   原则：**数字变了要红**（A08/A09/A16）· **状态变了也要红**（A11–A15/A17）· 横幅/指针被拿掉要红（A01–A07/A19–A22）。
+  console.log('\n▶ M3 --gate [d]：§33-V1 进度文档锚点断言（A01–A22 · 对照表 §四）')
+  const G1 = rd(path2.join(ROOT2, '1-总纲与进度', 'App现状全景评估.md')) || ''
+  const G2 = rd(path2.join(ROOT2, '1-总纲与进度', '需求要点统合-现状对照.md')) || ''
+  const G3 = rd(path2.join(ROOT2, '1-总纲与进度', '项目进度总纲.md')) || ''
+  const G4 = rd(path2.join(ROOT2, '1-总纲与进度', '华住酒店运营模拟系统-项目交接文档.md')) || ''
+  const G5 = rd(path2.join(ROOT2, '1-总纲与进度', '后续开发路线图-四件套规格.md')) || ''
+  const G6 = rd(path2.join(ROOT2, '1-总纲与进度', '酒店管理教学系统-设计方案.md')) || ''
+  const G7 = rd(path2.join(ROOT2, '1-总纲与进度', '长效任务总表（总纲·开工先读）.md')) || ''
+  const G8 = rd(path2.join(ROOT2, '1-总纲与进度', '需求-全量开发任务细化方案.md')) || ''
+  const G9 = rd(path2.join(ROOT2, '1-总纲与进度', '酒店模拟经营教学APP_全量开发任务细化方案.txt')) || ''
+  const G10 = rd(path2.join(ROOT2, '1-总纲与进度', '交接文档-新会话必读.md')) || ''
+  const REG = rd(path2.join(ROOT2, '1-总纲与进度', '决策登记册.md')) || ''
+  // 代码语料（A16 用）：src/** 文件名缓存
+  const srcFiles = []
+  try { for (const f of readdirSync(SRC_DIR)) if (/\.(js|jsx|mjs)$/.test(f)) srcFiles.push(f) } catch (e) {}
+  const srcHit = (kw) => srcFiles.filter(f => { try { return readFileSync(join(SRC_DIR, f), 'utf8').includes(kw) } catch (e) { return false } }).length
+
+  // A01–A04 过期横幅必须存在（四份历史文档）
+  gok(G1.slice(0, 1200).includes('已过期'), 'A01 App现状全景评估：头部带「已过期」横幅', '横幅被删 ⇒ 过期文档伪装成现行')
+  gok(G2.slice(0, 1200).includes('已过期'), 'A02 需求要点统合：头部带「已过期」标注')
+  gok(G3.slice(0, 1200).includes('过期'), 'A03 项目进度总纲：头部带「过期」标注')
+  gok(G4.slice(0, 1200).includes('已被取代'), 'A04 华住交接文档：头部带「已被取代」')
+  // A05–A06 V1 处置标注（仅历史）
+  gok(G1.slice(0, 1600).includes('仅历史'), 'A05 App现状全景评估：头部带「仅历史」（V1 处置 · 不作现状引用）')
+  gok(G2.slice(0, 1600).includes('仅历史'), 'A06 需求要点统合：头部带「仅历史」（达成表整体作废）')
+  // A07 需求原文头部行
+  gok(G8.slice(0, 300).includes('需求原文'), 'A07a 需求-全量开发任务细化方案.md：头部标「需求原文」（只读不改）')
+  gok(G9.slice(0, 300).includes('需求原文'), 'A07b 全量开发任务细化方案.txt：头部标「需求原文」')
+  // A08/A09 长效总表门禁数字 === 门禁记录（数字变了要红）
+  if (gateRec.full && gateRec.full.head) {
+    const mFull = /全量 \*\*(\d{3,}) 通过/.exec(G7) || /全量 \*\*(\d{3,}) 条断言/.exec(G7)
+    gok(mFull && Number(mFull[1]) === gateRec.full.通过, `A08 长效总表「全量 N」=== 门禁记录（${gateRec.full.通过}）`, mFull ? `卡内=${mFull[1]}` : '未找到全量数字行')
+    const mFast = /快检 \*\*(\d{3,})\/0\*\*/.exec(G7)
+    gok(mFast && Number(mFast[1]) === gateRec.fast.通过, `A09 长效总表「快检 M/0」=== 门禁记录（${gateRec.fast.通过}）`, mFast ? `卡内=${mFast[1]}` : '未找到快检数字行')
+  } else gok(true, '（A08/A09：尚无门禁记录 ⇒ 不判）')
+  // A10 旧 D 上限不得回归
+  gok(!/D1–D74/.test(G7) || /D1–D100/.test(G7), 'A10 长效总表：无旧上限「D1–D74」（现 D1–D100）', '回写旧 D 上限 ⇒ 红')
+  // A11–A15 状态断言（"已完成"改回"未做"要红）
+  gok(/一键图文报告已上线/.test(G7), 'A11 长效总表 模块六：一键图文报告已上线（U2 · D89）', '状态回退成"缺" ⇒ 红')
+  gok(!/grep `上热门` ⇒ \*\*0\*\*/.test(G7), 'A12 长效总表 B12：不写「上热门 ⇒ 0」（已实现 · hotReview 23 断言）', '把已完成改回未做 ⇒ 红')
+  gok(/B14.*✅ \*\*已实施\*\*/.test(G7.replace(/\n/g, ' ')), 'A13 长效总表 B14：职务加成标「已实施」', '状态回退 ⇒ 红')
+  gok(/B15.*✅ \*\*已实施\*\*/.test(G7.replace(/\n/g, ' ')), 'A14 长效总表 B15：决策风险化标「已实施」', '状态回退 ⇒ 红')
+  gok(!/\| \*\*B4\*\|[^\n]*⏸ \*\*未开工\*\*/.test(G7), 'A15 长效总表 B4：三期不写「未开工」（U8+U8-补 · D99 已交付）', '三期被写回未开工 ⇒ 红')
+  // A16 R7 状态与代码互证（数字变了也要红）
+  {
+    const mR7 = /handover\|移交[^）]*）[^→]*→ \*\*(\d+)\*\*/.exec(G5) || /`handover\\?\|移交[^`]*`\s*→\s*\*\*(\d+)\*\*/.exec(G5)
+    const 实际 = srcHit('handover') + srcHit('强制移交')
+    if (mR7) gok(Number(mR7[1]) === 实际, `A16 路线图 R7 命中数 === src 实测（表内 ${mR7[1]} / 实际 ${实际}）`, 'R7 状态与代码不符 ⇒ 红')
+    else gok(srcHit('handover') === 0, 'A16 路线图 R7：src 中 handover/强制移交 零命中（真缺口 · V2 排期依据）', `出现命中 ${srcHit('handover')} ⇒ R7 状态必须更新（对照表同步）`)
+  }
+  // A17 路线图 R8 状态行
+  gok(/R8 · 教师端决策流水视图（★ V1 核定 2026-10-01：\*\*已完成\*\*）/.test(G5), 'A17 路线图 R8：V1 核定状态行存在（已完成）', '状态回退/被删 ⇒ 红')
+  // A18/A19 登记册（豁免依据 + 近期编号）
+  for (const d of ['D96', 'D97', 'D99', 'D100']) gok(REG.includes(d), `A18 登记册含 ${d}（近期过审编号在册）`, '登记册被回改/截断 ⇒ 红')
+  gok(/不许重开讨论/.test(REG.slice(0, 600)), 'A19 登记册头部「不许重开讨论」在（整段豁免的依据）')
+  // A20/A21 交接必读（历史快照标注 + 失实行更正）
+  gok(G10.slice(0, 1200).includes('仅历史'), 'A20 交接必读：头部带「仅历史」快照标注 + 现行指针', '拿掉诚实标注 ⇒ 红')
+  gok(!/negativeScore（15%维度，待改）/.test(G10), 'A21 交接必读 :295：无「negativeScore 待改」失实描述（A4 已实施）', '失实描述回归 ⇒ 红')
+  // A22 设计方案指针
+  gok(G6.slice(0, 1200).includes('现行参数一律以') || G6.slice(0, 1200).includes('现行参数以'), 'A22 设计方案：头部带「现行参数以代码为准」指针')
+
   console.log(`\n结果: ${gp} 通过 / ${gf} 失败（--gate 判死模式）`)
   console.log('RV：把 AGENTS.md 门禁数字改成 9999 ⇒ 本模式必红（夜跑已实测 docs-sync 对它失明）')
   process.exit(gf ? 1 : 0)
