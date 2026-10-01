@@ -17,9 +17,12 @@ export function classDayNow(cls) {
 }
 
 export async function readClassState(supa) {
-  const { data, error } = await supa.from('class_state').select('current_week, start_date, teacher_offset_days').eq('id', 1).maybeSingle()
-  if (error) throw new Error('读 class_state 失败：' + error.message)
-  return data
+  // ★ §32-U8-补：一并读注入通道（injected_events）。列不存在（迁移未应用）⇒ 回退读既有三列，不拦推进。
+  const { data, error } = await supa.from('class_state').select('current_week, start_date, teacher_offset_days, injected_events').eq('id', 1).maybeSingle()
+  if (!error) return data
+  const { data: d2, error: e2 } = await supa.from('class_state').select('current_week, start_date, teacher_offset_days').eq('id', 1).maybeSingle()
+  if (e2) throw new Error('读 class_state 失败：' + e2.message)
+  return d2
 }
 
 /** 读全班各组存档（组档优先于个人档，与前端 groupKeyOf 口径一致） */

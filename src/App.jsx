@@ -13,7 +13,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { TITLES } from './hotelTitle.js'
@@ -34,6 +34,11 @@ import { 投资测算 } from './establishmentInvest.mjs'
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { teachingDayNo } from './teachingClock.mjs'
 import { APP_VERSION } from './version.js'
+// ★ §32-U8-补 §2②：老师注入事件的「30 秒应对」选项 —— 单源（界面不解析字符串、不自拼选项）
+import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
+// ★ §32-U8-补 §2④：AI 领班 —— 授权式代管（一期=记录与复盘；数值执行二期）。
+//   注意：settle（引擎）不引用本模块（一期边界有守门断言）—— 记录在 App 层生成后挂到 result。
+import { 生效授权, 领班决策, 代管率 } from './aiSupervisor.mjs'
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -233,7 +238,93 @@ function PlaceholderPage({ title, icon, onBack }) {
 
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource }) {
+// ★ §32-U8-补：两个本地设置的唯一读取点（单一来源 = localStorage：界面写、结算读；不在 React state 里存副本）
+function 读事件应对() {
+  try { return JSON.parse(localStorage.getItem('hotel-sim-event-response') || 'null') } catch (e) { return null }
+}
+function 读领班覆盖() {
+  try { const v = JSON.parse(localStorage.getItem('hotel-sim-supervisor-auth') || 'null'); return (v && typeof v === 'object') ? v : null } catch (e) { return null }
+}
+
+// ★ §32-U8-补 §2②：老师注入事件卡（经营页 · 本周生效）—— 30 秒应对（复用既有危机应对 UI 范式）
+//   · 选项来自 teacherEvents.应对选项Of（单源）；E8 的 label 与引擎比较值逐字一致（'立即整改'）
+//   · 选择写 localStorage `hotel-sim-event-response`（当周选、当周用；派生于 weekInputs.settleInputsFrom）
+//   · 30 秒超时自动按【最后一个选项】（= 最差侧）记录 —— 与危机卡"超时按不理会"同语义
+function InjectedEventsCard({ 事件s, week }) {
+  const [回答, set回答] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem('hotel-sim-event-response') || 'null'); return (v && Number(v.week) === Number(week) && v.事件id) ? { [v.事件id]: v.choice } : {} } catch (e) { return {} }
+  })
+  const [左, set左] = useState({})   // 剩余秒数（按事件id）
+  useEffect(() => {
+    const t = setInterval(() => {
+      set左(prev => {
+        const next = {}
+        for (const e of 事件s) {
+          const 选项 = 应对选项Of(e.来源事件)
+          const 已答 = 回答[e.来源事件]
+          if (已答 || !选项.length) continue
+          const cur = prev[e.来源事件] == null ? 30 : prev[e.来源事件]
+          next[e.来源事件] = Math.max(0, cur - 1)
+        }
+        return next
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [事件s, 回答])
+  // 超时自动记录（最差侧）
+  useEffect(() => {
+    for (const e of 事件s) {
+      const 选项 = 应对选项Of(e.来源事件)
+      if (!选项.length) continue
+      if (!回答[e.来源事件] && 左[e.来源事件] === 0) 选(e.来源事件, 选项[选项.length - 1].label, true)
+    }
+  }, [左, 事件s, 回答])
+  function 选(事件id, label, 超时) {
+    set回答(prev => ({ ...prev, [事件id]: label }))
+    try { localStorage.setItem('hotel-sim-event-response', JSON.stringify({ week: Number(week), 事件id, choice: label, 超时: !!超时 })) } catch (e) {}
+  }
+  if (!事件s.length) return null
+  return (
+    <div style={{ padding: '0 20px 12px' }}>
+      {事件s.map(e => {
+        const 选项 = 应对选项Of(e.来源事件)
+        const 已答 = 回答[e.来源事件]
+        const 可执行 = 应对可执行Of(e.来源事件)
+        return (
+          <div key={e.id || e.来源事件} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>
+                {e.icon} {String(e.name || '').replace('📌 老师注入 · ', '老师注入 · ')}
+                <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>老师注入{e.injectedBy ? ` · ${e.injectedBy}` : ''}</span>
+              </div>
+              {!已答 && <span style={{ fontSize: 18, fontWeight: 700, color: (左[e.来源事件] ?? 30) <= 10 ? '#EF4444' : '#A96407' }}>{左[e.来源事件] ?? 30}s</span>}
+            </div>
+            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+            {!已答 ? (
+              <div style={{ marginTop: 8 }}>
+                {选项.map(o => (
+                  <div key={o.label} onClick={() => 选(e.来源事件, o.label)}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid #F3F4F6' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{o.label}</span>
+                    {o.effect && <span style={{ fontSize: 10, color: '#A96407' }}>{o.effect}</span>}
+                  </div>
+                ))}
+                <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                  ⏱ {左[e.来源事件] ?? 30}s 内不选将按最差选项记录
+                  {可执行 ? ' · 本事件应对【即刻生效】（进入本周结算）' : ' · 你随后的经营决策决定实际结果（应对留痕进周报复盘）'}
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>✅ 你的应对：{已答}——结果将在本周结算体现</div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [] }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -284,6 +375,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           ★ 本组件（Business）自己**不**算预览 —— 由主组件算好传下来（weekPreview 在主组件作用域）。 */}
       <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions}
         dayFlows={dayFlows} dayIndex={classDayIndex} daySource={daySource} />
+
+      {/* ★ §32-U8-补 §2②：老师注入事件（本周生效）—— 30 秒应对卡（条件渲染：无注入 ⇒ 不渲染零变化） */}
+      {!report && 本周注入.length > 0 && <InjectedEventsCard 事件s={本周注入} week={week} />}
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -1815,7 +1909,7 @@ export default function App() {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
-      return settleInputsFrom({ reviews: rv, week, crisis: cr })
+      return settleInputsFrom({ reviews: rv, week, crisis: cr, eventResponse: 读事件应对() })   // ★ §32-U8-补：注入应对随存档上传（服务端补算同源）
     } catch (e) { return null }
   })(), weekBase: (() => {
     // ★ §21.1-A-1（D61）：本周【改动前】的决策集，随存档上传。
@@ -1973,18 +2067,73 @@ export default function App() {
       if (!go) return
     }
     // 全班周同步：老师限制了当前周时，学生不能结算超出
+    // ★ §32-U8-补 §2①：结算前【拉一次最新注入通道】—— 学生"结算用的注入"必须是最新的
+    //   （否则老师刚注入、学生立刻结算 ⇒ 用 React 状态里的旧列表 ⇒ 事件被漏）。拉到 ⇒ 回写状态 + 作为本次结算入参。
     if (user?.cloud) {
-      fetchClassWeek().then(classWeek => {
-        if (classWeek > 0 && week > classWeek) {
-          window.alert(`⏱️ 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
-        } else {
-          doSettle()
-        }
-      }).catch(() => doSettle()) // 云端异常不拦结算
+      const 用最新 = (cs) => {
+        const inj = Array.isArray(cs?.injected_events) ? cs.injected_events : null
+        if (cs) { setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : []); setClassSupAuth(cs.supervisor_auth || null) }
+        fetchClassWeek().then(classWeek => {
+          if (classWeek > 0 && week > classWeek) {
+            window.alert(`⏱️ 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
+          } else {
+            doSettle({}, inj ? { injectedEvents: inj, supervisorAuth: cs.supervisor_auth || null } : null)
+          }
+        }).catch(() => doSettle({}, inj ? { injectedEvents: inj, supervisorAuth: cs.supervisor_auth || null } : null))
+      }
+      fetchClassState().then(用最新).catch(() => 用最新(null))
     } else {
       doSettle()
     }
   }
+  // ★★ §32-U8-补 §2①③：全班课堂通道（老师注入事件 + 领班全班默认授权）—— 只在云登录时拉取
+  //   · 与「只影响未来」的关系：注入按 week 挂（结算时 week 匹配才生效）⇒ 这里的刷新只决定"学生何时看见"，
+  //     不改变任何已结算数字（引擎侧 week 匹配是硬闸）。
+  //   · 刷新点：① 挂载/登录恢复 ② visibility → visible（学生切回 App 时拿到老师刚注入的事件）
+  //     （结算前另有一次性刷新，见 handleSettle —— 保证"结算用的注入"是最新的）
+  //   · 离线演示（user.cloud=false）⇒ 不拉、不渲染、零变化。
+  const [classInj, setClassInj] = useState([])
+  const [classSupAuth, setClassSupAuth] = useState(null)
+  useEffect(() => {
+    if (!user?.cloud) return
+    let 活 = true
+    const 拉 = () => fetchClassState().then(cs => {
+      if (!活) return
+      setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : [])
+      setClassSupAuth(cs.supervisor_auth || null)
+    }).catch(() => {})
+    拉()
+    const onVis = () => { if (!document.hidden) 拉() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { 活 = false; document.removeEventListener('visibilitychange', onVis) }
+  }, [user?.cloud])
+  const 本组键 = groupKeyOf(user?.className, user?.groupNo)
+  // 本周生效的注入（week 匹配 + 目标匹配：targets=null ⇒ 全班；否则要含本组键）
+  const 本周注入 = (Array.isArray(classInj) ? classInj : []).filter(e => e && Number(e.week) === Number(week) && (!Array.isArray(e.targets) || e.targets.includes(本组键)))
+  // 🔴 E2：本地等效 classDay（T9：服务端 classDay 才是唯一权威；本地只用【教学日历日序号】做等效显示与触发）
+  //   旧档无 openDayNo ⇒ 用"已结算周数"反推（history.length*7），保证不跳变、不 NaN
+  //   ★ §32-U8-补：整块上移到 weekPreview 之前（补算判定与周预览都要用 权威日 —— 防 TDZ）
+  const classDayLocal = (() => {
+    const today = teachingDayNo()
+    const first = Number.isFinite(openDayNo) ? openDayNo : (today - (Array.isArray(history) ? history.length : 0) * 7)
+    return classDayFromLocal(first, today)
+  })()
+  // ★★ §26.7（P0e②③ · 2026-09-29 · 用户第四次投诉「哪怕手机不打开数据也在跑？时间日期也是错的」）：
+  //   T9 明文写着「**服务端 classDay 才是唯一权威；本地只做等效显示**」，但客户端从头到尾**没取过**它
+  //   ⇒ 权威缺席 ⇒ 全班看到的日子由各自手机决定（老师推的周与学生看到的天必然错位）。
+  //   现在：① 取服务端值（`class_day_now`）；② 取到 ⇒ **一律用服务端值**；
+  //   ③ 取不到（`<= 0` = RPC 不可用/未部署）⇒ 用本地推算，但**必须显式标「离线 · 本地推算」**
+  //      （**不许静默退化** —— 静默退化正是"日期随机"的根因）。
+  const [serverClassDay, setServerClassDay] = useState(null)
+  useEffect(() => {
+    let 活 = true
+    fetchClassDay().then(d => { if (活 && Number(d) > 0) setServerClassDay(Number(d)) }).catch(() => {})
+    return () => { 活 = false }
+  }, [])
+  const 权威日 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? serverClassDay : classDayLocal
+  const 日来源 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? 'server' : 'local'
+  // ★ §32-U8-补 §2③：补算判定（离线默认最差标注的闸）—— 被结算周 < 当前教学周 ⇒ 该周是"补算"
+  const 补算 = (() => { try { return Number(week) < Number(dayToWeekDay(权威日).week) } catch (e) { return false } })()
   // ★★ §26.3（P0b · 2026-09-29 · 用户投诉「面板是第二本账 · 数据之间没有联动」）：
   //   面板"今日流水/本周累计"必须与周报/结算**同源** ⇒ 这里按【与 doSettle 完全相同的入参派生】跑一次
   //   **预览结算**（**无副作用**：不写 localStorage、不推 history、不写回 capital、不清危机应答）。
@@ -1999,7 +2148,7 @@ export default function App() {
       try { reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]') } catch (e) { reviews = [] }
       let crisis = null
       try { crisis = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null') } catch (e) { crisis = null }
-      const 输入 = settleInputsFrom({ reviews, week, crisis, decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
+      const 输入 = settleInputsFrom({ reviews, week, crisis, eventResponse: 读事件应对(), decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
       const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
       const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
       const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
@@ -2007,14 +2156,22 @@ export default function App() {
         site, brand, decisions: doneDecisions, decisionsByDay, week,
         pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
         liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount, crisisResponse: 输入.crisisResponse,
+        // ★ §32-U8-补：注入事件 + 应对 + 补算 —— 与 doSettle【同一批入参】（面板与结算同源，§26.3 纪律）
+        injectedEvents: 本周注入, eventResponses: 输入.注入应对, 补算,
         prevGoodRate, attrs, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty,
       })
     } catch (e) { return null }   // 预览失败 ⇒ 面板显示"待结算"，绝不自造数字
-  }, [established, brand, location?.district, location?.attrs, doneDecisions, decisionChanges, week, attrs, capital, bizMode, history.length])
+  }, [established, brand, location?.district, location?.attrs, doneDecisions, decisionChanges, week, attrs, capital, bizMode, history.length, classInj, 补算])
 
   // 🔴 E2：自动/手动【同一条路径】—— 自动成报就是调用本函数（参数只多一个 meta），
   //   所以「自动成报 === 手动结算」是结构保证，不是靠两处实现碰巧一致。
-  function doSettle(meta = {}) {
+  // ★ §32-U8-补 §2①：meta2 = 结算前刚拉到的新鲜通道数据（{ injectedEvents, supervisorAuth }）
+  //   —— 只在 handleSettle 的一次性刷新路径传；缺省 ⇒ 用 React 状态（自动成报路径）。
+  function doSettle(meta = {}, meta2 = null) {
+    // 本周生效注入（优先用刚拉到的新鲜值 —— 避免"老师注入后学生立刻结算"漏事件的窗口）
+    const 注入源 = (meta2 && Array.isArray(meta2.injectedEvents)) ? meta2.injectedEvents : classInj
+    const 本周注入用 = (Array.isArray(注入源) ? 注入源 : []).filter(e => e && Number(e.week) === Number(week) && (!Array.isArray(e.targets) || e.targets.includes(本组键)))
+    const 领班全班默认用 = (meta2 && 'supervisorAuth' in meta2) ? (meta2.supervisorAuth || null) : classSupAuth
     // 🔴 选址数据任务（2026-09-27 · 重大修复）：原写法只传 `location.attrs` ⇒ 引擎拿不到 district，
     //   于是 `COMPETITORS[site.district]` 与 `CUSTOMER_PERSONAS[site.district]` 永远命中空键 ——
     //   **竞品机制（周报「周边竞品动态」卡 + 竞品压力压出租率）与客群匹配从未生效**（121 家竞品数据白接）。
@@ -2032,7 +2189,7 @@ export default function App() {
     // ★ §16.2-B7：周内输入改为走【单一派生点】src/weekInputs.mjs ——
     //   原来这 5 个量的口径写在本函数里，服务端补算却一个都拿不到 ⇒ 含实时评价的周两边对不上。
     //   现在客户端与服务端共用同一个函数（口径单源），且这份派生结果会随存档上传（见 cloudState.weekInputs）。
-    const 输入 = settleInputsFrom({ reviews, week, crisis, decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
+    const 输入 = settleInputsFrom({ reviews, week, crisis, eventResponse: 读事件应对(), decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
     const { pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse } = 输入
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
     // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
@@ -2047,7 +2204,7 @@ export default function App() {
     //   catch 里只处理【等级限制】类错误（re /等级限制/），其它异常照常抛出（不掩盖真 bug）。
     let result
     try {
-      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty })
+      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty, injectedEvents: 本周注入用, eventResponses: 输入.注入应对, 补算 })
     } catch (e) {
       if (!/等级限制/.test(String(e && e.message))) throw e
       const 区 = location?.district ?? '本区域'
@@ -2060,6 +2217,8 @@ export default function App() {
       return   // 不结算 = 本周维持原状；学生已拿到明确出路
     }
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
+    // ★ §32-U8-补 §2②：本周的注入应对已进结算 ⇒ 清掉（只清本周的；别的周/未使用的不动）
+    try { const r = 读事件应对(); if (r && Number(r.week) === Number(week)) localStorage.removeItem('hotel-sim-event-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
       const kept = reviews.filter(r => r.week == null && !String(r.id).startsWith('w'))
@@ -2089,29 +2248,67 @@ export default function App() {
       result.__auto = true
       if (meta.key) setAutoSettled(prev => (prev.includes(meta.key) ? prev : [...prev, meta.key]))
     }
+    // ★ §32-U8-补 §2④：AI 领班（一期 = 记录与复盘；数值执行二期 —— 与 B3 §六「一期架构位」一致）
+    //   · 口径：结算【之后】用本周结果派生"若授权，领班本会怎么做"⇒ 挂到周报对象（随 history 持久化，学生复盘可见）
+    //   · 引擎边界：settle【不引用】aiSupervisor（thirdPhase 有守门断言）—— 记录在 App 层生成
+    //   · 授权两层：全班默认（老师端 class_state.supervisor_auth）+ 学生覆盖（本地设置，收窄/放宽）
+    //   · 留痕：动作/报告逐条写 operatorLogs（代管人 = AI 领班 + 依据规则 id）
+    try {
+      const 快照 = 领班状态快照(result)
+      if (快照) {
+        const 授权 = 生效授权({ 全班默认: 领班全班默认用, 学生覆盖: 读领班覆盖() })
+        const rec = 领班决策({ state: 快照, authorizations: 授权 })
+        const 学生决策数 = Object.keys(doneDecisions || {}).length
+        result.supervisorRecord = {
+          ...rec,
+          代管率: 代管率(rec.actions.length, 学生决策数),
+          授权快照: 授权,
+          一期说明: '一期只记录不执行（数值执行二期开放）· 授权默认全关 = 全班行为一致',
+        }
+        // operatorLog 留痕：动作/报告按规则 → 对应决策项（R1/R2 → pricing；R3 → overbook；R7 → hygiene）
+        const 规则项映射 = { R1: 'pricing', R2: 'pricing', R3: 'overbook', R7: 'hygiene' }
+        const 新日志 = []
+        for (const a of rec.actions) {
+          const d = 规则项映射[a.ruleId]
+          const 条 = d ? 记录一条({ decisionId: d, answer: a.to, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null }) : null
+          if (条) 新日志.push({ ...条, 依据规则: a.ruleId, 领班reason: a.reason })
+        }
+        for (const r of rec.reports) {
+          const d = 规则项映射[r.ruleId]
+          const 条 = d ? 记录一条({ decisionId: d, answer: null, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null }) : null
+          if (条) 新日志.push({ ...条, 依据规则: r.ruleId, 领班reason: r.reason })
+        }
+        if (新日志.length) setOperatorLogs(prev => [...prev, ...新日志])
+      }
+    } catch (e) {}   // 领班记录失败不拦结算（一期=记录；绝不因记录层把结算弄崩）
     setReport(result)
   }
-  // 🔴 E2：本地等效 classDay（T9：服务端 classDay 才是唯一权威；本地只用【教学日历日序号】做等效显示与触发）
-  //   旧档无 openDayNo ⇒ 用"已结算周数"反推（history.length*7），保证不跳变、不 NaN
-  const classDayLocal = (() => {
-    const today = teachingDayNo()
-    const first = Number.isFinite(openDayNo) ? openDayNo : (today - (Array.isArray(history) ? history.length : 0) * 7)
-    return classDayFromLocal(first, today)
-  })()
-  // ★★ §26.7（P0e②③ · 2026-09-29 · 用户第四次投诉「哪怕手机不打开数据也在跑？时间日期也是错的」）：
-  //   T9 明文写着「**服务端 classDay 才是唯一权威；本地只做等效显示**」，但客户端从头到尾**没取过**它
-  //   ⇒ 权威缺席 ⇒ 全班看到的日子由各自手机决定（老师推的周与学生看到的天必然错位）。
-  //   现在：① 取服务端值（`class_day_now`）；② 取到 ⇒ **一律用服务端值**；
-  //   ③ 取不到（`<= 0` = RPC 不可用/未部署）⇒ 用本地推算，但**必须显式标「离线 · 本地推算」**
-  //      （**不许静默退化** —— 静默退化正是"日期随机"的根因）。
-  const [serverClassDay, setServerClassDay] = useState(null)
-  useEffect(() => {
-    let 活 = true
-    fetchClassDay().then(d => { if (活 && Number(d) > 0) setServerClassDay(Number(d)) }).catch(() => {})
-    return () => { 活 = false }
-  }, [])
-  const 权威日 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? serverClassDay : classDayLocal
-  const 日来源 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? 'server' : 'local'
+  // ★ §32-U8-补 §2④：领班决策的【状态快照】—— 从本周结算结果派生（不新算一套账）。
+  //   本期字段 → aiSupervisor 的 state 形状；缺字段 ⇒ 对应规则不触发（宁可不建议，不许编数）。
+  function 领班状态快照(r) {
+    if (!r || typeof r !== 'object') return null
+    const comps = Array.isArray(r.competitors) ? r.competitors : []
+    const 均价s = comps.map(c => Number(c && c.price)).filter(n => Number.isFinite(n) && n > 0)
+    const 竞对均价 = 均价s.length ? Math.round(均价s.reduce((a, b) => a + b, 0) / 均价s.length) : null
+    const 降价 = comps.filter(c => c && (c.action === '降价' || c.action === '促销') && Number(c.basePrice) > 0 && Number(c.price) > 0)
+    const 竞对降价幅度 = 降价.length ? Math.max(...降价.map(c => Math.round((Number(c.basePrice) - Number(c.price)) / Number(c.basePrice) * 100))) : 0
+    // 实收均价 = 周客房收入 ÷ 售出间夜（与周报「平均房价（实收）」同口径 · WeeklyReport 同式）
+    const 实收均价 = (Number(r.occupiedRooms) > 0 && Number.isFinite(Number(r.revenue))) ? Math.round(Number(r.revenue) / (Number(r.occupiedRooms) * 7)) : null
+    const 竞对溢价 = (实收均价 && 竞对均价) ? Math.round((实收均价 - 竞对均价) / 竞对均价 * 100) : null
+    // 超售赔偿次数 = 赔偿额 ÷ round(定价) —— 与引擎同一乘积关系（overbookCompensation = walkIn × round(price)）的精确反算
+    const 次数 = (Number(r.overbookCompensation) > 0 && Number(r.price) > 0) ? Math.round(Number(r.overbookCompensation) / Math.round(Number(r.price))) : 0
+    return {
+      出租率: Number(r.occupancy) || 0,
+      当前价: 实收均价,
+      竞对均价, 竞对降价幅度,
+      竞对溢价: Number.isFinite(竞对溢价) ? 竞对溢价 : null,
+      本周超售赔偿次数: 次数,
+      卫生不合格: (doneDecisions || {}).hygiene === '不停房',
+      // 学生价格下限：一期未建模 ⇒ 不传（aiSupervisor 内回退为 当前价×0.85；传 null 会被 Number(null)=0 误读，已修）
+    }
+  }
+  // ★ §32-U8-补：classDayLocal / serverClassDay / 权威日 —— 已上移到 weekPreview 之前
+  //   （理由：注入事件的「补算」判定与周预览都要用 权威日 ⇒ 必须先声明，避免 TDZ）
   const autoInfo = !established || !brand || finished
     ? { due: false, reason: '未进入经营' }
     : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, 权威日, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
@@ -2412,7 +2609,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,

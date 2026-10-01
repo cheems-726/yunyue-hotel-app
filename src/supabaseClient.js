@@ -194,6 +194,52 @@ export async function fetchClassWeek() {
   return data.current_week || 0
 }
 
+// ★ §32-U8-补 §2①④：全班课堂通道（老师写 / 全班读）——「老师注入事件」+「AI 领班全班默认授权」
+//   · 为什么不是写进学生自己的 game_states：学生端每次保存是【整包 PATCH state】
+//     ⇒ 老师写进学生 state 的字段会被学生下一次保存**静默覆盖**（crisis override 同款隐患）。
+//     class_state 是老师专属写通道（RLS: is_teacher 才可 update）+ 全班可读 ⇒ 天然无覆盖、天然全班同步。
+//   · 迁移未应用（新列不存在）⇒ 回退只读 current_week，通道字段返回空（不阻塞；用「通道就绪」如实标，不谎报）。
+//   · 需执行 supabase-migration-u8-class-events.sql（幂等）。
+export async function fetchClassState() {
+  const { data, error } = await supabase
+    .from('class_state')
+    .select('current_week, injected_events, supervisor_auth')
+    .eq('id', 1)
+    .maybeSingle()
+  if (!error && data) {
+    return {
+      current_week: data.current_week || 0,
+      injected_events: Array.isArray(data.injected_events) ? data.injected_events : [],
+      supervisor_auth: (data.supervisor_auth && typeof data.supervisor_auth === 'object') ? data.supervisor_auth : null,
+      通道就绪: true,
+    }
+  }
+  const { data: d2 } = await supabase
+    .from('class_state')
+    .select('current_week')
+    .eq('id', 1)
+    .maybeSingle()
+  return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 通道就绪: false }
+}
+
+// 老师：覆盖写【注入事件表】（调用方负责 append 后传全量 —— 服务端不做读改写）
+export async function setClassInjections(events) {
+  const { error } = await supabase
+    .from('class_state')
+    .update({ injected_events: Array.isArray(events) ? events : [], updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  return !error
+}
+
+// 老师：写【AI 领班全班默认授权】（null = 默认全关；形状 { price_adj:{ok}, overbook:{ok}, ... }）
+export async function setClassSupervisorAuth(auth) {
+  const { error } = await supabase
+    .from('class_state')
+    .update({ supervisor_auth: auth && typeof auth === 'object' ? auth : null, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  return !error
+}
+
 // 🔴 W1-5（T3.7）：classDay 的唯一权威在服务端（class_day_now()，见 migrations/20260927_server_tick.sql）。
 //   函数不存在（迁移未应用）时返回 0，由调用方走降级路径 —— 不抛异常、不阻塞教师端。
 export async function fetchClassDay() {

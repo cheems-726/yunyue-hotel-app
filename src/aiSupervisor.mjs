@@ -20,13 +20,23 @@
 export const 领班规则 = [
   {
     id: 'R1', item: 'pricing', weight: 'high', requires: 'price_adj',
-    when: (s) => s.竞对降价幅度 >= 10 && s.出租率 < 55,
-    act: (s) => ({ item: 'pricing', to: Math.max(学生下限(s), Math.round(s.竞对均价 * 0.97)) }),
-    reason: (s, a) => a ? `竞对均价降 ${s.竞对降价幅度}%、我们出租率 ${s.出租率}%（低于健康线）→ 在你授权的幅度内下调房价至 ${a.to} 元（竞对价×0.97）。若想自己管，可在授权页收紧调价幅度` : `竞对均价降 ${s.竞对降价幅度}%、我们出租率 ${s.出租率}%（低于健康线）→ 建议下调房价（未获授权，仅报告不动作）`,
+    说明: '竞对均价降幅 ≥10% 且本店出租率 <55% 且竞对价低于本店 ⇒ 在授权幅度内下调房价至 竞对价×0.97（不破你的价格下限 · 保流量）',
+    // ★ §32-U8-补 接线实测抓到（真实竞对数据）：锦江区竞对均价 ~1251（含香格里拉/君悦等 lux 竞对），
+    //   经济型本店定价 ~283 ⇒ 原式 `max(下限, 竞对价×0.97)` 会给出"下调至 1214 元"的荒谬建议（实为涨 4 倍）。
+    //   修：① 只有【竞对价低于本店】才触发（对标价高于我们时"跟降"无意义）；② 目标夹进 [价格下限, 当前价]。
+    when: (s) => s.竞对降价幅度 >= 10 && s.出租率 < 55 && Number.isFinite(Number(s.竞对均价)) && Number(s.竞对均价) > 0
+      && Math.round(Number(s.竞对均价) * 0.97) < Number(s.当前价),
+    act: (s) => {
+      const 目标 = Math.round(Number(s.竞对均价) * 0.97)
+      const 上限 = Number.isFinite(Number(s.当前价)) ? Math.round(Number(s.当前价)) : 目标
+      return { item: 'pricing', to: Math.max(学生下限(s), Math.min(目标, 上限)) }
+    },
+    reason: (s, a) => a ? `竞对均价降 ${s.竞对降价幅度}%、我们出租率 ${s.出租率}%（低于健康线）→ 在你授权的幅度内把房价调至 ${a.to} 元（对标竞对价 · 不破你的价格下限 · 不超过你当前定价）。若想自己管，可在授权页收紧调价幅度` : `竞对均价降 ${s.竞对降价幅度}%、我们出租率 ${s.出租率}%（低于健康线）→ 建议下调房价（未获授权，仅报告不动作）`,
     一期口径: '竞对价为【周级快照近似】（真日级序列二期换）',
   },
   {
     id: 'R2', item: 'pricing', weight: 'high', requires: 'price_adj',
+    说明: '出租率 ≥90% 且本店定价低于竞对 ≥5% ⇒ 上调 5%（测试支付意愿）',
     when: (s) => s.出租率 >= 90 && s.竞对溢价 >= 5,
     act: (s) => ({ item: 'pricing', to: Math.min(Math.round(s.当前价 * 1.05), 学生下限(s) * 2) }),
     reason: (s, a) => a ? `出租率 ${s.出租率}% 且定价低于市场 ${s.竞对溢价}% → 上调房价至 ${a.to} 元测试支付意愿` : `出租率 ${s.出租率}% 且定价低于市场 ${s.竞对溢价}% → 建议上调房价（未获授权，仅报告不动作）`,
@@ -34,19 +44,25 @@ export const 领班规则 = [
   },
   {
     id: 'R3', item: 'overbook', weight: 'low', requires: 'overbook',
+    说明: '本周超售赔偿 ≥2 次 ⇒ 超售清零止损',
     when: (s) => s.本周超售赔偿次数 >= 2,
     act: () => ({ item: 'overbook', to: 0 }),
     reason: (s) => `本周已赔 ${s.本周超售赔偿次数} 次到店无房 → 超售清零止损`,
   },
   {
     id: 'R7', item: '__report', weight: 'low', requires: 'none',
+    说明: '卫生检查不合格 ⇒ 建议停房深清洁（超出领班权限，只报告）',
     when: (s) => !!s.卫生不合格,
     act: () => null,
     reason: (s) => `卫生检查不合格：建议停房深清洁（超出领班权限，请店主处理）`,
   },
 ]
 
-const 学生下限 = (s) => Number.isFinite(Number(s.学生价格下限)) ? Number(s.学生价格下限) : Math.round(Number(s.当前价) * 0.85)
+// ★ null 安全（§32-U8-补 接线时抓到）：原式 `Number.isFinite(Number(s.学生价格下限))` 对 null 判真
+//   （Number(null)===0 是有限数）⇒ 会把"未设置"误读成下限 0。现在显式排除 null/undefined。
+const 学生下限 = (s) => (s.学生价格下限 != null && Number.isFinite(Number(s.学生价格下限)))
+  ? Number(s.学生价格下限)
+  : Math.round(Number(s.当前价) * 0.85)
 
 // 两层授权（B3 §一.3）：全班统一默认 + 学生个人收窄/放宽
 export const 默认授权 = { price_adj: false, overbook: false, energy: false }   // 默认全关 = 公平

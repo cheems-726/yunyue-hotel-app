@@ -3,7 +3,8 @@ import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs, applyAttrsDelta } 
 // ★ §32-U4c-R6 决策风险化（代价单源在 decisionRisk.mjs）：不作为惩罚 + 延迟后果
 import { 不作为属性扣减, 本周延迟惩罚, 属性清单 } from './decisionRisk.mjs'
 // ★ §32-U8-A 老师事件注入：注入通道（周粒度 · 只影响未来 · 全班同步）+ 互斥/离线默认最差
-import { 注入互斥冲突 } from './teacherEvents.mjs'
+// ★ §32-U8-补 §2③：离线默认标注（补算跨过事件周 ⇒ 周报显著标注）—— 唯一文案生成点在 teacherEvents
+import { 注入互斥冲突, 离线默认标注 } from './teacherEvents.mjs'
 import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE, reviewSeverityOf } from './guests.js'
 // 🔴 Phase D/C2：把周值拆成 7 天（一期：周值已知 → 按确定性权重分摊；二期替换为逐日独立计算）
 //    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
@@ -193,7 +194,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, pendingPenalty = null, injectedEvents = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, pendingPenalty = null, injectedEvents = null, eventResponses = null, 补算 = false, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
   // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
   //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
   //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
@@ -637,10 +638,13 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // ★ §32-U3-C：OTA 平台罚款并入 eventFine（**唯一入账点** —— 在所有事件赋值之后、算总成本之前，
   //   否则会被既有 `eventFine = 消防罚款` 那类"整体赋值"静默清掉）。无违规 ⇒ ota后果.罚款 = 0 ⇒ 逐字节不变。
   // ★ §32-U8-A：E8 消防注入的数值后果（罚款 + 停业砍出租率）—— 在事件卡区之前算好（防 TDZ · U1 同法）
+  // ★ §32-U8-补 §2②：E8「是否已整改」判定【单源】—— 数值分支（此处）与事件卡（下方）共用同一标志位，
+  //   不许两处各判一次（"两处各写一份"是本项目的老病）。学生应对经 eventResponses 传入；
+  //   缺省 ⇒ 与改前逐字节一致（旧调用方/长跑基线不受影响）。
+  const 注入E8已整改 = (eventResponses && eventResponses.E8 === '立即整改') || crisisResponse === '立即整改' || crisisResponse === '立即送医+道歉'
   let 注入消防罚款 = 0
   if (生效注入sByName.has('E8')) {
-    const 侥幸 = !(crisisResponse === '立即整改' || crisisResponse === '立即送医+道歉')
-    if (侥幸) { 注入消防罚款 = 5000; occupancy = Math.max(occupancy * (5 / 7), 0.3) }
+    if (!注入E8已整改) { 注入消防罚款 = 5000; occupancy = Math.max(occupancy * (5 / 7), 0.3) }
     else { 注入消防罚款 = 800 }
   }
   if (ota后果.罚款) eventFine += ota后果.罚款
@@ -912,8 +916,20 @@ for (let i = 0; i < reviewCount; i++) {
         ...(Object.keys(r6不作为).length ? { 不作为: { ...r6不作为, 缺项数: Math.max(0, 18 - doneCount) } } : {}) }
     : null
   // ★ §32-U8-A：注入事件卡（周报可见 · 标明"老师注入"）+ 互斥跳过留痕 + E3/E7 属性后果 + E8 罚款
+  // ★ §32-U8-补 §2②③：注入事件卡增强 —— 来源标识(来源:'teacher')/注入人/学生应对记录/离线补算标注
+  //   ★ 条件挂载（水位线）：无注入 ⇒ 本段一个键都不加；补算=false 或已应对 ⇒ 不加 离线标注 键。
   for (const ev of 生效注入) {
-    addEvent({ type: 'bad', icon: ev.icon || '📌', name: ev.name.replace('📌 老师注入 · ', '老师注入 · '), text: (ev.text || '') + '（这是老师注入的事件 · 30 秒内选择你的应对）', impact: ev.impact || '见事件说明', tip: ev.tip || '' })
+    const 应对 = eventResponses && typeof eventResponses === 'object' ? eventResponses[ev.来源事件] : null
+    addEvent({
+      type: 'bad', icon: ev.icon || '📌',
+      name: ev.name.replace('📌 老师注入 · ', '老师注入 · '),
+      text: (ev.text || '') + '（这是老师注入的事件 · 30 秒内选择你的应对）' + (ev.injectedBy ? ` ｜ 注入人：${ev.injectedBy}` : ''),
+      impact: ev.impact || '见事件说明', tip: ev.tip || '',
+      来源: 'teacher',
+      ...(应对 ? { 你的应对: 应对 } : {}),
+      // 补算 且 无应对记录 ⇒ 按最差计入的显著标注（文案唯一生成点在 teacherEvents.离线默认标注）
+      ...(补算 && !应对 ? { 离线标注: 离线默认标注(ev.name.replace('📌 老师注入 · ', ''), week) } : {}),
+    })
   }
   for (const ev of 注入互斥跳过) {
     addEvent({ type: 'bad', icon: '🚫', name: '老师注入事件未生效（与本周随机事件互斥）', text: ev.name + ' 与本周已随机触发的事件同类 —— 按去重口径只生效一条（见事件系统注释）', impact: '无', tip: '同一市场冲击不该叠加成双倍' })
@@ -932,8 +948,8 @@ for (let i = 0; i < reviewCount; i++) {
     }
   }
   if (生效注入sByName.has('E8')) {
-    const 侥幸 = !(crisisResponse === '立即整改' || crisisResponse === '立即送医+道歉')
-    if (侥幸) {
+    // ★ §32-U8-补 §2②：共用上方数值分支的同一标志位（单源判定，见上方注释）
+    if (!注入E8已整改) {
       addEvent({ type: 'bad', icon: '🧯', name: '消防检查不达标（老师注入）', text: '未通过检查 ⇒ 罚款 5000 + 停业 2 天（离线/未应对按最差计入）', impact: '罚款 5,000 元 · 出租率 −2/7', tip: '唯一"建议必选"事件：合规成本远低于停业风险' })
     } else {
       addEvent({ type: 'bad', icon: '🧯', name: '消防检查（已立即整改）', text: '及时整改 ⇒ 花费 800 元，避免停业', impact: '成本 +800 元', tip: '损失不对称：整改 800 远优于停业 2 天' })

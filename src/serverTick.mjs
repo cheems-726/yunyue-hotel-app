@@ -174,6 +174,13 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     liveNegCount: 输入.liveNegCount,
     livePosCount: 输入.livePosCount,
     crisisResponse: 输入.crisisResponse,
+    // ★ §32-U8-补 §2①③：老师注入事件（opts 传入 · 全班通道）+ 注入应对（随存档上传 · weekInputs 单源）
+    //   + 补算标注（服务端口径：该组存档 week 落后于本次结算周 ⇒ 这次是"替它补"的迟到结算
+    //     ⇒ 注入事件按最差计入 + 周报显著标注「你离线未应对」—— 事件对象带 离线标注，见 settle）
+    //   ★ 无注入 / 无应对 / 不落后 ⇒ null/false ⇒ 与改前逐字节一致（水位线）
+    injectedEvents: Array.isArray(opts.injectedEvents) ? opts.injectedEvents : null,
+    eventResponses: 输入.注入应对 || null,
+    补算: Number(src.week || 1) < Number(week),
     decisionsByDay: decisionsByDayFrom({ base: 变更前决策, changes: src.decisionChanges, week }),
   })
 

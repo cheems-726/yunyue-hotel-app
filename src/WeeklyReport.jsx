@@ -110,6 +110,77 @@ function CrisisCard({ event, week }) {
   )
 }
 
+// ★ §32-U8-补 §2④：AI 领班复盘卡（学生可见）—— 授权设置（收窄/放宽）+「这周领班替你做了什么」
+//   · 一期口径（B3 §六）：领班【只记录不执行】—— 卡内明示，不许含糊（"声明了没发生"是本项目老病）
+//   · 两层授权：全班默认（老师端写 class_state）· 学生个人收窄/放宽（本卡开关 · localStorage）
+//   · 后端读取不需要 —— 本卡只读 result.supervisorRecord（App 层结算时生成并挂到周报）
+function SupervisorCard({ result }) {
+  const [覆盖, set覆盖] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem('hotel-sim-supervisor-auth') || 'null'); return (v && typeof v === 'object') ? v : {} } catch (e) { return {} }
+  })
+  const rec = result && result.supervisorRecord
+  const 生效 = (rec && rec.授权快照) || {}
+  const 项 = [
+    { key: 'price_adj', label: '调价幅度（领班可在 ±10% 内调价）' },
+    { key: 'overbook', label: '超售清零止损' },
+    { key: 'energy', label: '客房温度回归 23℃' },
+  ]
+  function 设置(key, v) {
+    const 新 = { ...覆盖 }
+    if (v === '默认') delete 新[key]; else 新[key] = { ok: v === '开' }
+    set覆盖(新)
+    try { localStorage.setItem('hotel-sim-supervisor-auth', JSON.stringify(新)) } catch (e) {}
+  }
+  const 状态字 = (key) => {
+    if (覆盖[key] === undefined) return '默认'
+    return (覆盖[key] && 覆盖[key].ok) ? '放宽' : '收窄'
+  }
+  return (
+    <div className="card">
+      <div className="card-title">🤖 AI 领班（本周复盘）</div>
+      <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+        领班 = 你不在时的"看不见的手"：按授权范围代管决策，并留痕可复盘。
+        <b> 一期只记录不执行（数值执行二期开放）</b> · 默认全关 = 全班行为一致（公平基准）。
+      </div>
+      {rec && (rec.actions.length > 0 || rec.reports.length > 0) ? (
+        <div style={{ marginBottom: 8 }}>
+          {rec.actions.map((a, i) => (
+            <div key={`a${i}`} style={{ padding: '8px 10px', background: '#FFF4E0', border: '1px solid #FBE3B3', borderRadius: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>【{a.ruleId} · 领班动作记录】{a.item === 'pricing' ? `建议调价至 ${a.to} 元` : a.item === 'overbook' ? '超售清零' : a.item}</div>
+              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>{a.reason}</div>
+            </div>
+          ))}
+          {rec.reports.map((r, i) => (
+            <div key={`r${i}`} style={{ padding: '8px 10px', background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#4B5563' }}>【{r.ruleId} · 仅报告】</div>
+              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>{r.reason}</div>
+            </div>
+          ))}
+          {typeof rec.代管率 === 'number' && (
+            <div style={{ fontSize: 11, color: '#6B7280' }}>📊 本周代管率：<b>{Math.round(rec.代管率 * 100)}%</b>（领班动作 ÷（领班动作 + 你的决策）· 健康区间 0–30%）</div>
+          )}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>本周领班没有需要动作/建议的条目（或尚未授权）。</div>
+      )}
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>我的授权设置（在全班默认之上收窄 / 放宽）</div>
+      {项.map(x => (
+        <div key={x.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #F3F4F6' }}>
+          <span style={{ fontSize: 12, color: '#374151' }}>{x.label}<span style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 6 }}>全班默认：{(生效[x.key] && 生效[x.key].ok) ? '已授权' : '未授权'}</span></span>
+          <span style={{ display: 'flex', gap: 4 }}>
+            {['默认', '开', '关'].map(v => (
+              <button key={v} onClick={() => 设置(x.key, v)}
+                style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', background: 状态字(x.key) === v ? '#E8940F' : '#F3F4F6', color: 状态字(x.key) === v ? '#fff' : '#6B7280' }}>
+                {v === '默认' ? '跟随默认' : v === '开' ? '放宽' : '收窄'}
+              </button>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs }) {
   const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
@@ -416,18 +487,33 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           {[...result.events].sort((a, b) => ({ crisis: 0, bad: 1, good: 2 }[a.type] ?? 3) - ({ crisis: 0, bad: 1, good: 2 }[b.type] ?? 3)).map((e, i) => (
             e.type === 'crisis'
               ? <CrisisCard key={i} event={e} week={result.week} />
-              : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.type === 'good' ? '#EAF9F0' : '#FEF0EF' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: e.type === 'good' ? '#065F46' : '#991B1B' }}>
-                <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{e.icon} {e.name}</span>
+              : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.来源 === 'teacher' ? '#FFF4E0' : (e.type === 'good' ? '#EAF9F0' : '#FEF0EF'), border: e.来源 === 'teacher' ? '1px solid #FBE3B3' : 'none' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: e.来源 === 'teacher' ? '#A96407' : (e.type === 'good' ? '#065F46' : '#991B1B') }}>
+                <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span>
+                    {/* ★ §32-U8-补 §2②：老师注入来源标识（引擎侧 来源:'teacher' ⇒ 周报显著区分）
+                        · 标题里去掉引擎事件名自带的「老师注入 · 」前缀 —— 徽章已经标明，避免重复与挤行 */}
+                    {e.icon} {e.来源 === 'teacher' ? String(e.name).replace('老师注入 · ', '') : e.name}
+                    {e.来源 === 'teacher' && <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6, fontWeight: 700, whiteSpace: 'nowrap' }}>老师注入</span>}
+                  </span>
                   {e.impact && e.impact !== '—' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fff', borderRadius: 6, padding: '2px 7px', border: `1px solid ${e.type === 'good' ? '#A7F3D0' : '#FECACA'}`, color: e.impact.includes('-') ? '#DC2626' : '#10B981' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fff', borderRadius: 6, padding: '2px 7px', border: `1px solid ${e.type === 'good' ? '#A7F3D0' : '#FECACA'}`, color: e.impact.includes('-') ? '#DC2626' : '#10B981', flexShrink: 0 }}>
                       {e.impact}
                     </span>
                   )}
                 </span>
               </div>
                   <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+                  {/* ★ §32-U8-补 §2③：离线补算跨过事件周 ⇒ 显著标注（文案唯一生成点在 teacherEvents.离线默认标注） */}
+                  {e.离线标注 && (
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
+                      ⚠️ {e.离线标注}
+                    </div>
+                  )}
+                  {/* ★ §32-U8-补 §2②：你的应对（当周选择留痕 · 复盘可见） */}
+                  {e.你的应对 && (
+                    <div style={{ fontSize: 11, color: '#065F46', fontWeight: 600, marginTop: 3 }}>✅ 你的应对：{e.你的应对}</div>
+                  )}
                   <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>💡 {e.tip}</div>
                   {(() => {
                     // 与口碑页同口径：该事件产生的差评已在口碑页标注来源
@@ -446,6 +532,9 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           </div>
         </div>
       )}
+
+      {/* ★ §32-U8-补 §2④：AI 领班复盘卡（授权设置 + 本周代管记录）—— 无条件渲染（复盘必看） */}
+      <SupervisorCard result={result} />
 
       {/* 决策复盘 */}
       {result.insights && result.insights.length > 0 && (

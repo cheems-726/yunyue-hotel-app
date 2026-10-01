@@ -25,12 +25,19 @@ import { 有效处理权重 } from './roleBonus.mjs'   // ★ §32-U4-R4：职�
 //   ② 本周实时评价按 `live === true && liveWeek === week` 取。
 //   ③ 危机选择只在 `crisis.week === week - 1` 时生效（上周选、这周结算时用）。
 
+// ★ §32-U8-补 §2②（2026-10-01）：注入事件的「30 秒应对」—— 本模块是它的唯一派生点（同 5 输入纪律）
+//   学生在本周经营页应对老师注入的事件 ⇒ 存 localStorage `hotel-sim-event-response`（形状 {week, 事件id, choice}）
+//   ⇒ 结算时经本函数派生成 `注入应对`（{事件id: choice}）喂进 settle（E8 的整改/侥幸分支消费）。
+//   ★ 与危机通道的分工（不同周语义，别混）：
+//     · 危机通道（crisis）：**上周选、本周用**（crisis.week === week - 1）
+//     · 注入应对（eventResponse）：**当周选、当周用**（eventResponse.week === week —— 事件就是本周的）
+//   ★ 版本兼容：字段为加法扩展，`版本` 保持 1（旧载荷无此字段 ⇒ null ⇒ 行为与改前逐字节一致）。
 export const WEEK_INPUTS_VERSION = 1
 
 // 缺省（没有存档输入时）：全 0 / 无危机 —— 与服务端补算的兜底口径一致
 export const 空周输入 = (week) => ({
   版本: WEEK_INPUTS_VERSION, week: Number(week),
-  pendingNegatives: 0, resolvedCount: 0, liveNegCount: 0, livePosCount: 0, crisisResponse: null,
+  pendingNegatives: 0, resolvedCount: 0, liveNegCount: 0, livePosCount: 0, crisisResponse: null, 注入应对: null,
 })
 
 const 非负整数 = (v) => Math.max(0, Math.floor(Number(v) || 0))
@@ -56,7 +63,7 @@ const 突发处置映射 = {
   '推卸责任': '不理会',
 }
 
-export function settleInputsFrom({ reviews, week, crisis = null, decisions = {}, 处理人职务 = null } = {}) {
+export function settleInputsFrom({ reviews, week, crisis = null, eventResponse = null, decisions = {}, 处理人职务 = null } = {}) {
   const 流水 = Array.isArray(reviews) ? reviews : []
   const w = Number(week)
   // ① 结算卡（跨周累计）—— 欠账/整改只认它们（确定性；实证见文件头 ①）
@@ -75,7 +82,11 @@ export function settleInputsFrom({ reviews, week, crisis = null, decisions = {},
   const 危机卡选 = (crisis && Number(crisis.week) === w - 1 && crisis.choice) ? crisis.choice : null
   const 处置 = 突发处置映射[decisions && decisions.emergency] || null
   const crisisResponse = 危机卡选 || 处置
-  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, resolvedWeight, liveNegCount, livePosCount, crisisResponse }
+  // ★ §32-U8-补 §2②：注入事件应对（当周选、当周用）—— 周号不符/无事件id ⇒ null（不猜）
+  const 注入应对 = (eventResponse && Number(eventResponse.week) === w && eventResponse.事件id && eventResponse.choice)
+    ? { [String(eventResponse.事件id)]: String(eventResponse.choice) }
+    : null
+  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, resolvedWeight, liveNegCount, livePosCount, crisisResponse, 注入应对 }
 }
 
 // 从存档里取【本周】的输入：版本/周号对不上 ⇒ 视为没有（返回 null，由调用方决定兜底）
@@ -88,5 +99,7 @@ export function weekInputsOf(save, week) {
     pendingNegatives: 非负整数(w.pendingNegatives), resolvedCount: 非负整数(w.resolvedCount),
     liveNegCount: 非负整数(w.liveNegCount), livePosCount: 非负整数(w.livePosCount),
     crisisResponse: typeof w.crisisResponse === 'string' ? w.crisisResponse : null,
+    // ★ §32-U8-补：注入应对（加法扩展 · 旧载荷无此字段 ⇒ null ⇒ 与改前逐字节一致）
+    注入应对: (w.注入应对 && typeof w.注入应对 === 'object') ? { ...w.注入应对 } : null,
   }
 }

@@ -5,11 +5,17 @@ import { hotCrisisActive } from './hotReview.mjs'         // ★ R3：危机期�
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs, fetchClassState, setClassInjections, setClassSupervisorAuth } from './supabaseClient.js'
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { normalizeAttrs, qualityOf } from './attrs.js'
+import { 代价文案 } from './decisionRisk.mjs'   // ★ §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
+// ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
+import { 注入事件库, 构建注入事件, 校验注入合法性 } from './teacherEvents.mjs'
+// ★ §32-U8-补 §2④：AI 领班全班默认授权页 —— 授权形状与规则单源（aiSupervisor）
+import { 默认授权, 领班规则 } from './aiSupervisor.mjs'
+import { groupKeyOf } from './supabaseClient.js'
 import TeacherReport from './TeacherReport.jsx'   // ★ §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
@@ -413,6 +419,264 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
   )
 }
 
+// ★ §32-U8-补 §2①：老师事件注入面板（一期 · 周粒度）
+//   · 通道：class_state.injected_events（老师专属写 / 全班读 —— 学生端整包保存不会覆盖它）
+//   · 公平红线 (a)：注入前对每个目标组调 校验注入合法性({注入周, 已结算周})，不合法**当场拦**（不等结算才发现）
+//   · ★ 一期只到「周」粒度：事件选「第 N 周」，结算第 N 周时生效；不承诺「第 D 天」（二期真日引擎兑现）
+function InjectionPanel({ rawStates, profiles, user }) {
+  const [库, set库] = useState(null)          // null=拉取中；[]=空
+  const [通道就绪, set通道就绪] = useState(null)
+  const [事件id, set事件id] = useState('E1')
+  const [周, set周] = useState('')
+  const [范围, set范围] = useState('all')      // all | groups
+  const [选中, set选中] = useState({})         // groupKey -> true
+  const [提示, set提示] = useState(null)       // {type:'ok'|'err', text}
+  const [忙, set忙] = useState(false)
+  useEffect(() => {
+    let 活 = true
+    fetchClassState().then(cs => { if (!活) return; set库(Array.isArray(cs.injected_events) ? cs.injected_events : []); set通道就绪(!!cs.通道就绪) })
+      .catch(() => { if (活) { set库([]); set通道就绪(false) } })
+    return () => { 活 = false }
+  }, [])
+  // 组列表（从 profiles 聚合：group_key ↔ 成员 uid）
+  const 组s = (() => {
+    const m = new Map()
+    for (const p of (profiles || [])) {
+      if (!p || !p.group_no) continue
+      const key = groupKeyOf(p.class_name, p.group_no)
+      if (!m.has(key)) m.set(key, { key, label: `${p.class_name ? p.class_name + ' · ' : ''}第${p.group_no}组`, uids: [] })
+      m.get(key).uids.push(p.user_id)
+    }
+    return [...m.values()].sort((a, b) => a.label.localeCompare(b.label, 'zh'))
+  })()
+  // 每组进度：已结算周 = 该组各成员（存档 week − 1）的最大值（组档共享；取最靠前 = 最保守）
+  const 进度Of = (key) => {
+    const uids = key ? ((组s.find(g => g.key === key) || {}).uids || []) : (组s.flatMap(g => g.uids))
+    let 最靠前已结算周 = -1, 有档 = 0
+    for (const uid of uids) {
+      const s = (rawStates.find(x => x.user_id === uid) || {}).state
+      if (!s || !s.brand) continue
+      有档++
+      const done = Math.max(0, (Number(s.week) || 1) - 1)
+      if (done > 最靠前已结算周) 最靠前已结算周 = done
+    }
+    return { 有档, 最靠前已结算周, 可注入周: 最靠前已结算周 + 1 }
+  }
+  const 全班进度 = 进度Of(null)
+  const 建议周 = Math.max(1, 全班进度.可注入周)
+  const 目标组s = 范围 === 'all' ? 组s.map(g => g.key) : Object.keys(选中).filter(k => 选中[k])
+  const 周n = Number(周)
+  const 逐组校验 = 目标组s.map(k => {
+    const g = 组s.find(x => x.key === k) || { key: k, label: k }
+    const p = 进度Of(k)
+    const v = 校验注入合法性({ 注入周: 周n, 已结算周: p.最靠前已结算周 >= 0 ? p.最靠前已结算周 : null })
+    return { ...g, ...p, 合法: v.合法, 原因: v.原因 || '' }
+  })
+  const 全部合法 = 目标组s.length > 0 && 周n >= 1 && 周n <= 12 && 逐组校验.every(x => x.合法)
+  const 有档人数 = 全班进度.有档
+  async function 注入() {
+    set提示(null)
+    const 新事件 = 构建注入事件({ 事件id, 周: 周n, injectedBy: user?.name || '老师', injectedAt: new Date().toISOString() })
+    if (!新事件) { set提示({ type: 'err', text: '事件或周号非法（周号需 1–12）' }); return }
+    if (!全部合法) { set提示({ type: 'err', text: '校验未通过：见下方逐组状态（注入周必须 > 该组已结算周）' }); return }
+    const targets = 范围 === 'all' ? null : 目标组s
+    // 去重：同事件 + 同周 + 目标重叠 ⇒ 拦（避免同周双卡；引擎按来源事件去重，但界面也不该重复注入）
+    const 重叠 = (库 || []).some(x => x && x.来源事件 === 事件id && Number(x.week) === 周n && (x.targets == null || targets == null || x.targets.some(t => targets.includes(t))))
+    if (重叠) { set提示({ type: 'err', text: `第 ${周n} 周已注入过「${事件id}」（目标重叠）—— 同一事件同周不重复注入（防双卡）` }); return }
+    set忙(true)
+    const ok = await setClassInjections([...(库 || []), { ...新事件, targets }])
+    set忙(false)
+    if (ok) {
+      set库(prev => [...(prev || []), { ...新事件, targets }])
+      set提示({ type: 'ok', text: `✅ 已注入：${新事件.name.replace('📌 老师注入 · ', '')} → 第 ${周n} 周 · ${范围 === 'all' ? '全班' : 目标组s.map(k => (组s.find(g => g.key === k) || {}).label || k).join('、')}（该周结算时生效）` })
+    } else {
+      set提示({ type: 'err', text: '写入失败：云端不可用或迁移未应用（见下方通道状态）' })
+    }
+  }
+  async function 撤销(条目) {
+    set提示(null)
+    // 只影响未来：撤销同样要过校验（该周已在任何目标组结算过 ⇒ 不许删）
+    const targets = Array.isArray(条目.targets) ? 条目.targets : null
+    const 组kList = targets || 组s.map(g => g.key)
+    const 有已结算 = 组kList.some(k => 校验注入合法性({ 注入周: Number(条目.week), 已结算周: 进度Of(k).最靠前已结算周 >= 0 ? 进度Of(k).最靠前已结算周 : null }).合法 === false)
+    if (有已结算) { set提示({ type: 'err', text: `第 ${条目.week} 周已有目标组结算过 ⇒ 不再撤销（只影响未来）` }); return }
+    const 新表 = (库 || []).filter(x => !(x && x.id === 条目.id))
+    set忙(true)
+    const ok = await setClassInjections(新表)
+    set忙(false)
+    if (ok) { set库(新表); set提示({ type: 'ok', text: `已撤销：${条目.week} 周「${(条目.name || '').replace('📌 老师注入 · ', '')}」` }) }
+    else set提示({ type: 'err', text: '撤销失败：云端不可用' })
+  }
+  const 当前事件 = 注入事件库.find(e => e.id === 事件id) || {}
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">📌 老师事件注入（一期 · 周粒度）</div>
+        <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+          选事件 × 选周 × 选对象 ⇒ 写入全班通道 ⇒ <b>该周结算时生效</b>。<br />
+          ★ 一期只到「周」粒度：事件选「第 N 周」，<b>不承诺「第 D 天」</b>（二期真日引擎兑现）。<br />
+          ★ 公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同周生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
+        </div>
+        {通道就绪 === false && (
+          <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
+            ⚠ 注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
+          </div>
+        )}
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>① 选事件（8 条 · 老师手动注入，与既有随机事件有去重口径）</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+          {注入事件库.map(e => (
+            <div key={e.id} onClick={() => set事件id(e.id)}
+              style={{ padding: '7px 9px', borderRadius: 8, cursor: 'pointer', background: 事件id === e.id ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${事件id === e.id ? '#E8940F' : '#F3F4F6'}` }}>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>{e.icon} {e.name.replace(/（.*?）/, '')}</div>
+              <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 1 }}>{e.影响}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
+          {当前事件.icon} <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选周（建议：第 {建议周} 周 —— 全班最靠前已结算周 + 1）</div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+          <input value={周} onChange={e => set周(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={`如 ${建议周}`} inputMode="numeric"
+            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
+          <span style={{ fontSize: 10, color: '#9CA3AF' }}>1–12 周（学期 12 周）· 当前教学周按服务端 classDay 推进</span>
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>③ 选对象</div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          {[['all', '全班'], ['groups', '指定组']].map(([k, l]) => (
+            <button key={k} onClick={() => set范围(k)}
+              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 范围 === k ? '#E8940F' : '#F3F4F6', color: 范围 === k ? '#fff' : '#6B7280' }}>{l}</button>
+          ))}
+        </div>
+        {范围 === 'groups' && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+            {组s.length === 0 && <span style={{ fontSize: 11, color: '#9CA3AF' }}>（暂无已分组的组 —— 先在「分组管理」建组）</span>}
+            {组s.map(g => (
+              <div key={g.key} onClick={() => set选中(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
+                style={{ fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: 选中[g.key] ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${选中[g.key] ? '#E8940F' : '#F3F4F6'}` }}>
+                {选中[g.key] ? '✓ ' : ''}{g.label}
+              </div>
+            ))}
+          </div>
+        )}
+        {(周n >= 1 && 目标组s.length > 0) && (
+          <div style={{ fontSize: 11, background: '#F9FAFB', borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
+            <div style={{ fontWeight: 700, marginBottom: 3 }}>注入前校验（只影响未来 · 逐组当面拦）：</div>
+            {逐组校验.map(x => (
+              <div key={x.key} style={{ color: x.合法 ? '#065F46' : '#991B1B' }}>
+                {x.合法 ? '✓' : '✗'} {x.label}：{x.有档 ? `已结算到第 ${x.最靠前已结算周} 周` : '暂无开业存档'} {x.合法 ? `（可注入第 ${周n} 周）` : `—— ${x.原因}`}
+              </div>
+            ))}
+            {有档人数 === 0 && <div style={{ color: '#9CA3AF' }}>（全班暂无开业存档：注入后各组开业到该周时照常生效）</div>}
+          </div>
+        )}
+        <button className="btn btn-primary" disabled={忙 || !全部合法 || !通道就绪} onClick={注入} style={{ width: '100%', padding: '11px 0', opacity: (忙 || !全部合法 || !通道就绪) ? 0.5 : 1 }}>
+          {忙 ? '写入中…' : 全部合法 ? `注入到第 ${周n} 周${范围 === 'all' ? '（全班）' : `（${目标组s.length} 组）`}` : '注入（先通过校验/选目标/填周号 1–12）'}
+        </button>
+        {提示 && (
+          <div style={{ fontSize: 11, marginTop: 8, color: 提示.type === 'ok' ? '#065F46' : '#991B1B', background: 提示.type === 'ok' ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>{提示.text}</div>
+        )}
+      </div>
+      <div className="card">
+        <div className="card-title">📋 已注入事件（全班通道 · 老师可查 / 学生周报可见）</div>
+        {库 === null && <div style={{ fontSize: 12, color: '#9CA3AF' }}>加载中…</div>}
+        {库 && 库.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无注入记录。</div>}
+        {(库 || []).slice().sort((a, b) => Number(b.week) - Number(a.week)).map(x => (
+          <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>{x.icon} 第 {x.week} 周 · {(x.name || '').replace('📌 老师注入 · ', '')}</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{Array.isArray(x.targets) && x.targets.length ? `指定组：${x.targets.join('、')}` : '全班'} · 注入人 {x.injectedBy || '?'} · {String(x.injectedAt || '').slice(0, 16).replace('T', ' ')}</div>
+            </div>
+            <button onClick={() => 撤销(x)} disabled={忙} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', background: '#FEF2F2', color: '#991B1B' }}>撤销</button>
+          </div>
+        ))}
+        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>撤销同样遵守「只影响未来」：该周一旦有目标组结算过 ⇒ 不再可撤。</div>
+      </div>
+    </div>
+  )
+}
+
+// ★ §32-U8-补 §2④：AI 领班全班默认授权页（老师端）
+//   · 写 class_state.supervisor_auth（全班统一默认 —— 学生只能在此之上收窄/放宽，B3 §一.3）
+//   · 默认全关 = 全班行为一致 = 公平基准；一期=记录不执行（数值执行二期，卡内口径写死并明示）
+function SupervisorPanel({ rawStates, profiles }) {
+  const [auth, setAuth] = useState(null)
+  const [就绪, set就绪] = useState(null)
+  const [保留, set保留] = useState(null)
+  const [忙, set忙] = useState(false)
+  useEffect(() => {
+    let 活 = true
+    fetchClassState().then(cs => { if (!活) return; setAuth(cs.supervisor_auth || null); set就绪(!!cs.通道就绪) })
+      .catch(() => { if (活) set就绪(false) })
+    return () => { 活 = false }
+  }, [])
+  const 开 = (k) => !!(auth && auth[k] && auth[k].ok)
+  async function 切(k) {
+    set保留(null)
+    const 新 = { ...(auth || {}) }
+    if (开(k)) delete 新[k]
+    else 新[k] = { ok: true }
+    set忙(true)
+    const ok = await setClassSupervisorAuth(Object.keys(新).length ? 新 : null)
+    set忙(false)
+    if (ok) { setAuth(Object.keys(新).length ? 新 : null); set保留(`✅ 已更新全班默认授权（${Object.keys(新).length ? Object.keys(新).join('、') : '全部关闭'}）—— 学生端下次结算生效`) }
+    else set保留('写入失败：云端不可用或迁移未应用')
+  }
+  // 代管巡览：各组最近一周的 supervisorRecord（学生结算后产生）
+  const 最近 = (profiles || []).filter(p => p.role === 'student').map(p => {
+    const gs = rawStates.find(x => x.user_id === p.user_id)
+    const hist = (gs && gs.state && gs.state.history) || []
+    const last = hist.length ? hist[hist.length - 1] : null
+    const rec = last && last.supervisorRecord
+    return { name: p.display_name || p.user_id.slice(0, 6), week: last && last.week, n: rec ? (rec.actions.length + rec.reports.length) : 0, 代管率: rec && rec.代管率 != null ? rec.代管率 : null }
+  }).filter(x => x.n > 0 || x.代管率 != null)
+  const 规则说明 = (领班规则 || []).map(r => r.说明).filter(Boolean)
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">🤖 AI 领班 · 全班默认授权</div>
+        <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+          领班 = 学生不在时的「看不见的手」：按你授权的范围代管决策，并留痕可复盘。<br />
+          <b>一期只记录与复盘（数值执行二期开放）</b>；<b>默认全关 = 全班行为一致 = 公平基准</b>（B3 设计）。
+          学生可在周报的复盘卡里在默认之上收窄/放宽自己的。
+        </div>
+        {就绪 === false && (
+          <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
+            ⚠ 通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）。
+          </div>
+        )}
+        {[['price_adj', '调价幅度（领班可在 ±10% 内调价）'], ['overbook', '超售清零止损'], ['energy', '客房温度回归 23℃']].map(([k, l]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 2px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>{l}<div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>授权键：{k} · 默认：{默认授权[k] ? '开' : '关'}</div></div>
+            <button onClick={() => 切(k)} disabled={忙}
+              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 开(k) ? '#065F46' : '#F3F4F6', color: 开(k) ? '#fff' : '#6B7280' }}>
+              {开(k) ? '已授权（点按关闭）' : '未授权（点按开启）'}
+            </button>
+          </div>
+        ))}
+        {保留 && <div style={{ fontSize: 11, marginTop: 8, color: 保留.startsWith('✅') ? '#065F46' : '#991B1B', background: 保留.startsWith('✅') ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px' }}>{保留}</div>}
+      </div>
+      <div className="card">
+        <div className="card-title">📖 规则集（一期 4 条 · 与 aiSupervisor.mjs 单源）</div>
+        {规则说明.map((t, i) => (
+          <div key={i} style={{ fontSize: 11, color: '#374151', padding: '6px 9px', background: '#F9FAFB', borderRadius: 8, marginBottom: 5, lineHeight: 1.6 }}>{t}</div>
+        ))}
+        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>★ 代管不享受职务加成 ×1.3（那是对岗真人的激励 —— 无双重加成，有守门断言）。</div>
+      </div>
+      <div className="card">
+        <div className="card-title">📊 代管巡览（各组最近一周 · 结算后生成）</div>
+        {最近.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无代管记录（学生结算后出现；当前默认全关 ⇒ 主要是"仅报告"条目）。</div>}
+        {最近.slice(0, 20).map((x, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 2px', borderBottom: '1px solid #F3F4F6' }}>
+            <span>{x.name}</span>
+            <span style={{ color: '#6B7280' }}>第 {x.week} 周 · 条目 {x.n}{x.代管率 != null ? ` · 代管率 ${Math.round(x.代管率 * 100)}%` : ''}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('live') // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
   const [rankBy, setRankBy] = useState('score') // 排名排序维度：score/profit/occ/rating
@@ -617,8 +881,8 @@ export default function TeacherDashboard({ user, onLogout }) {
       </div>
 
       <div key={view} style={{ animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>
-      {/* 视图标题（分组/教学/总览 从"我的"进入时显示返回） */}
-      {(view === 'groups' || view === 'teaching' || view === 'overview') && (
+      {/* 视图标题（分组/教学/总览/注入/领班 从"我的"进入时显示返回） */}
+      {(view === 'groups' || view === 'teaching' || view === 'overview' || view === 'inject' || view === 'supervisor') && (
         <div style={{ padding: '0 20px 8px' }}>
           <button className="btn btn-ghost" style={{ width: '100%', padding: '10px 0' }} onClick={() => setView('me')}>‹ 返回我的</button>
         </div>
@@ -816,6 +1080,14 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{chipDetail.icon} {chipDetail.name}</div>
             <div style={{ fontSize: 12, color: '#374151', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 10 }}>
               学生选择：<b>{chipDetail.answer}</b>
+            {/* ★ §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
+                文案调单源 代价文案(decisionId, answer)，与学生决策面板**逐字一致**（同源保证）；
+                未登记的选项 ⇒ 返回 null ⇒ 不显示（不报错、不空行） */}
+            {chipDetail.decisionId && 代价文案(chipDetail.decisionId, chipDetail.rawAnswer) && (
+              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF2F2', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
+                {代价文案(chipDetail.decisionId, chipDetail.rawAnswer)}
+              </div>
+            )}
             </div>
             {chipDetail.tip && (
               <div style={{ fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
@@ -946,7 +1218,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                       const short = typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 2).join('＞') : Object.entries(val).slice(0, 2).map(([k, v]) => `${k}:${v}`).join(' ')) : String(val)
                       const isNew = newChips[g.uid] && newChips[g.uid].has(id)
                       return (
-                        <span key={id} onClick={() => d && setChipDetail({ name: d.name, icon: d.icon, tip: d.tip, answer: short })}
+                        <span key={id} onClick={() => d && setChipDetail({ name: d.name, icon: d.icon, tip: d.tip, answer: short, decisionId: id, rawAnswer: val })}
                           style={{ fontSize: 10, cursor: 'pointer', background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
                           {isNew && '🆕 '}{d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
                         </span>
@@ -1141,6 +1413,12 @@ export default function TeacherDashboard({ user, onLogout }) {
         </div>
       )}
 
+      {/* ★ §32-U8-补 §2①：老师事件注入面板 */}
+      {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
+
+      {/* ★ §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
+      {view === 'supervisor' && <SupervisorPanel rawStates={rawStates} profiles={profiles} />}
+
       {/* 教学参考 */}
       {view === 'teaching' && (
         <div>
@@ -1229,6 +1507,8 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div className="card-title">🧰 功能入口</div>
             {[
               { v: 'overview', icon: '📊', label: '班级总览 & 教学进度控制', desc: '全班统计 / 锁周 / CSV导出' },
+              { v: 'inject', icon: '📌', label: '事件注入（课堂用）', desc: '8 事件 × 周 × 全班/指定组 · 只影响未来校验' },
+              { v: 'supervisor', icon: '🤖', label: 'AI 领班（全班默认授权）', desc: '默认全关 · 一期记录与复盘 · 代管巡览' },
               { v: 'groups', icon: '👥', label: '分组管理', desc: '分组 / 班级 / 学号' },
               { v: 'teaching', icon: '📖', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (

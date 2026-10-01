@@ -214,6 +214,7 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
     if (行s.length < 3) return null
     const 表头 = 行s[0].split('|').map(s => s.trim()).filter(Boolean)
     const 列 = {}
+    const 三元组 = {}   // ★ §32-U8-补 §5：属性列 "q / r / m" 逐项（品质/声誉/士气三格分别对照）
     for (const name of 表头.slice(1)) 列[name] = {}
     let 格数 = 0
     for (const line of 行s.slice(1)) {
@@ -226,7 +227,12 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
         const m = 金额.exec(cell)
         // ★ 负号要认：差额列用的是 **U+2212（−）** 而不是 ASCII 连字符 ⇒ 不认符号会把 −249,000 读成 +249,000
         if (m) { 列[name][组名[idx]] = Number(m[1].replace(/,/g, '')) * (/[−-]\s*\*{0,2}\s*$/.test(cell.slice(0, m.index)) ? -1 : 1); 格数++ }
-      else { const 尾 = 最后整数(cell); if (尾 !== null) { 列[name][组名[idx]] = 尾; 格数++ } }   // ★ §32-U4c-§5②：非金额列回退
+      else { const 尾 = 最后整数(cell); if (尾 !== null) { 列[name][组名[idx]] = 尾; 格数++ }   // ★ §32-U4c-§5②：非金额列回退
+        // ★ §32-U8-补 §5：属性三元组**逐项解析**（"60 / 97 / 95" ⇒ [60, 97, 95]）——
+        //   原实现只取末位（士气），品质/声誉被篡改不红（决策端篡改实验实测）。
+        //   解析不到 ⇒ 该格不入 三元组 ⇒ 下方断言按"缺失"判红（不静默放过）
+        const 三元 = /^(\d{1,3})\s*\/\s*(\d{1,3})\s*\/\s*(\d{1,3})$/.exec(cell)
+        if (三元) { (三元组[name] = 三元组[name] || {})[组名[idx]] = [Number(三元[1]), Number(三元[2]), Number(三元[3])] } }
       })
     }
     // 防退化自检的基准：该表文本里【全部】金额格（含本解析器没认出的那些）
@@ -243,7 +249,7 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
         if (金额.test(c) || 最后整数(c) !== null) 应有++
       }
     }
-    return { 列, 格数, 应有, 表头 }
+    return { 列, 格数, 应有, 表头, 三元组 }
   }
   const 差表 = (文档列, 期望, 标签) => {
     const 坏 = Object.keys(期望).filter(n => 文档列[n] !== 期望[n])
@@ -332,7 +338,7 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
         const { SITE: S6, BRAND: B6, STRATEGIES: ST6, 组名s: 组名6, RESOLVE: RS6 } = await import('./_six-strategies.mjs')
         const { settle: S8 } = await import('../src/settlement.js')
         const { ATTR_INIT: AI8, applyDecisionToAttrs: AD8, normalizeAttrs: NA8 } = await import('../src/attrs.js')
-        const 实跑 = {}
+          const 实跑 = {}
         for (const 名 of 组名6) {
           const dec = ST6[名]
           let attrs = { ...AI8 }, pg8 = null, cap8 = null, pn8 = 0, rs8 = 0
@@ -345,16 +351,26 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
             pg8 = r8.finalGoodRate; cap8 = r8.capital
             attrs = NA8(r8.attrsAfter)
           }
-          实跑[名] = { 好评率: Math.round(pg8 ?? 0), 士气: attrs.morale }
+          实跑[名] = { 好评率: Math.round(pg8 ?? 0), 品质: attrs.quality, 声誉: attrs.reputation, 士气: attrs.morale }
         }
         if (好评列名 && 属性列名) {
-          const 好评 = 长跑.列[好评列名], 属性 = 长跑.列[属性列名]
+          const 好评 = 长跑.列[好评列名]
           const 好评坏 = 组名.filter(n => 好评[n] !== 实跑[n].好评率)
           ok(好评坏.length === 0, `★ §二「${好评列名}」列【逐格对照】=== 实跑值（18 周长稳终态 · 运行时现算）`,
             好评坏.map(n => `${n} 文档 ${好评[n]} ≠ 实跑 ${实跑[n].好评率}`).join(' | '))
-          const 属性坏 = 组名.filter(n => 属性[n] !== 实跑[n].士气)   // 解析器取"最后整数"= 士气（三元组末位）
-          ok(属性坏.length === 0, `★ §二「${属性列名}」列【逐格对照 · 士气位】=== 实跑值（品质/声誉位同格承载 ⇒ 文档改动必动本格）`,
-            属性坏.map(n => `${n} 文档 ${属性[n]} ≠ 实跑 ${实跑[n].士气}`).join(' | '))
+          // ★ §32-U8-补 §5（加严）：属性三元组**逐项**对照 —— 品质/声誉/士气三格分别判死。
+          //   原实现只比"格内最后一个整数"（士气）⇒ 品质/声誉被篡改也不红（决策端篡改实验实证）。
+          //   解析覆盖自检：三元组必须 6 格全在（解析器退化 ⇒ 这里先红，不给"静默不覆盖"留门）。
+          const 三元表 = 长跑.三元组[属性列名] || {}
+          const 缺格 = 组名.filter(n => !Array.isArray(三元表[n]))
+          ok(缺格.length === 0, `★ §二「${属性列名}」列：三元组解析满 6 格（防"解析退化 ⇒ 整列静默不覆盖"）`,
+            `缺 ${缺格.join(', ') || '无'}`)
+          const 位名 = ['品质', '声誉', '士气']
+          for (let i = 0; i < 3; i++) {
+            const 坏 = 组名.filter(n => !Array.isArray(三元表[n]) || 三元表[n][i] !== 实跑[n][位名[i]])
+            ok(坏.length === 0, `★ §二「${属性列名}」列【逐格对照 · ${位名[i]}位】=== 实跑值（品质/声誉/士气 三格分别判死）`,
+              坏.map(n => `${n} 文档 ${三元表[n] ? 三元表[n][i] : '缺失'} ≠ 实跑 ${实跑[n][位名[i]]}`).join(' | '))
+          }
         }
       }
     }

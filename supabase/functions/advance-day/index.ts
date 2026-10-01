@@ -45,21 +45,27 @@ Deno.serve(async (req) => {
     }
 
     const groups = await readGroups(supa)
+    // ★ §32-U8-补 §2①：全班注入事件（class_state.injected_events）—— 按组过滤后交给引擎
+    //   · 迁移未应用（列不存在）⇒ undefined ⇒ 空数组 ⇒ 与改前行为一致（水位线）
+    //   · 目标过滤口径与前端一致：targets=null ⇒ 全班；否则需含该组 group_key
+    const allInjections: any[] = Array.isArray((cls as any)?.injected_events) ? (cls as any).injected_events : []
     const out = []
 
     for (const g of groups) {
       const save = g.state || {}
+      const gk = g.group_key || g.user_id
+      const injections = allInjections.filter((e: any) => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
       // ② 调逻辑（本文件不含任何计算）
-      const r = advanceGroupOneDay(save, classDay, { groupKey: g.group_key || g.user_id })
-      out.push({ group: g.group_key || g.user_id, advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, violations: r.violations })
+      const r = advanceGroupOneDay(save, classDay, { groupKey: gk, injectedEvents: injections.length ? injections : null })
+      out.push({ group: gk, advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, violations: r.violations })
 
       // 数值合理性不过 → 记录但不静默覆盖（③ 只存结果，不改数）
       if (r.violations.length) {
-        await writeTickLog(supa, { tick_key: tickKey(classDay, g.group_key || g.user_id), class_day: classDay, group_key: g.group_key || g.user_id, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false, dry })
+        await writeTickLog(supa, { tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false, dry })
         continue
       }
       if (!dry && r.advanced) await writeGroupState(supa, g, r.save)
-      if (!dry) await writeTickLog(supa, { tick_key: tickKey(classDay, g.group_key || g.user_id), class_day: classDay, group_key: g.group_key || g.user_id, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, engineVersion: TICK_VERSION }, ok: true, dry })
+      if (!dry) await writeTickLog(supa, { tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, engineVersion: TICK_VERSION }, ok: true, dry })
     }
 
     return json({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, detail: out, dry, engineVersion: TICK_VERSION })
