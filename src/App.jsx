@@ -1753,6 +1753,8 @@ export default function App() {
   // ★ §32-U1 R2/R3：上热门舆情危机状态（随存档走 · 引擎结算回传 hotReviewCrisis ⇒ 下周作为 hotState 输入；
   //   R3 老师裁量写 override：null=默认照罚 / '维持处罚' / '降级为期末扣分'）
   const [hotCrisis, setHotCrisis] = useState(saved.hotReviewCrisis || null)
+  // ★ §32-U4c-R6 原则③：上周决策的【延迟后果】（条件挂载：无 ⇒ null ⇒ 不落存档键 ⇒ 零变化水位线不破）
+  const [pendingPenalty, setPendingPenalty] = useState(saved.pendingPenalty || null)
   // 🔴 E2：周报出现后是否展开（允许「稍后再看」⇒ 学生可以先接着做决策，不被周报页锁住）
   const [reportOpen, setReportOpen] = useState(true)
 
@@ -1792,9 +1794,9 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis })))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}) })))
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty])
 
   // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
   useEffect(() => {
@@ -1809,7 +1811,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2005,7 +2007,7 @@ export default function App() {
         site, brand, decisions: doneDecisions, decisionsByDay, week,
         pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
         liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount, crisisResponse: 输入.crisisResponse,
-        prevGoodRate, attrs, prevCapital: capital, bizMode, hotState: hotCrisis,
+        prevGoodRate, attrs, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty,
       })
     } catch (e) { return null }   // 预览失败 ⇒ 面板显示"待结算"，绝不自造数字
   }, [established, brand, location?.district, location?.attrs, doneDecisions, decisionChanges, week, attrs, capital, bizMode, history.length])
@@ -2045,7 +2047,7 @@ export default function App() {
     //   catch 里只处理【等级限制】类错误（re /等级限制/），其它异常照常抛出（不掩盖真 bug）。
     let result
     try {
-      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis })
+      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty })
     } catch (e) {
       if (!/等级限制/.test(String(e && e.message))) throw e
       const 区 = location?.district ?? '本区域'
@@ -2068,6 +2070,7 @@ export default function App() {
     // 没有这行，衰减与属性→经营只存在于引擎内部，玩家不可见、下周也用不上
     if (result.attrsAfter) setAttrs(result.attrsAfter)
     if (result.hotReviewCrisis) setHotCrisis(result.hotReviewCrisis)   // ★ R2：危机期随结果存档（下周 hotState）
+    setPendingPenalty(result.pendingPenalty || null)   // ★ R6：本周决策的延迟后果 ⇒ 下周生效（无 ⇒ 清空）
     if (typeof result.capital === 'number') setCapital(result.capital)   // 资金唯一权威：引擎返回即权威
     // A4（2026-09-22）：把当周"差评处理口径"快照进周报对象（随 history 持久化/云端同步）。
     //   🔴 前置坑：口碑页 kept 过滤只留当周卡 ⇒ 期末拿不到全学期处理率，必须逐周快照。

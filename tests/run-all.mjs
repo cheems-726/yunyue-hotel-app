@@ -114,6 +114,8 @@ const SUITES = [
   { name: 'worldLayer（世界层·U3）', file: 'tests/worldLayer.test.mjs' },
   // ★ §32-U4-R4：职务加成 ×1.3（对应职务处理更强 · 所有人仍能处理）
   { name: 'roleBonus（职务加成·U4-R4）', file: 'tests/roleBonus.test.mjs' },
+  // ★ §32-U4c-R6：决策风险化（每选项都有代价 · 含反向分支 · 不作为惩罚 · 延迟后果）
+  { name: 'decisionRisk（决策风险化·U4c）', file: 'tests/decisionRisk.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

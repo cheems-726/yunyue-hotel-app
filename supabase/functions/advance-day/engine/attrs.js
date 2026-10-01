@@ -10,6 +10,9 @@
 //   因此 applyEventToAttrs / applyWeeklyDecay 本批"只实现、不调用"，由后续批次接入
 //
 // 纯函数模块：无副作用、不 import React、不碰 DOM、不读写 localStorage
+//
+// ★ §32-U4c-R6（2026-10-01）：决策风险化 —— 决策的【代价】单源在 `decisionRisk.mjs`（本文件只落地属性层）。
+import { 属性代价 } from './decisionRisk.mjs'
 
 // ───────────────────────── 常量区（调参入口，改这里即可）─────────────────────────
 
@@ -109,6 +112,10 @@ export function normalizeAttrs(attrs) {
 }
 
 // 不可变地应用增量：返回新对象，所有值 clamp 到 [20, 100]
+// ★ §32-U4c-R6：对外暴露的纯 delta 应用器（settlement 要把「延迟惩罚 / 不作为惩罚」落到属性上，
+//   但**不重写**一份 apply 逻辑 —— 单源在本文件，与决策/事件走同一条路）
+export function applyAttrsDelta(attrs, delta) { return applyDelta(attrs, delta) }
+
 function applyDelta(attrs, delta) {
   const base = normalizeAttrs(attrs)
   const out = { ...base }
@@ -216,7 +223,7 @@ function campaignDelta(answer) {
 // 学生确认一项决策时调用：返回新的属性对象（不可变）。
 //   dir = 1（默认）应用增量；dir = -1 撤销该答案的增量（学生改答案时用，防重复累加）
 // 未知决策 / 未知选项 / 答案为空 → 原样返回（规整后的新对象），绝不抛错
-export function applyDecisionToAttrs(attrs, decisionId, answer, dir = 1) {
+function 基础增益(attrs, decisionId, answer, dir = 1) {
   try {
     if (decisionId === 'energy') {
       const d = energyDelta(answer)
@@ -259,6 +266,21 @@ export function applyDecisionToAttrs(attrs, decisionId, answer, dir = 1) {
     return normalizeAttrs(attrs)
   } catch (e) {
     return normalizeAttrs(attrs)
+  }
+}
+
+// ───────────────────────── 决策风险化（§32-U4c-R6）─────────────────────────
+//   ★ 原则①：**任何选项至少损失一项属性或指标** ⇒ 在「基础增益」之上再叠一层【代价】。
+//   为什么单独一层而不改进 DECISION_EFFECTS 表：那张表是「收益表」（收益 = 选项自带的加分），
+//   代价表要与「选项键解析」解耦（slider/budget/sort 形状各不同）⇒ 单源放 `decisionRisk.mjs`（BL-7）。
+//   ★ dir 语义与基础增益一致：dir = -1 时**代价也要撤销**（否则学生改答案会白吃一次代价）。
+export function applyDecisionToAttrs(attrs, decisionId, answer, dir = 1) {
+  const 基 = 基础增益(attrs, decisionId, answer, dir)
+  try {
+    const 代价 = 属性代价(decisionId, answer)
+    return Object.keys(代价).length ? applyDelta(基, scaleDelta(代价, dir)) : 基
+  } catch (e) {
+    return 基
   }
 }
 

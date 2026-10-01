@@ -49,6 +49,7 @@ const MODULES = [
   'season.mjs',       // §32-U3-B：淡旺季（settlement 依赖 ⇒ 必须一起组装）
   'otaRating.mjs',    // §32-U3-C：OTA 平台评分 + 违规处罚（settlement 依赖 ⇒ 必须一起组装）
   'roleBonus.mjs',    // §32-U4-R4：职务加成 ×1.3（weekInputs 依赖 ⇒ 必须一起组装）
+  'decisionRisk.mjs', // §32-U4c-R6：决策风险化（attrs 依赖 ⇒ 必须一起组装；漏登 = 部署后 404）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]
@@ -100,8 +101,17 @@ if (offenders.length) {
 //   本段补上**真闭包**：逐文件解析 import 目标，相对路径的必须在 engine/ 里存在（内建/裸包名跳过）。
 const 缺依赖 = []
 for (const f of readdirSync(OUT)) {
-  if (!f.endsWith('.mjs') && !f.endsWith('.ts')) continue
+  // ★ §32-U4c-§5①（D92 · 决策端实证证伪）：原判据只扫 .mjs/.ts —— 而 engine/ 有 **8 个 .js**，
+  //   引擎主体 `settlement.js` 正是 weather/season/otaRating/decisionRisk 的 import 方
+  //   ⇒ 实测：漏登 weather.mjs 时判据照样 exit 0 且打印「闭包完整 ✅」（假绿）。
+  //   修：扫描范围扩到 .js（本目录只含引擎文件，不会误伤）。
+  if (!f.endsWith('.mjs') && !f.endsWith('.ts') && !f.endsWith('.js')) continue
+  // ★ §32-U4c（本判据上线当场抓到的**假阳性**）：index.js 的【注释】里有 import 示例
+  //   （"原先两端各自 \`import ... from './src/某文件.js'\`"）⇒ 被当真依赖报红。
+  //   与既有"断言前剥注释"纪律同源：扫描前先剥行注释与块注释。
   const src = readFileSync(join(OUT, f), 'utf8')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
   for (const m of src.matchAll(/from\s*['"]([^'"]+)['"]/g)) {
     const 目标 = m[1]
     if (!目标.startsWith('.')) continue                       // node: / 裸包名 ⇒ 部署环境自带，跳过

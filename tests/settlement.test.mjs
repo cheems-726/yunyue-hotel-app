@@ -2,6 +2,7 @@
 // 夜间自动化改引擎后必跑，任何断言失败 => 阻止推送
 import { settle, EVENT_CONFIG, negativeTexts, positiveTexts } from '../src/settlement.js'
 import { tierDecay } from '../src/attrs.js'
+import { 不作为属性扣减 } from '../src/decisionRisk.mjs'   // ★ §32-U4c-R6：本用例只做 1/18 项决策 ⇒ 有不作为惩罚
 
 let pass = 0, fail = 0
 function ok(cond, name) {
@@ -106,9 +107,15 @@ for (let w = 1; w <= 400 && !noEventWeek; w++) {
   const r = settle({ site: SITE, brand: BRAND, decisions: { hygiene: '停房深清洁' }, week: w, attrs: { quality: 60, reputation: 70, morale: 65 } })
   if ((r.events || []).length === 0) noEventWeek = r
 }
+// ★ §32-U4c-R6 口径更新：「无事件」**不再等于**「属性不变」—— 本用例只提交 1/18 项决策，
+//   R6 的【不作为惩罚】会**有意**扣士气/品质（这是设计，不是事件）。
+//   ⇒ 判据改为：attrsAfterEvents === 初始值 + R6 不作为惩罚（期望值**从模块现算**，不手写数字）
+//     —— 即「除了 R6 那份**已知且确定性**的后果，没有任何事件痕迹」。
+const r6缺 = 不作为属性扣减(1)
+const 无事件期望 = { quality: 60 + (r6缺.quality || 0), reputation: 70, morale: 65 + (r6缺.morale || 0) }
 ok(
-  !!noEventWeek && JSON.stringify(noEventWeek.attrsAfterEvents) === JSON.stringify({ quality: 60, reputation: 70, morale: 65 }),
-  '无事件触发时属性不变（比对衰减前值；衰减本身见 [8b]）',
+  !!noEventWeek && JSON.stringify(noEventWeek.attrsAfterEvents) === JSON.stringify(无事件期望),
+  '无事件 ⇒ attrsAfterEvents 只含 R6 不作为惩罚（不含任何事件痕迹）· 期望 ' + JSON.stringify(无事件期望),
   noEventWeek ? JSON.stringify(noEventWeek.attrsAfterEvents) : '未找到无事件周'
 )
 // 5. eventAttrEffects 结构正确（仅含真变化事件）

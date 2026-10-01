@@ -1,5 +1,7 @@
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
-import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs } from './attrs.js'
+import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs, applyAttrsDelta } from './attrs.js'
+// ★ §32-U4c-R6 决策风险化（代价单源在 decisionRisk.mjs）：不作为惩罚 + 延迟后果
+import { 不作为属性扣减, 本周延迟惩罚, 属性清单 } from './decisionRisk.mjs'
 import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE, reviewSeverityOf } from './guests.js'
 // 🔴 Phase D/C2：把周值拆成 7 天（一期：周值已知 → 按确定性权重分摊；二期替换为逐日独立计算）
 //    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
@@ -189,7 +191,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, pendingPenalty = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
   // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
   //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
   //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
@@ -199,6 +201,7 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   const numOr = (v, d) => (v === null || v === undefined || v === '' ? d : (Number.isFinite(Number(v)) ? Number(v) : d))
   pendingNegatives = numOr(pendingNegatives, 0)
   resolvedCount = numOr(resolvedCount, 0)
+  pendingPenalty = (pendingPenalty && typeof pendingPenalty === 'object' && Array.isArray(pendingPenalty.项)) ? pendingPenalty : null
   // ★ §32-U4-R4：有效处理权重（职务匹配 ×1.3）。缺省/非法 ⇒ 回退到 resolvedCount（零变化）
   const 有效处理数 = Number.isFinite(Number(resolvedWeight)) && Number(resolvedWeight) > 0 ? Number(resolvedWeight) : resolvedCount
   prevGoodRate = numOr(prevGoodRate, null)
@@ -864,6 +867,24 @@ for (let i = 0; i < reviewCount; i++) {
   // ★ §32-U1 R2：若本周触发上热门（L401 已置 hotOut）⇒ 即时声誉×0.5 必须先落进【事件前基线】，
   //   否则事件→属性与衰减会把它当"从未发生"。attrsAfter 在此声明（let · 触发块只置 hotOut，不碰属性）。
   let attrsAfter = hotOut ? applyHotReviewImmediate(attrsBefore) : attrsBefore
+  // ═══ ★ §32-U4c-R6 决策风险化（原则②③）═══════════════════════════════════
+  const r6延迟生效 = (() => {
+    const 项s = pendingPenalty ? pendingPenalty.项 : []
+    const 合计 = {}
+    for (const p of 项s) for (const [k, v] of Object.entries((p && p.属性) || {})) {
+      if (属性清单.includes(k) && Number.isFinite(Number(v))) 合计[k] = (合计[k] || 0) + Number(v)
+    }
+    return Object.keys(合计).length ? 合计 : null
+  })()
+  if (r6延迟生效) attrsAfter = applyAttrsDelta(attrsAfter, r6延迟生效)
+  const r6不作为 = 不作为属性扣减(doneCount)
+  if (Object.keys(r6不作为).length) attrsAfter = applyAttrsDelta(attrsAfter, r6不作为)
+  const r6本周属性后果 = (r6延迟生效 || Object.keys(r6不作为).length)
+    ? { ...(r6延迟生效 ? { 延迟惩罚: r6延迟生效, 延迟来源: (pendingPenalty.项 || []).map(x => x.来源) } : {}),
+        ...(Object.keys(r6不作为).length ? { 不作为: { ...r6不作为, 缺项数: Math.max(0, 18 - doneCount) } } : {}) }
+    : null
+  if (r6延迟生效) addEvent({ type: 'bad', icon: '⏳', name: '上周决策的延迟代价', text: (pendingPenalty.项 || []).map(x => x.文案).filter(Boolean).join('；') || '上周的省成本决策本周显现代价', impact: '属性 ' + Object.entries(r6延迟生效).map(([k, v]) => ({ quality: '品质', reputation: '声誉', morale: '士气' })[k] + ' ' + (v > 0 ? '+' : '') + v).join(' / '), tip: '决策不是只看当周 —— 省下的钱，下周可能用服务与口碑去买单' })
+  const r6下周惩罚 = 本周延迟惩罚(decisions)
   const eventAttrEffects = [] // 本周事件对属性的影响（周报展示用）：只含真正产生变化的事件
   for (const ev of events) {
     const mid = applyEventToAttrs(attrsAfter, ev.name)
@@ -934,7 +955,9 @@ for (let i = 0; i < reviewCount; i++) {
     // 属性池：本周事件对属性的影响 + 结算后属性（含每周自然衰减；周报展示用；旧调用方忽略即可）
     eventAttrEffects,
     attrsAfter: attrsAfterDecay,
-    ...(hotOut ? { hotReviewCrisis: hotOut } : {}),   // ★ §32-U1 R2：危机期状态·条件挂载（无危机不添键 ⇒ 零变化水位线保持）
+    ...(hotOut ? { hotReviewCrisis: hotOut } : {}),
+    ...(r6本周属性后果 ? { r6属性后果: r6本周属性后果 } : {}),
+    ...(r6下周惩罚 ? { pendingPenalty: { ...r6下周惩罚, startWeek: week + 1 } } : {}),   // ★ §32-U1 R2：危机期状态·条件挂载（无危机不添键 ⇒ 零变化水位线保持）
     attrsAfterEvents: attrsAfter,   // 衰减前的值（便于对照"事件影响 vs 自然衰减"）
     decisions: { ...decisions },
     eventFine,

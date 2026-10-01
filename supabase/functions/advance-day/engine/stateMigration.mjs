@@ -153,5 +153,7 @@ export const SCALED_KEYS_DOC = [
   { 字段: 'history[].totalExpenses / weeklyExpenses.*', 口径: '周成本构成', 为什么: '与 totalCost 同量级，必须同步（否则成本条形图与总额对不上）' },
   { 字段: 'history[].dailySnapshots[].revenue / cost / cashDelta', 口径: '日金额', 为什么: '派生自周值，同量级' },
   { 字段: 'report.*（当周未归档的周报）', 口径: '同上', 为什么: '与 history 条目同结构' },
+  // ★ §32-U4c-R6（D91）：延迟后果的形状登记 —— 缺失/旧档 ⇒ null ⇒ settle 按「无惩罚」处理（条件挂载不添键）
+  { 字段: 'pendingPenalty（§32-U4c 新）', 口径: '周对象（条件挂载）', 公式: '{ 项: [{ 来源: 决策id, 文案, 属性: {quality/reputation/morale} }], startWeek } ⇒ 下周由 settle 消费', 为什么: '延迟后果：本周省成本的决策，下周才显现代价；缺失 ⇒ null ⇒ 不扣（旧档零变化）' },
   { 字段: '（不乘）price / gopRate / occupancy / rooms / occupiedRooms / reviewCount / negativeCount / goodRate / finalGoodRate', 口径: '瞬时值·比率·计数', 为什么: 'ADR 是【每间每晚】、T1.1 没动它；比率与计数天然无量级' },
 ]

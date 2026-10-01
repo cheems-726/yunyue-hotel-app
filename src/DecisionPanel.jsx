@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { 代价文案 } from './decisionRisk.mjs'   // ★ §32-U4c-R6 原则④：代价文案单源（界面只渲染，不许自己拼）
 import ResultFeedback from './ResultFeedback.jsx'
 // 🔴 E3（N-3）：档位与'次日生效'口径来自 decisionCadence（单源；本文件不另写一份）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG, 归属日 } from './decisionCadence.mjs'
@@ -178,6 +179,10 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 onClick={() => pickOption(o.label, o.result)}
               >
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
+                {/* ★ §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
+                {代价文案(decision.id, o.label) && (
+                  <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                )}
               </div>
             ))}
           </div>
@@ -273,6 +278,10 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 onClick={() => pickOption(o.label, o.result)}
               >
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
+                {/* ★ §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
+                {代价文案(decision.id, o.label) && (
+                  <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                )}
               </div>
             ))}
             {timeLeft === 0 && !selected && (
