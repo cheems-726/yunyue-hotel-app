@@ -2,6 +2,8 @@ import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
 import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs, applyAttrsDelta } from './attrs.js'
 // ★ §32-U4c-R6 决策风险化（代价单源在 decisionRisk.mjs）：不作为惩罚 + 延迟后果
 import { 不作为属性扣减, 本周延迟惩罚, 属性清单 } from './decisionRisk.mjs'
+// ★ §32-U8-A 老师事件注入：注入通道（周粒度 · 只影响未来 · 全班同步）+ 互斥/离线默认最差
+import { 注入互斥冲突 } from './teacherEvents.mjs'
 import { guestsRng, guestOf, causeWeightsOf, pickCause, makeReviewText, CAUSE_SOURCE, reviewSeverityOf } from './guests.js'
 // 🔴 Phase D/C2：把周值拆成 7 天（一期：周值已知 → 按确定性权重分摊；二期替换为逐日独立计算）
 //    ★ 硬约束：本调用【不消耗结算 rand】—— dayEngine 用 guestsRng 独立流，故随机序列位置不变（零变化前提）
@@ -191,7 +193,7 @@ export const EVENT_CONFIG = {
 //       crisisResponse（上周危机事件的应对选择，影响本周口碑）
 //       resolvedCount（已整改差评数，触发追加好评事件）
 // 输出：经营结果 + 生成的差评/好评（供口碑页展示）
-export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, pendingPenalty = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
+export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0, prevGoodRate = null, crisisResponse = null, resolvedCount = 0, resolvedWeight = null, bizMode = 'direct', prevCapital = null, pendingPenalty = null, injectedEvents = null, attrs: attrsIn = null, recentReviewTexts = [], liveNegCount = 0, livePosCount = 0, hotState = null }) {
   // 🔴 B2.5：入口【统一归一化】所有数值入参 —— `X != null` 拦不住 NaN / Infinity，因为 typeof NaN === 'number'。
   //   为什么放在入口而不是逐处补：(B2 只修了 prevCapital::512，用户抽查指出 :227 的 `prevGoodRate != null`
   //   是同一种写法；本套件按【写法】全库扫，又扫出 pendingNegatives:253 与 energy:471 —— 共 3 处)
@@ -202,6 +204,15 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   pendingNegatives = numOr(pendingNegatives, 0)
   resolvedCount = numOr(resolvedCount, 0)
   pendingPenalty = (pendingPenalty && typeof pendingPenalty === 'object' && Array.isArray(pendingPenalty.项)) ? pendingPenalty : null
+  // ★ §32-U8-A：本周生效的老师注入事件（只看 week 匹配 ⇒ 天生"只影响未来"——已结算周不会被重算）
+  //   互斥冲突（与随机事件双倍）⇒ 延迟到 events 声明后再判定（TDZ 教训：events 在下方才声明 ⇒ 此处只过滤周匹配）
+  const 注入事件s = (Array.isArray(injectedEvents) ? injectedEvents : []).filter(e => e && Number(e.week) === week && e.source === 'teacher')
+  const 注入互斥跳过 = []
+  const 生效注入 = 注入事件s.slice()
+  const 生效注入sByName = new Map(生效注入.map(ev => [ev.来源事件, ev]))
+  // 事件通道的乘数/后果（E1 客流 / E2 商务区客流 / E4 ota / E5 客流+房价容忍 / E7 士气 / E3 属性）
+  const 注入客流系数 = (生效注入sByName.has('E1') ? 0.75 : 1) * (生效注入sByName.has('E5') ? 1.35 : 1) * (生效注入sByName.has('E2') && (s.客流 || 0) >= 3 ? 1.4 : 1)
+  const 注入ota系数 = 生效注入sByName.has('E4') && bizMode === 'ota' ? 1.3 : 1
   // ★ §32-U4-R4：有效处理权重（职务匹配 ×1.3）。缺省/非法 ⇒ 回退到 resolvedCount（零变化）
   const 有效处理数 = Number.isFinite(Number(resolvedWeight)) && Number(resolvedWeight) > 0 ? Number(resolvedWeight) : resolvedCount
   prevGoodRate = numOr(prevGoodRate, null)
@@ -357,7 +368,7 @@ if (bizMode === 'ota') {
   // OTA 违规（渠道侧 · 只对 ota 模式生效）：①差评长期不回复 ②超售导致到店无房 ⇒ 降权（此处）+ 罚款（下方计入 eventFine）+ 事件留痕
   const ota违规s = bizMode === 'ota' ? 违规判定({ pendingNegatives, overbook: decisions.overbook || 0 }) : []
   const ota后果 = 违规后果(ota违规s)
-  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权
+  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权 * 注入客流系数 * 注入ota系数
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6
@@ -523,6 +534,15 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     occupancy = Math.max(occupancy * (1 - competitorPressure), 0.2)
   }
 
+  // ★ §32-U8-A：互斥判定（此时随机事件已全部触发完毕 ⇒ events 里有本周全部随机事件名）
+  //   冲突的注入条目从 生效注入 挪到 注入互斥跳过（后面的注入事件卡段会分别渲染/留痕）
+  for (const ev of 注入事件s) {
+    if (!生效注入.includes(ev)) continue
+    if (注入互斥冲突(ev.来源事件, events.map(x => x.name))) {
+      生效注入.splice(生效注入.indexOf(ev), 1)
+      注入互斥跳过.push(ev)
+    }
+  }
   // [7.9] 客群画像匹配（客群偏好 vs 酒店决策 → 满意度加/减分）
   const persona = CUSTOMER_PERSONAS[site?.district || ''] || { business: 33, tourist: 33, family: 34 }
   let personaBonus = 0
@@ -616,7 +636,15 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const 保证金退还 = (week === TOTAL_WEEKS && 一次性) ? (一次性.保证金 ?? 0) : 0
   // ★ §32-U3-C：OTA 平台罚款并入 eventFine（**唯一入账点** —— 在所有事件赋值之后、算总成本之前，
   //   否则会被既有 `eventFine = 消防罚款` 那类"整体赋值"静默清掉）。无违规 ⇒ ota后果.罚款 = 0 ⇒ 逐字节不变。
+  // ★ §32-U8-A：E8 消防注入的数值后果（罚款 + 停业砍出租率）—— 在事件卡区之前算好（防 TDZ · U1 同法）
+  let 注入消防罚款 = 0
+  if (生效注入sByName.has('E8')) {
+    const 侥幸 = !(crisisResponse === '立即整改' || crisisResponse === '立即送医+道歉')
+    if (侥幸) { 注入消防罚款 = 5000; occupancy = Math.max(occupancy * (5 / 7), 0.3) }
+    else { 注入消防罚款 = 800 }
+  }
   if (ota后果.罚款) eventFine += ota后果.罚款
+  if (注入消防罚款) eventFine += 注入消防罚款
   const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还
 
   // 10. 利润
@@ -883,6 +911,34 @@ for (let i = 0; i < reviewCount; i++) {
     ? { ...(r6延迟生效 ? { 延迟惩罚: r6延迟生效, 延迟来源: (pendingPenalty.项 || []).map(x => x.来源) } : {}),
         ...(Object.keys(r6不作为).length ? { 不作为: { ...r6不作为, 缺项数: Math.max(0, 18 - doneCount) } } : {}) }
     : null
+  // ★ §32-U8-A：注入事件卡（周报可见 · 标明"老师注入"）+ 互斥跳过留痕 + E3/E7 属性后果 + E8 罚款
+  for (const ev of 生效注入) {
+    addEvent({ type: 'bad', icon: ev.icon || '📌', name: ev.name.replace('📌 老师注入 · ', '老师注入 · '), text: (ev.text || '') + '（这是老师注入的事件 · 30 秒内选择你的应对）', impact: ev.impact || '见事件说明', tip: ev.tip || '' })
+  }
+  for (const ev of 注入互斥跳过) {
+    addEvent({ type: 'bad', icon: '🚫', name: '老师注入事件未生效（与本周随机事件互斥）', text: ev.name + ' 与本周已随机触发的事件同类 —— 按去重口径只生效一条（见事件系统注释）', impact: '无', tip: '同一市场冲击不该叠加成双倍' })
+  }
+  if (生效注入sByName.has('E3')) {
+    const 全额 = (decisions.hygiene || '不停房') === '不停房'
+    const 扣 = { quality: 全额 ? -8 : -4, reputation: 全额 ? -5 : -2 }
+    attrsAfter = applyAttrsDelta(attrsAfter, 扣)
+    addEvent({ type: 'bad', icon: '🧹', name: '卫生突检结果', text: 全额 ? '检查发现卫生隐患（卫生计划为"不停房"）⇒ 品质 −8 / 声誉 −5' : '检查基本合格（已有停房深清洁）⇒ 品质 −4 / 声誉 −2（减半）', impact: '品质/声誉下滑', tip: '品质是底线投资：不整改 → 下周差评潮' })
+  }
+  if (生效注入sByName.has('E7')) {
+    const 冷处理 = true   // 离线默认最差 / 30 秒未选 = 冷处理（与危机超时语义一致）
+    if (冷处理) {
+      attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })
+      addEvent({ type: 'bad', icon: '👥', name: '员工集体请辞威胁（冷处理）', text: '你没有（或没能）做出应对 ⇒ 团队士气 −10', impact: '士气 −10', tip: '人力是资产不是成本：涨薪（成本+）或招临时工（品质−）都是应对' })
+    }
+  }
+  if (生效注入sByName.has('E8')) {
+    const 侥幸 = !(crisisResponse === '立即整改' || crisisResponse === '立即送医+道歉')
+    if (侥幸) {
+      addEvent({ type: 'bad', icon: '🧯', name: '消防检查不达标（老师注入）', text: '未通过检查 ⇒ 罚款 5000 + 停业 2 天（离线/未应对按最差计入）', impact: '罚款 5,000 元 · 出租率 −2/7', tip: '唯一"建议必选"事件：合规成本远低于停业风险' })
+    } else {
+      addEvent({ type: 'bad', icon: '🧯', name: '消防检查（已立即整改）', text: '及时整改 ⇒ 花费 800 元，避免停业', impact: '成本 +800 元', tip: '损失不对称：整改 800 远优于停业 2 天' })
+    }
+  }
   if (r6延迟生效) addEvent({ type: 'bad', icon: '⏳', name: '上周决策的延迟代价', text: (pendingPenalty.项 || []).map(x => x.文案).filter(Boolean).join('；') || '上周的省成本决策本周显现代价', impact: '属性 ' + Object.entries(r6延迟生效).map(([k, v]) => ({ quality: '品质', reputation: '声誉', morale: '士气' })[k] + ' ' + (v > 0 ? '+' : '') + v).join(' / '), tip: '决策不是只看当周 —— 省下的钱，下周可能用服务与口碑去买单' })
   const r6下周惩罚 = 本周延迟惩罚(decisions)
   const eventAttrEffects = [] // 本周事件对属性的影响（周报展示用）：只含真正产生变化的事件

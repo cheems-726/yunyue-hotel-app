@@ -49,7 +49,9 @@ const MODULES = [
   'season.mjs',       // §32-U3-B：淡旺季（settlement 依赖 ⇒ 必须一起组装）
   'otaRating.mjs',    // §32-U3-C：OTA 平台评分 + 违规处罚（settlement 依赖 ⇒ 必须一起组装）
   'roleBonus.mjs',    // §32-U4-R4：职务加成 ×1.3（weekInputs 依赖 ⇒ 必须一起组装）
-  'decisionRisk.mjs', // §32-U4c-R6：决策风险化（attrs 依赖 ⇒ 必须一起组装；漏登 = 部署后 404）
+  'decisionRisk.mjs',
+  'teacherEvents.mjs',
+  'aiSupervisor.mjs',  // §32-U8-B：AI 领班（App 层用 · 组装以保一致） // §32-U8-A：老师事件注入（settlement 依赖 ⇒ 必须一起组装；漏登 = 部署后 404） // §32-U4c-R6：决策风险化（attrs 依赖 ⇒ 必须一起组装；漏登 = 部署后 404）
   'deptCosts.mjs',
   'decisionLogIntegrity.mjs',
 ]

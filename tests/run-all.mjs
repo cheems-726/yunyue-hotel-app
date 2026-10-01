@@ -116,6 +116,8 @@ const SUITES = [
   { name: 'roleBonus（职务加成·U4-R4）', file: 'tests/roleBonus.test.mjs' },
   // ★ §32-U4c-R6：决策风险化（每选项都有代价 · 含反向分支 · 不作为惩罚 · 延迟后果）
   { name: 'decisionRisk（决策风险化·U4c）', file: 'tests/decisionRisk.test.mjs' },
+  // ★ §32-U8：三期（老师事件注入 + AI 领班）—— 公平红线（只影响未来/全班同步/离线默认最差）+ 授权式代管
+  { name: 'thirdPhase（三期·U8）', file: 'tests/thirdPhase.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

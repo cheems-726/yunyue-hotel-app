@@ -325,6 +325,38 @@ console.log('\n[7] §25.1 产物数字【逐列】：两份现行文档的每一
       const 属性合法 = 属性 ? 组名.every(n => Number.isInteger(属性[n]) && 属性[n] >= 20 && 属性[n] <= 100) : false
       ok(属性格 === 6 && 属性合法, `★ §二「${属性列名}」列：满 6 格且每格为 20–100 整数（R6 改属性 ⇒ **此列必须同步重刷**）`,
         `格数 ${属性格} · 值 ${属性 ? 组名.map(n => 属性[n]).join('/') : '—'}`)
+      // ★ §32-U8-§4（D96 尾巴 · 加严）：两列从"计数 + 范围"升级为【逐格对照】——
+      //   决策端 4 次篡改实验（品质/声誉/士气/好评率）在旧判据下**全部仍绿**（只有计数没对照 = 判死缺一半）。
+      //   对照源 = **真实引擎实跑**：用同一份六组策略常量跑学期 12 周（期末终态 = 该列口径），运行时现算不手写。
+      {
+        const { SITE: S6, BRAND: B6, STRATEGIES: ST6, 组名s: 组名6, RESOLVE: RS6 } = await import('./_six-strategies.mjs')
+        const { settle: S8 } = await import('../src/settlement.js')
+        const { ATTR_INIT: AI8, applyDecisionToAttrs: AD8, normalizeAttrs: NA8 } = await import('../src/attrs.js')
+        const 实跑 = {}
+        for (const 名 of 组名6) {
+          const dec = ST6[名]
+          let attrs = { ...AI8 }, pg8 = null, cap8 = null, pn8 = 0, rs8 = 0
+          for (let w8 = 1; w8 <= 18; w8++) {   // ★ §二 = 18 周长稳口径（对照源必须同口径）
+            let a8 = attrs
+            for (const [id, ans] of Object.entries(dec)) a8 = AD8(a8, id, ans)
+            const r8 = S8({ site: S6, brand: B6, decisions: dec, week: w8, attrs: a8, prevGoodRate: pg8, prevCapital: cap8, pendingNegatives: pn8, resolvedCount: rs8 })
+            const neg8 = r8.generatedReviews.filter(x => Number(x.stars) <= 3).length
+            rs8 = Math.ceil(neg8 * (RS6[名] ?? 0.5)); pn8 = Math.max(0, pn8 + neg8 - rs8)   // ★ RESOLVE 系数 = longRun126 同款
+            pg8 = r8.finalGoodRate; cap8 = r8.capital
+            attrs = NA8(r8.attrsAfter)
+          }
+          实跑[名] = { 好评率: Math.round(pg8 ?? 0), 士气: attrs.morale }
+        }
+        if (好评列名 && 属性列名) {
+          const 好评 = 长跑.列[好评列名], 属性 = 长跑.列[属性列名]
+          const 好评坏 = 组名.filter(n => 好评[n] !== 实跑[n].好评率)
+          ok(好评坏.length === 0, `★ §二「${好评列名}」列【逐格对照】=== 实跑值（18 周长稳终态 · 运行时现算）`,
+            好评坏.map(n => `${n} 文档 ${好评[n]} ≠ 实跑 ${实跑[n].好评率}`).join(' | '))
+          const 属性坏 = 组名.filter(n => 属性[n] !== 实跑[n].士气)   // 解析器取"最后整数"= 士气（三元组末位）
+          ok(属性坏.length === 0, `★ §二「${属性列名}」列【逐格对照 · 士气位】=== 实跑值（品质/声誉位同格承载 ⇒ 文档改动必动本格）`,
+            属性坏.map(n => `${n} 文档 ${属性[n]} ≠ 实跑 ${实跑[n].士气}`).join(' | '))
+        }
+      }
     }
     void 好评钉
   }
