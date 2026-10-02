@@ -13,7 +13,8 @@ import { settle } from '../src/settlement.js'
 import { franchiseFees, franchiseFeeStatus, 费用清单, 已接入品牌, CRS_渠道占比, CRS_官方封顶, 缺项, CRS生效值, CRS配置, 设置CRS渠道占比, 重置CRS渠道占比, 一次性费用清单 } from '../src/franchiseFees.mjs'
 import { FRANCHISE_MODEL } from '../src/franchiseModel.mjs'
 import { 渠道流量系数 } from '../src/otaRating.mjs'   // ★ §32-U3：OTA 渠道系数（归因断言的期望值来源）
-import { WEATHER_TABLE_CYCLE } from '../src/weather.mjs'     // ★ §32-U4-§1②：世界层强制中性（水位线加固）
+import { WEATHER_TABLE_CYCLE } from '../src/weather.mjs'
+import { CUSTOMER_PERSONAS } from '../src/siteLocations.mjs'   // ★ §33-V6：客群结构中性     // ★ §32-U4-§1②：世界层强制中性（水位线加固）
 import { SEASON_TABLE } from '../src/season.mjs'
 import { OTA_RATING_CONFIG } from '../src/otaRating.mjs'
 import { 代价表, 不作为惩罚 } from '../src/decisionRisk.mjs'   // ★ §32-U4c-R6：中性化用
@@ -61,6 +62,11 @@ const 世界层中性 = (fn) => {
   //   与冻结基线对拍时必须同时中性，否则水位线把"A8 有意改的数值"误判成"漂移"）。
   //   ★ 与世界层中性同一纪律：中性后逐字节 === 冻结基线 ⇒ 证明"只有 A8 改了数值，别的一处没动"。
   const 房价备份 = 场地.房价, 人力备份 = 场地.人力
+  // ★ §33-V6：客群结构也要中性 —— 方法 = 把占比改成【dominant 独占】（如 business:100/0/0）：
+  //   三路加权在该占比下退化为"只算 dominant 路"，与改前（dominant-only）行为**逐字节等价**
+  //   ⇒ 中性周里新引擎 === 冻结基线，证明"只有 V6 的结构加权改了数值"。
+  //   （不能置"三路等权"：那不是旧行为的等价形态，水位线会红。）
+  const per备份 = JSON.parse(JSON.stringify(CUSTOMER_PERSONAS))
   try {
     WEATHER_TABLE_CYCLE.forEach(x => { x.客流 = 1 })
     SEASON_TABLE.forEach(x => { x.因子 = 1 })
@@ -68,9 +74,16 @@ const 世界层中性 = (fn) => {
     for (const [e] of 代价备份) { delete e.属性; delete e.延迟 }
     不作为惩罚.每项.morale = 0; 不作为惩罚.每项.quality = 0
     场地.房价 = 3; 场地.人力 = 3
+    for (const p of Object.values(CUSTOMER_PERSONAS)) {
+      const d = p.dominant
+      p.business = d === 'business' ? 100 : 0
+      p.tourist = d === 'tourist' ? 100 : 0
+      p.family = d === 'family' ? 100 : 0
+    }
     return fn()
   } finally {
     场地.房价 = 房价备份; 场地.人力 = 人力备份
+    for (const [k, p] of Object.entries(per备份)) { CUSTOMER_PERSONAS[k] = p }
     WEATHER_TABLE_CYCLE.forEach((x, i) => { x.客流 = 天气备份[i] })
     SEASON_TABLE.forEach((x, i) => { x.因子 = 季节备份[i] })
     OTA_RATING_CONFIG.trafficK = k备份

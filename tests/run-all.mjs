@@ -120,6 +120,10 @@ const SUITES = [
   { name: 'thirdPhase（三期·U8）', file: 'tests/thirdPhase.test.mjs' },
   // ★ §32-U8-补：界面接线守门（老师端弹窗代价行/注入面板/事件卡+离线标注/领班授权与复盘 · 单源同源硬判据）
   { name: 'u8supplement（U8-补接线）', file: 'tests/u8supplement.test.mjs' },
+  // ★ §33-V6：客群结构加权（三路并行 × 归一化占比 · 混合效应 · 水位线 · 不双扣锚）
+  { name: 'personaWeight（V6 客群加权）', file: 'tests/personaWeight.test.mjs' },
+  // ★ §33-V5：数据溯源守门（每格必须有来源 · 看板升级防抖 · 城市级锚点警示）
+  { name: 'dataProvenance（V5 溯源）', file: 'tests/dataProvenance.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

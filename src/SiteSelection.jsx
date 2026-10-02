@@ -64,10 +64,14 @@ function profileRows(name) {
 
 // 客群主特性一句话（hover/列表行共用）
 const DOMINANT_LABEL = { business: '商务客为主', tourist: '游客为主', family: '家庭客为主' }
+// ★ §33-V6-§1③（2026-10-02）：客群占比**显式百分比** —— 学生做决策前就要知道"这片商务 55% / 游客 30% / 家庭 15%"
+//   （否则引擎侧的结构加权对他是黑箱）。占比归一化到 100%（与结算 V6 加权同一口径）。
 function personaLine(city, name) {
   const per = CUSTOMER_PERSONAS[name]
   if (!per) return null
-  return `${DOMINANT_LABEL[per.dominant] || '客群混合'} · ${per.note}（商${per.business}/游${per.tourist}/家${per.family}）`
+  const 和 = Math.max(0.0001, (Number(per.business) || 0) + (Number(per.tourist) || 0) + (Number(per.family) || 0))
+  const pc = (v) => Math.round(((Number(v) || 0) / 和) * 100)
+  return `${DOMINANT_LABEL[per.dominant] || '客群混合'} · ${per.note}（商务 ${pc(per.business)}% · 游客 ${pc(per.tourist)}% · 家庭 ${pc(per.family)}%）`
 }
 
 // 简易地理网格：按真实相对方位摆放（成都在西，德阳居中偏北，绵阳在东北）

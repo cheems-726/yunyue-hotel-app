@@ -421,6 +421,21 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         })()}
       </div>
 
+      {/* ★ §33-V6-§1①③（2026-10-02）：客群匹配反馈 —— 引擎三路加权后的每条"为什么"（文案带该客群占比）。
+          此前 personaFeedback 引擎返回但界面零消费（"引擎有·界面无"家族）· 条件渲染：无反馈不渲染（水位线） */}
+      {Array.isArray(result.personaFeedback) && result.personaFeedback.length > 0 && (
+        <div className="card">
+          <div className="card-title">👥 客群匹配（本区客源结构 × 你的决策）</div>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, lineHeight: 1.6 }}>
+            本区客群结构：<b>{result.persona?.business != null ? `商务 ${Math.round(result.persona.business)}% · 游客 ${Math.round(result.persona.tourist)}% · 家庭 ${Math.round(result.persona.family)}%` : '见选址页'}</b>
+            （加权计分 · 非主力客群也有份量）
+          </div>
+          {result.personaFeedback.map((f, i) => (
+            <div key={i} style={{ fontSize: 11, color: f.startsWith('✅') ? '#065F46' : f.startsWith('⚠') ? '#991B1B' : '#374151', padding: '4px 8px', background: f.startsWith('✅') ? '#EAF9F0' : f.startsWith('⚠') ? '#FEF2F2' : '#F9FAFB', borderRadius: 6, marginBottom: 4, lineHeight: 1.6 }}>{f}</div>
+          ))}
+        </div>
+      )}
+
       {/* 本周决策摘要（点击行展开该决策的设计考量） */}
       {result.decisions && Object.keys(result.decisions).filter(k => !k.startsWith('__')).length > 0 && (
         <div className="card">
