@@ -66,18 +66,23 @@ export const DEPT_COST_PER_ROOM_DAY = DEPT_COST_LINES.reduce((a, l) => a + l.单
 
 /**
  * 本周部门成本（固定/半固定部分）。纯函数。
- * @param {{ rooms:number, decisions?:object }} p
+ * @param {{ rooms:number, decisions?:object, 人力档?:number }} p
+ *   ★ §33-V4-A8：人力档 = 选址六维的"人力"（1–5；缺省 3 = 中性 ×1.0 ⇒ 旧调用方逐字节不变）——
+ *   区县用工环境乘在【人力固定】单价上（高工资区雇人贵 / 便宜县城雇人省 · 每档 ±4%）。
+ *   与 decisions 的裁员的边界：裁员是【你选的编制缩减】（×0.92），人力档是【市场工资水平】——两个乘数连乘，不同轴。
  * @returns {{ total:number, lines: Array<{key,名称,值,元每间天}> }}
  */
-export function deptCostWeekly({ rooms, decisions = {} } = {}) {
+export function deptCostWeekly({ rooms, decisions = {}, 人力档 = 3 } = {}) {
   const r = Math.max(0, Math.round(Number(rooms) || 0))
   const d0 = decisions && typeof decisions === 'object' ? decisions : {}
   // 决策联动（口径与既有成本项一致，不引入新机制）：
   //   · 裁员 1 人 → 人力固定 ×0.92（长期编制无法像弹性排班那样大幅压缩）
   //   · 停房深清洁 → 客房部固定 ×1.08（深度清洁耗材与布草周转增加）
   //   · 解决成本相关（报表诊断）→ 行政 + 维修 ×0.95（可压缩的间接费用）
+  //   ★ §33-V4-A8：选址人力档 → 人力固定 ×(1 + (档−3)×0.04)（0.92–1.08 · 环境维 · 非 0 时才乘非 1 值）
+  const 人力档n = Number.isFinite(Number(人力档)) ? Number(人力档) : 3
   const mult = {
-    laborFixed: d0['hr-optimize'] === '裁员1人' ? 0.92 : 1,
+    laborFixed: (d0['hr-optimize'] === '裁员1人' ? 0.92 : 1) * (1 + (人力档n - 3) * 0.04),
     housekeepingFixed: d0.hygiene === '停房深清洁' ? 1.08 : 1,
     admin: d0['report-diagnosis'] === '解决成本相关' ? 0.95 : 1,
     maintenance: d0['report-diagnosis'] === '解决成本相关' ? 0.95 : 1,

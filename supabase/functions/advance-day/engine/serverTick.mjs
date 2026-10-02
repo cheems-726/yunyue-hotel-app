@@ -171,6 +171,14 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     bizMode: src.bizMode === 'ota' ? 'ota' : 'direct',
     pendingNegatives: 输入.pendingNegatives,
     resolvedCount: 输入.resolvedCount,
+    // ★ §33-V4-B7（2026-10-01）：补上三件此前被丢弃的入参 —— 它们各自造成"含 XX 的周，补算 ≠ 在线"：
+    //   ① resolvedWeight（U4-R4 职务加成的有效处理权重 · weekInputs 单源已派生，这里此前没传）
+    //   ② hotState（R2 上热门危机期 · 客户端传 hotCrisis = 结算结果回传的存档字段 hotReviewCrisis）
+    //   ③ penaltyState（R6 延迟后果 · 客户端传 pendingPenalty = 上周结算产生的存档字段）
+    //   三件都是【存档/派生已有】，不新增随机、不新增状态 ⇒ 公平红线不破；缺省（旧档无字段）⇒ null ⇒ 行为与改前一致。
+    resolvedWeight: 输入.resolvedWeight,
+    hotState: (src.hotReviewCrisis && typeof src.hotReviewCrisis === 'object') ? src.hotReviewCrisis : null,
+    penaltyState: (src.pendingPenalty && typeof src.pendingPenalty === 'object') ? src.pendingPenalty : null,
     liveNegCount: 输入.liveNegCount,
     livePosCount: 输入.livePosCount,
     crisisResponse: 输入.crisisResponse,
