@@ -565,28 +565,71 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
     }
   }
   // [7.9] 客群画像匹配（客群偏好 vs 酒店决策 → 满意度加/减分）
-  const persona = CUSTOMER_PERSONAS[site?.district || ''] || { business: 33, tourist: 33, family: 34 }
+  // ★★ §33-V6（2026-10-02）：「客群结构加权」—— 把"标签"升级为"结构"（模块七「客群视角」真缺口）。
+  //   改前（决策端 grep 实证）：只判 persona.dominant（谁是主力），三档占比数值全项目零使用
+  //   ⇒ 90% 商务区与 40% 商务区（同 dominant）加减分完全相同 ⇒ "选址决定客源结构"在结算里没有分量。
+  //   ── 新口径 ──────────────────────────────────────────────────────
+  //   · **三路并行**：每类客群的偏好命中分**都算**（不许 dominant 判断后再乘占比 —— 那是"标签×占比"，
+  //     非主力永远拿不到分）；再按**归一化占比**加权求和：客群加权分 = Σ(各路命中分 × 占比/Σ占比)。
+  //   · 各路命中分沿用改前的固定值（±0.01~0.02 · 量级不变 ⇒ 混合效应只改"分配"，不改整体幅度）。
+  //   · **混合效应**（卡内 §1②）：30% 游客的商务区，"低价策略"仍拿 0.3×0.02 的可观加分 —— 不退回只看主力。
+  //   · **文案保留**（卡内 §1①）：每条反馈文案照出（学生要看得见"为什么"）—— ★ 文案**逐字保持改前形态**
+  //     （不带占比后缀）：占比展示归【界面】（选址页 personaLine 百分比 + 周报客群卡整行）；
+  //     文案里塞占比会破坏水位线（dominant 独占中性时文案必须 === 旧文案，逐字节判据才成立）。
+  //   · 均衡兜底：三路都零命中（占比未命中任何偏好）才走"通用服务质量"（与改前同分值）。
+  //   ── 不双扣边界（卡内 §1④ · 与 V4-A8/R4/R6 逐条）──────────────────
+  //   · × V4-A8 房价维：房价维乘在 demandStrength（客流**量**），本段加在 goodRate（口碑**质**）—— 不同链不双扣；
+  //     且 tourist 路的"价格实惠"看的是 price vs basePrice（你的定价决策），房价维看的是市场环境 —— 一个看你一个看市场。
+  //   · × V4-A8 人力维：人力维的成本项在 variableCost/deptCost（钱），服务项是"人力环境"∓goodRate；
+  //     本段 shifts 命中分评的是【你选的排班是否合客群口味】，不是【雇人贵不贵】—— 决策评价 vs 环境成本，零交叠。
+  //   · × R4 职务加成（×1.3）：R4 乘在【差评处理的口碑权重】（weekInputs 单源），本段是【客群对经营决策的满意度】
+  //     —— 处理差评 vs 日常经营偏好，两件事、两条链，无公共项。
+  //   · × R6 代价（decisionRisk）：R6 记录"决策自身的属性代价"（未质检/超售/不作为），本段评"决策与客群的匹配"
+  //     —— 同一决策可以既有代价（R6）又获客群加分（本段），但两者机制独立、字段独立，不是同一分被算两次。
+  const persona = CUSTOMER_PERSONAS[site?.district || ''] || { business: 33, tourist: 33, family: 34 }   // 展示形状与改前一致（缺省三路均分）
+  const 有客群表 = !!(CUSTOMER_PERSONAS[site?.district || ''])
+  // ★ 缺省形态（V6 水位线的另一半）：site 无 district / 客群表无该区县 ⇒ 三路权重全 0
+  //   ⇒ 三路整路跳过 ⇒ 走均衡兜底 —— 与改前（dominant=undefined ⇒ 三路 if 都不进 ⇒ 均衡兜底）**逐字节等价**；
+  //   persona 返回值仍给 {33,33,34}（展示形状不变）。不能给"缺省再三路加权"：那会改变无 district 调用方的行为。
+  const 占比和 = 有客群表
+    ? Math.max(0.0001, (Number(persona.business) || 0) + (Number(persona.tourist) || 0) + (Number(persona.family) || 0))
+    : 0
+  const 权 = 有客群表
+    ? {
+        business: (Number(persona.business) || 0) / 占比和,
+        tourist: (Number(persona.tourist) || 0) / 占比和,
+        family: (Number(persona.family) || 0) / 占比和,
+      }
+    : { business: 0, tourist: 0, family: 0 }
   let personaBonus = 0
   const personaFeedback = []
-  // 商务客偏好：安静+快速入住+商务设施
-  if (persona.dominant === 'business') {
-    if (decisions.energy != null && energy >= 22 && energy <= 24) { personaBonus += 0.02; personaFeedback.push('✅ 温度适中，商务客满意') }
-    if (decisions.shifts === '满编保服务') { personaBonus += 0.015; personaFeedback.push('✅ 快速办理入住，商务客好评') }
-    if (decisions.hygiene !== '停房深清洁') { personaBonus -= 0.01; personaFeedback.push('⚠ 清洁不足，商务客敏感') }
+  // ── 商务客路（安静+快速入住+商务设施）──
+  //   ★ 占比 0% 的路整路跳过（不算分、不出文案）：0% 客群没有份量，提它的反馈是噪音；
+  //     这同时是 V6 的水位线形态 —— dominant 独占（100/0/0）⇒ 只跑 dominant 路 ⇒ 与改前 dominant-only **逐字节等价**。
+  if (权.business > 0) {
+    let 路 = 0
+    if (decisions.energy != null && energy >= 22 && energy <= 24) { 路 += 0.02; personaFeedback.push('✅ 温度适中，商务客满意') }
+    if (decisions.shifts === '满编保服务') { 路 += 0.015; personaFeedback.push('✅ 快速办理入住，商务客好评') }
+    if (decisions.hygiene !== '停房深清洁') { 路 -= 0.01; personaFeedback.push('⚠ 清洁不足，商务客敏感') }
+    personaBonus += 路 * 权.business
   }
-  // 游客偏好：价格+景区距离+当地特色
-  if (persona.dominant === 'tourist') {
-    if (price <= basePrice * 0.9) { personaBonus += 0.02; personaFeedback.push('✅ 价格实惠，游客满意') }
-    if (decisions.hygiene === '停房深清洁') { personaBonus += 0.015; personaFeedback.push('✅ 卫生好，游客好评') }
-    if (decisions.pricing === '降价 20% 抢客') { personaBonus -= 0.01; personaFeedback.push('⚠ 低价可能吸引低质量客') }
+  // ── 游客路（价格+景区距离+当地特色）──
+  if (权.tourist > 0) {
+    let 路 = 0
+    if (price <= basePrice * 0.9) { 路 += 0.02; personaFeedback.push('✅ 价格实惠，游客满意') }
+    if (decisions.hygiene === '停房深清洁') { 路 += 0.015; personaFeedback.push('✅ 卫生好，游客好评') }
+    if (decisions.pricing === '降价 20% 抢客') { 路 -= 0.01; personaFeedback.push('⚠ 低价可能吸引低质量客') }
+    personaBonus += 路 * 权.tourist
   }
-  // 家庭客偏好：空间+安全+亲子设施
-  if (persona.dominant === 'family') {
-    if (decisions.energy != null && energy >= 22 && energy <= 25) { personaBonus += 0.015; personaFeedback.push('✅ 温度适合家庭') }
-    if (decisions.shifts === '满编保服务') { personaBonus += 0.01; personaFeedback.push('✅ 人手充足，家庭安心') }
-    if (decisions.linen === '外包') { personaBonus -= 0.015; personaFeedback.push('⚠ 外包布草品质不稳定，家庭客在意') }
+  // ── 家庭客路（空间+安全+亲子设施）──
+  if (权.family > 0) {
+    let 路 = 0
+    if (decisions.energy != null && energy >= 22 && energy <= 25) { 路 += 0.015; personaFeedback.push('✅ 温度适合家庭') }
+    if (decisions.shifts === '满编保服务') { 路 += 0.01; personaFeedback.push('✅ 人手充足，家庭安心') }
+    if (decisions.linen === '外包') { 路 -= 0.015; personaFeedback.push('⚠ 外包布草品质不稳定，家庭客在意') }
+    personaBonus += 路 * 权.family
   }
-  // 均衡客群（无绝对主力）：通用服务质量决定
+  // 均衡兜底（三路零命中才走 · 与改前同分值）：通用服务质量决定
   if (personaFeedback.length === 0) {
     if (decisions.hygiene === '停房深清洁') { personaBonus += 0.01; personaFeedback.push('✅ 深清洁提升口碑') }
     if (decisions.reputation === '道歉+赔偿') { personaBonus += 0.01; personaFeedback.push('✅ 优质差评回复提升形象') }
