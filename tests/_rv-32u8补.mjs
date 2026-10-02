@@ -19,7 +19,9 @@ const 跑 = (测试) => {
 }
 let 全过 = true
 const 例 = (label, 文件, 旧, 新, 片段, 测试 = 补测) => {
-  const 备份 = readFileSync(文件, 'utf8')
+  // ★ §33-V4 教训（CI 首跑抓到）：Windows 工作区该文件是 CRLF，靶子文本是 LF ⇒ includes 永远 false（"找不到靶子"）。
+  //   修：读入先归一化 CRLF→LF 再匹配/替换；写回统一 LF（git autocrlf 签出时按配置转换，不影响判据）。
+  const 备份 = readFileSync(文件, 'utf8').replace(/\r\n/g, '\n')
   try {
     if (!备份.includes(旧)) { console.log(`     ❌ 找不到靶子：${label}\n        （期望片段：${旧.slice(0, 90)}）`); 全过 = false; return }
     writeFileSync(文件, 备份.replace(旧, 新))

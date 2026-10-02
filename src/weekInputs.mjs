@@ -97,6 +97,9 @@ export function weekInputsOf(save, week) {
   if (w.版本 != null && Number(w.版本) !== WEEK_INPUTS_VERSION) return null
   return {
     pendingNegatives: 非负整数(w.pendingNegatives), resolvedCount: 非负整数(w.resolvedCount),
+    // ★ §33-V4-B7：resolvedWeight 也随存档走（U4-R4 职务加成的有效处理权重 · 此前 weekInputsOf 把它丢了
+    //   ⇒ 服务端补算在"有职务处理"的周与在线不等 —— 与 hotState/penaltyState 同批修复）
+    resolvedWeight: (w.resolvedWeight == null || !Number.isFinite(Number(w.resolvedWeight))) ? null : Number(w.resolvedWeight),
     liveNegCount: 非负整数(w.liveNegCount), livePosCount: 非负整数(w.livePosCount),
     crisisResponse: typeof w.crisisResponse === 'string' ? w.crisisResponse : null,
     // ★ §32-U8-补：注入应对（加法扩展 · 旧载荷无此字段 ⇒ null ⇒ 与改前逐字节一致）

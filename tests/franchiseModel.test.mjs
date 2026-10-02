@@ -61,7 +61,9 @@ console.log('\n[4] ★ 未碰业务代码：结算输出零变化')
 {
   // N3 纪律：不硬编码某个基线数字（易取错配置），改为【与 B3 前快照逐字节比对】——
   // 这同时证明 Phase B/D/E/F 都没改结算数值（剥掉 D 新增的 dailySnapshots 后）
-  const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+  // ★ §33-V4-A8：对照【冻结 W2 快照】⇒ 房价/人力两维置【档3 中性】（A8 已接线 ±3%/±4%，W2 快照没有 A8
+  //   ⇒ 与 U3 世界层中性法同款：中性周里新引擎 === 冻结快照；A8 的真实影响由 [3] 的恒等式用真实档位钉住）
+  const SITE = { 客流: 4, 房价: 3, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
   const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
   const DEC = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }
   const A = { quality: 60, reputation: 70, morale: 65 }

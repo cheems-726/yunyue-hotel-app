@@ -98,7 +98,8 @@ console.log('\n[7] Phase D · settlement 接线后：Σ7天 === 周值 + 零变�
   // 🔴 W2 重基线（D38-B）：基准改为「W2 前」
   const { settle: settleOld } = await import('../src/settle-old-w2.mjs')
   const { applyDecisionToAttrs, normalizeAttrs, ATTR_INIT } = await import('../src/attrs.js')
-  const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+  // ★ §33-V4-A8：对照冻结旧引擎 ⇒ 房价/人力置【档3 中性】（A8 接线 ±3%/±4% · 与 U3 世界层中性法同款）
+  const SITE = { 客流: 4, 房价: 3, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
   const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
   const STRATEGIES = {
     勤奋型: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' },

@@ -276,6 +276,21 @@ const s = (site && typeof site.attrs === 'object' && site.attrs)
   else if (pricing === '降价 20% 抢客') { price = basePrice * 0.8; priceCompetitive = 1.3 }
   else if (pricing === '不跟降') { priceCompetitive = 0.8 }
 
+  // ★ §33-V4-A8（2026-10-01）：选址【房价】维接线 —— 最后一处"界面标了却不生效"。
+  //   ── 口径（先把叠加关系写清再动手 · 卡内 §1① 纪律）────────────────────────
+  //   · 含义：房价档 = 该区县的【客源支付力/价格环境】1–5 档（数据里高房价区=核心商圈，低=县域）。
+  //   · 挂点：乘在 priceCompetitive 上（ demandStrength 链），**不直接改 price** ——
+  //     price 是"你定的价"（品牌带 × 调价决策），房价环境改变的是【你这个价好不好卖】，不是你的定价本身。
+  //   · 形态：档3 = 中性 ×1.0；每档 ±3%（0.88–1.12）——与 cityFlow（±20%/档）、竞争（5%/档）同族但更温和，
+  //     因为高房价区的【收益】已经通过 basePrice（品牌同价下高支付力=好卖）体现，这里只补"环境修正"。
+  //   · ★ 不双扣的三条边界（与本包 §1① 一一对应）：
+  //     (a) 与 world 系数（天气/淡旺季/OTA）：那些是【时间维】，本维是【空间维】—— 不同轴，乘法天然正交；
+  //     (b) 与竞品压力（competitorPressure）：那是【事件级分流】，本维是【静态环境】—— 独立乘数；
+  //     (c) 与 fPriceTol（品质→房价容忍度）：那是【你的客群对价格的容忍】，本维是【市场环境的价格水平】——
+  //         一个看你、一个看市场，不重复。★ 数字已按"档3 中性"设计 ⇒ 旧档缺省（|| 3）⇒ ×1.0 ⇒ 逐字节不变。
+  const 房价环境 = 1 + ((Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) - 3) * 0.03
+  priceCompetitive *= 房价环境
+
   // [2.45] 开店模式引擎差异化（OTA平台合作 vs 直营）
 let otaCommissionRate = 0
 if (bizMode === 'ota') {
@@ -321,6 +336,11 @@ if (bizMode === 'ota') {
   else if (crisisResponse === '逐条真诚回复') { goodRate += 0.01; crisisInsight = { good: true, text: '上周危机逐条真诚回复，口碑小幅修复' } }
   else if (crisisResponse === '不理会') { goodRate -= 0.02; crisisInsight = { good: false, text: '上周危机选择了不理会，口碑持续受损——危机不应对就是最差应对' } }
   if (decisions['hr-optimize'] === '裁员1人') goodRate -= 0.02
+  // ★ §33-V4-A8：选址【人力】维接线 —— 服务链：用工环境差（档低 = 服务业人力供给薄弱）⇒ 同样排班下
+  //   服务更难到位 ⇒ 好评率微降。挂点：goodRate 加法项（与培训 +0.02 / 裁员 −0.02 同量级 · 每档 0.4 个百分点）。
+  //   ★ 与 R6 代价（精简省成本的 morale 扣减）不双扣：R6 惩的是【你的选择】，本项是【市场环境】；
+  //     档3 中性 = 0 ⇒ 旧档缺省逐字节不变。
+  goodRate -= ((Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3) - 3) * 0.004
   // 能耗管控走极端 → 舒适度差招差评
   // 🔴 B2.5：energy 同样在入口归一化 —— 原写法 `if (energy != null) perRoomVariable += (energy - 23) * 2`
   //   在 energy = NaN/Infinity/'abc' 时会把 NaN 灌进 variableCost → totalCost → profit → capital（实测 4 个字段）
@@ -599,11 +619,31 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // 排班人力跟入住量走（满编多派人手服务到位，精简省人力但服务质量风险由事件体现）
   if (decisions.shifts === '满编保服务') perRoomVariable += 18
   else if (decisions.shifts === '精简省成本') perRoomVariable -= 12
+  // ★ §33-V4-A8：选址【人力】维接线 —— 成本链：区县用工环境 1–5 档 → 弹性人力单价。
+  //   ── 口径（与 ① 房价维同一张叠加表）─────────────────────────────
+  //   · 含义：人力档 = 该区县【服务业用工供给/工资水平】1–5 档（高新区 5 = 工资高 · 中江 1 = 便宜）。
+  //   · 挂点①（成本）：乘在【弹性人力部分】（shifts 的 ±18/−12）与 deptCosts 的 laborFixed 单价上；
+  //     档3 = 中性 ×1.0，每档 ±4%（0.88–1.16）—— 高工资区雇人贵，便宜县城雇人省。
+  //   · ★ 不双扣的两条边界：
+  //     (a) 与 shifts/linen/energy 的每间加减：那些是【你选的排班/外包/温度】；本维是【雇同样的人贵不贵】——
+  //         乘在"人力类"科目上、不碰布草/能耗；
+  //     (b) 与 R4 职务加成（×1.3 口碑权重）、R6 代价（精简的 morale 扣减）：那些是【属性/口碑侧】，
+  //         本维只进【成本侧】—— 钱和口碑不同轴，零交叠。
+  //   · 缺省（|| 3）⇒ ×1.0 ⇒ 旧档/未选区者逐字节不变。
+  const 人力环境 = (Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3)
+  const 人力系数 = 1 + (人力环境 - 3) * 0.04
+  {
+    // 只作用于【人力类】变动部分：shifts 的加减项（+18 / −12）先剥离再乘（布草与能耗不乘）
+    // ★ 乘完 Math.round：成本链保持整数口径（人力系数 ±16% × 18 最多 ±2.9 元，取整误差 ≤1 元/间·天）
+    const shifts加减 = (decisions.shifts === '满编保服务' ? 18 : decisions.shifts === '精简省成本' ? -12 : 0)
+    const 其余 = perRoomVariable - shifts加减
+    perRoomVariable = 其余 + Math.round(shifts加减 * 人力系数)
+  }
   // 能耗管控：温度设低省电、设高耗电
   if (energy != null) perRoomVariable += (energy - 23) * 2
   // 🔴 T1.1（D16 拍板）：variableCost 同为【一晚】口径 → ×7
   let variableCost = occupiedRooms * perRoomVariable * 7
-  const dept = deptCostWeekly({ rooms, decisions })
+  const dept = deptCostWeekly({ rooms, decisions, 人力档: Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3 })   // ★ §33-V4-A8：人力档 → laborFixed 单价
   const deptCost = dept.total
 
   // 营销成本 = 做活动才有额外支出

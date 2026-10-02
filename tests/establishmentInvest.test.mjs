@@ -122,7 +122,8 @@ console.log('\n[5] 不越界层：纯计算 · 不进结算 · 系数不复制�
   // 引擎锚点不受影响（本模块不参与结算 ⇒ 单配置锚点应当没变）
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
   // 🔴 §22.2 重基线（B2）：week1 含开业一次性费用 349,000 ⇒ 81087+349000=430087 · 45053−349000=−303947
-  ok(r.revenue === 126140 && r.totalCost === 430087 && r.netProfit === -303947,
+  // ★ §33-V4-A8 重基线：选址房价档 4 接线（priceCompetitive ×1.03）⇒ 营收 126140→128520（totalCost/净利随动）
+  ok(r.revenue === 128520 && r.totalCost === 430753 && r.netProfit === -302233,
     '引擎锚点（§22.2 重基线：B2 开业一次性费用计入 week-1；营收/GOP 不变）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
 }
 

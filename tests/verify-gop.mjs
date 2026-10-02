@@ -14,7 +14,8 @@ import { 季节因子 } from '../src/season.mjs'
 import { settle as settleOld } from '../src/settle-old-w2.mjs'
 import { ATTR_INIT, applyDecisionToAttrs, normalizeAttrs } from '../src/attrs.js'
 
-const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
+// ★ §33-V4-A8：对照冻结旧引擎 ⇒ 房价/人力置【档3 中性】（同 U3 世界层中性法）
+const SITE = { 客流: 4, 房价: 3, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }
 const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
 const CASES = {
   勤奋型: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' },

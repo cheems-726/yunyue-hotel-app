@@ -5,10 +5,14 @@ import BrandSelection from './BrandSelection.jsx'
 import Claim from './Claim.jsx'
 import Establishment from './Establishment.jsx'
 import DecisionPanel from './DecisionPanel.jsx'
-import Reputation from './Reputation.jsx'
+
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
-import FinalResult from './FinalResult.jsx'
+// ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— FinalResult/Reputation 出现在流程后段，React.lazy 切独立 chunk
+//   ★ 只懒【后段页面】（首屏 Welcome/登录/经营主链不动 —— 拆首屏反而多一次请求）· fallback 用同风格提示。
+import { lazy as lazyPage, Suspense as SuspenseR } from 'react'
+const FinalResult = lazyPage(() => import('./FinalResult.jsx'))
+const Reputation = lazyPage(() => import('./Reputation.jsx'))
 import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
@@ -2495,7 +2499,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons">📶 🔋</span>
         </div>
-        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
+        <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
       </div>
     )
   }
@@ -2611,7 +2615,7 @@ export default function App() {
     const pages = {
       business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
-      reputation: <Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
+      reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
     }
     mainPage = pages[tab]

@@ -65,7 +65,8 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   // 自营锚点 = 各批次报告引用的"单配置"（与 W2/W3 报告同源）
   // 🔴 §22.2 重基线（B2）：week1 结算含【开业一次性费用】（全季 80 间 = 349,000）
   //    ⇒ totalCost 81087+349000=430087 · netProfit 45053−349000=−303947 · 营收不变
-  ok(direct.revenue === 126140 && direct.totalCost === 430087 && direct.netProfit === -303947,
+  // ★ §33-V4-A8 重基线：房价档 4 接线 ⇒ 锚点前进
+  ok(direct.revenue === 128520 && direct.totalCost === 430753 && direct.netProfit === -302233,
     `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（§22.2 锚点：含开业一次性费用 349,000）`)
   ok(direct.oneTimeFees?.开业费用 === 349000, `开业一次性费用明细随行（${direct.oneTimeFees?.开业费用}）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')

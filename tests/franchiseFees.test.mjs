@@ -57,14 +57,20 @@ const 世界层中性 = (fn) => {
   const 代价备份 = []
   for (const d of Object.values(代价表)) for (const e of Object.values(d.选项)) 代价备份.push([e, e.属性, e.延迟])
   const 不作为备份 = { ...不作为惩罚.每项 }
+  // ★ §33-V4-A8：水位线中性扩展 —— 选址两维也置【档3 中性】（房价/人力已接线 ±3%/±4% ⇒
+  //   与冻结基线对拍时必须同时中性，否则水位线把"A8 有意改的数值"误判成"漂移"）。
+  //   ★ 与世界层中性同一纪律：中性后逐字节 === 冻结基线 ⇒ 证明"只有 A8 改了数值，别的一处没动"。
+  const 房价备份 = 场地.房价, 人力备份 = 场地.人力
   try {
     WEATHER_TABLE_CYCLE.forEach(x => { x.客流 = 1 })
     SEASON_TABLE.forEach(x => { x.因子 = 1 })
     OTA_RATING_CONFIG.trafficK = 0
     for (const [e] of 代价备份) { delete e.属性; delete e.延迟 }
     不作为惩罚.每项.morale = 0; 不作为惩罚.每项.quality = 0
+    场地.房价 = 3; 场地.人力 = 3
     return fn()
   } finally {
+    场地.房价 = 房价备份; 场地.人力 = 人力备份
     WEATHER_TABLE_CYCLE.forEach((x, i) => { x.客流 = 天气备份[i] })
     SEASON_TABLE.forEach((x, i) => { x.因子 = 季节备份[i] })
     OTA_RATING_CONFIG.trafficK = k备份
@@ -304,7 +310,7 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
     // ★ §32-U3：两费算术恒等式在【direct】上判定（前提：世界中性周 + 直营无渠道系数 ⇒ 营收不变）；
     //   OTA 模式在 w1 就有渠道系数（平台评分 >4 基线）⇒ 营收会变，改由下方单独断言★可归因（不混进恒等式）。
     for (const mode of ['direct']) {
-      const now = 跑(名, 1, null, mode), base = fixture.用例[`${名}|${mode}|w1`]
+      const now = 世界层中性(() => 跑(名, 1, null, mode)), base = fixture.用例[`${名}|${mode}|w1`]   // ★ §33-V4-A8：A8 两维也要中性（原裸调在 U3 时恰好=中性，A8 后不再成立）
       const f = franchiseFees(名, base.revenue)
       const 一次性 = 一次性费用清单(品牌[名])
       const 期望合计 = Math.round(base.revenue * 0.05) + Math.round(base.revenue * 0.024) + 一次性.合计
@@ -320,16 +326,17 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
   // ★ §32-U3 新增：OTA 模式的营收差必须【恰好由平台渠道系数解释】（可归因，不是凭空多了钱）
   const 渠道坏 = []
   for (const 名 of 已接入品牌) {
+    // ★ §33-V4-A8：这条在【非中性】下测（中性化把 trafficK 置 0 ⇒ 渠道系数恒 1 ⇒ 判据恒真化）
     const now = 跑(名, 1, null, 'ota'), base = fixture.用例[`${名}|ota|w1`]
     const 期 = 渠道流量系数(now.world.ota.评分, 'ota')
     const 比 = now.revenue / base.revenue
     if (!(Math.abs(比 - 期) / 期 < 0.03)) 渠道坏.push(`${名} 比 ${比.toFixed(4)} vs 渠道 ${期}`)
   }
-  ok(渠道坏.length === 0, '★ OTA 模式营收差 === 平台渠道系数（±3% · 世界中性周）—— 差额可归因到 U3 渠道层', 渠道坏.join(' '))
+  ok(渠道坏.length === 0, '★ OTA 模式营收差 === 平台渠道系数（±3% · 非中性实跑 · 差额可归因到 U3 渠道层）', 渠道坏.join(' '))
   // 死亡选址/难度结论的连带（报告复述用）：两费使净利率下移 ~7.4pp
   // ★ §22.2 重基线：week1 净利率现在被开业费用主导 ⇒ 本证据改按【剔除一次性费用后的经营口径】测
   //   （下移 = (净利+两费)/营收 − 净利/营收，与开业费用无关 —— 恰好隔离出"两费"这一个因素）
-  const 全季now = 跑('全季')
+  const 全季now = 世界层中性(() => 跑('全季'))   // ★ §33-V4-A8 同上
   const 两费 = 全季now.franchiseFees.合计
   const 下移pp = ((全季now.netProfit + 两费) / 全季now.revenue - 全季now.netProfit / 全季now.revenue) * 100
   ok(Math.abs(下移pp - 7.4) < 0.05, '★ 两费净利率下移 ≈ 7.4 个百分点（剔除 B2 开业费用后隔离测量；排序不变证据不变）', 下移pp.toFixed(3) + 'pp')

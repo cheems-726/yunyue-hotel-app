@@ -88,6 +88,30 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
   const 旧档 = advanceGroupOneDay(存档, 7, { decisions: DEC })
   ok(JSON.stringify(旧档.save.history[0]) !== JSON.stringify(在线),
     '反证：存档不带周内输入 ⇒ 补算 ≠ 在线（说明该断言确实在判东西，不是恒真）')
+  // ★★ §33-V4-B7（2026-10-01）：含【危机期 + R6 延迟后果 + 职务加成权重 + 注入事件/应对】的周 —— 全通道逐字节
+  //   修前实测差异（本断言的由来）：serverTick 曾丢 hotState/penaltyState/resolvedWeight 三入参 ⇒
+  //   危机周的 occupancy 37 vs 51、E8 应对周的罚款 800 vs 5000（同组同决策不同钱 = 公平红线破）。
+  //   修法：serverTick 从【存档已有字段】读（hotReviewCrisis / pendingPenalty）+ weekInputs 单源（resolvedWeight）
+  //   ⇒ 不新增随机、不新增状态；旧档无这些字段 ⇒ null ⇒ 与改前一致（水位线）。
+  {
+    const { 构建注入事件 } = await import('../src/teacherEvents.mjs')
+    const hotState = { source: '负面舆情', startWeek: 1, weeks: 2, override: null }
+    const penaltyState = { 项: [{ 来源: 'quality-check', 文案: '延迟代价' }], startWeek: 1 }
+    const 注入 = [构建注入事件({ 事件id: 'E8', 周: 1, injectedBy: 'T001' })]
+    const 全输入 = { pendingNegatives: 1, resolvedCount: 2, resolvedWeight: 2.6, liveNegCount: 1, livePosCount: 2, crisisResponse: '逐条真诚回复', 注入应对: { E8: '立即整改' } }
+    const 在线全 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', ...全输入, hotState, penaltyState, injectedEvents: 注入, eventResponses: { E8: '立即整改' } })
+    const 带全的存档 = { ...存档, weekInputs: { 版本: WEEK_INPUTS_VERSION, week: 1, ...全输入 }, hotReviewCrisis: hotState, pendingPenalty: penaltyState }
+    const 补算全 = advanceGroupOneDay(带全的存档, 7, { decisions: DEC, injectedEvents: 注入 })
+    ok(JSON.stringify(补算全.save.history[0]) === JSON.stringify(在线全),
+      '★★ B7 全通道：含危机期/R6延迟/职务权重/注入事件+应对的周，【补算 === 在线】逐字节一致',
+      `差异键：${Object.keys(在线全).filter(k => JSON.stringify(在线全[k]) !== JSON.stringify(补算全.save.history[0][k])).slice(0, 6).join(',')}`)
+    // 反证（防"修好又丢"）：把存档的 hotReviewCrisis 删掉 ⇒ 危机惩罚消失 ⇒ 与在线必然不等
+    const 无危机存档 = { ...带全的存档 }
+    delete 无危机存档.hotReviewCrisis
+    const 补算无危机 = advanceGroupOneDay(无危机存档, 7, { decisions: DEC, injectedEvents: 注入 })
+    ok(JSON.stringify(补算无危机.save.history[0]) !== JSON.stringify(在线全),
+      '反证：存档丢 hotReviewCrisis ⇒ 补算 ≠ 在线（危机通道真的在判，不是恒真）')
+  }
   // ★ 公平性红线（D2）的机器化：实时评价数是【在线时长相关】的输入，
   //   它只决定"哪些卡已在实时里出过"，**不许改变任何业务数字**（实证：只有卡片数变）
   const 业务字段 = ['revenue', 'totalCost', 'profit', 'netProfit', 'gop', 'capital', 'occupancy', 'finalGoodRate', 'negativeCount', 'reviewCount', 'deptCost', 'rentCost']

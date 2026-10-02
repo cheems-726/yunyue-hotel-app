@@ -84,8 +84,9 @@ console.log('\n[5] 不越界：纯数据模块 · 不进结算路径')
   ok(!/Math\.random|localStorage/.test(strip(src('operatorLog.mjs'))), '纯函数：不抽随机、不碰存储')
   // 引擎锚点仍为 §22.2 重基线（本模块不参与结算）
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
-  ok(r.revenue === 126140 && r.totalCost === 430087 && r.netProfit === -303947,
-    '引擎锚点（§22.2 重基线：126140/430087/−303947 ⇒ 本模块没碰结算）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
+  // ★ §33-V4-A8 重基线：房价档 4 接线 ⇒ 锚点数字前进（126140/430087/−303947 → 128520/430753/−302233）
+  ok(r.revenue === 128520 && r.totalCost === 430753 && r.netProfit === -302233,
+    '引擎锚点（§22.2+A8 重基线：128520/430753/−302233 ⇒ 本模块没碰结算）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
 }
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)

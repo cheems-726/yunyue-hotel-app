@@ -207,7 +207,8 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   const r = settle({ site: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 }, brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
   // 🔴 §22.2 重基线（B2）：week-1 结算现在含【开业一次性费用】（全季 80 间 = 349,000）
   //   ⇒ totalCost 81087+349000=430087 · netProfit 45053−349000=−303947 · 营收/GOP 不变
-  ok(r.revenue === 126140 && r.totalCost === 430087 && r.netProfit === -303947,
+  // ★ §33-V4-A8 重基线：房价档 4 接线 ⇒ 锚点前进（126140/430087/−303947 → 128520/430753/−302233）
+  ok(r.revenue === 128520 && r.totalCost === 430753 && r.netProfit === -302233,
     '引擎锚点（§22.2 重基线：B2 开业一次性费用 349,000 计入 week-1；营收/GOP 不变）', `${r.revenue}/${r.totalCost}/${r.netProfit}`)
 }
 

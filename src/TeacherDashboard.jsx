@@ -16,7 +16,11 @@ import { 注入事件库, 构建注入事件, 校验注入合法性 } from './te
 // ★ §32-U8-补 §2④：AI 领班全班默认授权页 —— 授权形状与规则单源（aiSupervisor）
 import { 默认授权, 领班规则 } from './aiSupervisor.mjs'
 import { groupKeyOf } from './supabaseClient.js'
-import TeacherReport from './TeacherReport.jsx'   // ★ §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
+// ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— TeacherReport 只在老师点「📄 经营报告」时才需要，
+//   改 React.lazy（Vite 自动切独立 chunk）；挂载点包 Suspense fallback（全屏覆盖层，加载提示即可）。
+import { lazy, Suspense } from 'react'
+const TeacherReport = lazy(() => import('./TeacherReport.jsx'))   // ★ §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
+
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
 // 教师后台：全班经营总览 + 排名 + 分组管理（接 Supabase 真实数据，云端不可用时回退演示数据）
@@ -1548,12 +1552,14 @@ export default function TeacherDashboard({ user, onLogout }) {
       const g = (groups || []).find(x => x.uid === reportUid)
       const gs = rawStates.find(x => x.user_id === reportUid)
       return (
-        <TeacherReport
-          gs={gs}
-          组名={g ? g.name : ''}
-          批注={allNotes.filter(n => n.student_uid === reportUid)}
-          onClose={() => setReportUid(null)}
-        />
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9CA3AF' }}>报告生成中…</div>}>
+          <TeacherReport
+            gs={gs}
+            组名={g ? g.name : ''}
+            批注={allNotes.filter(n => n.student_uid === reportUid)}
+            onClose={() => setReportUid(null)}
+          />
+        </Suspense>
       )
     })()}
     </>
