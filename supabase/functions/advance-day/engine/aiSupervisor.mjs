@@ -50,6 +50,17 @@ export const 领班规则 = [
     reason: (s) => `本周已赔 ${s.本周超售赔偿次数} 次到店无房 → 超售清零止损`,
   },
   {
+    id: 'R6', item: 'energy', weight: 'low', requires: 'energy',
+    说明: '室温 ≤21℃ 或 ≥26℃ ⇒ 回归 23℃（舒适区 · 客人不投诉能耗也没占便宜）',
+    // ★ §33-V3（二期落地 · B3 §六"零账本改动"档）：act 落点 = decisions.energy ⇒ 引擎既有消费链
+    //   （variableCost (energy−23)×2 + goodRate 极端扣分 + insights 提醒）自动生效。
+    //   不双扣：R6 决策代价表（decisionRisk）管【学生选极端温度的属性代价】，本规则是【代管把温度调回舒适区】
+    //   —— 代管后的 energy=23 不再命中极端扣分 ⇒ 是"代管消除代价"，不是"代价被算两次"。
+    when: (s) => Number.isFinite(Number(s.室温)) && (Number(s.室温) <= 21 || Number(s.室温) >= 26),
+    act: () => ({ item: 'energy', to: 23 }),
+    reason: (s) => `室温 ${s.室温}℃ 过于极端（客人投诉舒适度、能耗也没省）→ 回归 23℃ 舒适区`,
+  },
+  {
     id: 'R7', item: '__report', weight: 'low', requires: 'none',
     说明: '卫生检查不合格 ⇒ 建议停房深清洁（超出领班权限，只报告）',
     when: (s) => !!s.卫生不合格,
@@ -104,4 +115,61 @@ export function 代管率(领班动作数, 学生亲自决策数) {
   const a = Number(领班动作数) || 0, b = Number(学生亲自决策数) || 0
   if (a + b === 0) return null
   return a / (a + b)
+}
+
+
+// ★★ §33-V3（二期 · 同构纯函数 · 双端共用）：代管动作 → 并入决策集（学生决策优先）
+//
+// ── §33-V3 不双扣边界表（卡内 §1③ · 四层逐条 · 守门在 tests/personaWeight 与 thirdPhase）────
+//   × **V4 选址两维**（房价→priceCompetitive / 人力→成本+服务）：领班代管只改【决策项本身】
+//     （overbook/energy 的值）；代管后的决策照常流经 V4 两维的消费链 ⇒ 是"作用于代管后的状态"，
+//     不是"代管被额外乘一次" —— 无二次叠加。
+//   × **V6 客群结构加权**：同上 —— 客群加权评的是【决策与客群的匹配】，代管改的是【决策值】；
+//     代管后的 energy=23 会照常参与客群路命中（如"温度适合家庭"）⇒ 单次计算，无重复。
+//   × **R4 职务加成 ×1.3**：R4 乘在【差评处理的有效权重】（weekInputs 单源）；领班代管不碰差评处理
+//     ⇒ 结构性零交叠（既有断言：aiSupervisor ↔ roleBonus 双向零引用 —— 继续保持并已扩展到 领班代管）。
+//   × **R6 决策代价表（decisionRisk）**：决策代价表评的是【学生选的选项自身的代价】（如 energy=26 的
+//     极端代价走事件/insights 链）；代管把 energy 改成 23 ⇒ 极端代价链自然不再命中 ⇒ 是"代管消除了
+//     代价触发条件"，不是"代价被扣两次"。★ 注意区分：B3 规则 R6（能耗回归）与决策风险化 R6 是两回事
+//     —— 前者是领班规则 id，后者是代价表模块；命名撞车但机制零关联（注释在此说明，防后人误改）。
+//
+//   · 输入：上周结算结果（上周）+ 学生当前决策（学生决策）+ 两层授权
+//   · 输出：{ 代管决策, 记录 } —— 代管决策 = 只含【学生没做】的项（学生优先 · 空对象 = 不动）
+//   · ★ 双端共用：客户端 App.doSettle 与服务端 serverTick 都调本函数 ⇒ "补算 === 在线"由【同一份源码】保证
+//     （不是靠两处实现碰巧一致 —— weeklyAuto/serverTick 的既有纪律）。
+//   · 范围：R3（overbook→0）/ R6（energy→23）—— 零账本改动档；R1/R2 需竞对价日级序列 ⇒ 明确不做
+//     （快照的 竞对均价/降价幅度/溢价 传 null ⇒ R1/R2 的 when 天然不触发，且调用方不得传周级值冒充）。
+//   · 不双扣（×V4/V6/R4/R6）：见文件顶部边界表 —— 代管只改【决策项本身】，所有既有消费链
+//     （V4 两维/V6 客群加权/R4 处理权重/R6 决策代价）照常作用于代管后的决策，无二次叠加。
+export function 领班代管({ 上周, 学生决策, 全班默认 = null, 学生覆盖 = null }) {
+  const 空结果 = { 代管决策: {}, 记录: null }
+  try {
+    if (!上周 || typeof 上周 !== 'object') return 空结果
+    if (!全班默认 && !学生覆盖) return 空结果                       // 未授权 ⇒ 一步不动（默认全关 = 公平）
+    const 授权 = 生效授权({ 全班默认, 学生覆盖 })
+    if (!Object.keys(授权).some(k => 授权[k] && 授权[k].ok)) return 空结果   // 全关 ⇒ 不动
+    const 实收均价 = (Number(上周.occupiedRooms) > 0 && Number.isFinite(Number(上周.revenue)))
+      ? Math.round(Number(上周.revenue) / (Number(上周.occupiedRooms) * 7)) : null
+    const 快照 = {
+      出租率: Number(上周.occupancy) || 0,
+      当前价: 实收均价,
+      竞对均价: null, 竞对降价幅度: 0, 竞对溢价: null,   // R1/R2 需竞对价日级序列 ⇒ 二期不做 ⇒ null 不触发
+      本周超售赔偿次数: (Number(上周.overbookCompensation) > 0 && Number(上周.price) > 0)
+        ? Math.round(Number(上周.overbookCompensation) / Math.round(Number(上周.price))) : 0,
+      卫生不合格: (学生决策 || {}).hygiene === '不停房',
+      // ★ §33-V3 R6 语义（学生优先的推论）：室温 = 学生本周决策.energy，没做 ⇒ **延续上周值**
+      //   （决策是状态、不是一次性动作 —— B3 §一 的延续语义）。上周值从 上周.decisions.energy 推；
+      //   上周也没有 ⇒ 23（舒适区缺省 ⇒ 不触发）。学生本周做了 ⇒ 学生优先（本路会被下方过滤剔除，
+      //     但 when 仍按延续值判 —— 剔除发生在过滤层，不影响 when 的真实性）。
+      室温: (学生决策 || {}).energy != null ? Number((学生决策 || {}).energy)
+        : (上周.decisions && 上周.decisions.energy != null) ? Number(上周.decisions.energy) : 23,
+    }
+    const rec = 领班决策({ state: 快照, authorizations: 授权 })
+    const 代管决策 = {}
+    for (const a of rec.actions) {
+      const 落点 = a.item === 'overbook' ? 'overbook' : a.item === 'energy' ? 'energy' : null
+      if (落点 && (学生决策 || {})[落点] === undefined) 代管决策[落点] = a.to   // ★ 学生决策优先
+    }
+    return { 代管决策, 记录: { ...rec, 代管决策: { ...代管决策 } } }
+  } catch (e) { return 空结果 }
 }
