@@ -53,7 +53,11 @@ console.log('\n[1] ★★ 主菜：老师端弹窗【代价行】—— 单源�
 
 console.log('\n[2] §2① 教师端注入面板：真调单源 + 周粒度说明 + 只影响未来当场拦')
 {
-  ok(/import \{ 注入事件库, 构建注入事件, 校验注入合法性 \} from '\.\/teacherEvents\.mjs'/.test(TD), '注入面板 import 注入事件库/构建注入事件/校验注入合法性（单源）')
+  // ★ §33-V8：面板 import 扩（35 条库 + 自定义事件 + 效力维度 + 按日校验）
+  ok(/import \{ 注入事件库, 构建注入事件, 构建自定义事件, 校验注入合法性, 校验按日触发, 效力维度 \} from '\.\/teacherEvents\.mjs'/.test(TD), '注入面板 import 单源（含 V8 自定义/效力/按日）')
+  ok(/效力维度\.map/.test(TD) && /构建自定义事件\(\{ 定义/.test(TD), '★ V8 面板：自定义编辑器 + 受控效力面板（维度白名单渲染 · 不许自由数值）')
+  ok(/类别筛/.test(TD) && /搜索/.test(TD), '★ V8 面板：35 条按类别筛 + 可搜（不平铺成一面墙）')
+  ok(/生效日输入/.test(TD) && /校验按日触发\(/.test(TD), '★ V8 面板：按日程触发输入 + 只影响未来校验')
   ok(/setClassInjections/.test(TD) && /fetchClassState/.test(TD), '面板写通道 setClassInjections / 读通道 fetchClassState')
   ok(/校验注入合法性\(\{\s*注入周:\s*周n,\s*已结算周:/.test(TD), '★ 注入前逐组调 校验注入合法性({注入周, 已结算周})（不合法当场拦，不等结算）')
   ok(/一期只到「周」粒度/.test(rd('src/TeacherDashboard.jsx')) && /不承诺「第 D 天」/.test(rd('src/TeacherDashboard.jsx')), '★ 面板写明一期只到「周」粒度（不许承诺「第 D 天」）')
@@ -127,6 +131,23 @@ console.log('\n[4] §2②③ 引擎侧：E8 应对真生效 + 离线补算标注
   // 周报渲染接线
   ok(/e\.来源 === 'teacher'/.test(WR) && /老师注入/.test(WR), 'Student 周报：来源标识「老师注入」渲染接线')
   ok(/e\.离线标注/.test(WR), '周报渲染 离线标注（显著红条）')
+}
+
+// ★ §33-V8：按日程触发的行为守门（RV-33v8 RV-1 的守门侧 · 行为断言非源码结构）
+console.log('\n[4b] §33-V8 按日程校验（行为断言 · 只影响未来 · 天粒度）')
+{
+  const { 校验按日触发 } = await import('../src/teacherEvents.mjs')
+  ok(校验按日触发({ 注入周: 3, 生效日: 2, 当前教学周: 3, 当前dayIndex: 4 }).合法 === false,
+    '★ V8 按日校验：生效日（第2天）已过去（当前第4天）⇒ 非法（只影响未来 · 天粒度）')
+  ok(校验按日触发({ 注入周: 3, 生效日: 5, 当前教学周: 3, 当前dayIndex: 4 }).合法 === true,
+    '★ V8 按日校验：生效日（第5天）在未来 ⇒ 合法')
+  ok(校验按日触发({ 注入周: 4, 生效日: 2, 当前教学周: 3, 当前dayIndex: 4 }).合法 === true,
+    '★ V8 按日校验：注入未来周 ⇒ 任意天合法')
+  // 纯叙事白名单行为：0 效力选择 ⇒ engine 无任何数值维度（RV-4 的守门侧）
+  const { 效力选择转引擎 } = await import('../src/teacherEvents.mjs')
+  const 空效力 = 效力选择转引擎([])
+  ok(Object.keys(空效力.engine).filter(k => k !== 'v8').length === 0 && 空效力.效力文案.includes('纯叙事'),
+    '★ V8 纯叙事：0 效力选择 ⇒ engine 无任何数值维度（数字逐字节不变）')
 }
 
 console.log('\n[5] §2④ AI 领班：不再死代码（有调用方）· 默认全关 · 授权后出记录')

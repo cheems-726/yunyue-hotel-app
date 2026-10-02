@@ -214,6 +214,22 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
   // 事件通道的乘数/后果（E1 客流 / E2 商务区客流 / E4 ota / E5 客流+房价容忍 / E7 士气 / E3 属性）
   const 注入客流系数 = (生效注入sByName.has('E1') ? 0.75 : 1) * (生效注入sByName.has('E5') ? 1.35 : 1) * (生效注入sByName.has('E2') && (s.客流 || 0) >= 3 ? 1.4 : 1)
   const 注入ota系数 = 生效注入sByName.has('E4') && bizMode === 'ota' ? 1.3 : 1
+  // ★★ §33-V8（2026-10-03）：E9+ 通用效力通道 —— 事件自带 engine（v8:true 标记），
+  //   维度全部是【现行结算已消费】的（客流/变动成本/属性/罚款 —— 不新增引擎通道 · 卡内 §1② 红线）。
+  //   幅度受控：生成时已夹在量级带内（客流 ±5–40% · 属性 ∓3–15 · 成本 ±10–30%），面板不开放自由公式。
+  //   ★ 纯叙事事件（engine 无任何数值维度）⇒ 本段全零 ⇒ 数字逐字节不变（只有事件卡文案 · 专门断言）。
+  //   ★ 与 E1–E8 的关系：E1–E8 走各自专用消费点（上方/下方），带 v8 标记的走本通道 —— 同一 injectedEvents
+  //     入参，两套消费点并存但维度不重叠（互斥口径在注入时由面板校验拦截）。
+  let 注入v8客流系数 = 1
+  let 注入v8成本系数 = 1
+  let 注入v8罚款 = 0
+  for (const ev of 生效注入) {
+    const en = ev && ev.engine
+    if (!en || !en.v8) continue
+    if (Number.isFinite(Number(en.客流系数))) 注入v8客流系数 *= Number(en.客流系数)
+    if (Number.isFinite(Number(en.变动成本系数))) 注入v8成本系数 *= Number(en.变动成本系数)
+    if (Number.isFinite(Number(en.罚款))) 注入v8罚款 += Number(en.罚款)
+  }
   // ★ §32-U4-R4：有效处理权重（职务匹配 ×1.3）。缺省/非法 ⇒ 回退到 resolvedCount（零变化）
   const 有效处理数 = Number.isFinite(Number(resolvedWeight)) && Number(resolvedWeight) > 0 ? Number(resolvedWeight) : resolvedCount
   prevGoodRate = numOr(prevGoodRate, null)
@@ -389,7 +405,7 @@ if (bizMode === 'ota') {
   // OTA 违规（渠道侧 · 只对 ota 模式生效）：①差评长期不回复 ②超售导致到店无房 ⇒ 降权（此处）+ 罚款（下方计入 eventFine）+ 事件留痕
   const ota违规s = bizMode === 'ota' ? 违规判定({ pendingNegatives, overbook: decisions.overbook || 0 }) : []
   const ota后果 = 违规后果(ota违规s)
-  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权 * 注入客流系数 * 注入ota系数
+  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权 * 注入客流系数 * 注入ota系数 * 注入v8客流系数
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6
@@ -684,6 +700,8 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   }
   // 能耗管控：温度设低省电、设高耗电
   if (energy != null) perRoomVariable += (energy - 23) * 2
+  // ★ §33-V8：E9+/自定义事件的 变动成本系数（量级带内 ×1.1–1.3 · 缺省 1 ⇒ 零变化）
+  if (注入v8成本系数 !== 1) perRoomVariable = Math.round(perRoomVariable * 注入v8成本系数)
   // 🔴 T1.1（D16 拍板）：variableCost 同为【一晚】口径 → ×7
   let variableCost = occupiedRooms * perRoomVariable * 7
   const dept = deptCostWeekly({ rooms, decisions, 人力档: Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3 })   // ★ §33-V4-A8：人力档 → laborFixed 单价
@@ -732,6 +750,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   }
   if (ota后果.罚款) eventFine += ota后果.罚款
   if (注入消防罚款) eventFine += 注入消防罚款
+  if (注入v8罚款) eventFine += 注入v8罚款   // ★ §33-V8：E9+/自定义事件的罚款/一次性支出（唯一入账点同纪律）
   const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还
 
   // 10. 利润
@@ -1028,6 +1047,24 @@ for (let i = 0; i < reviewCount; i++) {
     if (冷处理) {
       attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })
       addEvent({ type: 'bad', icon: '👥', name: '员工集体请辞威胁（冷处理）', text: '你没有（或没能）做出应对 ⇒ 团队士气 −10', impact: '士气 −10', tip: '人力是资产不是成本：涨薪（成本+）或招临时工（品质−）都是应对' })
+    }
+  }
+  // ★ §33-V8：E9+/自定义事件的属性效力（品质/声誉/士气 · 加法 · 量级带内 ∓3–15）
+  //   缺省/纯叙事 ⇒ 注入v8属性空 ⇒ 零变化。效果说明已在该事件的主卡（生效注入循环）文案里。
+  {
+    const 注入v8属性 = {}
+    for (const ev of 生效注入) {
+      const en = ev && ev.engine
+      if (!en || !en.v8) continue
+      for (const k of ['品质', '声誉', '士气']) {
+        if (Number.isFinite(Number(en[k]))) 注入v8属性[k] = (注入v8属性[k] || 0) + Number(en[k])
+      }
+    }
+    if (Object.keys(注入v8属性).length > 0) {
+      attrsAfter = applyAttrsDelta(attrsAfter, 注入v8属性)
+      const 属性名 = { quality: '品质', reputation: '声誉', morale: '士气' }
+      const 明细 = Object.entries(注入v8属性).map(([k, v]) => `${属性名[k] || k} ${v > 0 ? '+' : ''}${v}`).join(' / ')
+      addEvent({ type: 注入v8属性.morale < 0 || 注入v8属性.quality < 0 || 注入v8属性.reputation < 0 ? 'bad' : 'good', icon: '⚡', name: '突发事件效力结算', text: `老师注入事件的属性效力：${明细}`, impact: 明细, tip: '事件效力受控在量级带内 —— 影响可测但不一击定生死' })
     }
   }
   if (生效注入sByName.has('E8')) {

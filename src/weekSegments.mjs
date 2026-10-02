@@ -95,14 +95,37 @@ function 整数分摊(total, weights) {
  */
 export function settleWeekSegmented(输入 = {}) {
   const { decisionsByDay, decisions, ...rest } = 输入
-  const segs = segmentsOf(decisionsByDay, decisions || {})
+  let segs = segmentsOf(decisionsByDay, decisions || {})
+  // ★★ §33-V8（2026-10-03 · 按日程触发）：注入事件可带【生效日】（周内第 D 天 · 2–7）。
+  //   有这种事件时：① 在其生效日追加分段边界（哪怕本周没有决策改动）② 各段只带【对该段有效】的事件
+  //   （无生效日 = 整周有效；生效日 <= 段末 ⇒ 该段有效 —— 前 3 天不带、第 4 天起带 = "按日程"）。
+  //   ★ 零变化水位线：无事件或全部事件无生效日 ⇒ 不加分段 ⇒ 走既有路径（逐字节不变）。
+  const 全部事件 = Array.isArray(rest.injectedEvents) ? rest.injectedEvents : []
+  const 事件日s = [...new Set(全部事件.map(e => Number(e && e.生效日)).filter(d => Number.isFinite(d) && d >= 2 && d <= 7))].sort((a, b) => a - b)
+  if (事件日s.length > 0) {
+    const 边界 = new Set(segs.map(sg => sg.from))
+    for (const d of 事件日s) 边界.add(d)
+    const 周一 = Math.min(...segs.map(sg => sg.from)), 周日 = Math.max(...segs.map(sg => sg.to))
+    const 新边界 = [...边界].sort((a, b) => a - b)
+    if (新边界[0] !== 周一) 新边界.unshift(周一)
+    segs = []
+    for (let i = 0; i < 新边界.length; i++) {
+      const from = 新边界[i]
+      const to = (i + 1 < 新边界.length) ? 新边界[i + 1] - 1 : 周日
+      if (from > to) continue
+      segs.push({ from, to, decisions: decisions || {} })   // 无决策改动 ⇒ 各段同一决策集
+    }
+  }
+  // 各段有效事件：无生效日 = 整周；生效日 <= 段末 ⇒ 该段生效（生效日在段后的事件对该段不可见）
+  const 段事件 = (s) => 全部事件.filter(e => !Number.isFinite(Number(e && e.生效日)) || Number(e.生效日) <= s.to)
 
   // ★★ 水位线：周内无改动 ⇒ 完全走既有路径 —— **原样返回 settle 的结果，一个键都不加**
   //   为什么连 `segments` 都不加：这样"逐字节相等"可以被**最严格地证明**
   //   （`JSON.stringify(分段) === JSON.stringify(老路径)`），而不是"业务字段相等、多了几个键"。
-  if (segs.length === 1) {
-    return settle({ ...rest, decisions: segs[0].decisions })
+  if (segs.length === 1 && 事件日s.length === 0) {
+    return settle({ ...rest, decisions: segs[0].decisions })   // ★ 零变化水位线：无按日事件且无决策改动 ⇒ 原样（逐字节）
   }
+  // 单段但有按日事件（或事件追加了分段）⇒ 落到下方多段路径（各段按 生效日 过滤事件）
 
   // ≥2 段：逐段定价
   // ★★ 关键（本批实测踩到并改正）：**各段必须用【同一入口状态】定价，不许链式传状态**。
@@ -117,7 +140,7 @@ export function settleWeekSegmented(输入 = {}) {
   const 入口状态 = { attrs: rest.attrs, prevGoodRate: rest.prevGoodRate, prevCapital: rest.prevCapital }
   const 段 = []
   for (const s of segs) {
-    const r = settle({ ...rest, decisions: s.decisions, ...入口状态 })
+    const r = settle({ ...rest, injectedEvents: 段事件(s), decisions: s.decisions, ...入口状态 })   // ★ §33-V8：各段只带对该段有效的事件
     段.push({ s, r, 天: s.to - s.from + 1 })
   }
   const shares = sharesOf(segs, week)

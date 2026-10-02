@@ -15,6 +15,7 @@ const NAMES = Object.fromEntries(DEC_ALL.map(d => [d.id, d.name]))
 import { advanceGroupOneDay, tickKey } from '../src/serverTick.mjs'
 import { WEEK_INPUTS_VERSION, settleInputsFrom, weekInputsOf } from '../src/weekInputs.mjs'
 import { settle } from '../src/settlement.js'
+import { settleWeekSegmented } from '../src/weekSegments.mjs'   // ★ §33-V8：按日分段事件断言用
 import { ATTR_INIT } from '../src/attrs.js'
 
 let pass = 0, fail = 0
@@ -142,6 +143,39 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
         const { 代管决策 } = 领班代管({ 上周, 学生决策, 全班默认, 学生覆盖 })
         return { ...代管决策, ...学生决策 }   // ★ 学生已有键不覆盖（Object.assign 语义）
       }
+    }
+    // ★★ §33-V8（自定义/按日事件 · 补算通道 —— B7 教训同款钉死）：
+    //   ① 按日自定义事件（生效日=4）⇒ 离线补算 === 一直在线【逐字节】
+    //   ② 纯叙事事件（0 效力）⇒ 数字键逐字节不变（只有事件卡可见）
+    //   ③ 按日 ≠ 整周（前 3 天不带 ⇒ 与整周生效不同 = 日粒度真的在算）
+    {
+      const 自定义事件 = { 来源事件: 'CUSTOM:周边施工', name: '📌 老师注入 · 周边施工（第4天起）', icon: '🚧', type: 'bad', week: 1, 生效日: 4, source: 'teacher', 自定义: true, injectedBy: '王老师', text: '楼下道路施工，出入不便。', tip: '外部扰动应对', 应对选项: [{ label: '积极应对' }, { label: '按常规' }], engine: { v8: true, 客流系数: 0.95 } }
+      const 决策v8 = { ...DEC }
+      const 参数 = { site: 存档.location, brand: 存档.brand, decisions: 决策v8, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct' }
+      const 在线 = settleWeekSegmented({ ...参数, injectedEvents: [自定义事件] })
+      const 带事件的存档 = { ...存档, doneDecisions: 决策v8 }
+      const 补算 = advanceGroupOneDay(带事件的存档, 7, { decisions: 决策v8, injectedEvents: [自定义事件] })
+      ok(JSON.stringify(补算.save.history[0]) === JSON.stringify(在线),
+        '★★ V8 全通道：按日自定义事件（生效日=4）+ 离线补算 === 一直在线【逐字节】',
+        `差异键：${Object.keys(在线).filter(k => JSON.stringify(在线[k]) !== JSON.stringify(补算.save.history[0][k])).slice(0, 5).join(',')}`)
+      // 反证：补算不带事件 ⇒ 无代管无事件 ⇒ 与在线不等
+      const 补算无事件 = advanceGroupOneDay(带事件的存档, 7, { decisions: 决策v8 })
+      ok(JSON.stringify(补算无事件.save.history[0]) !== JSON.stringify(在线),
+        '反证：补算不带自定义事件 ⇒ ≠ 在线（事件通道真的在判）')
+      // ② 纯叙事：数字键逐字节不变（只有 events 卡可见）
+      // ★ 生效日要剥掉（纯叙事 = 整周生效 · 0 效力 ⇒ 走单段快路径 ⇒ 数字逐字节；带生效日会走多段 ⇒ 分摊舍入噪声）
+      const 纯叙事 = { ...自定义事件, engine: { v8: true }, 生效日: undefined, name: '📌 老师注入 · 行业交流日', 来源事件: 'CUSTOM:交流' }
+      const 无叙事 = settle(参数)
+      const 有叙事 = settleWeekSegmented({ ...参数, injectedEvents: [纯叙事] })
+      const 数字键 = Object.keys(无叙事).filter(k => k !== 'events')
+      const 数字差异 = 数字键.filter(k => JSON.stringify(无叙事[k]) !== JSON.stringify(有叙事[k]))
+      ok(数字差异.length === 0 && 有叙事.events.some(e => String(e.name).includes('行业交流日')),
+        '★ V8 纯叙事事件：数字键逐字节不变 + 事件卡可见',
+        `数字差异：${数字差异.join(',')}`)
+      // ③ 按日 ≠ 整周（日粒度真的在算）
+      const 整周 = settleWeekSegmented({ ...参数, injectedEvents: [{ ...自定义事件, 生效日: undefined }] })
+      ok(在线.revenue !== 整周.revenue,
+        `★ V8 按日 ≠ 整周：生效日=4（后 4 天带 0.95）≠ 整周 0.95（日粒度在算 · revenue ${在线.revenue} vs ${整周.revenue}）`)
     }
   }
   // ★ 公平性红线（D2）的机器化：实时评价数是【在线时长相关】的输入，

@@ -12,7 +12,8 @@ import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs'   // ★ §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
-import { 注入事件库, 构建注入事件, 校验注入合法性 } from './teacherEvents.mjs'
+// ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
+import { 注入事件库, 构建注入事件, 构建自定义事件, 校验注入合法性, 校验按日触发, 效力维度 } from './teacherEvents.mjs'
 // ★ §32-U8-补 §2④：AI 领班全班默认授权页 —— 授权形状与规则单源（aiSupervisor）
 import { 默认授权, 领班规则 } from './aiSupervisor.mjs'
 import { groupKeyOf } from './supabaseClient.js'
@@ -436,6 +437,12 @@ function InjectionPanel({ rawStates, profiles, user }) {
   const [选中, set选中] = useState({})         // groupKey -> true
   const [提示, set提示] = useState(null)       // {type:'ok'|'err', text}
   const [忙, set忙] = useState(false)
+  // ★ §33-V8：类别筛/搜 + 按日触发 + 自定义编辑器状态
+  const [类别筛, set类别筛] = useState('全部')
+  const [搜索, set搜索] = useState('')
+  const [生效日输入, set生效日输入] = useState('')   // 空 = 整周；1–7 = 第 D 天起
+  const [编辑器开, set编辑器开] = useState(false)
+  const [自定义表, set自定义表] = useState({ 图标: '📌', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] })
   useEffect(() => {
     let 活 = true
     fetchClassState().then(cs => { if (!活) return; set库(Array.isArray(cs.injected_events) ? cs.injected_events : []); set通道就绪(!!cs.通道就绪) })
@@ -478,10 +485,16 @@ function InjectionPanel({ rawStates, profiles, user }) {
   })
   const 全部合法 = 目标组s.length > 0 && 周n >= 1 && 周n <= 12 && 逐组校验.every(x => x.合法)
   const 有档人数 = 全班进度.有档
-  async function 注入() {
+  async function 注入(自定义定义 = null) {
     set提示(null)
-    const 新事件 = 构建注入事件({ 事件id, 周: 周n, injectedBy: user?.name || '老师', injectedAt: new Date().toISOString() })
-    if (!新事件) { set提示({ type: 'err', text: '事件或周号非法（周号需 1–12）' }); return }
+    // ★ §33-V8：自定义事件（编辑器提交）与内置事件共用同一注入校验/通道/存储
+    const 新事件 = 自定义定义
+      ? 构建自定义事件({ 定义: 自定义定义, 周: 周n, 生效日: 生效日输入 ? Number(生效日输入) : null, injectedBy: user?.name || '老师', injectedAt: new Date().toISOString() })
+      : 构建注入事件({ 事件id, 周: 周n, injectedBy: user?.name || '老师', injectedAt: new Date().toISOString() })
+    if (!新事件) { set提示({ type: 'err', text: 自定义定义 ? '自定义事件缺标题/正文（必填）' : '事件或周号非法（周号需 1–12）' }); return }
+    // ★ 按日程校验（公平红线 a · 天粒度）：生效日不得早于当前教学进度
+    const 按日检 = 校验按日触发({ 注入周: 周n, 生效日: 生效日输入 ? Number(生效日输入) : null, 当前教学周: classWeek || 建议周, 当前dayIndex: 1 })
+    if (!按日检.合法) { set提示({ type: 'err', text: `按日程校验未过：${按日检.原因}` }); return }
     if (!全部合法) { set提示({ type: 'err', text: '校验未通过：见下方逐组状态（注入周必须 > 该组已结算周）' }); return }
     const targets = 范围 === 'all' ? null : 目标组s
     // 去重：同事件 + 同周 + 目标重叠 ⇒ 拦（避免同周双卡；引擎按来源事件去重，但界面也不该重复注入）
@@ -526,9 +539,21 @@ function InjectionPanel({ rawStates, profiles, user }) {
             ⚠ 注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
           </div>
         )}
-        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>① 选事件（8 条 · 老师手动注入，与既有随机事件有去重口径）</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-          {注入事件库.map(e => (
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>① 选事件（内置 {注入事件库.length} 条 · 按类别筛 / 可搜 · 与既有随机事件有去重口径）</div>
+        {/* ★ §33-V8：类别筛 + 搜索（35 条不能平铺成一面墙） */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+          {['全部', '钱', '属性', '口碑', '人力', '运营', '监管'].map(c => (
+            <button key={c} onClick={() => set类别筛(c)}
+              style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: 类别筛 === c ? '#E8940F' : '#F3F4F6', color: 类别筛 === c ? '#fff' : '#6B7280' }}>{c}</button>
+          ))}
+        </div>
+        <input value={搜索} onChange={e => set搜索(e.target.value)} placeholder="🔍 搜事件名/教学点…" 
+          style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, maxHeight: 260, overflowY: 'auto' }}>
+          {注入事件库
+            .filter(e => 类别筛 === '全部' || e.类别 === 类别筛)
+            .filter(e => !搜索 || (e.name + e.教学点 + e.影响).includes(搜索))
+            .map(e => (
             <div key={e.id} onClick={() => set事件id(e.id)}
               style={{ padding: '7px 9px', borderRadius: 8, cursor: 'pointer', background: 事件id === e.id ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${事件id === e.id ? '#E8940F' : '#F3F4F6'}` }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{e.icon} {e.name.replace(/（.*?）/, '')}</div>
@@ -539,12 +564,18 @@ function InjectionPanel({ rawStates, profiles, user }) {
         <div style={{ fontSize: 10, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
           {当前事件.icon} <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选周（建议：第 {建议周} 周 —— 全班最靠前已结算周 + 1）</div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（★ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           <input value={周} onChange={e => set周(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={`如 ${建议周}`} inputMode="numeric"
             style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
-          <span style={{ fontSize: 10, color: '#9CA3AF' }}>1–12 周（学期 12 周）· 当前教学周按服务端 classDay 推进</span>
+          <span style={{ fontSize: 10, color: '#9CA3AF' }}>周（1–12）· 建议：第 {建议周} 周</span>
         </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+          <input value={生效日输入} onChange={e => set生效日输入(e.target.value.replace(/[^0-9]/g, '').slice(0, 1))} placeholder="整周" inputMode="numeric"
+            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
+          <span style={{ fontSize: 10, color: '#9CA3AF' }}>生效日（周内第 D 天 · 2–7 · 留空 = 整周生效）· 按日程触发：第 D 天起分段生效</span>
+        </div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 10 }}>★ 公平红线：只影响未来 —— 生效日早于当前教学进度的会被校验拦住</div>
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>③ 选对象</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           {[['all', '全班'], ['groups', '指定组']].map(([k, l]) => (
@@ -574,11 +605,69 @@ function InjectionPanel({ rawStates, profiles, user }) {
             {有档人数 === 0 && <div style={{ color: '#9CA3AF' }}>（全班暂无开业存档：注入后各组开业到该周时照常生效）</div>}
           </div>
         )}
-        <button className="btn btn-primary" disabled={忙 || !全部合法 || !通道就绪} onClick={注入} style={{ width: '100%', padding: '11px 0', opacity: (忙 || !全部合法 || !通道就绪) ? 0.5 : 1 }}>
-          {忙 ? '写入中…' : 全部合法 ? `注入到第 ${周n} 周${范围 === 'all' ? '（全班）' : `（${目标组s.length} 组）`}` : '注入（先通过校验/选目标/填周号 1–12）'}
+        <button className="btn btn-primary" disabled={忙 || !全部合法 || !通道就绪} onClick={() => 注入()} style={{ width: '100%', padding: '11px 0', opacity: (忙 || !全部合法 || !通道就绪) ? 0.5 : 1 }}>
+          {忙 ? '写入中…' : 全部合法 ? `注入内置事件到第 ${周n} 周${生效日输入 ? `第 ${生效日输入} 天起` : ''}${范围 === 'all' ? '（全班）' : `（${目标组s.length} 组）`}` : '注入（先通过校验/选目标/填周号 1–12）'}
         </button>
         {提示 && (
           <div style={{ fontSize: 11, marginTop: 8, color: 提示.type === 'ok' ? '#065F46' : '#991B1B', background: 提示.type === 'ok' ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>{提示.text}</div>
+        )}
+        {/* ★ §33-V8 §1①②：自定义事件编辑器（正文 + 受控效力面板 · 不许公式） */}
+        <div style={{ borderTop: '1px dashed #E5E7EB', margin: '14px 0 10px' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>✏️ 自定义突发事件（老师自己写 · 走同一生效通道）</div>
+          <button onClick={() => set编辑器开(!编辑器开)}
+            style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', background: 编辑器开 ? '#E8940F' : '#F3F4F6', color: 编辑器开 ? '#fff' : '#6B7280' }}>{编辑器开 ? '收起' : '新建'}</button>
+        </div>
+        {编辑器开 && (
+          <div style={{ background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+              <input value={自定义表.图标} onChange={e => set自定义表(t => ({ ...t, 图标: e.target.value.slice(0, 2) }))} placeholder="图标"
+                style={{ width: 52, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 14, textAlign: 'center' }} />
+              <input value={自定义表.标题} onChange={e => set自定义表(t => ({ ...t, 标题: e.target.value.slice(0, 24) }))} placeholder="标题（必填 · 如：周边道路施工）"
+                style={{ flex: 1, padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }} />
+            </div>
+            <textarea value={自定义表.正文} onChange={e => set自定义表(t => ({ ...t, 正文: e.target.value.slice(0, 160) }))} rows={2}
+              placeholder="正文（必填 · 写给学生的话 · 与酒店经营有关 · 160 字内）"
+              style={{ width: '100%', padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <input value={自定义表.教学点} onChange={e => set自定义表(t => ({ ...t, 教学点: e.target.value.slice(0, 60) }))} placeholder="教学点（你想让学生明白什么 · 复盘用）"
+              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6 }} />
+            <input value={自定义表.备注} onChange={e => set自定义表(t => ({ ...t, 备注: e.target.value.slice(0, 60) }))} placeholder="备注（仅老师可见 · 可空）"
+              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 8 }} />
+            {/* 受控效力面板：维度白名单 × 三档 · 不许自由写数值 */}
+            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>效力（选 0–3 个维度 · 留空 = 纯叙事事件 · 只显示不改数字）</div>
+            {效力维度.map(d => {
+              const sel = 自定义表.效力.find(x => x.维度key === d.key)
+              return (
+                <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderBottom: '1px solid #F3F4F6' }}>
+                  <span style={{ fontSize: 11, flex: 1 }}>{d.名称}{d.带方向 ? '（可升/降）' : ''}</span>
+                  {!sel && <button onClick={() => set自定义表(t => ({ ...t, 效力: [...t.效力, { 维度key: d.key, 方向: '升', 档位: '小' }].slice(-3) }))}
+                    style={{ fontSize: 10, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: '#F3F4F6', color: '#6B7280' }}>+ 加</button>}
+                  {sel && (
+                    <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                      {d.带方向 && ['升', '降'].map(f => (
+                        <button key={f} onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.map(x => x.维度key === d.key ? { ...x, 方向: f } : x) }))}
+                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: (sel.方向 || '升') === f ? '#E8940F' : '#F3F4F6', color: (sel.方向 || '升') === f ? '#fff' : '#6B7280' }}>{f}</button>
+                      ))}
+                      {['小', '中', '大'].map(g => (
+                        <button key={g} onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.map(x => x.维度key === d.key ? { ...x, 档位: g } : x) }))}
+                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: sel.档位 === g ? '#E8940F' : '#F3F4F6', color: sel.档位 === g ? '#fff' : '#6B7280' }}>{g}</button>
+                      ))}
+                      <button onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.filter(x => x.维度key !== d.key) }))}
+                        style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: '#FEF2F2', color: '#991B1B' }}>×</button>
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+            <div style={{ fontSize: 10, color: '#9CA3AF', margin: '6px 0' }}>
+              🔴 不许自由写数值（受控档位保证公平与可复跑）· 事件与内置库走同一生效通道（按日程触发 · 补算一致）
+            </div>
+            <button className="btn btn-primary" disabled={忙 || !自定义表.标题 || !自定义表.正文 || !周n || !通道就绪}
+              onClick={() => { 注入({ ...自定义表 }); set编辑器开(false); set自定义表({ 图标: '📌', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] }) }}
+              style={{ width: '100%', padding: '10px 0', opacity: (忙 || !自定义表.标题 || !自定义表.正文 || !周n || !通道就绪) ? 0.5 : 1 }}>
+              注入自定义事件到第 {周n || '?'} 周{生效日输入 ? `第 ${生效日输入} 天起` : ''}
+            </button>
+          </div>
         )}
       </div>
       <div className="card">
