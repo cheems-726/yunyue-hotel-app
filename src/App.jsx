@@ -2196,6 +2196,51 @@ export default function App() {
     const 输入 = settleInputsFrom({ reviews, week, crisis, eventResponse: 读事件应对(), decisions: doneDecisions })   // ★ §27.3-②a：把 emergency 处置一并传入（唯一派生点）
     const { pendingNegatives, resolvedCount, liveNegCount, livePosCount, crisisResponse } = 输入
     const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
+    // ★★ §33-V3（2026-10-02 · AI 领班二期）：代管动作**真正生效** —— 领班产出 = 一组「代管决策」，
+    //   结算时**并入本周决策集**。三铁律（卡内 §1①/§2）：
+    //   ① **学生决策 > 领班**：代管只填【学生没做】的项（学生做了就轮不到领班 —— 优先级写死 + 守门断言）。
+    //      落地形态：`代管决策 = { overbook: 0, energy: 23 }` 里凡 doneDecisions 已有的键 ⇒ 剔除。
+    //   ② **确定性**：领班快照 = 【上周结算结果】派生（history[末位] · 与在线/补算同源 · 不看随机不看设备）。
+    //   ③ **默认全关**：生效授权无 overbook/energy ⇒ 代管决策为空 ⇒ decisions 原样 ⇒ 逐字节水位线。
+    //   ★ 范围（卡内 §1③④）：只落地 **R3（超售清零 → overbook:0）** 与 **R6（能耗回归 → energy:23）**——
+    //     这两条只需 decisions 快照（B3 §六「零账本改动」档）；**R1/R2 不做**（需竞对价每日序列，现无该数据模型，
+    //     不许用周级快照冒充日级）——R1/R2 的 when 在快照缺 竞对均价 时天然不触发，另外显式置 null 双保险。
+    //   ★ 不双扣四层（×V4/V6/R4/R6 · 卡内 §1③）见 aiSupervisor.mjs 头部「§33-V3 不双扣边界表」+ 报告 §三。
+    const 上周结果 = history.length ? history[history.length - 1] : null
+    let 领班代管决策 = {}
+    let 领班记录 = null
+    try {
+      const 领班授权 = 生效授权({ 全班默认: 领班全班默认用, 学生覆盖: 读领班覆盖() })
+      const 领班快照源 = 上周结果 ? {
+        出租率: Number(上周结果.occupancy) || 0,
+        当前价: (Number(上周结果.occupiedRooms) > 0 && Number.isFinite(Number(上周结果.revenue))) ? Math.round(Number(上周结果.revenue) / (Number(上周结果.occupiedRooms) * 7)) : null,
+        竞对均价: null, 竞对降价幅度: 0, 竞对溢价: null,   // ★ R1/R2 需竞对价序列 ⇒ 二期不做 ⇒ 置 null ⇒ 规则不触发（不冒充日级）
+        本周超售赔偿次数: (Number(上周结果.overbookCompensation) > 0 && Number(上周结果.price) > 0) ? Math.round(Number(上周结果.overbookCompensation) / Math.round(Number(上周结果.price))) : 0,
+        卫生不合格: (doneDecisions || {}).hygiene === '不停房',
+        // ★ §33-V3：R6 能耗回归 —— 室温 = 学生当前决策（缺省视为 23 舒适区 ⇒ 不触发）
+        室温: (doneDecisions || {}).energy != null ? Number((doneDecisions || {}).energy) : 23,
+      } : null
+      if (领班快照源) {
+        const rec = 领班决策({ state: 领班快照源, authorizations: 领班授权 })
+        // 学生优先：只保留【学生没做】的项
+        const 学生没做的 = {}
+        for (const a of rec.actions) {
+          const 落点 = a.item === 'overbook' ? 'overbook' : a.item === 'energy' ? 'energy' : null
+          if (落点 && (doneDecisions || {})[落点] === undefined) 学生没做的[落点] = a.to
+        }
+        领班代管决策 = 学生没做的
+        const 学生决策数 = Object.keys(doneDecisions || {}).length
+        领班记录 = {
+          ...rec,
+          代管决策: { ...学生没做的 },
+          代管率: 代管率(rec.actions.length, 学生决策数),
+          授权快照: 领班授权,
+          二期说明: '二期：R3/R6 代管动作真生效（并入决策集 · 学生决策优先）；R1/R2 需竞对价每日序列 ⇒ 明确不做',
+        }
+      }
+    } catch (e) {}   // 领班层任何异常不拦结算（回到无领班行为）
+    // 代管决策并入：只填空位（学生优先的落地 · Object.assign 语义天然"已有键不覆盖"）
+    const 本周生效决策 = (Object.keys(领班代管决策 || {}).length > 0) ? { ...领班代管决策, ...doneDecisions } : doneDecisions
     // B5：补传 prevCapital（否则资金每周从 50 万重算、"资金链断裂/预警"永不触发）
     //     + bizMode（否则认领页选的"平台合作"在引擎侧永远走不到，帮助页承诺的 15% 佣金与流量加成失效）
     // ★ §19.1（单元 1·B4）：走【分段结算】—— 把本周变更记录变成按天生效的决策喂进引擎。
@@ -2208,7 +2253,8 @@ export default function App() {
     //   catch 里只处理【等级限制】类错误（re /等级限制/），其它异常照常抛出（不掩盖真 bug）。
     let result
     try {
-      result = settleWeekSegmented({ site, brand, decisions: doneDecisions, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty, injectedEvents: 本周注入用, eventResponses: 输入.注入应对, 补算 })
+      // ★ §33-V3：decisions 用【本周生效决策】（学生决策 + 领班代管填空位）—— 未授权 ⇒ 代管空 ⇒ === doneDecisions
+      result = settleWeekSegmented({ site, brand, decisions: 本周生效决策, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty, injectedEvents: 本周注入用, eventResponses: 输入.注入应对, 补算 })
     } catch (e) {
       if (!/等级限制/.test(String(e && e.message))) throw e
       const 区 = location?.district ?? '本区域'
@@ -2252,39 +2298,33 @@ export default function App() {
       result.__auto = true
       if (meta.key) setAutoSettled(prev => (prev.includes(meta.key) ? prev : [...prev, meta.key]))
     }
-    // ★ §32-U8-补 §2④：AI 领班（一期 = 记录与复盘；数值执行二期 —— 与 B3 §六「一期架构位」一致）
-    //   · 口径：结算【之后】用本周结果派生"若授权，领班本会怎么做"⇒ 挂到周报对象（随 history 持久化，学生复盘可见）
-    //   · 引擎边界：settle【不引用】aiSupervisor（thirdPhase 有守门断言）—— 记录在 App 层生成
-    //   · 授权两层：全班默认（老师端 class_state.supervisor_auth）+ 学生覆盖（本地设置，收窄/放宽）
-    //   · 留痕：动作/报告逐条写 operatorLogs（代管人 = AI 领班 + 依据规则 id）
+    // ★ §32-U8-补 §2④ + §33-V3：AI 领班（**二期 = 代管动作真生效** —— 见上方 V3 注释块）
+    //   · 本周实际生效的代管 = 领班记录.代管决策（结算前已并入 本周生效决策）⇒ 这里只补【记录与留痕】
+    //   · 结果快照（领班状态快照(result)）继续挂 supervisorRecord —— 供【下周】领班决策用（随 history 持久化）
+    //   · 引擎边界不变：settle【不引用】aiSupervisor（thirdPhase 守门）—— 代管并发生在 App 层
     try {
-      const 快照 = 领班状态快照(result)
-      if (快照) {
-        const 授权 = 生效授权({ 全班默认: 领班全班默认用, 学生覆盖: 读领班覆盖() })
-        const rec = 领班决策({ state: 快照, authorizations: 授权 })
-        const 学生决策数 = Object.keys(doneDecisions || {}).length
-        result.supervisorRecord = {
-          ...rec,
-          代管率: 代管率(rec.actions.length, 学生决策数),
-          授权快照: 授权,
-          一期说明: '一期只记录不执行（数值执行二期开放）· 授权默认全关 = 全班行为一致',
-        }
-        // operatorLog 留痕：动作/报告按规则 → 对应决策项（R1/R2 → pricing；R3 → overbook；R7 → hygiene）
-        const 规则项映射 = { R1: 'pricing', R2: 'pricing', R3: 'overbook', R7: 'hygiene' }
+      if (领班记录) {
+        result.supervisorRecord = { ...领班记录, 结果快照: 领班状态快照(result) }
+        // operatorLog 留痕：**只记真正生效的代管动作**（领班记录.代管决策 · 学生优先过滤后）
+        const 落点规则 = { overbook: 'R3', energy: 'R6' }
         const 新日志 = []
-        for (const a of rec.actions) {
-          const d = 规则项映射[a.ruleId]
-          const 条 = d ? 记录一条({ decisionId: d, answer: a.to, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null }) : null
-          if (条) 新日志.push({ ...条, 依据规则: a.ruleId, 领班reason: a.reason })
+        for (const [项, to] of Object.entries(领班记录.代管决策 || {})) {
+          const 规则 = 落点规则[项] || ''
+          const 条 = 记录一条({ decisionId: 项, answer: to, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null })
+          const 依据 = (领班记录.actions || []).find(a => a.item === 项)
+          if (条) 新日志.push({ ...条, 依据规则: 依据 ? 依据.ruleId : 规则, 领班reason: 依据 ? 依据.reason : '', 生效周: week })
         }
-        for (const r of rec.reports) {
-          const d = 规则项映射[r.ruleId]
+        for (const r of (领班记录.reports || [])) {
+          const d = r.ruleId === 'R7' ? 'hygiene' : null
           const 条 = d ? 记录一条({ decisionId: d, answer: null, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null }) : null
           if (条) 新日志.push({ ...条, 依据规则: r.ruleId, 领班reason: r.reason })
         }
         if (新日志.length) setOperatorLogs(prev => [...prev, ...新日志])
+      } else {
+        // 未授权/无快照 ⇒ 也挂一个"本周领班未动作"记录（学生复盘卡能看到状态 · 条件字段）
+        result.supervisorRecord = { actions: [], reports: [], 代管决策: {}, 代管率: 代管率(0, Object.keys(doneDecisions || {}).length), 本周未动作: true }
       }
-    } catch (e) {}   // 领班记录失败不拦结算（一期=记录；绝不因记录层把结算弄崩）
+    } catch (e) {}   // 领班记录失败不拦结算（绝不因记录层把结算弄崩）
     setReport(result)
   }
   // ★ §32-U8-补 §2④：领班决策的【状态快照】—— 从本周结算结果派生（不新算一套账）。

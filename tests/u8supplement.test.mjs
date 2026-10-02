@@ -137,7 +137,9 @@ console.log('\n[5] §2④ AI 领班：不再死代码（有调用方）· 默认
   ok(/依据规则: a\.ruleId/.test(APPJSX) || /依据规则: r\.ruleId/.test(APPJSX), '留痕带【依据规则 id】（谁/何时/什么/依据）')
   ok(/import \{ 默认授权, 领班规则 \} from '\.\/aiSupervisor\.mjs'/.test(TD), '教师端领班页 import 默认授权/领班规则（单源）')
   ok(/setClassSupervisorAuth/.test(TD), '教师端写全班默认授权（setClassSupervisorAuth）')
-  ok(/一期只记录与复盘（数值执行二期开放）/.test(rd('src/TeacherDashboard.jsx')), '★ 授权页明示：一期只记录不执行（不假承诺）')
+  // ★ §33-V3：二期口径 —— 授权页明示 R3/R6 真执行（不假承诺 · 也不夸大：R1/R2 明确不开放）
+  ok(/二期：R3（超售止损）\/ R6（能耗回归）的代管动作已真实生效/.test(rd('src/TeacherDashboard.jsx')), '★ 授权页明示：二期 R3/R6 真执行（含"学生自己做过的项领班不碰"）')
+  ok(/R1\/R2（调价）需竞对价每日数据，二期暂不开放/.test(rd('src/TeacherDashboard.jsx')), '★ 授权页明示：R1/R2 不开放的原因（不许周级冒充日级）')
   ok(/全班行为一致 = 公平基准/.test(rd('src/TeacherDashboard.jsx')), '授权页明示：默认全关 = 全班一致 = 公平')
   // 学生侧授权（收窄/放宽）+ 复盘卡
   ok(/hotel-sim-supervisor-auth/.test(WR) && /function SupervisorCard/.test(WR), '学生侧：SupervisorCard（授权设置写 hotel-sim-supervisor-auth + 本周代管记录）')

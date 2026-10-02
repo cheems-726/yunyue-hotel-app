@@ -24,6 +24,7 @@ import { weekInputsOf, 空周输入 } from './weekInputs.mjs'
 export { DAYS_PER_WEEK }   // W1-5：进度口径需要它（周↔天换算），属 tick 的公开面
 // W1-4：哈希链抽到独立模块（单一实现，避免 serverTick 与防作弊模块各写一份）
 import { fnv1a, entryIdOf, chainHash } from './decisionLogIntegrity.mjs'
+import { 领班代管 } from './aiSupervisor.mjs'   // ★ §33-V3：代管动作（同构纯函数 · 双端共用同一份源码）
 export { fnv1a, entryIdOf, chainHash }   // 兼容既有调用方（serverTick.test 直接从本文件取）
 
 export const TICK_VERSION = 1
@@ -105,6 +106,8 @@ export function tickKey(classDay, groupKey) {
 //   本处只 re-export —— 否则"客户端第几天"与"服务端第几天"迟早各写一份（BL-7 同族）。
 export { dayToWeekDay } from './weeklyAuto.mjs'
 
+
+
 /**
  * ★ 服务端推进该组的 1 天（核心）。纯函数：不改入参、不写库。
  *
@@ -139,6 +142,18 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
 
   // 需要结算新的一周：用"最后决策延续"（学生没交新决策时沿用上一次）
   const decisions = opts.decisions || src.lastDecisions || src.doneDecisions || {}
+  // ★★ §33-V3（AI 领班二期 · 补算通道同步 —— B7 教训：动 settle 入参的批次必须同步 serverTick）：
+  //   服务端领班与客户端【同一纯函数】aiSupervisor.领班代管() ⇒ "补算 === 在线"由同一份源码保证。
+  //   授权两层 = opts.supervisorAuth（全班默认 · Edge 从 class_state 读传入）+ src.supervisorAuthStudent（学生覆盖 · 随存档上传）。
+  //   学生决策优先：代管只填【学生决策缺失】的项（函数内置）。未授权/无上周结果 ⇒ 代管空 ⇒ decisions 原样（公平红线）。
+  let 生效决策 = decisions
+  try {
+    const 上周 = history.length ? history[history.length - 1] : null
+    if (上周 && (opts.supervisorAuth || src.supervisorAuthStudent)) {
+      const { 代管决策 } = 领班代管({ 上周, 学生决策: decisions, 全班默认: opts.supervisorAuth || null, 学生覆盖: src.supervisorAuthStudent || null })
+      if (Object.keys(代管决策).length > 0) 生效决策 = { ...代管决策, ...decisions }   // ★ 学生决策优先（已有键不覆盖）
+    }
+  } catch (e) {}   // 领班层异常 ⇒ 回到无领班行为（不拦补算）
   const bounds = validateDecisions(decisions)
   const prev = history.length ? history[history.length - 1] : null
   // ★ §16.2-B7：周内输入（欠账/整改/实时评价/危机）必须与客户端【同一个来源】——
@@ -163,7 +178,7 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   const result = settleWeekSegmented({
     site: src.location,
     brand: src.brand,
-    decisions,
+    decisions: 生效决策,   // ★ §33-V3：学生决策 + 领班代管填空位（未授权 ⇒ === decisions）
     week,
     attrs: src.attrs,
     prevGoodRate: prev ? prev.finalGoodRate : null,
@@ -189,7 +204,9 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     injectedEvents: Array.isArray(opts.injectedEvents) ? opts.injectedEvents : null,
     eventResponses: 输入.注入应对 || null,
     补算: Number(src.week || 1) < Number(week),
-    decisionsByDay: decisionsByDayFrom({ base: 变更前决策, changes: src.decisionChanges, week }),
+    // ★ §33-V3：decisionsByDay 的 base 也要用【生效决策】—— 否则分段路径 segmentsOf 会用 base（无代管）
+    //   覆盖掉 生效决策（实测：领班代管在补算路径静默失效的根因）。周中无改动 ⇒ 段=1 ⇒ base 即决策集。
+    decisionsByDay: decisionsByDayFrom({ base: 生效决策, changes: src.decisionChanges, week }),
   })
 
   const nextSave = { ...src, week, capital: result.capital, attrs: result.attrsAfter, history: [...history, result] }

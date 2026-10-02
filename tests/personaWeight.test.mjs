@@ -90,6 +90,36 @@ ok(无区.personaFeedback.length === 2 && 无区.personaFeedback[0].includes('�
 // ⑦ 确定性：同输入两跑逐字节
 ok(JSON.stringify(跑v6('锦江区')) === JSON.stringify(锦江), '确定性：同输入两跑逐字节一致（公平红线）')
 
+// ⑨ ★ §33-V3：AI 领班代管 —— 学生决策优先 + 未授权水位线（RV-33v3 靶 RV-1/RV-2 的守门侧）
+{
+  const { 领班代管 } = await import('../src/aiSupervisor.mjs')
+  // 上周 = 真实结算结果形态（含 decisions 快照 —— R6 的室温延续读它）
+  const 上周 = { occupancy: 54, revenue: 92000, occupiedRooms: 40, overbookCompensation: 1840, price: 230, decisions: { energy: 26, overbook: 8 } }
+  const 全开 = { overbook: { ok: true }, energy: { ok: true } }
+  // (a) 学生决策优先：学生本周两项都做了 ⇒ 领班什么都不管（代管 = {} —— 不覆盖学生任何选择）
+  const r学生有 = 领班代管({ 上周, 学生决策: { overbook: 3, energy: 26 }, 全班默认: 全开 })
+  ok(Object.keys(r学生有.代管决策).length === 0,
+    '★ V3 学生决策优先：学生两项都做了 ⇒ 领班零代管（不覆盖学生任何选择）',
+    JSON.stringify(r学生有.代管决策))
+  // (a2) 学生只做了 energy(26) ⇒ 领班不碰 energy（学生优先另一侧）· overbook 没做 ⇒ R3 代管 0
+  const r学生有e = 领班代管({ 上周, 学生决策: { energy: 26 }, 全班默认: 全开 })
+  ok(r学生有e.代管决策.overbook === 0 && r学生有e.代管决策.energy === undefined,
+    '★ V3 学生决策优先（另一侧）：学生自己设了 26℃ ⇒ 领班不碰（代管只剩 overbook:0）',
+    JSON.stringify(r学生有e.代管决策))
+  // (b) 学生本周没做 overbook/energy ⇒ 沿用上周（overbook=8 ⇒ R3 · energy=26 延续 ⇒ R6）⇒ 双代管
+  const r学生无 = 领班代管({ 上周, 学生决策: {}, 全班默认: 全开 })
+  ok(r学生无.代管决策.overbook === 0 && r学生无.代管决策.energy === 23,
+    `★ V3 代管生效：学生没做 ⇒ 沿用上周（超售 8 次 ⇒ R3 清零 · 室温延续 26 ⇒ R6 回归）（${JSON.stringify(r学生无.代管决策)}）`,
+    JSON.stringify(r学生无.代管决策))
+  // (c) 未授权水位线：默认全关 ⇒ 代管空（一步不动）
+  const r未授权 = 领班代管({ 上周, 学生决策: {}, 全班默认: null, 学生覆盖: null })
+  ok(Object.keys(r未授权.代管决策).length === 0,
+    '★ V3 未授权水位线：默认全关 ⇒ 代管决策为空（一步不动 · 公平红线）')
+  // (d) 确定性：同状态同授权 ⇒ 同动作（与 (b) 同参数）
+  const r重复 = 领班代管({ 上周, 学生决策: {}, 全班默认: 全开 })
+  ok(JSON.stringify(r学生无.代管决策) === JSON.stringify(r重复.代管决策), '★ V3 确定性：同状态同授权 ⇒ 同代管（公平红线）')
+}
+
 // ⑧ 不双扣锚：客群段源码零引用 roleBonus / decisionRisk / V4 两维系数
 {
   const src = readFileSync(path.join(APP, 'src', 'settlement.js'), 'utf8')

@@ -140,16 +140,25 @@ function SupervisorCard({ result }) {
       <div className="card-title">🤖 AI 领班（本周复盘）</div>
       <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
         领班 = 你不在时的"看不见的手"：按授权范围代管决策，并留痕可复盘。
-        <b> 一期只记录不执行（数值执行二期开放）</b> · 默认全关 = 全班行为一致（公平基准）。
+        <b> 二期：R3（超售止损）/ R6（能耗回归）的代管动作【已真实生效】</b>（并入你的决策集 · 你自己做过的项领班不碰）；
+        R1/R2（调价）需竞对价每日数据，二期暂不开放 · 默认全关 = 全班行为一致（公平基准）。
       </div>
       {rec && (rec.actions.length > 0 || rec.reports.length > 0) ? (
         <div style={{ marginBottom: 8 }}>
-          {rec.actions.map((a, i) => (
+          {rec.actions.map((a, i) => {
+            const 生效 = rec.代管决策 && rec.代管决策[a.item] !== undefined
+            const 动作文 = a.item === 'overbook' ? `超售清零（超额预订 → 0）` : a.item === 'energy' ? `室温回归 23℃` : a.item === 'pricing' ? `建议调价至 ${a.to} 元` : a.item
+            return (
             <div key={`a${i}`} style={{ padding: '8px 10px', background: '#FFF4E0', border: '1px solid #FBE3B3', borderRadius: 8, marginBottom: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>【{a.ruleId} · 领班动作记录】{a.item === 'pricing' ? `建议调价至 ${a.to} 元` : a.item === 'overbook' ? '超售清零' : a.item}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>
+                【{a.ruleId} · {生效 ? '已代管执行' : '建议（该项由你自己做了 / 未开放）'}】{动作文}
+                {生效 && <span style={{ fontSize: 10, background: '#065F46', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>已生效</span>}
+              </div>
               <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>{a.reason}</div>
+              {生效 && <div style={{ fontSize: 10, color: '#065F46', marginTop: 2 }}>↳ 本周结算已按代管后的决策计算（学生决策优先：你自己做过的项领班不碰）</div>}
             </div>
-          ))}
+            )
+          })}
           {rec.reports.map((r, i) => (
             <div key={`r${i}`} style={{ padding: '8px 10px', background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, marginBottom: 6 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#4B5563' }}>【{r.ruleId} · 仅报告】</div>

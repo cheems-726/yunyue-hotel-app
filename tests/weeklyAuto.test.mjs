@@ -111,6 +111,38 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
     const 补算无危机 = advanceGroupOneDay(无危机存档, 7, { decisions: DEC, injectedEvents: 注入 })
     ok(JSON.stringify(补算无危机.save.history[0]) !== JSON.stringify(在线全),
       '反证：存档丢 hotReviewCrisis ⇒ 补算 ≠ 在线（危机通道真的在判，不是恒真）')
+    // ★★ §33-V3（AI 领班二期）：授权领班 + 离线补算 === 一直在线（逐字节）
+    //   · 客户端在线：领班代管在 App.doSettle 结算前并入（领班代管 同构函数）
+    //   · 服务端补算：serverTick 用【同一个函数】+ opts.supervisorAuth（Edge 传 class_state）+ 存档学生覆盖
+    //   · 判据：授权 overbook+energy、学生 energy=26（触发 R6）、上周超售赔偿 8 次（触发 R3）
+    //     ⇒ 补算结果与在线【逐字节】相同（B7 教训：动 settle 入参必须同步 serverTick —— 这里钉死）
+    {
+      const { 领班代管 } = await import('../src/aiSupervisor.mjs')
+      // ★ 场景（V3 · 首版场景失效教训）：学生本周【没做 overbook/energy】（键缺失 ⇒ 沿用上周）⇒ R3/R6 都该代管。
+      //   首版把 energy:26 写进学生决策 ⇒ 学生优先剔了 R6 ⇒ 代管空 ⇒ "摘 serverTick 也绿" = 场景失效（假绿场景）。
+      const 学生决策 = { ...DEC }   // 无 overbook/energy 键（沿用上周）
+      const 全班默认 = { overbook: { ok: true }, energy: { ok: true } }
+      // 上周：学生超售开满（overbook=8 · 温度 26）⇒ 结算产生赔偿与极端温度 ⇒ 本周领班代管回归
+      const 上周学生 = { ...DEC, overbook: 8, energy: 26 }
+      // ★ 上周结果要进存档 history（serverTick 从 history 末位取领班快照 —— 与真实存档同构）
+      const 上周结算 = settle({ site: 存档.location, brand: 存档.brand, decisions: 上周学生, week: 1, attrs: { ...ATTR_INIT }, prevCapital: 1490000, prevGoodRate: null, bizMode: 'direct' })
+      const 带领班的存档 = { ...存档, doneDecisions: 学生决策, supervisorAuthStudent: null, history: [上周结算], capital: 上周结算.capital, attrs: 上周结算.attrsAfter }
+      const 在线r = settle({ site: 存档.location, brand: 存档.brand, decisions: { ...代管决策并(上周结算, 学生决策, 全班默认, null) }, week: 2, attrs: 上周结算.attrsAfter, prevCapital: 上周结算.capital, prevGoodRate: 上周结算.finalGoodRate, bizMode: 'direct' })
+      const 补算r = advanceGroupOneDay(带领班的存档, 14, { decisions: 学生决策, supervisorAuth: 全班默认 })
+      const 补算周报 = 补算r.save.history.find(h => Number(h.week) === 2) || 补算r.save.history[补算r.save.history.length - 1]
+      ok(JSON.stringify(补算周报) === JSON.stringify(在线r),
+        '★★ V3 全通道：授权领班（R3+R6）+ 离线补算 === 一直在线【逐字节】',
+        `差异键：${Object.keys(在线r).filter(k => JSON.stringify(在线r[k]) !== JSON.stringify(补算周报[k])).slice(0, 6).join(',')}`)
+      // 反证：摘掉 serverTick 的领班入参（不传 supervisorAuth）⇒ 补算退回无代管 ⇒ 与在线不等
+      const 补算无领班 = advanceGroupOneDay(带领班的存档, 7, { decisions: 学生决策 })
+      ok(JSON.stringify(补算无领班.save.history[0]) !== JSON.stringify(在线r),
+        '反证：补算不带 supervisorAuth ⇒ 无代管 ⇒ ≠ 在线（领班通道真的在判）')
+      // 学生优先（局部函数与 aiSupervisor 同式）：
+      function 代管决策并(上周, 学生决策, 全班默认, 学生覆盖) {
+        const { 代管决策 } = 领班代管({ 上周, 学生决策, 全班默认, 学生覆盖 })
+        return { ...代管决策, ...学生决策 }   // ★ 学生已有键不覆盖（Object.assign 语义）
+      }
+    }
   }
   // ★ 公平性红线（D2）的机器化：实时评价数是【在线时长相关】的输入，
   //   它只决定"哪些卡已在实时里出过"，**不许改变任何业务数字**（实证：只有卡片数变）

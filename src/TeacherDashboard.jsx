@@ -602,7 +602,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
 
 // ★ §32-U8-补 §2④：AI 领班全班默认授权页（老师端）
 //   · 写 class_state.supervisor_auth（全班统一默认 —— 学生只能在此之上收窄/放宽，B3 §一.3）
-//   · 默认全关 = 全班行为一致 = 公平基准；一期=记录不执行（数值执行二期，卡内口径写死并明示）
+//   · 默认全关 = 全班行为一致 = 公平基准；★ §33-V3 二期 = R3/R6 代管真执行（学生决策优先 · R1/R2 不开放原因写明）
 function SupervisorPanel({ rawStates, profiles }) {
   const [auth, setAuth] = useState(null)
   const [就绪, set就绪] = useState(null)
@@ -641,7 +641,8 @@ function SupervisorPanel({ rawStates, profiles }) {
         <div className="card-title">🤖 AI 领班 · 全班默认授权</div>
         <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
           领班 = 学生不在时的「看不见的手」：按你授权的范围代管决策，并留痕可复盘。<br />
-          <b>一期只记录与复盘（数值执行二期开放）</b>；<b>默认全关 = 全班行为一致 = 公平基准</b>（B3 设计）。
+          <b>二期：R3（超售止损）/ R6（能耗回归）的代管动作已真实生效</b>（并入学生决策集 · 学生自己做过的项领班不碰）；
+          R1/R2（调价）需竞对价每日数据，二期暂不开放。<b>默认全关 = 全班行为一致 = 公平基准</b>（B3 设计）。
           学生可在周报的复盘卡里在默认之上收窄/放宽自己的。
         </div>
         {就绪 === false && (
@@ -1512,7 +1513,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             {[
               { v: 'overview', icon: '📊', label: '班级总览 & 教学进度控制', desc: '全班统计 / 锁周 / CSV导出' },
               { v: 'inject', icon: '📌', label: '事件注入（课堂用）', desc: '8 事件 × 周 × 全班/指定组 · 只影响未来校验' },
-              { v: 'supervisor', icon: '🤖', label: 'AI 领班（全班默认授权）', desc: '默认全关 · 一期记录与复盘 · 代管巡览' },
+              { v: 'supervisor', icon: '🤖', label: 'AI 领班（全班默认授权）', desc: '默认全关 · 二期 R3/R6 真执行 · 代管巡览' },
               { v: 'groups', icon: '👥', label: '分组管理', desc: '分组 / 班级 / 学号' },
               { v: 'teaching', icon: '📖', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (
