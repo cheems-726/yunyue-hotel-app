@@ -4,7 +4,7 @@
 import { chromium } from 'playwright-core'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { TEST_TEACHER, TEST_STUDENT } from './testEnv.mjs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
@@ -362,6 +362,16 @@ try {
     b && b.click()
   }); await sleep(700)
   ok('决策面板趋势块渲染', (await text(page)).includes('该决策近'))
+  // ── V12批0-4 · 运行时 DOM 验收（D133 缺陷家族：守门静态绿 ≠ 界面真干净）──
+  {
+    const ICONS_KEYS = Object.keys(JSON.parse(readFileSync(new URL('./icon-keys.json', import.meta.url), 'utf8')))
+    const domTxt = await page.evaluate(() => document.body.innerText)
+    const 长键 = ICONS_KEYS.filter(k => k.length >= 5 && k !== 'status.done' && k !== 'status.warn')
+    const 命中 = 长键.filter(k => domTxt.includes(k))
+    ok('DOM 可见文本无图标键名（经营页 · 阈 0）', 命中.length === 0)
+    const 高按钮 = await page.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.getBoundingClientRect().height > 80).map(b => b.textContent.trim().slice(0, 20)))
+    ok('页面无高度 >80px 的 button（ghost 拉伸家族）', 高按钮.length === 0)
+  }
   await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('‹ 返回') || x.textContent.includes('返回')); b && b.click() }); await sleep(600)
   await page.screenshot({ path: 'tests/_s3-rep.png' })
   // 回复交互：注入固定测试差评（stub）保证可测——先敷衍（应保持待处理）再优质（应解决）
@@ -488,6 +498,14 @@ try {
     }
     okT('教师端底部三导航+实时大屏', liveReady)
     await assertLayout(pg, '教师实时决策')
+    // ── V12批0-4 · 教师端 DOM 键名扫描（D133 原发现地：决策流水行）──
+    {
+      const ICONS_KEYS = Object.keys(JSON.parse(readFileSync(new URL('./icon-keys.json', import.meta.url), 'utf8')))
+      const domTxt = await pg.evaluate(() => document.body.innerText)
+      const 长键 = ICONS_KEYS.filter(k => k.length >= 5)
+      const 命中 = 长键.filter(k => domTxt.includes(k))
+      okT('教师端 DOM 可见文本无图标键名（决策流水 · 阈 0）', 命中.length === 0)
+    }
     // 周次筛选断言：切第1周快照回放，再切回实时
     await pg.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '第1周')

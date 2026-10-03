@@ -10,7 +10,7 @@ export default function Icon({ name, size = 18, style, className }) {
       viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"
       className={className}
       style={{
-        stroke: 'currentColor', fill: 'none', strokeWidth: 1.8,
+        stroke: 'currentColor', fill: 'none', strokeWidth: 2.0,
         strokeLinecap: 'round', strokeLinejoin: 'round', flex: 'none', display: 'block',
         ...style,
       }}

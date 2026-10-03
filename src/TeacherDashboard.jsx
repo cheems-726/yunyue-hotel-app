@@ -563,7 +563,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
           ))}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-sub)', background: 'var(--bg)', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
-          {当前事件.icon} <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
+          <Icon name={当前事件.icon || 'note.caliber'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
         </div>
  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
@@ -1224,13 +1224,13 @@ export default function TeacherDashboard({ user, onLogout }) {
                 文案调单源 代价文案(decisionId, answer)，与学生决策面板**逐字一致**（同源保证）；
                 未登记的选项 ⇒ 返回 null ⇒ 不显示（不报错、不空行） */}
             {chipDetail.decisionId && 代价文案(chipDetail.decisionId, chipDetail.rawAnswer) && (
-              <div style={{ fontSize: 12, color: 'var(--bad)', background: 'var(--bad-bg)', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
+              <div style={{ display: 'inline-block', fontSize: 13, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.6 }}>
                 {代价文案(chipDetail.decisionId, chipDetail.rawAnswer)}
               </div>
             )}
             </div>
             {chipDetail.tip && (
-              <div style={{ fontSize: 11, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
+              <div style={{ display: 'inline-block', fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 7, padding: '3px 8px', lineHeight: 1.7 }}>
  设计考量：{chipDetail.tip}
               </div>
             )}
@@ -1329,8 +1329,8 @@ export default function TeacherDashboard({ user, onLogout }) {
                         <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{hh}</span>
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>{lg.group_key || '未分组'}</span>
                         <span style={{ fontWeight: 600 }}>{p.display_name || '—'}</span>
-                        {role && <span style={{ fontSize: 9, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 4, padding: '1px 5px' }}>{role.icon} {role.label}</span>}
-                        <span style={{ fontWeight: 600 }}>{d.icon} {d.name || lg.decision_id}</span>
+                        {role && <span style={{ fontSize: 9, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 4, padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name={role.icon} size={10} /> {role.label}</span>}
+                        <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={d.icon} size={12} /> {d.name || lg.decision_id}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
                         <span style={{ color: 'var(--text)', flex: 1 }}>选择：{lg.answer || '—'}</span>
@@ -1587,7 +1587,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             {EVENT_INFO.map(e => (
               <div key={e.name} style={{ padding: '8px 10px', background: e.type === 'good' ? 'var(--good-bg)' : e.type === 'crisis' ? 'var(--warn-bg)' : 'var(--bad-bg)', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: e.type === 'good' ? 'var(--good)' : e.type === 'crisis' ? 'var(--warn)' : 'var(--bad)' }}>
-                  {e.icon} {e.name}{e.type === 'crisis' && ' · 危机'}
+                  <Icon name={e.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {e.name}{e.type === 'crisis' && ' · 危机'}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text)', marginTop: 2 }}>触发条件：{e.trigger}</div>
               </div>
@@ -1602,7 +1602,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {decisions.map((d, i) => (
             <div key={d.id} className="card" style={{ marginBottom: 10, padding: 14 }}>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-                {i + 1}. {d.icon} {d.name}
+                {i + 1}. <Icon name={d.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 6 }}>{d.desc}</div>
               <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6, background: 'var(--warn-bg)', borderRadius: 8, padding: 10 }}>

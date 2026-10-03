@@ -25,4 +25,5 @@ ${entries.join('\n')}
 }
 `
 writeFileSync(产物, out, 'utf8')
+writeFileSync(join(根, 'tests', 'icon-keys.json'), JSON.stringify(files.map(f => f.replace(/\.svg$/, ''))), 'utf8')
 console.log(`✓ ${产物}（${entries.length} 个图标键）`)

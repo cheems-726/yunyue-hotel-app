@@ -1,5 +1,7 @@
 
 // 欢迎页：首次登录的引导，介绍整个经营流程
+import Icon from './Icon.jsx'
+
 export default function Welcome({ user, onStart }) {
   const steps = [
     { icon: 'search', title: '选址', desc: '在成德绵片区选择你的酒店所在地' },
@@ -27,7 +29,7 @@ export default function Welcome({ user, onStart }) {
       <div style={{ padding: '0 20px' }}>
         {steps.map((s, i) => (
           <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: i < steps.length - 1 ? '1px solid var(--fill)' : 'none' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Icon name={s.icon} size={22} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600 }}>{i + 1}. {s.title}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{s.desc}</div>

@@ -51,5 +51,14 @@ const Css = join(APP, 'src', 'styles.css')
   s => s.replace('>云悦酒店</div>', '>云悦酒店<span style={{ color: \'#FF0000 #FF0000 #FF0000\' }} />'),
   '硬编码色值')
 
-console.log(`\n判定：${全过 ? '✓ RV 全过（4 靶：emoji/锁断点/删dark/色值）' : '❌ 有靶子未按预期变红/还原'}`)
+// ⑤（V12批0-4）把 Icon 槽位换回裸插值 {x.icon} ⇒ 必红（⑧ 键名漏出家族 · D133 缺陷）
+{
+  const Td = join(APP, 'src', 'TeacherDashboard.jsx')
+  靶('RV-5 图标槽位退回裸插值（{d.icon}）', Td,
+    s => s.replace("<span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={d.icon} size={12} /> {d.name || lg.decision_id}</span>",
+                   '<span style={{ fontWeight: 600 }}>{d.icon} {d.name || lg.decision_id}</span>'),
+    '图标键名')
+}
+
+console.log(`\n判定：${全过 ? '✓ RV 全过（5 靶：emoji/锁断点/删dark/色值/键名漏出）' : '❌ 有靶子未按预期变红/还原'}`)
 process.exit(全过 ? 0 : 1)

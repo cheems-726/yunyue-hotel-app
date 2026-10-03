@@ -211,7 +211,7 @@ function LoginPage({ onLogin }) {
       {error && <div style={{ color: 'var(--bad)', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>{error}</div>}
 
       <button className="btn-confirm" disabled={busy} onClick={handleLogin}>{busy ? '登录中…' : '登录'}</button>
-      <button className="btn btn-ghost" style={{ marginTop: 10, padding: '12px 0' }} disabled={busy} onClick={handleSignup}>
+      <button className="btn btn-ghost" style={{ flex: '0 0 auto', marginTop: 10, padding: '12px 0' }} disabled={busy} onClick={handleSignup}>
         {busy ? '请稍候…' : '注册并登录（首次使用）'}
       </button>
 

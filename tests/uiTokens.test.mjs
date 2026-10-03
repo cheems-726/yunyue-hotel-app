@@ -93,6 +93,45 @@ ok(色值 <= 2, `⑥ jsx 硬编码色值 ≤ 2（起点 1424 · 现 ${色值} ·
 const html = readFileSync(join(APP, 'index.html'), 'utf8')
 ok(!html.includes('user-scalable=no') && !html.includes('maximum-scale=1.0'), '⑦ index.html 允许双指缩放（V10a③）')
 
+// ⑧ 可见文本不得出现图标键名（V12批0-4 · D133 真缺陷：emoji 删了、键名漏到界面）
+//    静态层：icon 键引用只允许出现在 <Icon name=…> 上下文；出现在 JSX 文本/模板插值/裸 {} 槽位 ⇒ 红。
+//    运行时层（DOM 真扫）在 ui-smoke：body.innerText 不得含任何注册表键名。
+const 键名 = regKeys.filter(k => k.length >= 5)   // 短键（如 guest/search）不查（正文词碰撞）
+let 键名漏出 = []
+for (const f of readdirSync(join(APP, 'src')).filter(f => f.endsWith('.jsx'))) {
+  const lines = readFileSync(join(APP, 'src', f), 'utf8').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]
+    if (isComment(l)) continue
+    for (const k of 键名) {
+      // 键名以【普通文本】出现：排除合法用法（<Icon name='k' / name={expr含k} / iconPaths / 注释已剥）
+      if (l.includes("'Icon.jsx'") || l.includes('iconPaths')) continue
+      if (/\bicon\s*:|图标\s*:|avatar\s*:/.test(l)) continue   // 数据定义行（icon:/图标:/avatar: '键'）不是渲染槽位
+      const 合法 = new RegExp(`<Icon[^>]*${k}[^>]*>`)
+      if (合法.test(l)) continue
+      // 键名出现在 JSX 文本插值 {x.icon}/{…icon…} 或模板串 ${…icon…} 或带点号键名字面量（如 'log.ops' 出现在非 name= 位置）
+      const 裸插值 = new RegExp(`\\{[^}]*\\b${k.replace(/\./g, '\\.')}\\b[^}]*\\}`)
+      const 键字面量 = new RegExp(`['"\`]${k.replace(/\./g, '\\.')}['"\`]`)
+      const 是name槽 = new RegExp(`name=\\{?[^}]*${k.replace(/\./g, '\\.')}`)
+      const 图标定义 = /iconPaths|ICONS|\.svg/.test(l)
+      if (图标定义 || 是name槽.test(l)) continue
+      if ((裸插值.test(l) && /icon|图标/.test(l)) || (键字面量.test(l) && !/name=/.test(l))) {
+        键名漏出.push(`${f}:${i + 1}: ${k}`)
+        break
+      }
+    }
+    // ⑧b 裸插值槽位：{x.icon} 出现在非 <Icon name=> 上下文 ⇒ 就是「键名渲染成文本」的本形（D133）
+    if (!/<(Icon|SVG)\b/i.test(l) && !/\bicon\s*:|\b图标\s*:|avatar\s*:/.test(l) && !l.includes("'Icon.jsx'") && !l.includes('iconPaths')) {
+      const 裸icon插值 = /\{\s*\w+(\.\w+)*\.icon\s*\}/
+      const 是prop传参 = /(name|icon|Icon)\s*=\s*\{\s*\w+(\.\w+)*\.icon\s*\}/
+      if (裸icon插值.test(l) && !是prop传参.test(l)) {
+        键名漏出.push(`${f}:${i + 1}: {…icon} 裸插值`)
+      }
+    }
+  }
+}
+ok(键名漏出.length === 0, '⑧ 可见文本不得出现图标键名（静态槽位扫描 · D133 缺陷家族）', 键名漏出.slice(0, 3).join(' | '))
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('RV（tests/_rv-33v10b.mjs）：塞回裸emoji / 断点锁回480 / 删暗色媒体查询 ⇒ 各必红')
 process.exit(fail ? 1 : 0)

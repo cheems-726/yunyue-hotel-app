@@ -369,7 +369,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               })()}
               {r.source && (
                 <div style={{fontSize:10,color:'var(--bad)',background:'var(--bad-bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
-                  来源：{r.source.icon} {r.source.name}——这条差评本可避免
+                  来源：<Icon name={r.source.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.source.name}——这条差评本可避免
                 </div>
               )}
  {/* §32-U4-R4：职务加成提示（谁处理不一样 · 但所有人都能处理 —— 不卡进度） */}
@@ -417,7 +417,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               )}
               {r.source && (
                 <div style={{fontSize:10,color:'var(--text-muted)',background:'var(--bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
-                  来源：{r.source.icon} {r.source.name}
+                  来源：<Icon name={r.source.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.source.name}
                 </div>
               )}
             </div>
