@@ -55,7 +55,7 @@ function HotReviewOverlay({ event, onDone }) {
       <button
         disabled={hold > 0}
         onClick={onDone}
-        style={{ marginTop: 20, fontSize: 12, fontWeight: 700, background: hold > 0 ? 'rgba(255,255,255,0.15)' : '#fff', color: hold > 0 ? 'rgba(255,255,255,0.6)' : '#991B1B', border: 'none', borderRadius: 10, padding: '10px 22px', cursor: hold > 0 ? 'not-allowed' : 'pointer' }}>
+        style={{ marginTop: 20, fontSize: 12, fontWeight: 700, background: hold > 0 ? 'rgba(255,255,255,0.15)' : '#fff', color: hold > 0 ? 'rgba(255,255,255,0.6)' : 'var(--bad)', border: 'none', borderRadius: 10, padding: '10px 22px', cursor: hold > 0 ? 'not-allowed' : 'pointer' }}>
         {hold > 0 ? `请认真读 ${hold} 秒…` : '我已知晓，进入应对'}
       </button>
     </div>
@@ -85,27 +85,27 @@ function CrisisCard({ event, week }) {
   }
   if (!hotSeen) return <HotReviewOverlay event={event} onDone={() => setHotSeen(true)} />
   return (
-    <div style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
+    <div style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>
-          <Icon name={event.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {event.name}<span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>危机</span>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>
+          <Icon name={event.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {event.name}<span style={{ fontSize: 10, background: 'var(--primary)', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>危机</span>
         </div>
-        {!choice && <span style={{ fontSize: 18, fontWeight: 700, color: timeLeft <= 10 ? '#EF4444' : '#A96407' }}>{timeLeft}s</span>}
+        {!choice && <span style={{ fontSize: 18, fontWeight: 700, color: timeLeft <= 10 ? 'var(--bad)' : 'var(--warn)' }}>{timeLeft}s</span>}
       </div>
-      <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{event.text}</div>
+      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, marginTop: 3 }}>{event.text}</div>
       {!choice ? (
         <div style={{ marginTop: 8 }}>
           {CHOICES.map(c => (
             <div key={c.label} onClick={() => pick(c.label)}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid #F3F4F6' }}>
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid var(--fill)' }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>{c.label}</span>
-              <span style={{ fontSize: 10, color: '#A96407' }}>{c.effect}</span>
+              <span style={{ fontSize: 10, color: 'var(--warn)' }}>{c.effect}</span>
             </div>
           ))}
-          <div style={{ fontSize: 10, color: '#9CA3AF' }}>⏱ {timeLeft}s 内不选将自动按"不理会"处理</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>⏱ {timeLeft}s 内不选将自动按"不理会"处理</div>
         </div>
       ) : (
-        <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>你的应对：{choice}——结果将在下周结算体现</div>
+        <div style={{ fontSize: 12, color: 'var(--good)', fontWeight: 600, marginTop: 6 }}>你的应对：{choice}——结果将在下周结算体现</div>
       )}
     </div>
   )
@@ -139,7 +139,7 @@ function SupervisorCard({ result }) {
   return (
     <div className="card">
       <div className="card-title">AI 领班（本周复盘）</div>
-      <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 8 }}>
         领班 = 你不在时的"看不见的手"：按授权范围代管决策，并留痕可复盘。
         <b> 二期：R3（超售止损）/ R6（能耗回归）的代管动作【已真实生效】</b>（并入你的决策集 · 你自己做过的项领班不碰）；
         R1/R2（调价）需竞对价每日数据，二期暂不开放 · 默认全关 = 全班行为一致（公平基准）。
@@ -150,37 +150,37 @@ function SupervisorCard({ result }) {
             const 生效 = rec.代管决策 && rec.代管决策[a.item] !== undefined
             const 动作文 = a.item === 'overbook' ? `超售清零（超额预订 → 0）` : a.item === 'energy' ? `室温回归 23℃` : a.item === 'pricing' ? `建议调价至 ${a.to} 元` : a.item
             return (
-            <div key={`a${i}`} style={{ padding: '8px 10px', background: '#FFF4E0', border: '1px solid #FBE3B3', borderRadius: 8, marginBottom: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>
+            <div key={`a${i}`} style={{ padding: '8px 10px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)' }}>
                 【{a.ruleId} · {生效 ? '已代管执行' : '建议（该项由你自己做了 / 未开放）'}】{动作文}
-                {生效 && <span style={{ fontSize: 10, background: '#065F46', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>已生效</span>}
+                {生效 && <span style={{ fontSize: 10, background: 'var(--good)', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>已生效</span>}
               </div>
-              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>{a.reason}</div>
-              {生效 && <div style={{ fontSize: 10, color: '#065F46', marginTop: 2 }}>↳ 本周结算已按代管后的决策计算（学生决策优先：你自己做过的项领班不碰）</div>}
+              <div style={{ fontSize: 11, color: 'var(--text)', lineHeight: 1.7, marginTop: 2 }}>{a.reason}</div>
+              {生效 && <div style={{ fontSize: 10, color: 'var(--good)', marginTop: 2 }}>↳ 本周结算已按代管后的决策计算（学生决策优先：你自己做过的项领班不碰）</div>}
             </div>
             )
           })}
           {rec.reports.map((r, i) => (
-            <div key={`r${i}`} style={{ padding: '8px 10px', background: '#F9FAFB', border: '1px solid #F3F4F6', borderRadius: 8, marginBottom: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#4B5563' }}>【{r.ruleId} · 仅报告】</div>
-              <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>{r.reason}</div>
+            <div key={`r${i}`} style={{ padding: '8px 10px', background: 'var(--bg)', border: '1px solid var(--fill)', borderRadius: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)' }}>【{r.ruleId} · 仅报告】</div>
+              <div style={{ fontSize: 11, color: 'var(--text)', lineHeight: 1.7, marginTop: 2 }}>{r.reason}</div>
             </div>
           ))}
           {typeof rec.代管率 === 'number' && (
-            <div style={{ fontSize: 11, color: '#6B7280' }}>本周代管率：<b>{Math.round(rec.代管率 * 100)}%</b>（领班动作 ÷（领班动作 + 你的决策）· 健康区间 0–30%）</div>
+            <div style={{ fontSize: 11, color: 'var(--text-sub)' }}>本周代管率：<b>{Math.round(rec.代管率 * 100)}%</b>（领班动作 ÷（领班动作 + 你的决策）· 健康区间 0–30%）</div>
           )}
         </div>
       ) : (
-        <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>本周领班没有需要动作/建议的条目（或尚未授权）。</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>本周领班没有需要动作/建议的条目（或尚未授权）。</div>
       )}
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>我的授权设置（在全班默认之上收窄 / 放宽）</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>我的授权设置（在全班默认之上收窄 / 放宽）</div>
       {项.map(x => (
-        <div key={x.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #F3F4F6' }}>
-          <span style={{ fontSize: 12, color: '#374151' }}>{x.label}<span style={{ fontSize: 10, color: '#9CA3AF', marginLeft: 6 }}>全班默认：{(生效[x.key] && 生效[x.key].ok) ? '已授权' : '未授权'}</span></span>
+        <div key={x.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--fill)' }}>
+          <span style={{ fontSize: 12, color: 'var(--text)' }}>{x.label}<span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>全班默认：{(生效[x.key] && 生效[x.key].ok) ? '已授权' : '未授权'}</span></span>
           <span style={{ display: 'flex', gap: 4 }}>
             {['默认', '开', '关'].map(v => (
               <button key={v} onClick={() => 设置(x.key, v)}
-                style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', background: 状态字(x.key) === v ? '#E8940F' : '#F3F4F6', color: 状态字(x.key) === v ? '#fff' : '#6B7280' }}>
+                style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', background: 状态字(x.key) === v ? 'var(--primary)' : 'var(--fill)', color: 状态字(x.key) === v ? '#fff' : 'var(--text-sub)' }}>
                 {v === '默认' ? '跟随默认' : v === '开' ? '放宽' : '收窄'}
               </button>
             ))}
@@ -213,13 +213,13 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
     if (diff === 0) return null
     const up = diff > 0
     const good = goodUp ? up : !up
-    return { text: `${up ? '↑' : '↓'} ${Math.abs(diff)}${unit}`, color: good ? '#10B981' : '#EF4444' }
+    return { text: `${up ? '↑' : '↓'} ${Math.abs(diff)}${unit}`, color: good ? 'var(--good)' : 'var(--bad)' }
   }
   const dOcc = delta(result.occupancy, last ? last.occupancy : null, 'pt')
   const dRev = delta(+(result.revenue / 10000).toFixed(1), last ? +(last.revenue / 10000).toFixed(1) : null, '万')
   const dProfit = delta(result.profit, last ? last.profit : null, '元')
   const chip = (d) => d ? (
-    <span style={{ fontSize: 10, fontWeight: 700, color: d.color, background: d.color === '#10B981' ? '#ECFDF5' : '#FEF0EF', borderRadius: 6, padding: '2px 6px', marginLeft: 6 }}>{d.text}</span>
+    <span style={{ fontSize: 10, fontWeight: 700, color: d.color, background: d.color === 'var(--good)' ? 'var(--good-bg)' : 'var(--bad-bg)', borderRadius: 6, padding: '2px 6px', marginLeft: 6 }}>{d.text}</span>
   ) : null
   return (
     <div className="content">
@@ -228,9 +228,9 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>第 {result.week} 周经营结果</h1>
  {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
-          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: 'var(--fill)', border: '1px dashed var(--border-strong)', borderRadius: 8, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
             {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
-            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+            <div style={{ color: 'var(--text-muted)' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
           </div>
         )}
         <div className="sub">决策 → 结果 → 复盘</div>
@@ -238,21 +238,21 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
 
       {/* 称号变化横幅 */}
       {promoted && (
-        <div className="card" style={{ background: 'linear-gradient(90deg,#ECFDF5,#FFFFFF)', border: '1px solid #A7F3D0', textAlign: 'center', padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#065F46' }}>酒店晋升！{before.title} → {after.title}</div>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>{after.desc}</div>
+        <div className="card" style={{ background: 'linear-gradient(90deg,var(--good-bg),var(--card))', border: '1px solid var(--good-border)', textAlign: 'center', padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--good)' }}>酒店晋升！{before.title} → {after.title}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{after.desc}</div>
         </div>
       )}
       {demoted && (
-        <div className="card" style={{ background: '#FEF0EF', border: '1px solid #FECACA', textAlign: 'center', padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>酒店降级：{before.title} → {after.title}</div>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>出租率/口碑下滑拖累评级，下周稳住</div>
+        <div className="card" style={{ background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', textAlign: 'center', padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--bad)' }}>酒店降级：{before.title} → {after.title}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>出租率/口碑下滑拖累评级，下周稳住</div>
         </div>
       )}
       {!last && (
-        <div className="card" style={{ background: 'linear-gradient(90deg,#FFF4E0,#FFFFFF)', border: '1px solid #FBE3B3', textAlign: 'center', padding: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>首周评级：{after.title}</div>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 3 }}>提升出租率与口碑可晋升更高称号</div>
+        <div className="card" style={{ background: 'linear-gradient(90deg,var(--warn-bg),var(--card))', border: '1px solid var(--warn-border)', textAlign: 'center', padding: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>首周评级：{after.title}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>提升出租率与口碑可晋升更高称号</div>
         </div>
       )}
 
@@ -270,7 +270,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           </div>
           <div className="metric">
             <div className="label" title={NET_DEF}>{NET_LABEL}{chip(dProfit)}</div>
-            <div className="value" style={{color: isProfit ? '#10B981' : '#EF4444'}}>{isProfit ? '+' : ''}<CountNum n={netP} /><span className="unit">元</span></div>
+            <div className="value" style={{color: isProfit ? 'var(--good)' : 'var(--bad)'}}>{isProfit ? '+' : ''}<CountNum n={netP} /><span className="unit">元</span></div>
           </div>
         </div>
       </div>
@@ -285,25 +285,25 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           <div className="card">
             <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
               onClick={() => setDailyOpen(o => !o)}>
-              <span>日报（按天查看）<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}> · 点标题展开/收起</span></span>
-              <span style={{ fontSize: 11, fontWeight: 400, color: rec.ok ? '#10B981' : '#DC2626' }}>
+              <span>日报（按天查看）<span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}> · 点标题展开/收起</span></span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: rec.ok ? 'var(--good)' : 'var(--bad)' }}>
  {rec.ok ? ' 7 天合计 = 周报' : `与周报有 ${rec.diff.length} 处对不上`}
               </span>
             </div>
             {dailyOpen && (
               <div style={{ marginTop: 6 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 11, color: '#9CA3AF', padding: '4px 6px', borderBottom: '1px solid #F3F4F6' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 11, color: 'var(--text-muted)', padding: '4px 6px', borderBottom: '1px solid var(--fill)' }}>
                   <span>天</span><span style={{ textAlign: 'right' }}>营收</span><span style={{ textAlign: 'right' }}>成本</span><span style={{ textAlign: 'right' }}>净流入</span>
                 </div>
                 {rows.map(d => (
-                  <div key={d.dayIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 12, padding: '5px 6px', borderBottom: '1px dashed #F3F4F6' }}>
-                    <span style={{ color: '#6B7280' }}>{d.label}</span>
+                  <div key={d.dayIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', fontSize: 12, padding: '5px 6px', borderBottom: '1px dashed var(--fill)' }}>
+                    <span style={{ color: 'var(--text-sub)' }}>{d.label}</span>
                     <span style={{ textAlign: 'right' }}>{d.revenue.toLocaleString()}</span>
-                    <span style={{ textAlign: 'right', color: '#6B7280' }}>{d.cost.toLocaleString()}</span>
-                    <span style={{ textAlign: 'right', color: d.cashDelta >= 0 ? '#10B981' : '#DC2626', fontWeight: 600 }}>{d.cashDelta >= 0 ? '+' : ''}{d.cashDelta.toLocaleString()}</span>
+                    <span style={{ textAlign: 'right', color: 'var(--text-sub)' }}>{d.cost.toLocaleString()}</span>
+                    <span style={{ textAlign: 'right', color: d.cashDelta >= 0 ? 'var(--good)' : 'var(--bad)', fontWeight: 600 }}>{d.cashDelta >= 0 ? '+' : ''}{d.cashDelta.toLocaleString()}</span>
                   </div>
                 ))}
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
                   天数据是【周值的确定性分摊】（整数分摊 + 余数补偿 ⇒ 7 天合计严格等于周报），
                   不是逐日独立模拟；到店/离店按周口径统计，暂未拆到天。
                 </div>
@@ -316,7 +316,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
       {/* 经营明细 */}
       <div className="card">
         <div className="card-title">经营明细</div>
-        <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8 }}>
           <div>房量 {result.rooms} 间 · 入住 {result.occupiedRooms} 间</div>
  {/* T1.4/B2：平均房价改【实收】= 周客房收入 ÷ 售出间夜（原显示 result.price 是定价） */}
           <div>平均房价（实收）{result.occupiedRooms > 0 ? Math.round(result.revenue / (result.occupiedRooms * 7)) : 0} 元/间·天</div>
@@ -324,40 +324,40 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
               GOP 不含租金 ⇒ GOP > 净利润；两者之差 = 租金 + 非经常项，学生要能对上账 */}
           {typeof result.gop === 'number' && (
             <div title={GOP_DEF}>
-              {GOP_LABEL} {result.gop.toLocaleString()} 元 · 率 {pct(result.gopRate)}<span style={{ color: '#9CA3AF', fontSize: 11 }}>（不含租金/加盟费/利息）</span>
+              {GOP_LABEL} {result.gop.toLocaleString()} 元 · 率 {pct(result.gopRate)}<span style={{ color: 'var(--text-muted)', fontSize: 11 }}>（不含租金/加盟费/利息）</span>
             </div>
           )}
           {typeof result.netProfit === 'number' && (
             <div title={NET_DEF}>
-              {NET_LABEL} {result.netProfit.toLocaleString()} 元 · 率 {pct(result.netProfitRate)}<span style={{ color: '#9CA3AF', fontSize: 11 }}>（已扣租金 · 评分基准）</span>
+              {NET_LABEL} {result.netProfit.toLocaleString()} 元 · 率 {pct(result.netProfitRate)}<span style={{ color: 'var(--text-muted)', fontSize: 11 }}>（已扣租金 · 评分基准）</span>
             </div>
           )}
-          <div>成本 {result.totalCost} 元<span style={{ color: '#9CA3AF', fontSize: 11 }}>（含租金 {typeof result.rentCost === 'number' ? result.rentCost.toLocaleString() : '—'} 元）</span></div>
+          <div>成本 {result.totalCost} 元<span style={{ color: 'var(--text-muted)', fontSize: 11 }}>（含租金 {typeof result.rentCost === 'number' ? result.rentCost.toLocaleString() : '—'} 元）</span></div>
           <div>好评率 {result.goodRate}% → {result.finalGoodRate}%</div>
           {/* P5：资金唯一权威 = settle 返回的 capital（资金卡同源，可对账） */}
           {typeof result.capital === 'number' && <div>期末资金 {result.capital.toLocaleString()} 元</div>}
           <div>本周 {result.reviewCount} 条评价，{result.negativeCount} 条差评</div>
           {result.totalExpenses > 0 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>本周成本构成（共 {result.totalExpenses.toLocaleString()} 元）</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sub)', marginBottom: 4 }}>本周成本构成（共 {result.totalExpenses.toLocaleString()} 元）</div>
               {(() => {
                 // 🔴 口径修正（2026-09-22）：改读**引擎权威** weeklyExpenses（settlement.js 生成）
                 //   原先前端按 65/30/25 元硬编码重算，与引擎公式不符、且漏掉「维修保养」；
                 //   卡片头的总额本就来自引擎 ⇒ 拆解与总额必须同源，否则学生对不上账。
                 const EXP_COLOR = {
-                  人员工资: '#F472B6', 物料消耗: '#FBBF24', 水电能耗: '#38BDF8', 维修保养: '#A78BFA',
-                  营销推广: '#60A5FA', OTA佣金: '#34D399', 超售赔偿: '#FB923C', 事件罚款: '#F87171',
+                  人员工资: 'var(--chart-1)', 物料消耗: 'var(--chart-2)', 水电能耗: 'var(--chart-3)', 维修保养: 'var(--chart-7)',
+                  营销推广: 'var(--chart-4)', OTA佣金: 'var(--chart-5)', 超售赔偿: 'var(--chart-6)', 事件罚款: 'var(--bad)',
                 }
                 const items = Object.entries(result.weeklyExpenses || {})
-                  .map(([name, val]) => ({ name, val, color: EXP_COLOR[name] || '#94A3B8' }))
+                  .map(([name, val]) => ({ name, val, color: EXP_COLOR[name] || 'var(--chart-fallback)' }))
                   .filter(x => x.val > 0)
                 return items.map(item => (
                   <div key={item.name} style={{ marginBottom: 4 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9CA3AF' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
                       <span>{item.name}</span>
                       <span>{item.val.toLocaleString()} 元</span>
                     </div>
-                    <div style={{ height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: 5, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: Math.min((item.val / result.totalCost * 100), 100) + '%', background: item.color, borderRadius: 2 }} />
                     </div>
                   </div>
@@ -366,31 +366,31 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
             </div>
           )}
           {/* §14.3：加盟两费如实标注 —— 哪几项【已实收】、哪些【待补】（不许让学生以为全是真金） */}
-          <div style={{ fontSize: 10, color: result.franchiseFees ? '#15803D' : '#9CA3AF', marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: result.franchiseFees ? 'var(--good)' : 'var(--text-muted)', marginTop: 2 }}>
             {result.franchiseFees
               ? `含加盟两费 ${result.franchiseFees.合计.toLocaleString()} 元（${result.franchiseFees.品牌}：管理费 ${(result.franchiseFees.费率.管理费 * 100).toFixed(1)}% + CRS 有效 ${(result.franchiseFees.费率.CRS有效 * 100).toFixed(1)}%，均按营收）· 引擎已实收`
               : '加盟费率待补（该品牌未接入名单）⇒ 引擎未计费，不编造'}</div>
-          {result.eventFine > 0 && <div style={{ color: '#DC2626' }}>事件罚款 {result.eventFine} 元（已计入成本）</div>}
-          {result.overbookCompensation > 0 && <div style={{ color: '#DC2626' }}>超售到店无房赔偿 {result.overbookCompensation} 元</div>}
+          {result.eventFine > 0 && <div style={{ color: 'var(--bad)' }}>事件罚款 {result.eventFine} 元（已计入成本）</div>}
+          {result.overbookCompensation > 0 && <div style={{ color: 'var(--bad)' }}>超售到店无房赔偿 {result.overbookCompensation} 元</div>}
         </div>
       </div>
 
       {/* 市场波动可视化 */}
       <div className="card">
         <div className="card-title">市场波动</div>
-        <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
-          本周市场客源强度系数：<b style={{ color: '#111827' }}>{result.demandStrength}</b>
+        <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>
+          本周市场客源强度系数：<b style={{ color: 'var(--text)' }}>{result.demandStrength}</b>
         </div>
         {/* 波动条：0.5-1.5 区间 */}
-        <div style={{ position: 'relative', height: 8, background: 'linear-gradient(to right, #DC2626, #FBBF77, #16A34A)', borderRadius: 4, marginBottom: 6 }}>
-          <div style={{ position: 'absolute', left: ((result.demandStrength - 0.5) / 1.0 * 100) + '%', top: '-4px', width: 16, height: 16, background: '#fff', border: '3px solid #E8940F', borderRadius: '50%', transform: 'translateX(-50%)' }}></div>
+        <div style={{ position: 'relative', height: 8, background: 'linear-gradient(to right, var(--bad), var(--warn-border), var(--good))', borderRadius: 4, marginBottom: 6 }}>
+          <div style={{ position: 'absolute', left: ((result.demandStrength - 0.5) / 1.0 * 100) + '%', top: '-4px', width: 16, height: 16, background: '#fff', border: '3px solid var(--primary)', borderRadius: '50%', transform: 'translateX(-50%)' }}></div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9CA3AF' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)' }}>
           <span>市场冷清</span>
           <span>正常</span>
           <span>市场火爆</span>
         </div>
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>
           市场波动是随机的（全班同一周相同），这是"市场不确定性"。你的决策决定的是如何应对市场。
         </div>
         {(() => {
@@ -421,10 +421,10 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
             else forecasts.push({ icon: 'note.caliber', text: '市场平稳，是检验决策稳定性的时机：维持策略一致性，观察两周再调整' })
           }
           return (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed #E5E7EB' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>下周市场预测（趋势参考）</div>
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 4 }}>下周市场预测（趋势参考）</div>
               {forecasts.slice(0, 2).map((f, i) => (
-                <div key={i} style={{ fontSize: 11, color: '#374151', lineHeight: 1.6, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 5 }}><Icon name={f.icon} size={13} /> {f.text}</div>
+                <div key={i} style={{ fontSize: 11, color: 'var(--text)', lineHeight: 1.6, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 5 }}><Icon name={f.icon} size={13} /> {f.text}</div>
               ))}
             </div>
           )
@@ -436,12 +436,12 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
       {Array.isArray(result.personaFeedback) && result.personaFeedback.length > 0 && (
         <div className="card">
           <div className="card-title">客群匹配（本区客源结构 × 你的决策）</div>
-          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-sub)', marginBottom: 6, lineHeight: 1.6 }}>
             本区客群结构：<b>{result.persona?.business != null ? `商务 ${Math.round(result.persona.business)}% · 游客 ${Math.round(result.persona.tourist)}% · 家庭 ${Math.round(result.persona.family)}%` : '见选址页'}</b>
             （加权计分 · 非主力客群也有份量）
           </div>
           {result.personaFeedback.map((f, i) => (
- <div key={i} style={{ fontSize: 11, color: f.startsWith('达成') ? '#065F46' : f.startsWith('风险') ? '#991B1B' : '#374151', padding: '4px 8px', background: f.startsWith('') ? '#EAF9F0' : f.startsWith('') ? '#FEF2F2' : '#F9FAFB', borderRadius: 6, marginBottom: 4, lineHeight: 1.6 }}>{f}</div>
+ <div key={i} style={{ fontSize: 11, color: f.startsWith('达成') ? 'var(--good)' : f.startsWith('风险') ? 'var(--bad)' : 'var(--text)', padding: '4px 8px', background: f.startsWith('') ? 'var(--good-bg)' : f.startsWith('') ? 'var(--bad-bg)' : 'var(--bg)', borderRadius: 6, marginBottom: 4, lineHeight: 1.6 }}>{f}</div>
           ))}
         </div>
       )}
@@ -454,18 +454,18 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
             const d = DECISION_NAMES_MAP[id]
             const expanded = tipOpen === id
             return (
-              <div key={id} style={{ borderBottom: '1px solid #F9FAFB' }}>
+              <div key={id} style={{ borderBottom: '1px solid var(--bg)' }}>
                 <div
                   onClick={() => d && d.tip && setTipOpen(expanded ? null : id)}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: 11, cursor: d && d.tip ? 'pointer' : 'default' }}
                 >
- <span style={{ color: '#6B7280', flexShrink: 0 }}>{d ? d.name : id}{d && d.tip && <span style={{ fontSize: 9, color: '#D1D5DB', marginLeft: 4 }}>{expanded ? '▲' : ''}</span>}</span>
-                  <span style={{ fontWeight: 600, color: '#374151', textAlign: 'right', marginLeft: 8 }}>
+ <span style={{ color: 'var(--text-sub)', flexShrink: 0 }}>{d ? d.name : id}{d && d.tip && <span style={{ fontSize: 9, color: 'var(--border-strong)', marginLeft: 4 }}>{expanded ? '▲' : ''}</span>}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text)', textAlign: 'right', marginLeft: 8 }}>
                     {typeof val === 'object' ? (Array.isArray(val) ? val.slice(0, 3).join('＞') : Object.entries(val).map(([k, v]) => `${k}:${v}`).join('、')) : String(val)}
                   </span>
                 </div>
                 {expanded && d && d.tip && (
-                  <div style={{ fontSize: 10, color: '#1E40AF', background: '#EFF6FF', borderRadius: 6, padding: '5px 8px', marginBottom: 5, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 10, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '5px 8px', marginBottom: 5, lineHeight: 1.6 }}>
                     设计考量：{d.tip}
                   </div>
                 )}
@@ -487,17 +487,17 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
               ? { k: 'ota', icon: 'event.ota', 名: `OTA 平台评分 · ${result.world.ota.评分}`, 值: `渠道流量 ×${result.world.ota.渠道系数}`, 好: result.world.ota.渠道系数 >= 1, 注: `评分由好评率 / 客诉率 / 差评回复决定（本周：好评率 ${pct(result.world.ota.明细.好评率)} · 客诉率 ${pct(result.world.ota.明细.客诉率)} · 积压 ${result.world.ota.明细.待处理} 条）` }
               : { k: 'ota', icon: 'prop.hotel', 名: '自主直营 · 不受平台评分影响', 值: '渠道 ×1.0', 好: true, 注: '直营没有 OTA 流量加成，也没有平台罚款（口径分离）' },
           ].map(row => (
-            <div key={row.k} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: '1px solid #F3F4F6' }}>
+            <div key={row.k} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--fill)' }}>
               <span style={{ fontSize: 16, flexShrink: 0, display: 'flex' }}><Icon name={row.icon} size={16} /></span>
               <span style={{ flex: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{row.名}</span>
-                <span style={{ fontSize: 13, marginLeft: 8, color: row.好 ? '#065F46' : '#991B1B', fontWeight: 700 }}>{row.值}</span>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{row.注}</div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{row.名}</span>
+                <span style={{ fontSize: 13, marginLeft: 8, color: row.好 ? 'var(--good)' : 'var(--bad)', fontWeight: 700 }}>{row.值}</span>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{row.注}</div>
               </span>
             </div>
           ))}
           {result.world.违规 && result.world.违规.length > 0 && (
-            <div style={{ marginTop: 8, padding: '8px 10px', background: '#FEF0EF', borderRadius: 8, fontSize: 12, color: '#991B1B', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+            <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bad-bg)', borderRadius: 8, fontSize: 12, color: 'var(--bad)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
               本周平台处罚 {result.world.违规.length} 项（合计罚款 {result.world.违规罚款.toLocaleString()} 元，已计入本周成本）：
               {result.world.违规.map(v => `\n· ${v.名}（触发值 ${v.触发值}）→ 渠道流量 ×${v.降权}｜${v.tip}`).join('')}
             </div>
@@ -512,47 +512,47 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           {[...result.events].sort((a, b) => ({ crisis: 0, bad: 1, good: 2 }[a.type] ?? 3) - ({ crisis: 0, bad: 1, good: 2 }[b.type] ?? 3)).map((e, i) => (
             e.type === 'crisis'
               ? <CrisisCard key={i} event={e} week={result.week} />
-              : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.来源 === 'teacher' ? '#FFF4E0' : (e.type === 'good' ? '#EAF9F0' : '#FEF0EF'), border: e.来源 === 'teacher' ? '1px solid #FBE3B3' : 'none' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: e.来源 === 'teacher' ? '#A96407' : (e.type === 'good' ? '#065F46' : '#991B1B') }}>
+              : <div key={i} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: e.来源 === 'teacher' ? 'var(--warn-bg)' : (e.type === 'good' ? 'var(--good-bg)' : 'var(--bad-bg)'), border: e.来源 === 'teacher' ? '1px solid var(--warn-border)' : 'none' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: e.来源 === 'teacher' ? 'var(--warn)' : (e.type === 'good' ? 'var(--good)' : 'var(--bad)') }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <span>
  {/* §32-U8-补 §2②：老师注入来源标识（引擎侧 来源:'teacher' ⇒ 周报显著区分）
                         · 标题里去掉引擎事件名自带的「老师注入 · 」前缀 —— 徽章已经标明，避免重复与挤行 */}
                     <Icon name={e.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {e.来源 === 'teacher' ? String(e.name).replace('老师注入 · ', '') : e.name}
-                    {e.来源 === 'teacher' && <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6, fontWeight: 700, whiteSpace: 'nowrap' }}>老师注入</span>}
+                    {e.来源 === 'teacher' && <span style={{ fontSize: 10, background: 'var(--primary)', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6, fontWeight: 700, whiteSpace: 'nowrap' }}>老师注入</span>}
                   </span>
                   {e.impact && e.impact !== '—' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fff', borderRadius: 6, padding: '2px 7px', border: `1px solid ${e.type === 'good' ? '#A7F3D0' : '#FECACA'}`, color: e.impact.includes('-') ? '#DC2626' : '#10B981', flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#fff', borderRadius: 6, padding: '2px 7px', border: `1px solid ${e.type === 'good' ? 'var(--good-border)' : 'var(--bad-border)'}`, color: e.impact.includes('-') ? 'var(--bad)' : 'var(--good)', flexShrink: 0 }}>
                       {e.impact}
                     </span>
                   )}
                 </span>
               </div>
-                  <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
  {/* §32-U8-补 §2③：离线补算跨过事件周 ⇒ 显著标注（文案唯一生成点在 teacherEvents.离线默认标注） */}
                   {e.离线标注 && (
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
  {e.离线标注}
                     </div>
                   )}
  {/* §32-U8-补 §2②：你的应对（当周选择留痕 · 复盘可见） */}
                   {e.你的应对 && (
-                    <div style={{ fontSize: 11, color: '#065F46', fontWeight: 600, marginTop: 3 }}>你的应对：{e.你的应对}</div>
+                    <div style={{ fontSize: 11, color: 'var(--good)', fontWeight: 600, marginTop: 3 }}>你的应对：{e.你的应对}</div>
                   )}
-                  <div style={{ fontSize: 11, color: '#A96407', marginTop: 3 }}>{e.tip}</div>
+                  <div style={{ fontSize: 11, color: 'var(--warn)', marginTop: 3 }}>{e.tip}</div>
                   {(() => {
                     // 与口碑页同口径：该事件产生的差评已在口碑页标注来源
                     const n = (result.generatedReviews || []).filter(rv => rv.source && rv.source.name === e.name).length
                     if (!n) return null
                     return (
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#991B1B', background: '#FEF2F2', borderRadius: 5, padding: '3px 8px', marginTop: 5, display: 'inline-block' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--bad)', background: 'var(--bad-bg)', borderRadius: 5, padding: '3px 8px', marginTop: 5, display: 'inline-block' }}>
                         已在口碑页标注到 {n} 条差评的来源
                       </div>
                     )
                   })()}
                 </div>
           ))}
-          <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             事件不是纯随机：是你把某个属性推到极端（如高出租率+少人手）才会触发。经营的平衡点由你把握。
           </div>
         </div>
@@ -566,9 +566,9 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         <div className="card">
           <div className="card-title">决策复盘</div>
           {result.insights.map((ins, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: i < result.insights.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+            <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: i < result.insights.length - 1 ? '1px solid var(--fill)' : 'none' }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}><Icon name={ins.good ? 'status.done' : 'status.warn'} size={16} /></span>
-              <span style={{ fontSize: 13, color: ins.good ? '#065F46' : '#991B1B', lineHeight: 1.6 }}>{ins.text}</span>
+              <span style={{ fontSize: 13, color: ins.good ? 'var(--good)' : 'var(--bad)', lineHeight: 1.6 }}>{ins.text}</span>
             </div>
           ))}
         </div>
@@ -602,17 +602,17 @@ ${after.icon} 当前称号：${after.title}${evText}
           navigator.clipboard.writeText(text + `
  勋章 ${badges}/7`).then(() => setCopied(true)).catch(() => setCopied(false))
         }}>一键复制成绩单（发群里）</button>
-        {copied && <div style={{ fontSize: 11, color: '#16A34A', marginTop: 6 }}>已复制，去微信粘贴吧</div>}
+        {copied && <div style={{ fontSize: 11, color: 'var(--good)', marginTop: 6 }}>已复制，去微信粘贴吧</div>}
       </div>
 
  {/* E2：本周变更记录（第几天改了什么 + 次日生效）—— 与 E3 的「次日生效」互为证据 */}
       {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (
         <div className="card">
           <div className="card-title">本周变更记录</div>
-          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>
             {result.changeLogLines.map((t, i) => <div key={i}>· {t}</div>)}
           </div>
-          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
             决策【次日生效】：第 N 天提交的改动，第 N+1 天起算（当日已发生的不可回溯）
           </div>
         </div>
@@ -624,7 +624,7 @@ ${after.icon} 当前称号：${after.title}${evText}
       {result.revenueSegments && (
         <div className="card">
           <div className="card-title">{result.revenueSegments.标题}</div>
-          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>
             {result.revenueSegments.rows.map((x, i) => (
               result.revenueSegments.实算
                 ? <div key={i}>· {x.段}：{Number(x.金额).toLocaleString()} 元（{x.天数} 天）</div>
@@ -632,11 +632,11 @@ ${after.icon} 当前称号：${after.title}${evText}
             ))}
           </div>
           {result.revenueSegments.实算 ? (
-            <div style={{ fontSize: 10, color: '#15803D', marginTop: 6, background: '#F0FDF4', border: '1px dashed #86EFAC', borderRadius: 6, padding: '5px 8px' }}>
+            <div style={{ fontSize: 10, color: 'var(--good)', marginTop: 6, background: 'var(--good-bg)', border: '1px dashed var(--good-border)', borderRadius: 6, padding: '5px 8px' }}>
  以上为<b>引擎按天实算</b>：各段用「该天生效的决策」真跑，<b>Σ分段 = 周报收入</b>（不重不漏）。
             </div>
           ) : (
-            <div style={{ fontSize: 10, color: '#B45309', marginTop: 6, background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '5px 8px' }}>
+            <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 6, background: 'var(--warn-bg)', border: '1px dashed var(--warn-border)', borderRadius: 6, padding: '5px 8px' }}>
  以上为<b>估算</b>：当前引擎按「整周一套决策」实收，分段是按改价时点的显示级近似；
               周报的<b>总营收/利润仍以引擎实收为准</b>（两处数字不冲突）。
             </div>
@@ -646,10 +646,10 @@ ${after.icon} 当前称号：${after.title}${evText}
       {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (
         <div className="card">
           <div className="card-title">本周变更记录</div>
-          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>
             {result.changeLogLines.map((t, i) => <div key={i}>· {t}</div>)}
           </div>
-          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
             决策【次日生效】：第 N 天提交的改动，第 N+1 天起算（当日已发生的不可回溯）
           </div>
         </div>
@@ -660,23 +660,23 @@ ${after.icon} 当前称号：${after.title}${evText}
         <div className="card">
           <div className="card-title">周边竞品动态</div>
           {result.competitors.map((c, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F9FAFB' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--bg)' }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: '#9CA3AF' }}>基准价 ¥{c.basePrice}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>基准价 ¥{c.basePrice}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: c.action === 'hold' ? '#9CA3AF' : c.action === '促销' || c.action === '降价' ? '#EF4444' : '#10B981' }}>{c.action}</div>
-                {c.priceChange !== 0 && <div style={{ fontSize: 10, color: c.priceChange < 0 ? '#EF4444' : '#10B981' }}>¥{c.price > 0 ? c.price : c.basePrice + c.priceChange}</div>}
+                <div style={{ fontSize: 12, fontWeight: 700, color: c.action === 'hold' ? 'var(--text-muted)' : c.action === '促销' || c.action === '降价' ? 'var(--bad)' : 'var(--good)' }}>{c.action}</div>
+                {c.priceChange !== 0 && <div style={{ fontSize: 10, color: c.priceChange < 0 ? 'var(--bad)' : 'var(--good)' }}>¥{c.price > 0 ? c.price : c.basePrice + c.priceChange}</div>}
               </div>
             </div>
           ))}
-          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>竞品AI会根据市场情况自主调价/促销，直接影响你的客源</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>竞品AI会根据市场情况自主调价/促销，直接影响你的客源</div>
         </div>
       )}
 
       {/* 复盘建议 */}
-      <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+      <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
         <div className="card-title">复盘建议</div>
         {(() => {
           // 下周提示生成器：按本周最弱维度给一条优先建议
@@ -687,12 +687,12 @@ ${after.icon} 当前称号：${after.title}${evText}
           if (result.finalGoodRate < 80) tips.push('口碑修复需要时间——卫生深清洁+真诚回复差评，坚持两周见效')
           if (tips.length === 0) tips.push('各项指标健康！下周可尝试提价或减少促销，验证利润上限')
           return (
-            <div style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', marginBottom: 10, fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>
+            <div style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', marginBottom: 10, fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>
  下周优先：{tips[0]}
             </div>
           )
         })()}
-        <div style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 13, color: 'var(--info)', lineHeight: 1.7 }}>
  {result.occupancy < 55 && ' 出租率偏低，考虑降价促销或提升口碑拉客流。'}
  {result.occupancy >= 55 && result.occupancy < 75 && ' 出租率适中，可优化房价策略提升 RevPAR。'}
  {result.occupancy >= 75 && ' 出租率较高，注意满负荷服务质量和差评风险。'}

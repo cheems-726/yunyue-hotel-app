@@ -150,9 +150,9 @@ function LoginPage({ onLogin }) {
     return (
       <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}><Icon name="prop.hotel" size={44} /></div>
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}><Icon name="prop.hotel" size={44} /></div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>云悦酒店</div>
-          <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 6 }}>连锁酒店经营模拟系统</div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>连锁酒店经营模拟系统</div>
         </div>
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>请选择你的身份</div>
         <button className="btn btn-primary" style={{ padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>
@@ -166,11 +166,11 @@ function LoginPage({ onLogin }) {
       <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 700 }}>离线演示模式</div>
-          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>不连服务器，数据只存在本机（{role === 'student' ? '学生 陈小明' : '教师 王老师'}）</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>不连服务器，数据只存在本机（{role === 'student' ? '学生 陈小明' : '教师 王老师'}）</div>
         </div>
         <button className="btn-confirm" onClick={handleDemoLogin}>进入演示 →</button>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <span style={{ fontSize: 12, color: '#9CA3AF', cursor: 'pointer' }} onClick={() => setStep('form')}>‹ 返回登录</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setStep('form')}>‹ 返回登录</span>
         </div>
       </div>
     )
@@ -180,35 +180,35 @@ function LoginPage({ onLogin }) {
     <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>{role === 'student' ? '学生登录' : '教师登录'}</div>
-        <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
           {role === 'student' ? '首次使用请先注册（学号即账号）' : '首次使用请先注册（工号即账号，如 T001）'}
         </div>
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>{role === 'student' ? '学号' : '工号'}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 6 }}>{role === 'student' ? '学号' : '工号'}</div>
         <input
           value={account}
           onChange={e => setAccount(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
           placeholder={role === 'student' ? '如 20240101' : '如 T001'}
-          style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #E5E7EB', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>密码</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 6 }}>密码</div>
         <input
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
           placeholder="至少 6 位"
-          style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #E5E7EB', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
 
-      {error && <div style={{ color: '#EF4444', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>{error}</div>}
+      {error && <div style={{ color: 'var(--bad)', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>{error}</div>}
 
       <button className="btn-confirm" disabled={busy} onClick={handleLogin}>{busy ? '登录中…' : '登录'}</button>
       <button className="btn btn-ghost" style={{ marginTop: 10, padding: '12px 0' }} disabled={busy} onClick={handleSignup}>
@@ -216,8 +216,8 @@ function LoginPage({ onLogin }) {
       </button>
 
       <div style={{ textAlign: 'center', marginTop: 14, display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: '#9CA3AF', cursor: 'pointer' }} onClick={() => setStep('choose')}>‹ 返回选择身份</span>
-        <span style={{ fontSize: 12, color: '#9CA3AF', cursor: 'pointer' }} onClick={() => setStep('demo')}>无网络？离线演示 ›</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setStep('choose')}>‹ 返回选择身份</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setStep('demo')}>无网络？离线演示 ›</span>
       </div>
     </div>
   )
@@ -296,31 +296,31 @@ function InjectedEventsCard({ 事件s, week }) {
         const 已答 = 回答[e.来源事件]
         const 可执行 = 应对可执行Of(e.来源事件)
         return (
-          <div key={e.id || e.来源事件} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
+          <div key={e.id || e.来源事件} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>
                 <Icon name={e.icon || 'log.ops'} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {String(e.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '老师注入 · ')}
-                <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>老师注入{e.injectedBy ? ` · ${e.injectedBy}` : ''}</span>
+                <span style={{ fontSize: 10, background: 'var(--primary)', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>老师注入{e.injectedBy ? ` · ${e.injectedBy}` : ''}</span>
               </div>
-              {!已答 && <span style={{ fontSize: 18, fontWeight: 700, color: (左[e.来源事件] ?? 30) <= 10 ? '#EF4444' : '#A96407' }}>{左[e.来源事件] ?? 30}s</span>}
+              {!已答 && <span style={{ fontSize: 18, fontWeight: 700, color: (左[e.来源事件] ?? 30) <= 10 ? 'var(--bad)' : 'var(--warn)' }}>{左[e.来源事件] ?? 30}s</span>}
             </div>
-            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, marginTop: 3 }}>{e.text}</div>
             {!已答 ? (
               <div style={{ marginTop: 8 }}>
                 {选项.map(o => (
                   <div key={o.label} onClick={() => 选(e.来源事件, o.label)}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid #F3F4F6' }}>
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid var(--fill)' }}>
                     <span style={{ fontSize: 13, fontWeight: 600 }}>{o.label}</span>
-                    {o.effect && <span style={{ fontSize: 10, color: '#A96407' }}>{o.effect}</span>}
+                    {o.effect && <span style={{ fontSize: 10, color: 'var(--warn)' }}>{o.effect}</span>}
                   </div>
                 ))}
-                <div style={{ fontSize: 10, color: '#9CA3AF' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                   ⏱ {左[e.来源事件] ?? 30}s 内不选将按最差选项记录
                   {可执行 ? ' · 本事件应对【即刻生效】（进入本周结算）' : ' · 你随后的经营决策决定实际结果（应对留痕进周报复盘）'}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>你的应对：{已答}——结果将在本周结算体现</div>
+              <div style={{ fontSize: 12, color: 'var(--good)', fontWeight: 600, marginTop: 6 }}>你的应对：{已答}——结果将在本周结算体现</div>
             )}
           </div>
         )
@@ -386,17 +386,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
 
       {/* 本周决策进度 */}
       <div style={{ padding: '0 20px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9CA3AF', marginBottom: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>
           <span>本周决策进度</span>
-          <span style={{ color: doneCount === 18 ? '#16A34A' : '#A96407', fontWeight: 600 }}>{doneCount} / 18</span>
+          <span style={{ color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontWeight: 600 }}>{doneCount} / 18</span>
         </div>
-        <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: (doneCount / 18 * 100) + '%', background: doneCount === 18 ? '#16A34A' : '#E8940F', borderRadius: 3, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)' }}></div>
+        <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: (doneCount / 18 * 100) + '%', background: doneCount === 18 ? 'var(--good)' : 'var(--primary)', borderRadius: 3, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)' }}></div>
         </div>
       </div>
 
       <div className="card">
-        <div className="card-title"><span style={{width:8,height:8,borderRadius:'50%',background:'#E8940F'}}></span>{report ? `第${report.week}周结算结果` : (history.length ? `第${history[history.length-1].week}周结算结果` : '本周经营中')}</div>
+        <div className="card-title"><span style={{width:8,height:8,borderRadius:'50%',background:'var(--primary)'}}></span>{report ? `第${report.week}周结算结果` : (history.length ? `第${history[history.length-1].week}周结算结果` : '本周经营中')}</div>
         {occ !== null ? (
           <div className="settle-grid">
             <div className="metric">
@@ -410,32 +410,32 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             <div className="metric">
               <div className="label">差评</div>
               <div className="value">{neg}<span className="unit">条</span></div>
-              {neg > 0 && <div className="delta down" style={{color:'#A96407'}}>需处理</div>}
+              {neg > 0 && <div className="delta down" style={{color:'var(--warn)'}}>需处理</div>}
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
             {/* 🔴 E2：手动结算已退场 ⇒ 文案不得再让学生去点一个不存在的按钮 */}
             本周经营中：到第 7 个游戏日<b>自动出周报</b>（不看也在跑）
           </div>
         )}
         {pendingReviewCount > 0 && (
-          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, color: '#EF4444', borderColor: '#FECACA' }}
+          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, color: 'var(--bad)', borderColor: 'var(--bad-border)' }}
             onClick={() => onGoTab('reputation')}>
             去口碑页处理 {pendingReviewCount} 条差评（处理率占分 15%）→
           </button>
         )}
         {report && report.events && report.events.length > 0 && (
-          <div style={{ margin: '10px 0 0', padding: '7px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 11, color: '#6B7280' }}>
+          <div style={{ margin: '10px 0 0', padding: '7px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 11, color: 'var(--text-sub)' }}>
             上周事件 {report.events.length} 起：{report.events.map((e, i) => (
-              <span key={i} style={{ color: e.type === 'crisis' ? '#DC2626' : e.type === 'good' ? '#10B981' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
+              <span key={i} style={{ color: e.type === 'crisis' ? 'var(--bad)' : e.type === 'good' ? 'var(--good)' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
                 {e.icon}{e.name}{i < report.events.length - 1 ? '、' : ''}
               </span>
             ))}
           </div>
         )}
         {!report && doneCount < 18 && (
-          <div style={{ marginTop: 8, fontSize: 11, color: '#A96407', textAlign: 'center' }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--warn)', textAlign: 'center' }}>
             还有 {18 - doneCount} 项未决策，未做的按"维持现状"生效
           </div>
         )}
@@ -450,12 +450,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const promoted = tPrev && tNow.title !== tPrev.title && tNow.composite > tPrev.composite
           const demoted = tPrev && tNow.title !== tPrev.title && tNow.composite < tPrev.composite
           return (
-            <div style={{ marginTop: 10, padding: '7px 12px', background: promoted ? '#ECFDF5' : demoted ? '#FEF0EF' : '#FFF4E0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: promoted ? '#065F46' : demoted ? '#991B1B' : '#A96407', textAlign: 'center' }}>
+            <div style={{ marginTop: 10, padding: '7px 12px', background: promoted ? 'var(--good-bg)' : demoted ? 'var(--bad-bg)' : 'var(--warn-bg)', borderRadius: 8, fontSize: 12, fontWeight: 600, color: promoted ? 'var(--good)' : demoted ? 'var(--bad)' : 'var(--warn)', textAlign: 'center' }}>
               {promoted ? `恭喜晋升：${tPrev.title} → ${tNow.title}` : demoted ? `降级：${tPrev.title} → ${tNow.title}，下周稳住` : `当前称号：${tNow.title}`}
-              <div style={{ height: 4, background: '#F3F4F6', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: tNow.progress + '%', background: '#E8940F', borderRadius: 2 }} />
+              <div style={{ height: 4, background: 'var(--fill)', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: tNow.progress + '%', background: 'var(--primary)', borderRadius: 2 }} />
               </div>
-              {tNow.next && <div style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF', marginTop: 3 }}>距「{tNow.next}」还差综合 {tNow.nextAt - tNow.composite} 分</div>}
+              {tNow.next && <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginTop: 3 }}>距「{tNow.next}」还差综合 {tNow.nextAt - tNow.composite} 分</div>}
             </div>
           )
         })()}
@@ -467,9 +467,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             查看本周周报（第 {report.week} 周）
           </button>
         ) : (
-          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#F9FAFB', border: '1px dashed #E5E7EB', fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px dashed var(--border)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
             ⏳ 本周经营中 · 第 <b>{classDayIndex ?? 1}/7</b> 天
-            <div style={{ color: '#9CA3AF', fontSize: 11 }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
               到第 7 天<b>自动出周报</b>（不用点结算）· 已决策 {Object.keys(doneDecisions).length}/18
             </div>
           </div>
@@ -488,7 +488,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         if (undoneKeys.length === 0 || report) return null
         const names = undoneKeys.map(id => decisions.find(d => d.id === id)?.name).filter(Boolean)
         return (
-          <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: '#FEF0EF', border: '1px solid #FECACA', borderRadius: 10, fontSize: 12, color: '#991B1B', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 10, fontSize: 12, color: 'var(--bad)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ flexShrink: 0, display: 'flex' }}><Icon name="status.warn" size={14} /></span>
             <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周经营结果</span>
           </div>
@@ -518,17 +518,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         return (
           <div className="card" title="点击查看实时流水明细"
             onClick={() => { contentRef.current && contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
-            style={{ background: isCritical ? '#FEF0EF' : isLow ? '#FFF4E0' : '#F0FDF4', borderColor: isCritical ? '#FECACA' : isLow ? '#FDE68A' : '#BBF7D0', cursor: 'pointer' }}>
+            style={{ background: isCritical ? 'var(--bad-bg)' : isLow ? 'var(--warn-bg)' : 'var(--good-bg)', borderColor: isCritical ? 'var(--bad-border)' : isLow ? 'var(--warn-border)' : 'var(--good-border)', cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: isCritical ? 'var(--bad)' : isLow ? 'var(--warn)' : 'var(--good)' }}>
                 {isCritical ? '破产预警' : isLow ? '资金偏低' : '资金状况'}
               </span>
-              <span style={{ fontSize: 16, fontWeight: 700, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: isCritical ? 'var(--bad)' : isLow ? 'var(--warn)' : 'var(--good)' }}>
                 {(cap / 10000).toFixed(1)} 万
               </span>
             </div>
             {expenses > 0 && (
-              <div style={{ fontSize: 11, color: '#6B7280' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-sub)' }}>
                 上周支出 {expenses.toLocaleString()} 元 · 本周利润 {report ? (report.profit >= 0 ? '+' : '') + report.profit.toLocaleString() : '—'} 元 · 点击看实时流水 ↩
               </div>
             )}
@@ -539,7 +539,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
               if (!bd.length || !lastH.totalExpenses) return null
               return (
                 <div style={{ marginTop: 6 }}>
-                  <div style={{ fontSize: 11, cursor: 'pointer', color: '#6B7280', userSelect: 'none' }} onClick={() => setShowBreakdown(!showBreakdown)}>
+                  <div style={{ fontSize: 11, cursor: 'pointer', color: 'var(--text-sub)', userSelect: 'none' }} onClick={() => setShowBreakdown(!showBreakdown)}>
                     {showBreakdown ? '▾' : '▸'} 上周支出构成（共 {lastH.totalExpenses.toLocaleString()} 元，点看明细）
                   </div>
                   {showBreakdown && (() => {
@@ -549,12 +549,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                     return bd.map(([k, v]) => {
                       const prevV = prevExp ? (prevExp[k] || 0) : null
                       const diffPct = prevV != null && prevV > 0 ? Math.round((v - prevV) / prevV * 100) : null
-                      const dColor = diffPct == null ? '#9CA3AF' : diffPct > 0 ? '#DC2626' : diffPct < 0 ? '#16A34A' : '#9CA3AF'
+                      const dColor = diffPct == null ? 'var(--text-muted)' : diffPct > 0 ? 'var(--bad)' : diffPct < 0 ? 'var(--good)' : 'var(--text-muted)'
                       return (
-                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#374151', padding: '2px 0' }}>
-                          <span style={{ width: 50, flexShrink: 0, color: '#6B7280' }}>{k}</span>
-                          <div style={{ flex: 1, height: 5, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: Math.round(v / (lastH.totalExpenses || 1) * 100) + '%', background: '#F59E0B', borderRadius: 3 }} />
+                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text)', padding: '2px 0' }}>
+                          <span style={{ width: 50, flexShrink: 0, color: 'var(--text-sub)' }}>{k}</span>
+                          <div style={{ flex: 1, height: 5, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: Math.round(v / (lastH.totalExpenses || 1) * 100) + '%', background: 'var(--warn)', borderRadius: 3 }} />
                           </div>
                           <span style={{ width: 62, textAlign: 'right', flexShrink: 0, fontWeight: 600 }}>{v.toLocaleString()}元</span>
                           <span style={{ width: 44, textAlign: 'right', flexShrink: 0, fontWeight: 700, color: dColor }}>
@@ -567,13 +567,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                 </div>
               )
             })()}
-            {isCritical && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
+            {isCritical && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4, fontWeight: 600 }}>资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
           </div>
         )
       })()}
       {/* 主力客群提示 */}
       {location?.district && (
-        <div style={{ margin: '0 20px 8px', padding: '6px 12px', background: '#EFF6FF', borderRadius: 8, fontSize: 11, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ margin: '0 20px 8px', padding: '6px 12px', background: 'var(--primary-bg)', borderRadius: 8, fontSize: 11, color: 'var(--info)', display: 'flex', alignItems: 'center', gap: 6 }}>
           决策时注意匹配 {location.district} 的主力客群偏好
         </div>
       )}
@@ -602,36 +602,36 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                   const lastChoice = history.length && history[history.length - 1].decisions ? history[history.length - 1].decisions[d.id] : undefined
                   return (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
-                    style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid #E8940F', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
+                    style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid var(--primary)', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
                     <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
                       <div className={`task-icon ${bgMap[mod]}`}><Icon name={d.icon} size={22} /></div>
                       {(!isDone && KEY_DECISIONS.includes(d.id) || (d.id === 'reputation' && pendingReviewCount > 0)) && (
-                        <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff' }} />
+                        <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: 'var(--bad)', border: '2px solid #fff' }} />
                       )}
                     </div>
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
                       <div className="name">
-                        <span style={{ fontSize: 10, color: '#D1D5DB', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
-                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
+                        <span style={{ fontSize: 10, color: 'var(--border-strong)', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
+                        {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 10, color: 'var(--bad)', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
                         {(() => { const k = cadenceOf(d.id); if (!k) return null; const c = CAD_LANG[k]
-                          const style = k === CAD.实时 ? { background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }
-                            : k === CAD.周期 ? { background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE' }
-                              : { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA' }
+                          const style = k === CAD.实时 ? { background: 'var(--good-bg)', color: 'var(--good)', border: '1px solid var(--good-border)' }
+                            : k === CAD.周期 ? { background: 'var(--primary-bg)', color: 'var(--info)', border: '1px solid var(--primary-border)' }
+                              : { background: 'var(--bad-bg)', color: 'var(--bad)', border: '1px solid var(--bad-border)' }
                           return <span title={c.说明} style={{ fontSize: 9, borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 600, ...style }}>{c.名}</span> })()}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
-  ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: '#1D4ED8', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>我的职责</span>
-  : <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}><Icon name={OWNER_LABELS[d.owner].icon} size={11} style={{ display: 'inline-block', verticalAlign: '-1px' }} /> {OWNER_LABELS[d.owner].label}</span>)}
+  ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: 'var(--primary)', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>我的职责</span>
+  : <span title="建议负责职业" style={{ fontSize: 9, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}><Icon name={OWNER_LABELS[d.owner].icon} size={11} style={{ display: 'inline-block', verticalAlign: '-1px' }} /> {OWNER_LABELS[d.owner].label}</span>)}
                       </div>
-                      <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: '#6B7280', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
+                      <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: 'var(--text-sub)', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone
                           ? (expandedDesc[d.id]
                               ? `当前答案：${fmtDecision(doneDecisions[d.id])}`
                               : `当前：${String(fmtDecision(doneDecisions[d.id])).slice(0, 20)}…`)
                           : (expandedDesc[d.id] ? d.desc : d.desc.slice(0, 25) + (d.desc.length > 25 ? '…' : ''))}
-                        <span style={{ color: '#E8940F', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : (isDone ? '展开答案' : (d.desc.length > 25 ? '全文' : ''))}</span>
+                        <span style={{ color: 'var(--primary)', marginLeft: 4 }}>{expandedDesc[d.id] ? '收起' : (isDone ? '展开答案' : (d.desc.length > 25 ? '全文' : ''))}</span>
                       </div>
                       {!isDone && lastChoice != null && (
-                        <div style={{ fontSize: 10, color: '#9CA3AF', padding: '1px 0 2px' }}>上周：{String(fmtDecision(lastChoice)).slice(0, 18)}{String(fmtDecision(lastChoice)).length > 18 ? '…' : ''}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '1px 0 2px' }}>上周：{String(fmtDecision(lastChoice)).slice(0, 18)}{String(fmtDecision(lastChoice)).length > 18 ? '…' : ''}</div>
                       )}
                     </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
@@ -645,7 +645,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       {showTop && (
         <button
           onClick={() => { if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'smooth' }) }}
-          style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', right: 16, width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #E5E7EB', boxShadow: 'var(--shadow-md)', cursor: 'pointer', zIndex: 60, fontSize: 14, color: '#6B7280' }}
+          style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', right: 16, width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid var(--border)', cursor: 'pointer', zIndex: 60, fontSize: 14, color: 'var(--text-sub)' }}
         >↑</button>
       )}
     </div>
@@ -670,20 +670,20 @@ function TrendChart({ history }) {
   const line = p => p.map(q => `${q.x},${q.y}`).join(' ')
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-      <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+      <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
       {Array.from({ length: TOTAL }, (_, i) => (
-        <line key={'g' + i} x1={xs(i)} y1={PT} x2={xs(i)} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+        <line key={'g' + i} x1={xs(i)} y1={PT} x2={xs(i)} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
       ))}
-      <polyline points={line(occ)} fill="none" stroke="#E8940F" strokeWidth="2" strokeLinejoin="round" />
-      <polyline points={line(prof)} fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinejoin="round" />
-      {occ.map((p, i) => <circle key={'o' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#E8940F" strokeWidth="2" />)}
-      {prof.map((p, i) => <circle key={'p' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#3B82F6" strokeWidth="2" />)}
+      <polyline points={line(occ)} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round" />
+      <polyline points={line(prof)} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round" />
+      {occ.map((p, i) => <circle key={'o' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="var(--primary)" strokeWidth="2" />)}
+      {prof.map((p, i) => <circle key={'p' + i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="var(--primary)" strokeWidth="2" />)}
       {Array.from({ length: TOTAL }, (_, i) => (
-        <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="8" fill={i < n ? '#9CA3AF' : '#D1D5DB'} textAnchor="middle">{i + 1}</text>
+        <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="8" fill={i < n ? 'var(--text-muted)' : 'var(--border-strong)'} textAnchor="middle">{i + 1}</text>
       ))}
-      <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 出租率%</text>
-      <text x={PL + 62} y={9} fontSize="9" fill="#3B82F6">■ 利润(万)</text>
-      {n < TOTAL && <text x={W - PR} y={9} fontSize="9" fill="#D1D5DB" textAnchor="end">还剩 {TOTAL - n} 周</text>}
+      <text x={PL} y={9} fontSize="9" fill="var(--primary)">■ 出租率%</text>
+      <text x={PL + 62} y={9} fontSize="9" fill="var(--primary)">■ 利润(万)</text>
+      {n < TOTAL && <text x={W - PR} y={9} fontSize="9" fill="var(--border-strong)" textAnchor="end">还剩 {TOTAL - n} 周</text>}
     </svg>
   )
 }
@@ -706,25 +706,25 @@ function BreakEvenChart({ history }) {
   return (
     <>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-        <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
-        <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4 3" />
-        <text x={W - PR} y={zeroY - 4} fontSize="8" fill="#9CA3AF" textAnchor="end">盈亏平衡线 0</text>
-        <polyline points={cum.map((v, i) => `${xs(i)},${ys(v)}`).join(' ')} fill="none" stroke="#E8940F" strokeWidth="2" strokeLinejoin="round" />
+        <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
+        <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="4 3" />
+        <text x={W - PR} y={zeroY - 4} fontSize="8" fill="var(--text-muted)" textAnchor="end">盈亏平衡线 0</text>
+        <polyline points={cum.map((v, i) => `${xs(i)},${ys(v)}`).join(' ')} fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round" />
         {cum.map((v, i) => (
-          <circle key={'c' + i} cx={xs(i)} cy={ys(v)} r="3" fill="#fff" stroke="#E8940F" strokeWidth="2" />
+          <circle key={'c' + i} cx={xs(i)} cy={ys(v)} r="3" fill="#fff" stroke="var(--primary)" strokeWidth="2" />
         ))}
         {breakeven && (
           <>
-            <circle cx={xs(beIdx)} cy={ys(cum[beIdx])} r="4.5" fill="#10B981" stroke="#fff" strokeWidth="1.5" />
-            <text x={xs(beIdx)} y={ys(cum[beIdx]) - 9} fontSize="9" fontWeight="700" fill="#059669" textAnchor={labelAnchor(beIdx)}>第{history[beIdx].week}周回本</text>
+            <circle cx={xs(beIdx)} cy={ys(cum[beIdx])} r="4.5" fill="var(--good)" stroke="#fff" strokeWidth="1.5" />
+            <text x={xs(beIdx)} y={ys(cum[beIdx]) - 9} fontSize="9" fontWeight="700" fill="var(--good)" textAnchor={labelAnchor(beIdx)}>第{history[beIdx].week}周回本</text>
           </>
         )}
         {history.map((h, i) => (
-          <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="9" fill="#9CA3AF" textAnchor="middle">{h.week}周</text>
+          <text key={'w' + i} x={xs(i)} y={H - 6} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{h.week}周</text>
         ))}
-        <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 累计利润</text>
+        <text x={PL} y={9} fontSize="9" fill="var(--primary)">■ 累计利润</text>
       </svg>
-      <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', marginTop: 4, color: breakeven ? '#059669' : acc >= 0 ? '#16A34A' : '#DC2626' }}>
+      <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', marginTop: 4, color: breakeven ? 'var(--good)' : acc >= 0 ? 'var(--good)' : 'var(--bad)' }}>
         {breakeven ? `第 ${history[beIdx].week} 周实现累计盈利，当前累计 ${acc.toLocaleString()} 元`
           : acc >= 0 ? `持续盈利中，当前累计 ${acc.toLocaleString()} 元`
           : `⏳ 尚未回本，当前累计 ${acc.toLocaleString()} 元`}
@@ -742,7 +742,7 @@ function KpiDelta({ cur, prev, goodUp = true, unit = '' }) {
   const up = diff > 0
   const good = goodUp ? up : !up
   return (
-    <span style={{ fontSize: 9, fontWeight: 700, color: good ? '#10B981' : '#EF4444', marginLeft: 3 }}>
+    <span style={{ fontSize: 9, fontWeight: 700, color: good ? 'var(--good)' : 'var(--bad)', marginLeft: 3 }}>
       {up ? '↑' : '↓'}{Math.abs(diff)}{unit}
     </span>
   )
@@ -782,46 +782,46 @@ function Report({ report, week, history }) {
             return (<>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>出租率</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.occupancy}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>%</span><KpiDelta cur={report.occupancy} prev={prev?.occupancy ?? null} unit="pt" /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>出租率</div>
+              <div style={{fontSize:16,fontWeight:700}}>{report.occupancy}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>%</span><KpiDelta cur={report.occupancy} prev={prev?.occupancy ?? null} unit="pt" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>ADR<span style={{fontWeight:400,color:'#C4C4C4'}}>（实收）</span></div>
-              <div style={{fontSize:16,fontWeight:700}}>{adr}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元/间·天</span><KpiDelta cur={adr} prev={prevAdr} unit="元" /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>ADR<span style={{fontWeight:400,color:'var(--border-strong)'}}>（实收）</span></div>
+              <div style={{fontSize:16,fontWeight:700}}>{adr}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>元/间·天</span><KpiDelta cur={adr} prev={prevAdr} unit="元" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>RevPAR</div>
-              <div style={{fontSize:16,fontWeight:700}}>{rev}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元/间·天</span><KpiDelta cur={rev} prev={prevRev} unit="元" /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>RevPAR</div>
+              <div style={{fontSize:16,fontWeight:700}}>{rev}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>元/间·天</span><KpiDelta cur={rev} prev={prevRev} unit="元" /></div>
             </div>
           </div>
           <div style={{display:'flex',gap:8,margin:'0 20px 14px'}}>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>利润</div>
-              <div style={{fontSize:16,fontWeight:700,color:report.profit>=0?'#16A34A':'#DC2626'}}>{report.profit>=0?'+':''}{report.profit}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>元</span><KpiDelta cur={report.profit} prev={prev?.profit ?? null} unit="元" /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>利润</div>
+              <div style={{fontSize:16,fontWeight:700,color:report.profit>=0?'var(--good)':'var(--bad)'}}>{report.profit>=0?'+':''}{report.profit}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>元</span><KpiDelta cur={report.profit} prev={prev?.profit ?? null} unit="元" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>口碑分</div>
-              <div style={{fontSize:16,fontWeight:700}}>{(report.finalGoodRate/20).toFixed(1)}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>/5</span><KpiDelta cur={report.finalGoodRate} prev={prev?.finalGoodRate ?? null} unit="pt" /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>口碑分</div>
+              <div style={{fontSize:16,fontWeight:700}}>{(report.finalGoodRate/20).toFixed(1)}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>/5</span><KpiDelta cur={report.finalGoodRate} prev={prev?.finalGoodRate ?? null} unit="pt" /></div>
             </div>
             <div className="card" style={{flex:1,margin:0,padding:'12px 8px',textAlign:'center'}}>
-              <div style={{fontSize:11,color:'#9CA3AF',marginBottom:6}}>差评</div>
-              <div style={{fontSize:16,fontWeight:700}}>{report.negativeCount}<span style={{fontSize:10,color:'#6B7280',fontWeight:400}}>条</span><KpiDelta cur={report.negativeCount} prev={prev?.negativeCount ?? null} unit="条" goodUp={false} /></div>
+              <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6}}>差评</div>
+              <div style={{fontSize:16,fontWeight:700}}>{report.negativeCount}<span style={{fontSize:10,color:'var(--text-sub)',fontWeight:400}}>条</span><KpiDelta cur={report.negativeCount} prev={prev?.negativeCount ?? null} unit="条" goodUp={false} /></div>
             </div>
           </div>
             </>)
           })()}
 
           {/* 智能诊断 */}
-          <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+          <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
             <div className="card-title">智能诊断</div>
             {diagnoses.map((d, i) => (
-              <div key={i} style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7, padding: '4px 0' }}><Icon name={d.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.text}</div>
+              <div key={i} style={{ fontSize: 13, color: 'var(--info)', lineHeight: 1.7, padding: '4px 0' }}><Icon name={d.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.text}</div>
             ))}
           </div>
         </>
       ) : (
         <div className="card">
-          <div style={{ fontSize: 13, color: '#9CA3AF', textAlign: 'center', padding: '40px 0' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
             暂无经营数据<br />完成第一次结算后查看报表
           </div>
         </div>
@@ -832,7 +832,7 @@ function Report({ report, week, history }) {
         {history.length > 1 ? (
           <TrendChart history={history} />
         ) : (
-          <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '30px 0' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>
             结算满 2 周后解锁趋势图
           </div>
         )}
@@ -843,7 +843,7 @@ function Report({ report, week, history }) {
         {history.length > 0 ? (
           <BreakEvenChart history={history} />
         ) : (
-          <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
         )}
       </div>
 
@@ -851,16 +851,16 @@ function Report({ report, week, history }) {
         <div className="card-title">历史周报</div>
         {history.length > 0 ? (
           history.slice().reverse().map((h, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--fill)' }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>第 {h.week} 周</span>
-              <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#6B7280' }}>
+              <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-sub)' }}>
                 <span>出租率 {h.occupancy}%</span>
-                <span>利润 <span style={{ color: h.profit >= 0 ? '#16A34A' : '#DC2626' }}>{h.profit}</span></span>
+                <span>利润 <span style={{ color: h.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{h.profit}</span></span>
               </div>
             </div>
           ))
         ) : (
-          <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '20px 0' }}>暂无历史记录</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>暂无历史记录</div>
         )}
       </div>
     </div>
@@ -933,7 +933,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           const lv = brand?.level || ''
           const q = qualityOf(attrs)
           const name = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q).title
-          return { '标杆酒店': '#FDE68A', '人气名店': '#EDE9FE', '精品酒店': '#DBEAFE', '舒适旅店': '#D1FAE5' }[name] || '#FFF4E0'
+          return { '标杆酒店': 'var(--warn-border)', '人气名店': 'var(--primary-bg)', '精品酒店': 'var(--primary-border)', '舒适旅店': 'var(--good-bg)' }[name] || 'var(--warn-bg)'
         })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}><Icon name="guest" size={28} /></div>
       {/* 真实姓名修改弹窗（B2/B3：state 与弹窗都在本组件，与入口 ✏️ 同处） */}
       {renameOpen && (
@@ -944,7 +944,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               value={renameVal}
               onChange={e => setRenameVal(e.target.value)}
               placeholder="输入真实姓名（教师端将显示）"
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setRenameOpen(false)}>取消</button>
@@ -960,13 +960,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             title="点击修改真实姓名"
             onClick={() => setRenameOpen(true)}
           >
-            {user?.name || '未命名'} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>改名</span>
+            {user?.name || '未命名'} <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>改名</span>
           </div>
-          <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>{orgDesc}</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{orgDesc}</div>
         </div>
       </div>
 
-      <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',padding:14}}>
+      <div className="card" style={{background:'var(--warn-bg)',borderColor:'var(--warn-border)',padding:14}}>
         {(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
@@ -975,15 +975,15 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           return (<>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 13, color: '#A96407', fontWeight: 700 }}><Icon name={ti.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 我的酒店称号</div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>排名以教师端为准</div>
+                <div style={{ fontSize: 13, color: 'var(--warn)', fontWeight: 700 }}><Icon name={ti.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 我的酒店称号</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>排名以教师端为准</div>
               </div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#D97706' }}>{ti.title}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--warn)' }}>{ti.title}</div>
             </div>
-            <div style={{ height: 6, background: '#FBE3B3', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: ti.progress + '%', background: '#E8940F', borderRadius: 3, transition: 'width 0.5s' }} />
+            <div style={{ height: 6, background: 'var(--warn-border)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: ti.progress + '%', background: 'var(--primary)', borderRadius: 3, transition: 'width 0.5s' }} />
             </div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4, textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>
               {ti.next ? `距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : '已达最高称号'}
             </div>
           </>)
@@ -1000,7 +1000,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           const change = !prev ? 'start' : now.title !== prev.title ? (now.composite > prev.composite ? 'up' : 'down') : 'same'
           return { week: h.week || i + 1, ...now, change, delta: prev ? now.composite - prev.composite : null }
         })
-        const changeTag = { up: { t: '晋升', c: '#065F46', bg: '#ECFDF5' }, down: { t: '降级', c: '#991B1B', bg: '#FEF0EF' }, start: { t: '起步', c: '#A96407', bg: '#FFF4E0' }, same: { t: '保持', c: '#6B7280', bg: '#F3F4F6' } }
+        const changeTag = { up: { t: '晋升', c: 'var(--good)', bg: 'var(--good-bg)' }, down: { t: '降级', c: 'var(--bad)', bg: 'var(--bad-bg)' }, start: { t: '起步', c: 'var(--warn)', bg: 'var(--warn-bg)' }, same: { t: '保持', c: 'var(--text-sub)', bg: 'var(--fill)' } }
         return (
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-title">称号历程</div>
@@ -1016,18 +1016,18 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               const rising = vals[n - 1] >= vals[0]
               return (
                 <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', marginBottom: 4 }}>
-                  <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
-                  <polyline points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={rising ? '#10B981' : '#EF4444'} strokeWidth="2" strokeLinejoin="round" />
-                  {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#fff" stroke={rising ? '#10B981' : '#EF4444'} strokeWidth="1.5" />)}
-                  <text x={PL} y={7} fontSize="8" fill="#9CA3AF">综合分 {vals[0]} → {vals[n - 1]}</text>
+                  <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
+                  <polyline points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={rising ? 'var(--good)' : 'var(--bad)'} strokeWidth="2" strokeLinejoin="round" />
+                  {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#fff" stroke={rising ? 'var(--good)' : 'var(--bad)'} strokeWidth="1.5" />)}
+                  <text x={PL} y={7} fontSize="8" fill="var(--text-muted)">综合分 {vals[0]} → {vals[n - 1]}</text>
                 </svg>
               )
             })()}
             {[...rows].reverse().map(r => {
               const tag = changeTag[r.change]
               return (
-                <div key={r.week} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #F3F4F6' }}>
-                  <span style={{ fontSize: 11, color: '#9CA3AF', width: 44, flexShrink: 0 }}>第{r.week}周</span>
+                <div key={r.week} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--fill)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 44, flexShrink: 0 }}>第{r.week}周</span>
                   <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}><Icon name={r.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.title}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, color: tag.c, background: tag.bg, borderRadius: 6, padding: '2px 8px' }}>
                     {tag.t}{r.delta != null && r.change !== 'same' ? `（${r.delta > 0 ? '+' : ''}${r.delta}分）` : ''}
@@ -1042,10 +1042,10 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       {/* 我的酒店信息 */}
       <div className="card" style={{ marginTop: 12, paddingTop: 16 }}>
         <div className="card-title" style={{ marginBottom: 10 }}>我的酒店档案</div>
-        <div style={{ fontSize: 13, color: '#374151', lineHeight: 2 }}>
+        <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 2 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>酒店称号</span>
-            <span style={{ fontWeight: 600, color: '#A96407' }}>{(() => {
+            <span style={{ color: 'var(--text-muted)' }}>酒店称号</span>
+            <span style={{ fontWeight: 600, color: 'var(--warn)' }}>{(() => {
               const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
               const gr = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
               const lv = brand?.level || ''
@@ -1055,35 +1055,35 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             })()}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>酒店</span>
+            <span style={{ color: 'var(--text-muted)' }}>酒店</span>
             <span style={{ fontWeight: 600 }}>{property?.name || '未认领'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>品牌</span>
+            <span style={{ color: 'var(--text-muted)' }}>品牌</span>
             <span style={{ fontWeight: 600 }}>{brand?.name || '未选择'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>所在地</span>
+            <span style={{ color: 'var(--text-muted)' }}>所在地</span>
             <span style={{ fontWeight: 600 }}>{location ? `${location.city}·${location.district}` : '未选址'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>经营进度</span>
+            <span style={{ color: 'var(--text-muted)' }}>经营进度</span>
             <span style={{ fontWeight: 600 }}>第 {week} / 12 周</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>经营天数</span>
+            <span style={{ color: 'var(--text-muted)' }}>经营天数</span>
             <span style={{ fontWeight: 600 }}>{history.length * 7} 天</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>开业日期</span>
+            <span style={{ color: 'var(--text-muted)' }}>开业日期</span>
             <span style={{ fontWeight: 600 }}>3 月 1 日（第 1 周周一）</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>物业类型</span>
+            <span style={{ color: 'var(--text-muted)' }}>物业类型</span>
             <span style={{ fontWeight: 600 }}>{property?.type || '—'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#9CA3AF' }}>品牌档次</span>
+            <span style={{ color: 'var(--text-muted)' }}>品牌档次</span>
             <span style={{ fontWeight: 600 }}>{brand?.level || '—'}</span>
           </div>
         </div>
@@ -1094,13 +1094,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         <div className="card-title">第 {week} 周决策记录</div>
         {Object.keys(doneDecisions).length > 0 ? (
           decisions.filter(d => doneDecisions[d.id] !== undefined).map(d => (
-            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F9FAFB' }}>
+            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--bg)' }}>
               <span style={{ fontSize: 13 }}><Icon name={d.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}</span>
-              <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>✓ 已决策</span>
+              <span style={{ fontSize: 12, color: 'var(--good)', fontWeight: 600 }}>✓ 已决策</span>
             </div>
           ))
         ) : (
-          <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
             本周还未做决策，去「经营」页开始吧
           </div>
         )}
@@ -1117,13 +1117,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         if (notes === null) return null
         if (notes.length === 0) return null
         return (
-          <div className="card" style={{ background: '#FFF4E0' }}>
+          <div className="card" style={{ background: 'var(--warn-bg)' }}>
             <div className="card-title">老师评语</div>
             {notes.map((n, i) => (
-              <div key={i} style={{ padding: '8px 0', borderBottom: i < notes.length - 1 ? '1px solid #FBE3B3' : 'none' }}>
-                {n.note && <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>}
-                {n.score != null && <div style={{ fontSize: 12, color: '#A96407', fontWeight: 700, marginTop: 4 }}>评分：{n.score} / 100</div>}
-                <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{n.week > 0 ? `第${n.week}周批注 · ` : ''}{new Date(n.updated_at).toLocaleDateString('zh-CN')}</div>
+              <div key={i} style={{ padding: '8px 0', borderBottom: i < notes.length - 1 ? '1px solid var(--warn-border)' : 'none' }}>
+                {n.note && <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{n.note}</div>}
+                {n.score != null && <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700, marginTop: 4 }}>评分：{n.score} / 100</div>}
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{n.week > 0 ? `第${n.week}周批注 · ` : ''}{new Date(n.updated_at).toLocaleDateString('zh-CN')}</div>
               </div>
             ))}
           </div>
@@ -1133,7 +1133,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       {/* 本地备份 */}
       <div className="card">
         <div className="card-title">数据备份</div>
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.6 }}>
           进度已自动存云端+本机。导出备份文件可防误删账号/清浏览器数据，双保险。
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -1143,35 +1143,35 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files[0] && importBackup(e.target.files[0])} />
           </label>
         </div>
-        {backupMsg && <div style={{ fontSize: 11, color: '#A96407', marginTop: 8 }}>{backupMsg}</div>}
+        {backupMsg && <div style={{ fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>{backupMsg}</div>}
       </div>
 
       <div className="card" style={{padding:'4px 0'}}>
         {menus.map(m => (
           <div key={m.name} onClick={() => onOpen(m.name, m.icon, m.key)}
-            style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',borderBottom:'1px solid #F9FAFB',cursor:'pointer',transition:'transform 0.12s'}}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',borderBottom:'1px solid var(--bg)',cursor:'pointer',transition:'transform 0.12s'}}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>
-            <div style={{width:42,height:42,borderRadius:14,background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name={m.icon} size={19} /></div>
+            <div style={{width:42,height:42,borderRadius:14,background:m.bg==='amber'?'var(--warn-bg)':m.bg==='blue'?'var(--primary-bg)':'var(--good-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name={m.icon} size={19} /></div>
             <div style={{flex:1}}>
               <div style={{fontSize:14,fontWeight:600}}>{m.name}</div>
-              <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{{records:'逐周决策复盘与批注时间线',scores:'四维评分与积分构成',members:'队友概况与职责分工',help:'玩法说明与常见问题'}[m.key] || ''}</div>
+              <div style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>{{records:'逐周决策复盘与批注时间线',scores:'四维评分与积分构成',members:'队友概况与职责分工',help:'玩法说明与常见问题'}[m.key] || ''}</div>
             </div>
-            <div style={{color:'#D1D5DB'}}>›</div>
+            <div style={{color:'var(--border-strong)'}}>›</div>
           </div>
         ))}
         <div onClick={onLogout} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',cursor:'pointer',transition:'transform 0.12s'}}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = ''}>
-          <div style={{width:42,height:42,borderRadius:14,background:'#FEF2F2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name="event.resign" size={19} /></div>
+          <div style={{width:42,height:42,borderRadius:14,background:'var(--bad-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name="event.resign" size={19} /></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600,color:'#EF4444'}}>退出登录</div>
-            <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>进度已自动保存，换设备登录不丢失</div>
+            <div style={{fontSize:14,fontWeight:600,color:'var(--bad)'}}>退出登录</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>进度已自动保存，换设备登录不丢失</div>
           </div>
-          <div style={{color:'#D1D5DB'}}>›</div>
+          <div style={{color:'var(--border-strong)'}}>›</div>
         </div>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 10, color: '#D1D5DB', paddingBottom: 8 }}>云悦酒店 v{APP_VERSION}</div>
+      <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--border-strong)', paddingBottom: 8 }}>云悦酒店 v{APP_VERSION}</div>
     </div>
   )
 }
@@ -1197,7 +1197,7 @@ function OperationRecords({ history, onBack }) {
       </div>
 
       {weeks.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
+        <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
           还没有结算记录<br />完成第一周结算后，这里会记录你的每个决策评价
         </div>
       )}
@@ -1223,19 +1223,19 @@ function OperationRecords({ history, onBack }) {
           <div className="card-title" style={{ cursor: 'pointer', marginBottom: isOpen ? 8 : 0 }} onClick={() => setOpenWeek(isOpen ? null : h.week)}>
             <span style={{ flex: 1 }}>
               第 {h.week} 周
-              <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
                 出租率 {h.occupancy}% · 利润 {h.profit >= 0 ? '+' : ''}{h.profit}元 · 差评 {h.negativeCount}条
               </span>
             </span>
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>{isOpen ? '▲ 收起' : '▼ 展开'}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{isOpen ? '▲ 收起' : '▼ 展开'}</span>
           </div>
           {isOpen && (<>
           {entries.length > 0 && (
-            <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+            <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
               {entries.map(([id, val]) => {
                 const d = decisions.find(x => x.id === id)
                 return (
-                  <div key={id} style={{ fontSize: 11, color: '#374151', padding: '2px 0' }}>
+                  <div key={id} style={{ fontSize: 11, color: 'var(--text)', padding: '2px 0' }}>
                     · {d ? d.name : id}：<b>{fmtDecision(val)}</b>
                   </div>
                 )
@@ -1243,12 +1243,12 @@ function OperationRecords({ history, onBack }) {
             </div>
           )}
           {(h.insights && h.insights.length > 0) ? h.insights.map((ins, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < h.insights.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+            <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < h.insights.length - 1 ? '1px solid var(--fill)' : 'none' }}>
               <span style={{ fontSize: 14, flexShrink: 0 }}><Icon name={ins.good ? 'status.done' : 'status.warn'} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /></span>
-              <span style={{ fontSize: 12, color: ins.good ? '#065F46' : '#991B1B', lineHeight: 1.6 }}>{ins.text}</span>
+              <span style={{ fontSize: 12, color: ins.good ? 'var(--good)' : 'var(--bad)', lineHeight: 1.6 }}>{ins.text}</span>
             </div>
           )) : (
-            <div style={{ fontSize: 12, color: '#9CA3AF' }}>该周无关键决策复盘</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>该周无关键决策复盘</div>
           )}
           </>)}
         </div>
@@ -1310,16 +1310,16 @@ function HelpPage({ onBack }) {
       {sections.map(s => (
         <div className="card" key={s.title}>
           <div className="card-title"><Icon name={s.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {s.title}</div>
-          <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>{s.body}</div>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>{s.body}</div>
         </div>
       ))}
 
       <div className="card">
         <div className="card-title">资金管理指南</div>
-        <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
+        <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>
           <div><b>资金在哪看：</b>经营页顶部「资金状况」卡。开局系统给你一笔<b>运营启动资金</b>（约 {SCALE.IC_NEW / 10000} 万），每周结算后自动增减。<b>它是经营周转用的钱，不等于"开一家酒店的总投资"</b>——筹建投入见「报价单」。</div>
           <div><b>每周扣什么：</b>租金（按选址租金档，30–50 元/间·天）+ 部门成本（人力 / 客房 / 能耗 / 维修等，约合营收 45%）+ 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
-          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「破产预警」。</div>
+          <div><b>两条预警线：</b>低于 <b style={{ color: 'var(--warn)' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「资金偏低」；低于 <b style={{ color: 'var(--bad)' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「破产预警」。</div>
           <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
         </div>
@@ -1328,10 +1328,10 @@ function HelpPage({ onBack }) {
       <div className="card">
         <div className="card-title">事件速览（22种，都是经营状态招来的）</div>
         {EVENT_INFO.map(e => (
-          <div key={e.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
+          <div key={e.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid var(--bg)' }}>
             <span style={{ fontSize: 13, flexShrink: 0 }}><Icon name={e.icon} size={14} /></span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#DC2626' : '#991B1B', flexShrink: 0 }}>{e.name}</span>
-            <span style={{ fontSize: 11, color: '#9CA3AF' }}>{e.trigger}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: e.type === 'good' ? 'var(--good)' : e.type === 'crisis' ? 'var(--bad)' : 'var(--bad)', flexShrink: 0 }}>{e.name}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{e.trigger}</span>
           </div>
         ))}
       </div>
@@ -1339,21 +1339,21 @@ function HelpPage({ onBack }) {
       <div className="card">
         <div className="card-title">称号一览（5级）</div>
         {TITLES.map((ti, i) => (
-          <div key={ti.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
+          <div key={ti.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid var(--bg)' }}>
             <span style={{ fontSize: 13 }}><Icon name={ti.icon} size={15} /></span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#A96407', flexShrink: 0 }}>{ti.name}</span>
-            <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>综合 ≥ {ti.min}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', flexShrink: 0 }}>{ti.name}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>综合 ≥ {ti.min}</span>
           </div>
         ))}
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>综合分 = 出租率×35% + 好评率×35% + 品质分×30%（品质分由品牌档次决定）</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>综合分 = 出租率×35% + 好评率×35% + 品质分×30%（品质分由品牌档次决定）</div>
       </div>
 
-      <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+      <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
         <div className="card-title">常见问题</div>
         {faqs.map(f => (
           <div key={f.q} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Q：{f.q}</div>
-            <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7, marginTop: 2 }}>A：{f.a}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--info)' }}>Q：{f.q}</div>
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7, marginTop: 2 }}>A：{f.a}</div>
           </div>
         ))}
       </div>
@@ -1364,10 +1364,10 @@ function HelpPage({ onBack }) {
           ...decisions.slice(7, 12).map(d => ({ mod: '会员推广', ...d })),
           ...decisions.slice(12).map(d => ({ mod: '门店经营', ...d })),
         ].map((d, i) => (
-          <div key={d.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '4px 0', borderBottom: '1px solid #F9FAFB' }}>
-            <span style={{ fontSize: 11, color: '#D1D5DB', flexShrink: 0 }}>{i + 1}.</span>
+          <div key={d.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '4px 0', borderBottom: '1px solid var(--bg)' }}>
+            <span style={{ fontSize: 11, color: 'var(--border-strong)', flexShrink: 0 }}>{i + 1}.</span>
             <span style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}><Icon name={d.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}</span>
-            <span style={{ fontSize: 10, color: '#9CA3AF' }}>{d.module}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{d.module}</span>
           </div>
         ))}
       </div>
@@ -1422,7 +1422,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       </div>
 
       {!hasGroup && (
-        <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
+        <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
           老师还没给你分配组号和班级<br />
           分配后这里会自动显示你的组员
         </div>
@@ -1431,7 +1431,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       {hasGroup && members === null && (
         <div className="card">
           {[0, 1].map(i => (
-            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--fill)' }}>
               <div className="skeleton" style={{ width: 40, height: 40, borderRadius: '50%' }} />
               <div style={{ flex: 1 }}>
                 <div className="skeleton" style={{ height: 12, width: '40%', marginBottom: 6 }} />
@@ -1446,7 +1446,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       {hasGroup && (
         <div className="card">
           <div className="card-title">我的职位</div>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>选择你在团队中的角色（影响课堂分工，全员均可做决策）</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>选择你在团队中的角色（影响课堂分工，全员均可做决策）</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {[
               { role: 'manager', icon: 'role.manager', label: '店长/总经理', desc: '全局统筹' },
@@ -1459,13 +1459,13 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                 onClick={() => { import('./supabaseClient.js').then(m => m.setGroupRole(user.uid, r.role)); setMyRole(r.role) }}
                 style={{
                   flex: '1 1 30%', minWidth: 90, padding: '10px 8px', borderRadius: 10,
-                  border: myRole === r.role ? '2px solid #E8940F' : '1px solid #E5E7EB',
-                  background: myRole === r.role ? '#FFF4E0' : '#fff',
+                  border: myRole === r.role ? '2px solid var(--primary)' : '1px solid var(--border)',
+                  background: myRole === r.role ? 'var(--warn-bg)' : '#fff',
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
                 }}>
                 <div style={{ fontSize: 20, display: 'flex' }}><Icon name={r.icon} size={20} /></div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: myRole === r.role ? '#A96407' : '#374151' }}>{r.label}</div>
-                <div style={{ fontSize: 9, color: '#9CA3AF' }}>{r.desc}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: myRole === r.role ? 'var(--warn)' : 'var(--text)' }}>{r.label}</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{r.desc}</div>
               </button>
             ))}
           </div>
@@ -1475,25 +1475,25 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       {hasGroup && members !== null && (
         <div className="card">
           <div className="card-title">我的组员（{members.length + 1} 人）</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--fill)' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name} <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>（我）</span></div>
-              <div style={{ fontSize: 11, color: '#9CA3AF' }}>学号 {user.id}</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name} <span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>（我）</span></div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>学号 {user.id}</div>
             </div>
           </div>
           {members.map(m => {
             const st = memberStates[m.user_id]
             return (
-              <div key={m.user_id} style={{ padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+              <div key={m.user_id} style={{ padding: '10px 0', borderBottom: '1px solid var(--fill)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>
                       {m.display_name}
-                      {st && st.title && <span style={{ fontSize: 10, color: '#A96407', background: '#FFF4E0', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{st.titleIcon} {st.title}</span>}
+                      {st && st.title && <span style={{ fontSize: 10, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{st.titleIcon} {st.title}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {st ? `${st.finished ? '已结业' : `第${st.week}周`} · ${st.hotel}` : '查看经营概况…'}
                     </div>
                   </div>
@@ -1511,21 +1511,21 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                     <div style={{ marginTop: 6, paddingLeft: 52 }}>
                       <span
                         onClick={() => setDutyOpenUid(dutyOpenUid === m.user_id ? null : m.user_id)}
-                        style={{ fontSize: 10, fontWeight: 700, color: full ? '#065F46' : '#A96407', background: full ? '#ECFDF5' : '#FFF4E0', borderRadius: 5, padding: '2px 8px', cursor: 'pointer', display: 'inline-block' }}
+                        style={{ fontSize: 10, fontWeight: 700, color: full ? 'var(--good)' : 'var(--warn)', background: full ? 'var(--good-bg)' : 'var(--warn-bg)', borderRadius: 5, padding: '2px 8px', cursor: 'pointer', display: 'inline-block' }}
                         title={full ? '职责决策全部完成' : '点击查看未完成的职责决策'}
                       >
                         <Icon name={full ? 'status.done' : 'date.week'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {OWNER_LABELS[role] && <Icon name={OWNER_LABELS[role].icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} />}{OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成{!full ? ' · 点击查看' : ''}
                       </span>
                       {dutyOpenUid === m.user_id && undone.length > 0 && (
-                        <div style={{ marginTop: 4, padding: '6px 10px', background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 8 }}>
+                        <div style={{ marginTop: 4, padding: '6px 10px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8 }}>
                           {undone.map(d => (
                             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
-                              <span style={{ fontSize: 11, color: '#991B1B', flex: 1, lineHeight: 1.5 }}>
+                              <span style={{ fontSize: 11, color: 'var(--bad)', flex: 1, lineHeight: 1.5 }}>
                                 · {d && <Icon name={d.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} />} {d?.name}——还没做，提醒 TA 去经营页完成
                               </span>
                               {onGoDecision && (
                                 <button onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
-                                  style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1D4ED8', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                                  style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'var(--primary)', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
                                   去完成 ›
                                 </button>
                               )}
@@ -1537,16 +1537,16 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                   )
                 })()}
                 {st && st.occ > 0 && (
-                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: '#6B7280', marginTop: 6, paddingLeft: 52 }}>
-                    <span>平均出租率 <b style={{ color: '#111827' }}>{st.occ}%</b></span>
-                    <span>累计利润 <b style={{ color: st.profit >= 0 ? '#10B981' : '#EF4444' }}>{st.profit >= 0 ? '+' : ''}{(st.profit / 10000).toFixed(2)}万</b></span>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-sub)', marginTop: 6, paddingLeft: 52 }}>
+                    <span>平均出租率 <b style={{ color: 'var(--text)' }}>{st.occ}%</b></span>
+                    <span>累计利润 <b style={{ color: st.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{st.profit >= 0 ? '+' : ''}{(st.profit / 10000).toFixed(2)}万</b></span>
                   </div>
                 )}
               </div>
             )
           })}
           {members.length === 0 && (
-            <div style={{ fontSize: 12, color: '#9CA3AF', padding: '8px 0', lineHeight: 1.8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0', lineHeight: 1.8 }}>
               组里目前只有你一个人。<br />老师把其他同学的班级组号设成一样的，他们就会出现在这里。
             </div>
           )}
@@ -1580,9 +1580,9 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card" style={{ textAlign: 'center', padding: 20 }}>
-        <div style={{ fontSize: 40, fontWeight: 700, color: '#E8940F' }}>{cum.finalScore}</div>
-        <div style={{ fontSize: 12, color: '#A96407', fontWeight: 600 }}>预测等级 {grade} · 按目前已结算的 {history.length} 周计算</div>
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{history.length < 12 ? '经营继续，此分数会随周数实时变化' : '12周已结算完毕'}</div>
+        <div style={{ fontSize: 40, fontWeight: 700, color: 'var(--primary)' }}>{cum.finalScore}</div>
+        <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>预测等级 {grade} · 按目前已结算的 {history.length} 周计算</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{history.length < 12 ? '经营继续，此分数会随周数实时变化' : '12周已结算完毕'}</div>
       </div>
 
       <div className="card">
@@ -1590,11 +1590,11 @@ function ScoreDetail({ history, onBack }) {
         {dims.map(d => (
           <div key={d.label} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>{d.label} <span style={{ fontSize: 10, color: '#9CA3AF' }}>权重{Math.round(d.weight * 100)}%</span></span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#E8940F' }}>{d.score}分</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{d.label} <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>权重{Math.round(d.weight * 100)}%</span></span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>{d.score}分</span>
             </div>
-            <div style={{ height: 7, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: d.score + '%', background: d.score >= 80 ? '#16A34A' : d.score >= 60 ? '#E8940F' : '#DC2626', borderRadius: 4 }}></div>
+            <div style={{ height: 7, background: 'var(--fill)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: d.score + '%', background: d.score >= 80 ? 'var(--good)' : d.score >= 60 ? 'var(--primary)' : 'var(--bad)', borderRadius: 4 }}></div>
             </div>
           </div>
         ))}
@@ -1619,13 +1619,13 @@ function ScoreDetail({ history, onBack }) {
             { icon: 'achv.title', name: '跻身A级', got: cum.finalScore >= 80 },
             { icon: 'achv.badge', name: '完赛', got: history.length >= 12 },
           ].map(b => (
-            <div key={b.name} style={{ textAlign: 'center', padding: '10px 4px', background: b.got ? '#FFF4E0' : '#F9FAFB', borderRadius: 10, border: b.got ? '1px solid #FBE3B3' : '1px solid #F3F4F6' }}>
+            <div key={b.name} style={{ textAlign: 'center', padding: '10px 4px', background: b.got ? 'var(--warn-bg)' : 'var(--bg)', borderRadius: 10, border: b.got ? '1px solid var(--warn-border)' : '1px solid var(--fill)' }}>
               <div style={{ filter: b.got ? 'none' : 'grayscale(1)', opacity: b.got ? 1 : 0.35, display: 'flex' }}><Icon name={b.icon} size={22} /></div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: b.got ? '#A96407' : '#9CA3AF', marginTop: 2 }}>{b.name}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: b.got ? 'var(--warn)' : 'var(--text-muted)', marginTop: 2 }}>{b.name}</div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6, textAlign: 'center' }}>点亮全部勋章 = 把每一项经营都做到位</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>点亮全部勋章 = 把每一项经营都做到位</div>
       </div>
 
       <div className="card">
@@ -1640,28 +1640,28 @@ function ScoreDetail({ history, onBack }) {
               navigator.clipboard.writeText(text).then(() => setScoreCopied(true)).catch(() => setScoreCopied(false))
             }}>复制</button>
         </div>
-        {scoreCopied && <div style={{ fontSize: 11, color: '#16A34A', marginBottom: 8 }}>已复制累计成绩</div>}
-        {history.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
+        {scoreCopied && <div style={{ fontSize: 11, color: 'var(--good)', marginBottom: 8 }}>已复制累计成绩</div>}
+        {history.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
         {history.map((_, i) => {
           const upto = history.slice(0, i + 1)
           const s = scoreOf(upto)
           return (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F3F4F6' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--fill)' }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>第 {upto.length} 周结算后</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, maxWidth: 120, margin: '0 12px' }}>
-                <div style={{ flex: 1, height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: s.finalScore + '%', background: '#E8940F', borderRadius: 3 }}></div>
+                <div style={{ flex: 1, height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: s.finalScore + '%', background: 'var(--primary)', borderRadius: 3 }}></div>
                 </div>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#E8940F' }}>{s.finalScore}分</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>{s.finalScore}分</span>
             </div>
           )
         })}
       </div>
 
-      <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+      <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
         <div className="card-title">怎么涨分</div>
-        <div style={{ fontSize: 12, color: '#1E40AF', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 12, color: 'var(--info)', lineHeight: 1.8 }}>
           利润（40%）：收入减成本的差额，累计≥50万=满分、≥30万=85 分档<br />
           口碑（25%）：差评及时回复、卫生质检是关键<br />
           出租率（20%）：调价和营销平衡，55%-75%是舒适区<br />
@@ -1713,8 +1713,8 @@ class AppErrorBoundary extends React.Component {
       <div style={{ padding: '48px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center' }}><Icon name="status.critical" size={44} /></div>
         <div style={{ fontSize: 17, fontWeight: 700, marginTop: 12 }}>页面出了点问题</div>
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8, wordBreak: 'break-all', lineHeight: 1.6 }}>{msg}</div>
-        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>你的经营进度已自动保存，不受影响</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, wordBreak: 'break-all', lineHeight: 1.6 }}>{msg}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>你的经营进度已自动保存，不受影响</div>
         <button className="btn-confirm" style={{ marginTop: 24, width: '100%' }} onClick={() => { this.props.onReset && this.props.onReset(); this.setState({ err: null }) }}>
           重置界面，回到经营页
         </button>
@@ -2444,7 +2444,7 @@ export default function App() {
         {restoring ? (
           <div className="content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <div style={{ fontSize: 44 }}><Icon name="prop.hotel" size={44} /></div>
-            <div style={{ fontSize: 13, color: '#9CA3AF' }}>正在恢复登录状态…</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>正在恢复登录状态…</div>
           </div>
         ) : (
           <LoginPage onLogin={handleLogin} />
@@ -2540,7 +2540,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
-        <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
+        <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
       </div>
     )
   }
@@ -2656,7 +2656,7 @@ export default function App() {
     const pages = {
       business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
-      reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
+      reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
     }
     mainPage = pages[tab]
@@ -2674,14 +2674,14 @@ export default function App() {
       </AppErrorBoundary>
       {/* 断网横幅 */}
       {offline && (
-        <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
           网络异常，进度已保存在本机
         </div>
       )}
       {/* 轻提示栈（顶部滑入） */}
       <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
         {toasts.map(t => (
-          <div key={t.id} style={{ background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '9px 16px', borderRadius: 999, marginBottom: 6, boxShadow: 'var(--shadow-lg)', animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)', textAlign: 'center' }}>
+          <div key={t.id} style={{ background: 'rgba(17,24,39,0.92)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '9px 16px', borderRadius: 999, marginBottom: 6, animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)', textAlign: 'center' }}>
             {t.msg}
           </div>
         ))}
@@ -2700,7 +2700,7 @@ export default function App() {
       </div>
       {/* 全班进度提示：老师锁周且学生超前时显示 */}
       {classWeek > 0 && !report && !finished && week > classWeek && (
-        <div onClick={() => setTab('business')} style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: '#FFF4E0', border: '1px solid #FBE3B3', color: '#A96407', fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 999, whiteSpace: 'nowrap', boxShadow: 'var(--shadow-md)', zIndex: 50, maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div onClick={() => setTab('business')} style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 999, whiteSpace: 'nowrap', zIndex: 50, maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           ⏱ 老师已推进全班到第 {classWeek} 周，你在第 {week} 周——决策可先做，结算等开课
         </div>
       )}

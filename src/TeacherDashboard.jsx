@@ -117,10 +117,10 @@ export function strategyOf(history) {
     if (d.corporate === '让利签约') service += 0.5
   })
   if (weeks < 2) return null // 信号不足不下结论
-  if (price >= 3) return { tag: '激进降价型', icon: 'status.crisis', color: '#DC2626', bg: '#FEF2F2' }
-  if (cost >= 3 && cost > service) return { tag: '成本控制型', icon: 'money.spend', color: '#B45309', bg: '#FFFBEB' }
-  if (service >= 3 && service > cost) return { tag: '稳健服务型', icon: 'role.service', color: '#1D4ED8', bg: '#EFF6FF' }
-  return { tag: '均衡型', icon: 'note.caliber', color: '#4B5563', bg: '#F3F4F6' }
+  if (price >= 3) return { tag: '激进降价型', icon: 'status.crisis', color: 'var(--bad)', bg: 'var(--bad-bg)' }
+  if (cost >= 3 && cost > service) return { tag: '成本控制型', icon: 'money.spend', color: 'var(--warn)', bg: 'var(--warn-bg)' }
+  if (service >= 3 && service > cost) return { tag: '稳健服务型', icon: 'role.service', color: 'var(--primary)', bg: 'var(--primary-bg)' }
+  return { tag: '均衡型', icon: 'note.caliber', color: 'var(--text-sub)', bg: 'var(--fill)' }
 }
 
 // 策略标签（信号不足不渲染）
@@ -139,7 +139,7 @@ function StrategyTag({ rawStates, uid }) {
 function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSaved, profiles = [], onGoDecision }) {
   const [editNote, setEditNote] = useState(null) // 正在编辑的批注
   const gs = rawStates.find(x => x.user_id === uid)
-  if (!gs) return <div style={{ padding: '10px 12px', background: '#F9FAFB', fontSize: 12, color: '#9CA3AF' }}>该组暂无经营存档</div>
+  if (!gs) return <div style={{ padding: '10px 12px', background: 'var(--bg)', fontSize: 12, color: 'var(--text-muted)' }}>该组暂无经营存档</div>
   const s = gs.state || {}
   const hist = s.history || []
   const weekDecisions = s.doneDecisions ? Object.keys(s.doneDecisions).length : 0
@@ -152,19 +152,19 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
     saveGameStateNow(gs.user_id, { ...s, hotReviewCrisis: 新 }, undefined)   // 写回该组存档（R3 留痕在 override 字段）
   }
   return (
-    <div style={{ padding: 12, background: '#F9FAFB', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
+    <div style={{ padding: 12, background: 'var(--bg)', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
       {crisisLive && (
-        <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>舆情危机期【待复核】（第 {crisis.startWeek} 周触发 · 还剩 {Math.max(0, crisis.startWeek + crisis.weeks - (s.week || 1))} 周）</div>
-          <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>原因：{crisis.source} · 后果：出租率 −30% · 差评概率 ×2（默认 = 照罚）</div>
+        <div style={{ padding: '8px 10px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bad)' }}>舆情危机期【待复核】（第 {crisis.startWeek} 周触发 · 还剩 {Math.max(0, crisis.startWeek + crisis.weeks - (s.week || 1))} 周）</div>
+          <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 2 }}>原因：{crisis.source} · 后果：出租率 −30% · 差评概率 ×2（默认 = 照罚）</div>
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-            <button onClick={() => 裁量('维持处罚')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: '#E5E7EB', color: '#374151', cursor: 'pointer' }}>维持处罚</button>
-            <button onClick={() => 裁量('降级为期末扣分')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: '#FEF3C7', color: '#92400E', cursor: 'pointer' }}>降级为期末扣分（当场解除持续期）</button>
-            <span style={{ fontSize: 9, color: '#9CA3AF', alignSelf: 'center' }}>不点 = 默认照罚{crisis.override ? ` · 已裁量：${crisis.override}（${crisis.overrideBy || '?'} · ${String(crisis.overrideAt || '').slice(0, 16)}）` : ''}</span>
+            <button onClick={() => 裁量('维持处罚')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: 'var(--border)', color: 'var(--text)', cursor: 'pointer' }}>维持处罚</button>
+            <button onClick={() => 裁量('降级为期末扣分')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: 'var(--warn-border)', color: 'var(--warn)', cursor: 'pointer' }}>降级为期末扣分（当场解除持续期）</button>
+            <span style={{ fontSize: 9, color: 'var(--text-muted)', alignSelf: 'center' }}>不点 = 默认照罚{crisis.override ? ` · 已裁量：${crisis.override}（${crisis.overrideBy || '?'} · ${String(crisis.overrideAt || '').slice(0, 16)}）` : ''}</span>
           </div>
         </div>
       )}
-      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-sub)', marginBottom: 8 }}>
         {s.brand?.name || '—'}品牌 · 云端更新 {new Date(gs.updated_at).toLocaleString('zh-CN')}
       </div>
       {/* 称号进度 */}
@@ -184,9 +184,9 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
           if (t !== prevTitle) { nodes.push(`第${h.week}周 ${t}`); prevTitle = t }
         })
         return (
-          <div style={{ fontSize: 11, color: '#A96407', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
             {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
-            {nodes.length > 1 && <div style={{ color: '#6B7280', marginTop: 3 }}>轨迹：{nodes.join(' → ')}</div>}
+            {nodes.length > 1 && <div style={{ color: 'var(--text-sub)', marginTop: 3 }}>轨迹：{nodes.join(' → ')}</div>}
           </div>
         )
       })()}
@@ -199,21 +199,21 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         const duty = decisions.filter(d => roles.has(d.owner))
         if (!duty.length) return null
         return (
-          <div style={{ marginBottom: 10, padding: '8px 10px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>职责决策完成明细（组内职业对应项）</div>
+          <div style={{ marginBottom: 10, padding: '8px 10px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 4 }}>职责决策完成明细（组内职业对应项）</div>
             {duty.map(d => {
               const isDone = done[d.id] !== undefined
               // 负责人：组内职业匹配该决策 owner 的学生
               const owner = members.find(p => p.role_in_group === d.owner)
               const ownerName = owner ? (owner.display_name || '未命名') : null
               return (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? 'var(--good)' : 'var(--bad)', lineHeight: 1.5 }}>
                   <span style={{ flex: 1 }}>
  {isDone ? '' : ''} {d.icon} {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
                   </span>
                   {!isDone && onGoDecision && (
                     <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
-                      style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: '#1D4ED8', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                      style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'var(--primary)', border: 'none', borderRadius: 5, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
                       去完成 ›
                     </button>
                   )}
@@ -234,23 +234,23 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         const 亏损周 = new Set(hist.filter(h => Number.isFinite(h.netProfit ?? h.profit) && (h.netProfit ?? h.profit) < 0).map(h => h.week))
         const 人 = 按人聚合(logs)
         return (
-          <div style={{ marginBottom: 10, padding: '8px 10px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>每人操作记录（{logs.length} 条 · 按人聚合）</div>
+          <div style={{ marginBottom: 10, padding: '8px 10px', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>每人操作记录（{logs.length} 条 · 按人聚合）</div>
             {人.map(p => (
-              <div key={p.operatorId} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px dashed #DBEAFE', lineHeight: 1.7 }}>
+              <div key={p.operatorId} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px dashed var(--primary-border)', lineHeight: 1.7 }}>
                 <b>{p.operatorName || p.operatorId}</b>
-                <span style={{ color: '#6B7280' }}>（{p.operatorId === '未记录' ? '旧档未记录' : p.operatorId}）</span>
+                <span style={{ color: 'var(--text-sub)' }}>（{p.operatorId === '未记录' ? '旧档未记录' : p.operatorId}）</span>
                 {' · '}操作 <b>{p.条数}</b> 条 · 周 {p.周.map(w => 亏损周.has(w)
-                  ? <span key={w} title="该周净利为负（亏损）" style={{ color: '#DC2626', fontWeight: 700 }}>第{w}周</span>
+                  ? <span key={w} title="该周净利为负（亏损）" style={{ color: 'var(--bad)', fontWeight: 700 }}>第{w}周</span>
                   : <span key={w}>第{w}周</span>)}
                 {' · '}决策：{[...new Set(logs.filter(x => (x.operatorId || '未记录') === p.operatorId).map(x => x.决策名))].join('、')}
                 {p.净利影响 !== 0 && (
-                  <span style={{ color: p.净利影响 > 0 ? '#15803D' : '#DC2626' }}> · 净利影响 {p.净利影响 > 0 ? '+' : ''}{p.净利影响.toLocaleString()} 元</span>
+                  <span style={{ color: p.净利影响 > 0 ? 'var(--good)' : 'var(--bad)' }}> · 净利影响 {p.净利影响 > 0 ? '+' : ''}{p.净利影响.toLocaleString()} 元</span>
                 )}
-                <span style={{ color: '#9CA3AF' }}> · 职位：{Object.entries(p.职位).map(([k, v]) => `${k}×${v}`).join(' / ')}</span>
+                <span style={{ color: 'var(--text-muted)' }}> · 职位：{Object.entries(p.职位).map(([k, v]) => `${k}×${v}`).join(' / ')}</span>
               </div>
             ))}
-            <div style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 4 }}>
               旧档/未登录的操作会标"未记录"（系统不编人名）；"净利影响"按决策记录当时点估算，仅供参考。
             </div>
           </div>
@@ -258,15 +258,15 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
       })()}
       {/* 本周 18 项决策完成度 */}
       <div style={{ marginBottom: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B7280', marginBottom: 3 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', marginBottom: 3 }}>
           <span>本周决策完成度</span>
-          <span style={{ fontWeight: 600, color: weekDecisions === 18 ? '#16A34A' : '#A96407' }}>{weekDecisions} / 18</span>
+          <span style={{ fontWeight: 600, color: weekDecisions === 18 ? 'var(--good)' : 'var(--warn)' }}>{weekDecisions} / 18</span>
         </div>
-        <div style={{ height: 6, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: (weekDecisions / 18 * 100) + '%', background: weekDecisions === 18 ? '#16A34A' : '#E8940F', borderRadius: 3 }} />
+        <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: (weekDecisions / 18 * 100) + '%', background: weekDecisions === 18 ? 'var(--good)' : 'var(--primary)', borderRadius: 3 }} />
         </div>
       </div>
-      {hist.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>还没有结算过，看不到逐周数据</div>}
+      {hist.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>还没有结算过，看不到逐周数据</div>}
       {hist.map(h => {
         const dec = h.decisions || {}
         const entries = Object.entries(dec)
@@ -274,15 +274,15 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         return (
           <div key={h.week} style={{ marginBottom: 10, background: '#fff', borderRadius: 8, padding: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-              第{h.week}周 <span style={{ fontWeight: 400, color: '#6B7280' }}>出租率 {h.occupancy}% · 净利润 {netW === null ? '—' : `${netW >= 0 ? '+' : ''}${netW}元`}{Number.isFinite(h.gop) ? ` · GOP ${h.gop}元` : ''} · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
+              第{h.week}周 <span style={{ fontWeight: 400, color: 'var(--text-sub)' }}>出租率 {h.occupancy}% · 净利润 {netW === null ? '—' : `${netW >= 0 ? '+' : ''}${netW}元`}{Number.isFinite(h.gop) ? ` · GOP ${h.gop}元` : ''} · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
             </div>
             {h.events && h.events.length > 0 && (
-              <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-sub)', marginBottom: 4 }}>
  {h.events.map(e => `${e.icon}${e.name}`).join('、')}
               </div>
             )}
             {entries.length === 0 ? (
-              <div style={{ fontSize: 11, color: '#9CA3AF' }}>决策明细未记录（旧版本结算的一周）</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>决策明细未记录（旧版本结算的一周）</div>
             ) : entries.map(([id, val]) => {
               const d = decisions.find(x => x.id === id)
               // 高风险决策判定
@@ -294,38 +294,38 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               if (id === 'energy' && typeof val === 'number' && (val <= 21 || val >= 25)) risky.push('舒适度差')
               if (id === 'reputation' && val === '模板回复') risky.push('态度扣分')
               return (
-                <div key={id} style={{ fontSize: 11, padding: '2px 0', color: risky.length ? '#DC2626' : '#374151' }}>
+                <div key={id} style={{ fontSize: 11, padding: '2px 0', color: risky.length ? 'var(--bad)' : 'var(--text)' }}>
                   · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtAnswer(val)}</b>
-                  {risky.length > 0 && <span style={{ fontSize: 10, color: '#DC2626', marginLeft: 4 }}>{risky.join(' ')}</span>}
+                  {risky.length > 0 && <span style={{ fontSize: 10, color: 'var(--bad)', marginLeft: 4 }}>{risky.join(' ')}</span>}
                 </div>
               )
             })}
           </div>
         )
       })}
-      <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{name} · 逐周数据可用于课堂复盘讨论</div>
 
       {/* 历史批注时间线（多条按时间排列） */}
       {(() => {
         const mine = allNotes.filter(n => n.student_uid === uid)
         if (!mine.length) return null
         return (
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>批注时间线（{mine.length} 条）</div>
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>批注时间线（{mine.length} 条）</div>
             {mine.map(n => (
-              <div key={n.id || n.updated_at} style={{ padding: '7px 10px', background: '#FFF9F0', borderRadius: 8, marginBottom: 6 }}>
+              <div key={n.id || n.updated_at} style={{ padding: '7px 10px', background: 'var(--warn-bg)', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#A96407' }}>{n.week > 0 ? `第${n.week}周批注` : '总评'}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--warn)' }}>{n.week > 0 ? `第${n.week}周批注` : '总评'}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
                     <button title="编辑这条批注" onClick={e => { e.stopPropagation(); setEditNote(n) }}
- style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#9CA3AF', padding: '0 2px', fontFamily: 'inherit' }}></button>
+ style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', padding: '0 2px', fontFamily: 'inherit' }}></button>
                     <button title="删除这条批注" onClick={e => { e.stopPropagation(); if (window.confirm('确定删除这条批注吗？')) onDeleteNote(n.id) }}
- style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#D1D5DB', padding: '0 2px', fontFamily: 'inherit' }}></button>
+ style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--border-strong)', padding: '0 2px', fontFamily: 'inherit' }}></button>
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>
-                {n.score != null && <div style={{ fontSize: 10, color: '#A96407', fontWeight: 700, marginTop: 3 }}>评分 {n.score}/100</div>}
+                <div style={{ fontSize: 11, color: 'var(--text)', lineHeight: 1.6 }}>{n.note}</div>
+                {n.score != null && <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 700, marginTop: 3 }}>评分 {n.score}/100</div>}
               </div>
             ))}
           </div>
@@ -333,7 +333,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
       })()}
 
       {/* 教师批注+打分 */}
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
         <TeacherNoteForm uid={uid} name={name} week={(rawStates.find(x => x.user_id === uid)?.state?.week) || 0} onSaved={onSaved} editNote={editNote} onEditCancel={() => setEditNote(null)} />
       </div>
     </div>
@@ -381,17 +381,17 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '正在编辑批注（保存后覆盖原批注）' : '教师批注 & 打分（不计入评分，供复盘参考）'}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)' }}>{editNote ? '正在编辑批注（保存后覆盖原批注）' : '教师批注 & 打分（不计入评分，供复盘参考）'}</span>
         {editNote && (
           <button onClick={() => { setEditNote(null); setNote(''); setScore('') }}
-            style={{ border: 'none', background: 'none', fontSize: 10, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit' }}>取消编辑</button>
+            style={{ border: 'none', background: 'none', fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit' }}>取消编辑</button>
         )}
       </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
         {quickNotes.map(q => (
           <button key={q.label}
             onClick={() => { setNote(q.text); setScore(String(q.score)) }}
-            style={{ border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ border: '1px solid var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)', fontSize: 10, fontWeight: 600, padding: '4px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' }}
           >{q.label} {q.score}</button>
         ))}
       </div>
@@ -399,10 +399,10 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
         value={note}
         onChange={e => setNote(e.target.value)}
         placeholder={'给 ' + name + ' 写评语...（如：定价策略合理，但差评处理偏慢）'}
-        style={{ width: '100%', minHeight: 56, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+        style={{ width: '100%', minHeight: 56, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
       />
       {note.replace(/\s/g, '').length > 200 && (
-        <div style={{ fontSize: 10, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '4px 8px', marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 6, padding: '4px 8px', marginTop: 4 }}>
           当前 {note.replace(/\s/g, '').length} 字——建议精简到 200 字内，聚焦最有价值的反馈
         </div>
       )}
@@ -412,13 +412,13 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
           value={score}
           onChange={e => setScore(e.target.value)}
           placeholder="0-100"
-          style={{ width: 64, padding: '6px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: 12, fontFamily: 'inherit' }}
+          style={{ width: 64, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, fontFamily: 'inherit' }}
         />
-        <span style={{ fontSize: 10, color: '#9CA3AF' }}>分</span>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>分</span>
         <button
           onClick={save}
           disabled={saving || (!note.trim() && !score)}
-          style={{ marginLeft: 'auto', border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ marginLeft: 'auto', border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
  >{saving ? '保存中...' : saved ? ' 已保存' : '保存批注'}</button>
       </div>
     </div>
@@ -530,13 +530,13 @@ function InjectionPanel({ rawStates, profiles, user }) {
     <div>
       <div className="card">
         <div className="card-title">老师事件注入（内置 35 条 + 自定义 · 支持按日程）</div>
-        <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 8 }}>
           选事件 × 选时间 × 选对象 ⇒ 写入全班通道 ⇒ 结算时生效。<br />
  §33-V8 支持按日程：<b>整周生效 或 指定「第 D 天」起</b>（生效日分段 · 前 3 天不带第 4 天起带）。<br />
  公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同天生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
         </div>
         {通道就绪 === false && (
-          <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
             注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
           </div>
         )}
@@ -545,122 +545,122 @@ function InjectionPanel({ rawStates, profiles, user }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {['全部', '钱', '属性', '口碑', '人力', '运营', '监管'].map(c => (
             <button key={c} onClick={() => set类别筛(c)}
-              style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: 类别筛 === c ? '#E8940F' : '#F3F4F6', color: 类别筛 === c ? '#fff' : '#6B7280' }}>{c}</button>
+              style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: 类别筛 === c ? 'var(--primary)' : 'var(--fill)', color: 类别筛 === c ? '#fff' : 'var(--text-sub)' }}>{c}</button>
           ))}
         </div>
         <input value={搜索} onChange={e => set搜索(e.target.value)} placeholder="搜事件名/教学点…" 
-          style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6 }} />
+          style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, marginBottom: 6 }} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, maxHeight: 260, overflowY: 'auto' }}>
           {注入事件库
             .filter(e => 类别筛 === '全部' || e.类别 === 类别筛)
             .filter(e => !搜索 || (e.name + e.教学点 + e.影响).includes(搜索))
             .map(e => (
             <div key={e.id} onClick={() => set事件id(e.id)}
-              style={{ padding: '7px 9px', borderRadius: 8, cursor: 'pointer', background: 事件id === e.id ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${事件id === e.id ? '#E8940F' : '#F3F4F6'}` }}>
+              style={{ padding: '7px 9px', borderRadius: 8, cursor: 'pointer', background: 事件id === e.id ? 'var(--warn-bg)' : 'var(--bg)', border: `1.5px solid ${事件id === e.id ? 'var(--primary)' : 'var(--fill)'}` }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{e.icon} {e.name.replace(/（.*?）/, '')}</div>
-              <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 1 }}>{e.影响}</div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{e.影响}</div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: 10, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-sub)', background: 'var(--bg)', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
           {当前事件.icon} <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
         </div>
  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           <input value={周} onChange={e => set周(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={`如 ${建议周}`} inputMode="numeric"
-            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
-          <span style={{ fontSize: 10, color: '#9CA3AF' }}>周（1–12）· 建议：第 {建议周} 周</span>
+            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>周（1–12）· 建议：第 {建议周} 周</span>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           <input value={生效日输入} onChange={e => set生效日输入(e.target.value.replace(/[^0-9]/g, '').slice(0, 1))} placeholder="整周" inputMode="numeric"
-            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
-          <span style={{ fontSize: 10, color: '#9CA3AF' }}>生效日（周内第 D 天 · 2–7 · 留空 = 整周生效）· 按日程触发：第 D 天起分段生效</span>
+            style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13 }} />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>生效日（周内第 D 天 · 2–7 · 留空 = 整周生效）· 按日程触发：第 D 天起分段生效</span>
         </div>
-        <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 10 }}>公平红线：只影响未来 —— 生效日早于当前教学进度的会被校验拦住</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 10 }}>公平红线：只影响未来 —— 生效日早于当前教学进度的会被校验拦住</div>
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>③ 选对象</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           {[['all', '全班'], ['groups', '指定组']].map(([k, l]) => (
             <button key={k} onClick={() => set范围(k)}
-              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 范围 === k ? '#E8940F' : '#F3F4F6', color: 范围 === k ? '#fff' : '#6B7280' }}>{l}</button>
+              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 范围 === k ? 'var(--primary)' : 'var(--fill)', color: 范围 === k ? '#fff' : 'var(--text-sub)' }}>{l}</button>
           ))}
         </div>
         {范围 === 'groups' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-            {组s.length === 0 && <span style={{ fontSize: 11, color: '#9CA3AF' }}>（暂无已分组的组 —— 先在「分组管理」建组）</span>}
+            {组s.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>（暂无已分组的组 —— 先在「分组管理」建组）</span>}
             {组s.map(g => (
               <div key={g.key} onClick={() => set选中(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
-                style={{ fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: 选中[g.key] ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${选中[g.key] ? '#E8940F' : '#F3F4F6'}` }}>
+                style={{ fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: 选中[g.key] ? 'var(--warn-bg)' : 'var(--bg)', border: `1.5px solid ${选中[g.key] ? 'var(--primary)' : 'var(--fill)'}` }}>
  {选中[g.key] ? ' ' : ''}{g.label}
               </div>
             ))}
           </div>
         )}
         {(周n >= 1 && 目标组s.length > 0) && (
-          <div style={{ fontSize: 11, background: '#F9FAFB', borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, background: 'var(--bg)', borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
             <div style={{ fontWeight: 700, marginBottom: 3 }}>注入前校验（只影响未来 · 逐组当面拦）：</div>
             {逐组校验.map(x => (
-              <div key={x.key} style={{ color: x.合法 ? '#065F46' : '#991B1B' }}>
+              <div key={x.key} style={{ color: x.合法 ? 'var(--good)' : 'var(--bad)' }}>
  {x.合法 ? '' : ''} {x.label}：{x.有档 ? `已结算到第 ${x.最靠前已结算周} 周` : '暂无开业存档'} {x.合法 ? `（可注入第 ${周n} 周）` : `—— ${x.原因}`}
               </div>
             ))}
-            {有档人数 === 0 && <div style={{ color: '#9CA3AF' }}>（全班暂无开业存档：注入后各组开业到该周时照常生效）</div>}
+            {有档人数 === 0 && <div style={{ color: 'var(--text-muted)' }}>（全班暂无开业存档：注入后各组开业到该周时照常生效）</div>}
           </div>
         )}
         <button className="btn btn-primary" disabled={忙 || !全部合法 || !通道就绪} onClick={() => 注入()} style={{ width: '100%', padding: '11px 0', opacity: (忙 || !全部合法 || !通道就绪) ? 0.5 : 1 }}>
           {忙 ? '写入中…' : 全部合法 ? `注入内置事件到第 ${周n} 周${生效日输入 ? `第 ${生效日输入} 天起` : ''}${范围 === 'all' ? '（全班）' : `（${目标组s.length} 组）`}` : '注入（先通过校验/选目标/填周号 1–12）'}
         </button>
         {提示 && (
-          <div style={{ fontSize: 11, marginTop: 8, color: 提示.type === 'ok' ? '#065F46' : '#991B1B', background: 提示.type === 'ok' ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>{提示.text}</div>
+          <div style={{ fontSize: 11, marginTop: 8, color: 提示.type === 'ok' ? 'var(--good)' : 'var(--bad)', background: 提示.type === 'ok' ? 'var(--good-bg)' : 'var(--bad-bg)', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>{提示.text}</div>
         )}
  {/* §33-V8 §1①②：自定义事件编辑器（正文 + 受控效力面板 · 不许公式） */}
-        <div style={{ borderTop: '1px dashed #E5E7EB', margin: '14px 0 10px' }} />
+        <div style={{ borderTop: '1px dashed var(--border)', margin: '14px 0 10px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div style={{ fontSize: 12, fontWeight: 700 }}>自定义突发事件（老师自己写 · 走同一生效通道）</div>
           <button onClick={() => set编辑器开(!编辑器开)}
-            style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', background: 编辑器开 ? '#E8940F' : '#F3F4F6', color: 编辑器开 ? '#fff' : '#6B7280' }}>{编辑器开 ? '收起' : '新建'}</button>
+            style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', background: 编辑器开 ? 'var(--primary)' : 'var(--fill)', color: 编辑器开 ? '#fff' : 'var(--text-sub)' }}>{编辑器开 ? '收起' : '新建'}</button>
         </div>
         {编辑器开 && (
-          <div style={{ background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+          <div style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10, padding: 10, marginBottom: 10 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
               <input value={自定义表.图标} onChange={e => set自定义表(t => ({ ...t, 图标: e.target.value.slice(0, 2) }))} placeholder="图标"
-                style={{ width: 52, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 14, textAlign: 'center' }} />
+                style={{ width: 52, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, textAlign: 'center' }} />
               <input value={自定义表.标题} onChange={e => set自定义表(t => ({ ...t, 标题: e.target.value.slice(0, 24) }))} placeholder="标题（必填 · 如：周边道路施工）"
-                style={{ flex: 1, padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }} />
+                style={{ flex: 1, padding: '6px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }} />
             </div>
             <textarea value={自定义表.正文} onChange={e => set自定义表(t => ({ ...t, 正文: e.target.value.slice(0, 160) }))} rows={2}
               placeholder="正文（必填 · 写给学生的话 · 与酒店经营有关 · 160 字内）"
-              style={{ width: '100%', padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '7px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, marginBottom: 6, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             <input value={自定义表.教学点} onChange={e => set自定义表(t => ({ ...t, 教学点: e.target.value.slice(0, 60) }))} placeholder="教学点（你想让学生明白什么 · 复盘用）"
-              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6 }} />
+              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, marginBottom: 6 }} />
             <input value={自定义表.备注} onChange={e => set自定义表(t => ({ ...t, 备注: e.target.value.slice(0, 60) }))} placeholder="备注（仅老师可见 · 可空）"
-              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 8 }} />
+              style={{ width: '100%', padding: '6px 9px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, marginBottom: 8 }} />
             {/* 受控效力面板：维度白名单 × 三档 · 不许自由写数值 */}
             <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>效力（选 0–3 个维度 · 留空 = 纯叙事事件 · 只显示不改数字）</div>
             {效力维度.map(d => {
               const sel = 自定义表.效力.find(x => x.维度key === d.key)
               return (
-                <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderBottom: '1px solid #F3F4F6' }}>
+                <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderBottom: '1px solid var(--fill)' }}>
                   <span style={{ fontSize: 11, flex: 1 }}>{d.名称}{d.带方向 ? '（可升/降）' : ''}</span>
                   {!sel && <button onClick={() => set自定义表(t => ({ ...t, 效力: [...t.效力, { 维度key: d.key, 方向: '升', 档位: '小' }].slice(-3) }))}
-                    style={{ fontSize: 10, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: '#F3F4F6', color: '#6B7280' }}>+ 加</button>}
+                    style={{ fontSize: 10, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: 'var(--fill)', color: 'var(--text-sub)' }}>+ 加</button>}
                   {sel && (
                     <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                       {d.带方向 && ['升', '降'].map(f => (
                         <button key={f} onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.map(x => x.维度key === d.key ? { ...x, 方向: f } : x) }))}
-                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: (sel.方向 || '升') === f ? '#E8940F' : '#F3F4F6', color: (sel.方向 || '升') === f ? '#fff' : '#6B7280' }}>{f}</button>
+                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: (sel.方向 || '升') === f ? 'var(--primary)' : 'var(--fill)', color: (sel.方向 || '升') === f ? '#fff' : 'var(--text-sub)' }}>{f}</button>
                       ))}
                       {['小', '中', '大'].map(g => (
                         <button key={g} onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.map(x => x.维度key === d.key ? { ...x, 档位: g } : x) }))}
-                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: sel.档位 === g ? '#E8940F' : '#F3F4F6', color: sel.档位 === g ? '#fff' : '#6B7280' }}>{g}</button>
+                          style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: sel.档位 === g ? 'var(--primary)' : 'var(--fill)', color: sel.档位 === g ? '#fff' : 'var(--text-sub)' }}>{g}</button>
                       ))}
                       <button onClick={() => set自定义表(t => ({ ...t, 效力: t.效力.filter(x => x.维度key !== d.key) }))}
-                        style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: '#FEF2F2', color: '#991B1B' }}>×</button>
+                        style={{ fontSize: 10, border: 'none', borderRadius: 5, padding: '3px 7px', cursor: 'pointer', background: 'var(--bad-bg)', color: 'var(--bad)' }}>×</button>
                     </span>
                   )}
                 </div>
               )
             })}
-            <div style={{ fontSize: 10, color: '#9CA3AF', margin: '6px 0' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', margin: '6px 0' }}>
  不许自由写数值（受控档位保证公平与可复跑）· 事件与内置库走同一生效通道（按日程触发 · 补算一致）
             </div>
             <button className="btn btn-primary" disabled={忙 || !自定义表.标题 || !自定义表.正文 || !周n || !通道就绪}
@@ -673,26 +673,26 @@ function InjectionPanel({ rawStates, profiles, user }) {
       </div>
       <div className="card">
         <div className="card-title">已注入事件（全班通道 · 老师可查 / 学生周报可见）</div>
-        {库 === null && <div style={{ fontSize: 12, color: '#9CA3AF' }}>加载中…</div>}
-        {库 && 库.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无注入记录。</div>}
+        {库 === null && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>加载中…</div>}
+        {库 && 库.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>暂无注入记录。</div>}
         {(库 || []).slice().sort((a, b) => Number(b.week) - Number(a.week)).map(x => {
           // ★ §33-V7-0.5③：状态标签（待生效/已生效/已过期）—— 按当前教学周 vs 事件周（服务端 classDay 权威）
-          const 状态 = (classDay > 0 && Number(x.week) < Math.ceil(classDay / 7)) ? { 字: '已过期', 色: '#9CA3AF', 底: '#F9FAFB' }
-            : (classDay > 0 && Number(x.week) === Math.ceil(classDay / 7)) ? { 字: '已生效（本周）', 色: '#065F46', 底: '#EAF9F0' }
-            : { 字: '待生效', 色: '#A96407', 底: '#FFF9F0' }
+          const 状态 = (classDay > 0 && Number(x.week) < Math.ceil(classDay / 7)) ? { 字: '已过期', 色: 'var(--text-muted)', 底: 'var(--bg)' }
+            : (classDay > 0 && Number(x.week) === Math.ceil(classDay / 7)) ? { 字: '已生效（本周）', 色: 'var(--good)', 底: 'var(--good-bg)' }
+            : { 字: '待生效', 色: 'var(--warn)', 底: 'var(--warn-bg)' }
           return (
-          <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
+          <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, marginBottom: 6 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700 }}><Icon name={x.icon || 'note.caliber'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 第 {x.week} 周{x.生效日 ? ` 第 ${x.生效日} 天起` : ''} · {(x.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '')}
                 <span style={{ fontSize: 9, fontWeight: 700, color: 状态.色, background: 状态.底, borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{状态.字}</span>
               </div>
-              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{Array.isArray(x.targets) && x.targets.length ? `指定组：${x.targets.join('、')}` : '全班'} · 注入人 {x.injectedBy || '?'} · {String(x.injectedAt || '').slice(0, 16).replace('T', ' ')}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{Array.isArray(x.targets) && x.targets.length ? `指定组：${x.targets.join('、')}` : '全班'} · 注入人 {x.injectedBy || '?'} · {String(x.injectedAt || '').slice(0, 16).replace('T', ' ')}</div>
             </div>
-            <button onClick={() => 撤销(x)} disabled={忙} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', background: '#FEF2F2', color: '#991B1B' }}>撤销</button>
+            <button onClick={() => 撤销(x)} disabled={忙} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', background: 'var(--bad-bg)', color: 'var(--bad)' }}>撤销</button>
           </div>
           )
         })}
-        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>撤销同样遵守「只影响未来」：该周一旦有目标组结算过 ⇒ 不再可撤。</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.6 }}>撤销同样遵守「只影响未来」：该周一旦有目标组结算过 ⇒ 不再可撤。</div>
       </div>
     </div>
   )
@@ -737,42 +737,42 @@ function SupervisorPanel({ rawStates, profiles }) {
     <div>
       <div className="card">
         <div className="card-title">AI 领班 · 全班默认授权</div>
-        <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.7, marginBottom: 8 }}>
           领班 = 学生不在时的「看不见的手」：按你授权的范围代管决策，并留痕可复盘。<br />
           <b>二期：R3（超售止损）/ R6（能耗回归）的代管动作已真实生效</b>（并入学生决策集 · 学生自己做过的项领班不碰）；
           R1/R2（调价）需竞对价每日数据，二期暂不开放。<b>默认全关 = 全班行为一致 = 公平基准</b>（B3 设计）。
           学生可在周报的复盘卡里在默认之上收窄/放宽自己的。
         </div>
         {就绪 === false && (
-          <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
  通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）。
           </div>
         )}
         {[['price_adj', '调价幅度（领班可在 ±10% 内调价）'], ['overbook', '超售清零止损'], ['energy', '客房温度回归 23℃']].map(([k, l]) => (
-          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 2px', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{l}<div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>授权键：{k} · 默认：{默认授权[k] ? '开' : '关'}</div></div>
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 2px', borderBottom: '1px solid var(--fill)' }}>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>{l}<div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>授权键：{k} · 默认：{默认授权[k] ? '开' : '关'}</div></div>
             <button onClick={() => 切(k)} disabled={忙}
-              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 开(k) ? '#065F46' : '#F3F4F6', color: 开(k) ? '#fff' : '#6B7280' }}>
+              style={{ fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: 开(k) ? 'var(--good)' : 'var(--fill)', color: 开(k) ? '#fff' : 'var(--text-sub)' }}>
               {开(k) ? '已授权（点按关闭）' : '未授权（点按开启）'}
             </button>
           </div>
         ))}
-        {保留 && <div style={{ fontSize: 11, marginTop: 8, color: 保留.startsWith('已更新') ? '#065F46' : '#991B1B', background: 保留.startsWith('已更新') ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px' }}>{保留}</div>}
+        {保留 && <div style={{ fontSize: 11, marginTop: 8, color: 保留.startsWith('已更新') ? 'var(--good)' : 'var(--bad)', background: 保留.startsWith('已更新') ? 'var(--good-bg)' : 'var(--bad-bg)', borderRadius: 8, padding: '6px 10px' }}>{保留}</div>}
       </div>
       <div className="card">
         <div className="card-title">规则集（一期 4 条 · 与 aiSupervisor.mjs 单源）</div>
         {规则说明.map((t, i) => (
-          <div key={i} style={{ fontSize: 11, color: '#374151', padding: '6px 9px', background: '#F9FAFB', borderRadius: 8, marginBottom: 5, lineHeight: 1.6 }}>{t}</div>
+          <div key={i} style={{ fontSize: 11, color: 'var(--text)', padding: '6px 9px', background: 'var(--bg)', borderRadius: 8, marginBottom: 5, lineHeight: 1.6 }}>{t}</div>
         ))}
-        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>代管不享受职务加成 ×1.3（那是对岗真人的激励 —— 无双重加成，有守门断言）。</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.6 }}>代管不享受职务加成 ×1.3（那是对岗真人的激励 —— 无双重加成，有守门断言）。</div>
       </div>
       <div className="card">
         <div className="card-title">代管巡览（各组最近一周 · 结算后生成）</div>
-        {最近.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无代管记录（学生结算后出现；当前默认全关 ⇒ 主要是"仅报告"条目）。</div>}
+        {最近.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>暂无代管记录（学生结算后出现；当前默认全关 ⇒ 主要是"仅报告"条目）。</div>}
         {最近.slice(0, 20).map((x, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 2px', borderBottom: '1px solid #F3F4F6' }}>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 2px', borderBottom: '1px solid var(--fill)' }}>
             <span>{x.name}</span>
-            <span style={{ color: '#6B7280' }}>第 {x.week} 周 · 条目 {x.n}{x.代管率 != null ? ` · 代管率 ${Math.round(x.代管率 * 100)}%` : ''}</span>
+            <span style={{ color: 'var(--text-sub)' }}>第 {x.week} 周 · 条目 {x.n}{x.代管率 != null ? ` · 代管率 ${Math.round(x.代管率 * 100)}%` : ''}</span>
           </div>
         ))}
       </div>
@@ -960,10 +960,10 @@ export default function TeacherDashboard({ user, onLogout }) {
   const visibleRanked = [...visibleGroups].sort((a, b) => (b[rankKey] || 0) - (a[rankKey] || 0))
 
   function scoreBar(score) {
-    if (score >= 90) return '#10B981'
-    if (score >= 80) return '#E8940F'
-    if (score >= 70) return '#FBBF77'
-    return '#EF4444'
+    if (score >= 90) return 'var(--good)'
+    if (score >= 80) return 'var(--primary)'
+    if (score >= 70) return 'var(--warn-border)'
+    return 'var(--bad)'
   }
 
   return (
@@ -974,9 +974,9 @@ export default function TeacherDashboard({ user, onLogout }) {
         <div className="sub">
  {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
-          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: 'var(--fill)', border: '1px dashed var(--border-strong)', borderRadius: 8, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
             {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
-            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+            <div style={{ color: 'var(--text-muted)' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
           </div>
         )}
           {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${groups.length} 组已开档` : '云端不可用，显示演示数据'}
@@ -996,12 +996,12 @@ export default function TeacherDashboard({ user, onLogout }) {
       {groups === null && (
         <div className="card">
           {[0, 1, 2].map(i => (
-            <div key={i} style={{ padding: 12, background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
+            <div key={i} style={{ padding: 12, background: 'var(--bg)', borderRadius: 10, marginBottom: 8 }}>
               <div className="skeleton" style={{ height: 14, width: '55%', marginBottom: 8 }} />
               <div className="skeleton" style={{ height: 11, width: '85%' }} />
             </div>
           ))}
-          <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center' }}>正在从云端拉取全班经营数据…</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>正在从云端拉取全班经营数据…</div>
         </div>
       )}
 
@@ -1013,21 +1013,21 @@ export default function TeacherDashboard({ user, onLogout }) {
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>⏱️ 教学进度控制（全班统一周）</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>当前设定</span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)', flexShrink: 0 }}>当前设定</span>
               <input
                 type="number"
                 min="0"
                 max="12"
                 value={weekInput}
                 onChange={e => setWeekInput(e.target.value)}
-                style={{ width: 64, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+                style={{ width: 64, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'inherit' }}
               />
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>周（0 = 不限制，各组自选节奏）</span>
-              <button onClick={saveClassWeek} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>周（0 = 不限制，各组自选节奏）</span>
+              <button onClick={saveClassWeek} style={{ border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
                 保存
               </button>
             </div>
-            <div style={{ fontSize: 11, color: weekSaved ? '#16A34A' : '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: weekSaved ? 'var(--good)' : 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
               {weekSaved ? '已保存，全班即时生效' : classWeek > 0 ? `学生只能结算到第 ${classWeek} 周——保证全班同一周看到同一个市场和事件（公平）` : '未限制：各组按自己节奏推进'}
             </div>
           </div>
@@ -1042,11 +1042,11 @@ export default function TeacherDashboard({ user, onLogout }) {
             </div>
           )}
 
-          <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
+          <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览{filterClass ? ` · ${filterClass}` : ''}</div>
+              <div style={{ fontSize: 13, color: 'var(--warn)', fontWeight: 600 }}>全班经营总览{filterClass ? ` · ${filterClass}` : ''}</div>
               {groups.length > 0 && (
-                <button onClick={exportWeeklyCSV} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={exportWeeklyCSV} style={{ border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
                   导出全班周报 CSV
                 </button>
               )}
@@ -1066,7 +1066,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (!entries.length) return null
             return (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 5 }}>全班策略分布</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 5 }}>全班策略分布</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {entries.map(([key, v]) => (
                     <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
@@ -1084,26 +1084,26 @@ export default function TeacherDashboard({ user, onLogout }) {
             const watch = visibleGroups.filter(g => g.lag && g.lag.level === 'watch')
             if (!behind.length && !watch.length) {
               return classDay > 0 ? (
-                <div style={{ margin: '0 20px 12px', fontSize: 12, color: '#10B981', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '6px 10px' }}>
+                <div style={{ margin: '0 20px 12px', fontSize: 12, color: 'var(--good)', background: 'var(--good-bg)', border: '1px solid var(--good-border)', borderRadius: 8, padding: '6px 10px' }}>
                   全班进度正常（服务端第 {classDay} 天，各组均已跟上）
                 </div>
               ) : null
             }
             return (
-              <div style={{ margin: '0 20px 12px', fontSize: 12, background: behind.length ? '#FEF0EF' : '#FFF4E0', border: `1px solid ${behind.length ? '#FECACA' : '#FDE68A'}`, borderRadius: 8, padding: '8px 10px', lineHeight: 1.8 }}>
-                <div style={{ fontWeight: 700, color: behind.length ? '#DC2626' : '#A96407', marginBottom: 2 }}>
+              <div style={{ margin: '0 20px 12px', fontSize: 12, background: behind.length ? 'var(--bad-bg)' : 'var(--warn-bg)', border: `1px solid ${behind.length ? 'var(--bad-border)' : 'var(--warn-border)'}`, borderRadius: 8, padding: '8px 10px', lineHeight: 1.8 }}>
+                <div style={{ fontWeight: 700, color: behind.length ? 'var(--bad)' : 'var(--warn)', marginBottom: 2 }}>
                   {behind.length ? `${behind.length} 组进度落后` : `· ${watch.length} 组需留意`}
-                  <span style={{ fontWeight: 400, color: '#9CA3AF' }}>
+                  <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>
                     （服务端第 {classDay} 天{classDay ? '' : '· 按教学周推算'}）
                   </span>
                 </div>
                 {[...behind, ...watch].slice(0, 8).map(g => (
-                  <div key={g.uid} style={{ color: '#374151' }}>
+                  <div key={g.uid} style={{ color: 'var(--text)' }}>
                     · {g.name || g.uid}：<b>{g.lag.label}</b>
-                    {g.lag.sinceLabel && <span style={{ color: '#9CA3AF' }}>（{g.lag.sinceLabel}）</span>}
+                    {g.lag.sinceLabel && <span style={{ color: 'var(--text-muted)' }}>（{g.lag.sinceLabel}）</span>}
                   </div>
                 ))}
-                {[...behind, ...watch].length > 8 && <div style={{ color: '#9CA3AF' }}>…另有 {[...behind, ...watch].length - 8} 组</div>}
+                {[...behind, ...watch].length > 8 && <div style={{ color: 'var(--text-muted)' }}>…另有 {[...behind, ...watch].length - 8} 组</div>}
               </div>
             )
           })()}
@@ -1129,14 +1129,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                     { l: '亏损组', v: lossCount + '组' },
                   ].map(s => (
                     <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#A96407' }}>{s.v}</div>
-                      <div style={{ fontSize: 10, color: '#9CA3AF' }}>{s.l}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--warn)' }}>{s.v}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.l}</div>
                     </div>
                   ))}
                 </div>
               )
             })()}
-            {visibleGroups.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
+            {visibleGroups.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0' }}>还没有学生开档。学生注册并开始经营后，这里会实时显示各组数据。</div>}
             {visibleGroups.map(g => {
               const expanded = expandedUid === g.uid
               return (
@@ -1146,26 +1146,26 @@ export default function TeacherDashboard({ user, onLogout }) {
                   style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: expanded ? 0 : 8, cursor: 'pointer', borderBottomLeftRadius: expanded ? 0 : 10, borderBottomRightRadius: expanded ? 0 : 10 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
- <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}></span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></span>
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city}
+ <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}></span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{g.name} · {g.city}
  {/* §32-U2：一键经营报告（stopPropagation ⇒ 不触发卡片展开） */}
                       <button
                         title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
                         onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
-                        style={{ marginLeft: 8, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                        style={{ marginLeft: 8, border: '1px solid var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                       >经营报告</button>
                       {' '}{expanded ? '▲' : '▼'}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
-                    <span>进度 <b style={{color:'#111827'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
-                    <span>出租率 <b style={{color:'#111827'}}>{g.occ}%</b></span>
-                    <span>营收 <b style={{color:'#111827'}}>{g.revenue}万</b></span>
-                    <span title={NET_DEF}>{NET_LABEL} <b style={{color:'#10B981'}}>{g.profit}万</b></span>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--text-sub)', flexWrap: 'wrap' }}>
+                    <span>进度 <b style={{color:'var(--text)'}}>{g.finished ? '已结业' : `第${g.week || 1}周`}</b></span>
+                    <span>出租率 <b style={{color:'var(--text)'}}>{g.occ}%</b></span>
+                    <span>营收 <b style={{color:'var(--text)'}}>{g.revenue}万</b></span>
+                    <span title={NET_DEF}>{NET_LABEL} <b style={{color:'var(--good)'}}>{g.profit}万</b></span>
                     {/* W2-3：GOP 与净利润分列（演示数据/旧档无 GOP 字段时不显示，不编造） */}
                     {typeof g.gop === 'number' && (
-                      <span title={GOP_DEF}>{GOP_SHORT} <b style={{color:'#2563EB'}}>{g.gop}万</b>{!g.gopComplete && <span style={{ color: '#9CA3AF' }}>（部分周）</span>}</span>
+                      <span title={GOP_DEF}>{GOP_SHORT} <b style={{color:'var(--primary)'}}>{g.gop}万</b>{!g.gopComplete && <span style={{ color: 'var(--text-muted)' }}>（部分周）</span>}</span>
                     )}
-                    <span>口碑 <b style={{color:'#E8940F'}}>{g.rating || '—'}</b></span>
+                    <span>口碑 <b style={{color:'var(--primary)'}}>{g.rating || '—'}</b></span>
                   </div>
                 </div>
                 {expanded && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { setExpandedUid(null); onGoDecision && onGoDecision(id) }} />}
@@ -1181,23 +1181,23 @@ export default function TeacherDashboard({ user, onLogout }) {
         <div onClick={() => setChipDetail(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%', animation: 'pageIn 0.2s ease-out' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{chipDetail.icon} {chipDetail.name}</div>
-            <div style={{ fontSize: 12, color: '#374151', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--text)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, marginBottom: 10 }}>
               学生选择：<b>{chipDetail.answer}</b>
  {/* §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
                 文案调单源 代价文案(decisionId, answer)，与学生决策面板**逐字一致**（同源保证）；
                 未登记的选项 ⇒ 返回 null ⇒ 不显示（不报错、不空行） */}
             {chipDetail.decisionId && 代价文案(chipDetail.decisionId, chipDetail.rawAnswer) && (
-              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF2F2', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: 'var(--bad)', background: 'var(--bad-bg)', borderRadius: 8, padding: '6px 10px', marginTop: 6, lineHeight: 1.6 }}>
                 {代价文案(chipDetail.decisionId, chipDetail.rawAnswer)}
               </div>
             )}
             </div>
             {chipDetail.tip && (
-              <div style={{ fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 11, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
  设计考量：{chipDetail.tip}
               </div>
             )}
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>课堂提示：可现场问学生"为什么这么选"</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>课堂提示：可现场问学生"为什么这么选"</div>
             <button className="btn btn-primary" style={{ marginTop: 10, width: '100%' }} onClick={() => setChipDetail(null)}>知道了</button>
           </div>
         </div>
@@ -1236,16 +1236,16 @@ export default function TeacherDashboard({ user, onLogout }) {
         return (
           <div>
             {/* 大屏统计条 */}
-            <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
+            <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>学生决策动向{liveWeekFilter > 0 ? `（第${liveWeekFilter}周快照）` : '（实时）'}</div>
-                <span style={{ fontSize: 9, color: liveWeekFilter > 0 ? '#9CA3AF' : '#10B981', fontWeight: 700 }}>{liveWeekFilter > 0 ? '历史回放' : '● Realtime 自动刷新'}</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)' }}>学生决策动向{liveWeekFilter > 0 ? `（第${liveWeekFilter}周快照）` : '（实时）'}</div>
+                <span style={{ fontSize: 9, color: liveWeekFilter > 0 ? 'var(--text-muted)' : 'var(--good)', fontWeight: 700 }}>{liveWeekFilter > 0 ? '历史回放' : '● Realtime 自动刷新'}</span>
               </div>
               {/* 周次筛选chips */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(w => (
                   <button key={w} onClick={() => setLiveWeekFilter(w)}
-                    style={{ fontSize: 10, fontWeight: liveWeekFilter === w ? 700 : 400, color: liveWeekFilter === w ? '#fff' : '#6B7280', background: liveWeekFilter === w ? '#1D4ED8' : '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ fontSize: 10, fontWeight: liveWeekFilter === w ? 700 : 400, color: liveWeekFilter === w ? '#fff' : 'var(--text-sub)', background: liveWeekFilter === w ? 'var(--primary)' : 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {w === 0 ? '实时' : `第${w}周`}
                   </button>
                 ))}
@@ -1257,24 +1257,24 @@ export default function TeacherDashboard({ user, onLogout }) {
                   { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—' },
                 ].map(s => (
                   <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1D4ED8' }}>{s.v}</div>
-                    <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>{s.v}</div>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{s.l}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
 
             {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}
-            <div className="card" style={{ background: '#FFFBF5', borderColor: '#FBE3B3' }}>
+            <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>决策流水</div>
-                <span style={{ fontSize: 9, color: logs.length ? '#10B981' : '#9CA3AF', fontWeight: 700 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>决策流水</div>
+                <span style={{ fontSize: 9, color: logs.length ? 'var(--good)' : 'var(--text-muted)', fontWeight: 700 }}>
                   {logs.length ? `最近 ${Math.min(logs.length, 20)} 条 · ● 实时` : '暂无记录'}
                 </span>
               </div>
               {logs.length === 0 ? (
-                <div style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', padding: '10px 0', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0', lineHeight: 1.7 }}>
                   学生每提交一项决策，这里会出现一行（时间 / 组 / 学生 / 决策 / 答案 / 属性反馈）
                 </div>
               ) : (
@@ -1285,18 +1285,18 @@ export default function TeacherDashboard({ user, onLogout }) {
                   const t = lg.created_at ? new Date(lg.created_at) : null
                   const hh = t ? [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2, '0')).join(':') : '—'
                   const fb = String(lg.feedback || '')
-                  const fbColor = /[+＋]\d/.test(fb) ? '#16A34A' : /[-－]\d/.test(fb) ? '#DC2626' : '#6B7280'
+                  const fbColor = /[+＋]\d/.test(fb) ? 'var(--good)' : /[-－]\d/.test(fb) ? 'var(--bad)' : 'var(--text-sub)'
                   return (
-                    <div key={lg.id} style={{ padding: '6px 0', borderBottom: '1px solid #F6E7CD', fontSize: 11, lineHeight: 1.6 }}>
+                    <div key={lg.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--warn-bg)', fontSize: 11, lineHeight: 1.6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 10, color: '#9CA3AF', fontVariantNumeric: 'tabular-nums' }}>{hh}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#1D4ED8' }}>{lg.group_key || '未分组'}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{hh}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>{lg.group_key || '未分组'}</span>
                         <span style={{ fontWeight: 600 }}>{p.display_name || '—'}</span>
-                        {role && <span style={{ fontSize: 9, background: '#EFF6FF', color: '#1E40AF', borderRadius: 4, padding: '1px 5px' }}>{role.icon} {role.label}</span>}
+                        {role && <span style={{ fontSize: 9, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 4, padding: '1px 5px' }}>{role.icon} {role.label}</span>}
                         <span style={{ fontWeight: 600 }}>{d.icon} {d.name || lg.decision_id}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
-                        <span style={{ color: '#374151', flex: 1 }}>选择：{lg.answer || '—'}</span>
+                        <span style={{ color: 'var(--text)', flex: 1 }}>选择：{lg.answer || '—'}</span>
                         <span style={{ color: fbColor, fontWeight: 700, flexShrink: 0 }}>{fb}</span>
                       </div>
                     </div>
@@ -1309,11 +1309,11 @@ export default function TeacherDashboard({ user, onLogout }) {
             {liveList.map(g => (
               <div className="card" key={g.uid} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{g.name} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>{g.hotel}</span></span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: g.entries.length >= 18 ? '#16A34A' : '#E8940F' }}>{g.entries.length}/18 项 · {g.srcLabel}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{g.name} <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>{g.hotel}</span></span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: g.entries.length >= 18 ? 'var(--good)' : 'var(--primary)' }}>{g.entries.length}/18 项 · {g.srcLabel}</span>
                 </div>
                 {g.entries.length === 0 ? (
-                  <div style={{ fontSize: 11, color: '#9CA3AF' }}>该组本周还没有保存决策</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>该组本周还没有保存决策</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {g.entries.map(([id, val]) => {
@@ -1322,14 +1322,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                       const isNew = newChips[g.uid] && newChips[g.uid].has(id)
                       return (
                         <span key={id} onClick={() => d && setChipDetail({ name: d.name, icon: d.icon, tip: d.tip, answer: short, decisionId: id, rawAnswer: val })}
-                          style={{ fontSize: 10, cursor: 'pointer', background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
+                          style={{ fontSize: 10, cursor: 'pointer', background: isNew ? 'var(--warn-bg)' : 'var(--bg)', border: isNew ? '1px solid var(--primary)' : '1px solid var(--fill)', borderRadius: 6, padding: '3px 8px', color: isNew ? 'var(--warn)' : 'var(--text)', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
                           {isNew ? '新 · ' : ''}{d ? short.slice(0, 22) : short.slice(0, 18)}
                         </span>
                       )
                     })}
                   </div>
                 )}
-                <div style={{ fontSize: 9, color: '#D1D5DB', marginTop: 6 }}>更新于 {new Date(g.updated).toLocaleString('zh-CN')}</div>
+                <div style={{ fontSize: 9, color: 'var(--border-strong)', marginTop: 6 }}>更新于 {new Date(g.updated).toLocaleString('zh-CN')}</div>
               </div>
             ))}
           </div>
@@ -1354,7 +1354,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (!entries.length) return null
             return (
               <div className="card" style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>全班策略分布（同样市场，不同打法）</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>全班策略分布（同样市场，不同打法）</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {entries.map(([key, v]) => (
                     <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
@@ -1362,12 +1362,12 @@ export default function TeacherDashboard({ user, onLogout }) {
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 5 }}>课堂讨论点：为什么同样的市场条件下，不同打法结果不同？</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 5 }}>课堂讨论点：为什么同样的市场条件下，不同打法结果不同？</div>
               </div>
             )
           })()}
           <div className="card" style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>排序维度（点击切换，奖牌跟随变化）</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>排序维度（点击切换，奖牌跟随变化）</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[
                 { k: 'score', label: '综合评分' },
@@ -1376,29 +1376,29 @@ export default function TeacherDashboard({ user, onLogout }) {
                 { k: 'rating', label: '口碑' },
               ].map(r => (
                 <button key={r.k} onClick={() => setRankBy(r.k)}
-                  style={{ fontSize: 11, fontWeight: rankBy === r.k ? 700 : 400, color: rankBy === r.k ? '#fff' : '#6B7280', background: rankBy === r.k ? '#A96407' : '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 999, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ fontSize: 11, fontWeight: rankBy === r.k ? 700 : 400, color: rankBy === r.k ? '#fff' : 'var(--text-sub)', background: rankBy === r.k ? 'var(--warn)' : 'var(--bg)', border: '1px solid var(--border)', borderRadius: 999, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
                   {r.label}
                 </button>
               ))}
             </div>
           </div>
-          <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
-            {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>暂无数据</div>}
+          <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--warn)', fontWeight: 600, marginBottom: 12 }}>积分排行榜（利润40/口碑25/出租率20/差评处理15）</div>
+            {visibleRanked.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0' }}>暂无数据</div>}
             {visibleRanked.map((g, i) => (
               <div key={g.uid}>
               <div onClick={() => setExpandedUid(expandedUid === g.uid ? null : g.uid)} style={{ padding: '12px', background: '#fff', borderRadius: expandedUid === g.uid ? '10px 10px 0 0' : 10, marginBottom: expandedUid === g.uid ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#FBE3B3' : i === 1 ? '#E5E7EB' : i === 2 ? '#FDE8D0' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? 'var(--warn-border)' : i === 1 ? 'var(--border)' : i === 2 ? 'var(--warn-bg)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                   {['①', '②', '③'][i] ?? (i + 1)}
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: '#A96407' }}>{g.titleIcon} {g.title}</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></div>
-                  <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: 'var(--warn)' }}>{g.titleIcon} {g.title}</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></div>
+                  <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: g.score + '%', background: scoreBar(g.score), borderRadius: 3 }}></div>
                   </div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 3 }}>平均出租率 {g.occ}% · 口碑 {g.rating}{(() => {
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>平均出租率 {g.occ}% · 口碑 {g.rating}{(() => {
                     // 职责完成度：该组学生职业集合对应的决策，在组档中的完成数
                     const gp = profiles.find(p => p.user_id === g.uid)
                     if (!gp || gp.group_no == null || !gp.class_name) return ''
@@ -1418,18 +1418,18 @@ export default function TeacherDashboard({ user, onLogout }) {
                   <button
                     title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
                     onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
-                    style={{ marginTop: 4, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'block' }}
+                    style={{ marginTop: 4, border: '1px solid var(--warn-border)', background: 'var(--warn-bg)', color: 'var(--warn)', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'block' }}
                   >经营报告</button>
                   {g.scorePrev != null && g.score !== g.scorePrev && (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: g.score > g.scorePrev ? '#10B981' : '#EF4444' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: g.score > g.scorePrev ? 'var(--good)' : 'var(--bad)' }}>
                       {g.score > g.scorePrev ? '↑' : '↓'}{Math.abs(g.score - g.scorePrev)}
                     </div>
                   )}
                   {g.scorePrev != null && g.score === g.scorePrev && (
-                    <div style={{ fontSize: 10, color: '#D1D5DB' }}>—</div>
+                    <div style={{ fontSize: 10, color: 'var(--border-strong)' }}>—</div>
                   )}
                 </div>
-                <span style={{ fontSize: 10, color: '#9CA3AF', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{expandedUid === g.uid ? '▲' : '▼'}</span>
               </div>
               {expandedUid === g.uid && <GroupDetail uid={g.uid} rawStates={rawStates} name={g.name} allNotes={allNotes} onDeleteNote={handleDeleteNote} onSaved={loadAll} profiles={profiles} onGoDecision={(id) => { setExpandedUid(null); onGoDecision && onGoDecision(id) }} />}
               </div>
@@ -1442,12 +1442,12 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'groups' && groups !== null && (
         <div>
           <div className="card">
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 4 }}>分组与班级管理</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--warn)', fontWeight: 600, marginBottom: 4 }}>分组与班级管理</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
               已注册学生 {profiles.length} 人 · 直接输入组号和班级即可保存（云端的进度数据不受影响）
             </div>
             {profiles.some(p => !p.group_no) && (
-              <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF0EF', borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--bad)', background: 'var(--bad-bg)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <span>有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号</span>
                 <button
                   onClick={async () => {
@@ -1457,14 +1457,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                       await saveProfile(ungrouped[i], { group_no: Math.floor(i / 6) + 1 })
                     }
                   }}
-                  style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 10px', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                  style={{ border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 10px', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
                 >
                   一键分组（每6人）
                 </button>
               </div>
             )}
             {profiles.length === 0 && (
-              <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0' }}>
                 还没有学生注册。学生用学号注册后会自动出现在这里。
               </div>
             )}
@@ -1472,44 +1472,44 @@ export default function TeacherDashboard({ user, onLogout }) {
               // 关联该学生的经营进度
               const g = groups.find(x => x.uid === p.user_id)
               return (
-                <div key={p.user_id} style={{ padding: 12, background: '#F9FAFB', borderRadius: 10, marginBottom: 8 }}>
+                <div key={p.user_id} style={{ padding: 12, background: 'var(--bg)', borderRadius: 10, marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>
                       {p.display_name || p.user_id.slice(0, 8)}
-                      {p.student_no && p.student_no !== p.display_name && <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400, marginLeft: 6 }}>（学号 {p.student_no}）</span>}
+                      {p.student_no && p.student_no !== p.display_name && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>（学号 {p.student_no}）</span>}
                     </span>
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {g ? `${g.hotel} · ${g.finished ? '已结业' : `第${g.week || 1}周`}` : '未开始经营'}
-                      {g && !g.finished && <span style={{ marginLeft: 8, color: '#A96407' }}>{g.week || 1}/12 周</span>}
+                      {g && !g.finished && <span style={{ marginLeft: 8, color: 'var(--warn)' }}>{g.week || 1}/12 周</span>}
                     </span>
                   </div>
                   {g && !g.finished && (
-                    <div style={{ height: 4, background: '#E5E7EB', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: ((g.week || 1) / 12 * 100) + '%', background: '#E8940F', borderRadius: 2 }} />
+                    <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, marginTop: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: ((g.week || 1) / 12 * 100) + '%', background: 'var(--primary)', borderRadius: 2 }} />
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>组号</label>
+                    <label style={{ fontSize: 12, color: 'var(--text-sub)', flexShrink: 0 }}>组号</label>
                     <input
                       type="number"
                       min="1"
                       value={p.group_no || ''}
                       placeholder="如 1"
                       onChange={e => saveProfile(p, { group_no: e.target.value ? Number(e.target.value) : null })}
-                      style={{ width: 60, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+                      style={{ width: 60, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'inherit' }}
                     />
-                    <label style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>班级</label>
+                    <label style={{ fontSize: 12, color: 'var(--text-sub)', flexShrink: 0 }}>班级</label>
                     <input
                       value={p.class_name || ''}
                       placeholder="如 酒管2401"
                       onChange={e => saveProfile(p, { class_name: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit' }}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontFamily: 'inherit' }}
                     />
                   </div>
                 </div>
               )
             })}
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
               设置组号后，排名和总览会显示「第N组」；班级用于多班教学区分。修改即时生效。
             </div>
           </div>
@@ -1535,30 +1535,30 @@ export default function TeacherDashboard({ user, onLogout }) {
               { label: '出租率', weight: 20, rule: '平均出租率 ≥75%=95分 / ≥65%=80 / ≥55%=65 / ≥45%=50 / <45%=40' },
               { label: '差评处理', weight: 15, rule: '按各周处理率平均：≥90%=95 / ≥70%=85 / ≥50%=70 / ≥30%=55 / >0%=40；零差评=100' },
             ].map(d => (
-              <div key={d.label} style={{ padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700 }}>{d.label} <span style={{ color: '#E8940F' }}>权重{d.weight}%</span></div>
-                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{d.rule}</div>
+              <div key={d.label} style={{ padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{d.label} <span style={{ color: 'var(--primary)' }}>权重{d.weight}%</span></div>
+                <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 2 }}>{d.rule}</div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>加权总分 = 各维度得分 × 权重之和；S≥90 / A≥80 / B≥70 / C≥60 / D&lt;60</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>加权总分 = 各维度得分 × 权重之和；S≥90 / A≥80 / B≥70 / C≥60 / D&lt;60</div>
           </div>
           <div className="card">
             <div className="card-title">事件一览（12种，条件触发非纯随机）</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
               讲事件课时对照：每个事件的触发条件都是学生的某个经营状态——"事件是你们自己招来的"
             </div>
             {EVENT_INFO.map(e => (
-              <div key={e.name} style={{ padding: '8px 10px', background: e.type === 'good' ? '#EAF9F0' : e.type === 'crisis' ? '#FFF4E0' : '#FEF0EF', borderRadius: 8, marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#A96407' : '#991B1B' }}>
+              <div key={e.name} style={{ padding: '8px 10px', background: e.type === 'good' ? 'var(--good-bg)' : e.type === 'crisis' ? 'var(--warn-bg)' : 'var(--bad-bg)', borderRadius: 8, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: e.type === 'good' ? 'var(--good)' : e.type === 'crisis' ? 'var(--warn)' : 'var(--bad)' }}>
                   {e.icon} {e.name}{e.type === 'crisis' && ' · 危机'}
                 </div>
-                <div style={{ fontSize: 11, color: '#374151', marginTop: 2 }}>触发条件：{e.trigger}</div>
+                <div style={{ fontSize: 11, color: 'var(--text)', marginTop: 2 }}>触发条件：{e.trigger}</div>
               </div>
             ))}
           </div>
-          <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 8 }}>教学参考 · 18项决策最佳实践</div>
-            <div style={{ fontSize: 11, color: '#A96407', marginBottom: 12 }}>
+          <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
+            <div style={{ fontSize: 13, color: 'var(--warn)', fontWeight: 600, marginBottom: 8 }}>教学参考 · 18项决策最佳实践</div>
+            <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 12 }}>
               老师讲解时可对照：每个决策的行业惯例和教学要点
             </div>
           </div>
@@ -1567,8 +1567,8 @@ export default function TeacherDashboard({ user, onLogout }) {
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
                 {i + 1}. {d.icon} {d.name}
               </div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{d.desc}</div>
-              <div style={{ fontSize: 12, color: '#A96407', lineHeight: 1.6, background: '#FFF4E0', borderRadius: 8, padding: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 6 }}>{d.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6, background: 'var(--warn-bg)', borderRadius: 8, padding: 10 }}>
  {d.tip || '权衡利弊后选择。'}
               </div>
             </div>
@@ -1580,9 +1580,9 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'me' && (
         <div>
           <div className="card" style={{ textAlign: 'center', padding: 24 }}>
- <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>‍</div>
+ <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>‍</div>
             <div style={{ fontSize: 17, fontWeight: 700 }}>{user?.name}</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
             {/* 本班统计摘要 */}
             {groups && groups.length > 0 && (() => {
               const withData = groups.filter(g => g.historyCount > 0)
@@ -1595,11 +1595,11 @@ export default function TeacherDashboard({ user, onLogout }) {
                     { l: '全班平均分', v: avgScore, to: 'ranking' },
                     { l: '最近动向', v: latest && latest.updated ? new Date(latest.updated).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', to: 'live' },
                   ].map(s => (
-                    <div key={s.l} onClick={() => setView(s.to)} style={{ flex: 1, background: '#FFF9F0', borderRadius: 8, padding: '7px 0', textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#FFEFD0'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#FFF9F0'}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>{s.v}</div>
-                      <div style={{ fontSize: 9, color: '#9CA3AF' }}>{s.l} ›</div>
+                    <div key={s.l} onClick={() => setView(s.to)} style={{ flex: 1, background: 'var(--warn-bg)', borderRadius: 8, padding: '7px 0', textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--warn-bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--warn-bg)'}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>{s.v}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{s.l} ›</div>
                     </div>
                   ))}
                 </div>
@@ -1615,18 +1615,18 @@ export default function TeacherDashboard({ user, onLogout }) {
               { v: 'groups', icon: 'nav.group', label: '分组管理', desc: '分组 / 班级 / 学号' },
               { v: 'teaching', icon: 'teach.point', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (
-              <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid #F3F4F6', cursor: 'pointer' }}>
+              <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid var(--fill)', cursor: 'pointer' }}>
                 <span style={{ fontSize: 18 }}>{x.icon}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{x.label}</div>
-                  <div style={{ fontSize: 10, color: '#9CA3AF' }}>{x.desc}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{x.desc}</div>
                 </div>
-                <span style={{ color: '#D1D5DB' }}>›</span>
+                <span style={{ color: 'var(--border-strong)' }}>›</span>
               </div>
             ))}
           </div>
           <div style={{ padding: '8px 0 0' }}>
-            <button className="btn btn-ghost" style={{ width: '100%', padding: '13px 0', color: '#EF4444' }} onClick={onLogout}>退出登录</button>
+            <button className="btn btn-ghost" style={{ width: '100%', padding: '13px 0', color: 'var(--bad)' }} onClick={onLogout}>退出登录</button>
           </div>
         </div>
       )}
@@ -1651,7 +1651,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const g = (groups || []).find(x => x.uid === reportUid)
       const gs = rawStates.find(x => x.user_id === reportUid)
       return (
-        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#9CA3AF' }}>报告生成中…</div>}>
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--text-muted)' }}>报告生成中…</div>}>
           <TeacherReport
             gs={gs}
             组名={g ? g.name : ''}

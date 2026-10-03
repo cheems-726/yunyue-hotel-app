@@ -14,11 +14,11 @@ export default function Welcome({ user, onStart }) {
     <div className="content" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* 欢迎区 */}
       <div style={{ textAlign: 'center', padding: '40px 20px 20px' }}>
-        <div style={{ width: 88, height: 88, borderRadius: 28, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(232,148,15,0.15)' }}>
+        <div style={{ width: 88, height: 88, borderRadius: 28, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, margin: '0 auto 16px', }}>
  
         </div>
         <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.3px' }}>欢迎你，{user?.name}</div>
-        <div style={{ fontSize: 14, color: '#6B7280', marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.6 }}>
           你将体验从零开始经营一家酒店的完整过程
         </div>
       </div>
@@ -26,11 +26,11 @@ export default function Welcome({ user, onStart }) {
       {/* 流程步骤 */}
       <div style={{ padding: '0 20px' }}>
         {steps.map((s, i) => (
-          <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: i < steps.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
+          <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: i < steps.length - 1 ? '1px solid var(--fill)' : 'none' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600 }}>{i + 1}. {s.title}</div>
-              <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{s.desc}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{s.desc}</div>
             </div>
           </div>
         ))}

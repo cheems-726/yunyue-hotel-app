@@ -117,13 +117,13 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {(() => {
           const k = cadenceOf(decision.id); if (!k) return null
           const c = CAD_LANG[k]
-          const 色 = k === CAD.实时 ? { bg: '#ECFDF5', fg: '#065F46', bd: '#A7F3D0' }
-            : k === CAD.周期 ? { bg: '#EFF6FF', fg: '#1E40AF', bd: '#BFDBFE' }
-              : { bg: '#FEF2F2', fg: '#991B1B', bd: '#FECACA' }
+          const 色 = k === CAD.实时 ? { bg: 'var(--good-bg)', fg: 'var(--good)', bd: 'var(--good-border)' }
+            : k === CAD.周期 ? { bg: 'var(--primary-bg)', fg: 'var(--info)', bd: 'var(--primary-border)' }
+              : { bg: 'var(--bad-bg)', fg: 'var(--bad)', bd: 'var(--bad-border)' }
           return (
             <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 7px', background: 色.bg, color: 色.fg, border: '1px solid ' + 色.bd }}>{c.名}</span>
-              <span style={{ fontSize: 10, color: '#6B7280' }}>{c.说明}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-sub)' }}>{c.说明}</span>
             </div>
           )
         })()}
@@ -131,12 +131,12 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
 
       <div className="card">
         <div className="card-title"><Icon name={decision.icon} size={16} /> {decision.name}</div>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
 
         {/* 上周状态参考：让决策有依据 */}
         {lastReport && (
-          <div style={{ padding: '10px 12px', background: '#F9FAFB', borderRadius: 10, marginBottom: 12, fontSize: 11, color: '#6B7280', lineHeight: 1.7 }}>
-            上周参考：出租率 <b style={{ color: '#111827' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? '#10B981' : '#EF4444' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
+          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, marginBottom: 12, fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.7 }}>
+            上周参考：出租率 <b style={{ color: 'var(--text)' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
           </div>
         )}
         {/* 近3周决策趋势：该决策的历史选择轨迹，判断是否该换打法 */}
@@ -146,25 +146,25 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
           if (trail.length === 0) return null
           const changed = trail.length >= 2 && trail[trail.length - 1].choice !== trail[trail.length - 2].choice
           return (
-            <div style={{ padding: '10px 12px', background: changed ? '#EFF6FF' : '#F9FAFB', borderRadius: 10, marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>
-                该决策近{trail.length}周轨迹 {changed && <span style={{ color: '#1D4ED8' }}>· 上周换了打法</span>}
+            <div style={{ padding: '10px 12px', background: changed ? 'var(--primary-bg)' : 'var(--bg)', borderRadius: 10, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>
+                该决策近{trail.length}周轨迹 {changed && <span style={{ color: 'var(--primary)' }}>· 上周换了打法</span>}
               </div>
               {trail.map(x => (
-                <div key={x.week} style={{ fontSize: 11, color: '#374151', padding: '2px 0', lineHeight: 1.5 }}>
+                <div key={x.week} style={{ fontSize: 11, color: 'var(--text)', padding: '2px 0', lineHeight: 1.5 }}>
                   第{x.week}周：<b>{x.choice.length > 30 ? x.choice.slice(0, 30) + '…' : x.choice}</b>
-                  <span style={{ color: '#9CA3AF', marginLeft: 6 }}>出租率 {x.occ}% · 利润 {x.profit >= 0 ? '+' : ''}{x.profit}元</span>
+                  <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>出租率 {x.occ}% · 利润 {x.profit >= 0 ? '+' : ''}{x.profit}元</span>
                 </div>
               ))}
-              {changed && <div style={{ fontSize: 10, color: '#1E40AF', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
+              {changed && <div style={{ fontSize: 10, color: 'var(--info)', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
             </div>
           )
         })()}
 
         {/* 教学提示：引导学生在决策前思考 */}
-        <div style={{ padding: '12px', background: '#FFF4E0', borderRadius: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#A96407', marginBottom: 4 }}>决策前想一想</div>
-          <div style={{ fontSize: 12, color: '#A96407', lineHeight: 1.6 }}>
+        <div style={{ padding: '12px', background: 'var(--warn-bg)', borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--warn)', marginBottom: 4 }}>决策前想一想</div>
+          <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}>
             {decision.tip || '这个决策会带来什么后果？权衡利弊后再选择。'}
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}
@@ -192,7 +192,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {/* 滑块类：实时预览 */}
         {decision.type === 'slider' && (
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', marginBottom: 8, color: '#A96407' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', marginBottom: 8, color: 'var(--warn)' }}>
               {sliderVal} {decision.unit}
             </div>
             <input
@@ -202,14 +202,14 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               value={sliderVal}
               onChange={e => setSliderVal(Number(e.target.value))}
               onTouchMove={e => e.stopPropagation()}
-              style={{ width: '100%', accentColor: '#E8940F', touchAction: 'pan-y' }}
+              style={{ width: '100%', accentColor: 'var(--primary)', touchAction: 'pan-y' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
               <span>{decision.min}{decision.unit}</span>
               <span>{decision.max}{decision.unit}</span>
             </div>
             {/* 实时结果预览 */}
-            <div style={{ marginTop: 12, padding: 12, background: '#FFF4E0', borderRadius: 10, fontSize: 12, color: '#A96407', lineHeight: 1.6 }}>
+            <div style={{ marginTop: 12, padding: 12, background: 'var(--warn-bg)', borderRadius: 10, fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}>
               {sliderResult()}
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               <div key={item} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{item}</span>
-                  <span style={{ fontSize: 12, color: '#A96407', fontWeight: 600 }}>{budget[item] || 0}</span>
+                  <span style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>{budget[item] || 0}</span>
                 </div>
                 <input
                   type="range"
@@ -236,14 +236,14 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                     const maxAllow = decision.total - others
                     setBudget({ ...budget, [item]: Math.min(newVal, maxAllow) })
                   }}
-                  style={{ width: '100%', accentColor: '#E8940F' }}
+                  style={{ width: '100%', accentColor: 'var(--primary)' }}
                 />
               </div>
             ))}
-            <div style={{ fontSize: 13, color: budgetTotal > decision.total ? '#EF4444' : '#A96407', fontWeight: 600, marginTop: 8 }}>
+            <div style={{ fontSize: 13, color: budgetTotal > decision.total ? 'var(--bad)' : 'var(--warn)', fontWeight: 600, marginTop: 8 }}>
               已分配：{budgetTotal} / {decision.total}{budgetTotal > decision.total ? '（超出预算！）' : ''}
             </div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
           </div>
         )}
 
@@ -251,16 +251,16 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {decision.type === 'sort' && (
           <div>
             {sortItems.map((item, i) => (
-              <div key={item} style={{ padding: '12px 14px', background: '#F9FAFB', borderRadius: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#FFF4E0', color: '#A96407', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+              <div key={item} style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
                 <span style={{ fontSize: 14, flex: 1 }}>{item}</span>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', cursor: i === 0 ? 'default' : 'pointer', fontSize: 14, opacity: i === 0 ? 0.4 : 1 }}>↑</button>
-                  <button onClick={() => moveItem(i, 1)} disabled={i === sortItems.length - 1} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', cursor: i === sortItems.length - 1 ? 'default' : 'pointer', fontSize: 14, opacity: i === sortItems.length - 1 ? 0.4 : 1 }}>↓</button>
+                  <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === 0 ? 'default' : 'pointer', fontSize: 14, opacity: i === 0 ? 0.4 : 1 }}>↑</button>
+                  <button onClick={() => moveItem(i, 1)} disabled={i === sortItems.length - 1} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === sortItems.length - 1 ? 'default' : 'pointer', fontSize: 14, opacity: i === sortItems.length - 1 ? 0.4 : 1 }}>↓</button>
                 </div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
           </div>
         )}
 
@@ -268,8 +268,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {decision.type === 'timer' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 44, fontWeight: 700, color: timeLeft <= 10 ? '#EF4444' : '#A96407' }}>{timeLeft}s</div>
-              <div style={{ fontSize: 12, color: '#9CA3AF' }}>倒计时中，请尽快决策</div>
+              <div style={{ fontSize: 44, fontWeight: 700, color: timeLeft <= 10 ? 'var(--bad)' : 'var(--warn)' }}>{timeLeft}s</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>倒计时中，请尽快决策</div>
             </div>
             {decision.options.map(o => (
               <div
@@ -281,12 +281,12 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}
             {timeLeft === 0 && !selected && (
-              <div style={{ color: '#EF4444', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>时间到！已默认"不处理"</div>
+              <div style={{ color: 'var(--bad)', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>时间到！已默认"不处理"</div>
             )}
           </div>
         )}

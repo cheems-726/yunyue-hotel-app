@@ -29,22 +29,22 @@ export default function ResultFeedback({ result, onClose }) {
         }}
       >
         {/* 自动收起进度条 */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#F3F4F6', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: '#E8940F', animation: 'shrinkBar 6s linear forwards' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--fill)', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'var(--primary)', animation: 'shrinkBar 6s linear forwards' }} />
         </div>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 40, display: 'flex', justifyContent: 'center' }}><Icon name="nav.report" size={40} /></div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 8 }}>你的选择会带来</div>
         </div>
 
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#A96407', marginBottom: 12 }}>{result.title}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--warn)', marginBottom: 12 }}>{result.title}</div>
 
         {/* 结果变化列表（数值飘字动画） */}
         <div style={{ marginBottom: 16 }}>
           {result.changes.map((c, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 13, color: '#374151' }}>{c.label}</span>
-              <span style={{ position: 'relative', fontSize: 13, fontWeight: 700, color: c.dir === 'up' ? '#10B981' : (c.dir === 'down' ? '#EF4444' : '#A96407') }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 13, color: 'var(--text)' }}>{c.label}</span>
+              <span style={{ position: 'relative', fontSize: 13, fontWeight: 700, color: c.dir === 'up' ? 'var(--good)' : (c.dir === 'down' ? 'var(--bad)' : 'var(--warn)') }}>
                 {(c.dir === 'up' || c.dir === 'down') && (
                   <span
                     className="float-num"
@@ -60,14 +60,14 @@ export default function ResultFeedback({ result, onClose }) {
         </div>
 
         {/* 说明 */}
-        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6, background: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6, background: 'var(--primary-bg)', borderRadius: 10, padding: 12, marginBottom: 16 }}>
  {result.note}
         </div>
 
         {/* 选址场景：六维画像小雷达 */}
         {result.attrs && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center', marginBottom: 4 }}>六维画像</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', textAlign: 'center', marginBottom: 4 }}>六维画像</div>
             <RadarChart attrs={result.attrs} size={180} />
           </div>
         )}

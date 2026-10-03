@@ -93,12 +93,12 @@ export default function Establishment({ brand, property, onComplete }) {
 
       {/* 进度条 */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9CA3AF', marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
           <span>第 {currentStep + 1} 步 / 共 {steps.length} 步</span>
           <span>{progress}%</span>
         </div>
-        <div style={{ height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: progress + '%', background: '#E8940F', borderRadius: 4, transition: 'width 0.3s' }}></div>
+        <div style={{ height: 8, background: 'var(--fill)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: progress + '%', background: 'var(--primary)', borderRadius: 4, transition: 'width 0.3s' }}></div>
         </div>
       </div>
 
@@ -112,13 +112,13 @@ export default function Establishment({ brand, property, onComplete }) {
                 width: 38, height: 38, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 16, cursor: 'pointer',
-                background: i === currentStep ? '#FFF4E0' : (done[i] ? '#ECFDF5' : '#F9FAFB'),
-                border: i === currentStep ? '2px solid #E8940F' : (done[i] ? '1px solid #10B981' : '1px solid #E5E7EB'),
+                background: i === currentStep ? 'var(--warn-bg)' : (done[i] ? 'var(--good-bg)' : 'var(--bg)'),
+                border: i === currentStep ? '2px solid var(--primary)' : (done[i] ? '1px solid var(--good)' : '1px solid var(--border)'),
               }}
             >
  {done[i] ? '' : <Icon name={s.icon} size={16} />}
             </div>
-            <span style={{ fontSize: 10, color: i === currentStep ? '#A96407' : '#9CA3AF', textAlign: 'center' }}>{s.title}</span>
+            <span style={{ fontSize: 10, color: i === currentStep ? 'var(--warn)' : 'var(--text-muted)', textAlign: 'center' }}>{s.title}</span>
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function Establishment({ brand, property, onComplete }) {
       {/* 当前步骤内容 */}
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
-        <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>{step.desc}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 12 }}>{step.desc}</div>
         <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} chooseTier={chooseTier} />
       </div>
 
@@ -184,63 +184,63 @@ export default function Establishment({ brand, property, onComplete }) {
 function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, chooseTier }) {
   const clickable = key => ({
     cursor: 'pointer',
-    border: picked[key] ? '1px solid #E8940F' : '1px solid transparent',
-    background: picked[key] ? '#FFF4E0' : '#F9FAFB',
+    border: picked[key] ? '1px solid var(--primary)' : '1px solid transparent',
+    background: picked[key] ? 'var(--warn-bg)' : 'var(--bg)',
   })
   switch (stepKey) {
     case 'invest':
       return (
         <div>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>点击情景查看投资结果，<b>选定一个</b>作为你的投资决策（必须选择才能进入下一步）：</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>点击情景查看投资结果，<b>选定一个</b>作为你的投资决策（必须选择才能进入下一步）：</div>
           {[
             { key: 'inv-opt', scene: '乐观情景', occ: '出租率 80%+', 摘要: '高客流市场，快速回收，约 4-5 年回本', advise: '适合追加投资提品质', title: '乐观情景 · 投资决策', changes: [{ label: '投资规模', value: '追加投资，提升品质', dir: 'down' }, { label: '品质定位', value: '高（拉高房价带）', dir: 'up' }, { label: '预计回收期', value: '4-5 年', dir: 'up' }, { label: '风险', value: '客流不及预期时回收期拉长', dir: 'down' }], note: '乐观情景下市场承接得住更高房价，追加投资（房型升级/公区品质）能换来更高 ADR。但钱花出去就收不回——先看选址客流是否真的支撑 80% 出租率。' },
             { key: 'inv-base', scene: '基准情景', occ: '出租率 65%', 摘要: '中等客流，正常回收，约 6-7 年回本', advise: '稳健投入，控制成本', title: '基准情景 · 投资决策', changes: [{ label: '投资规模', value: '按品牌标准，不追加', dir: '' }, { label: '品质定位', value: '标准（符合品牌验收）', dir: '' }, { label: '预计回收期', value: '6-7 年', dir: '' }, { label: '风险', value: '低，行业最常见路径', dir: 'up' }], note: '基准情景是行业最常见假设：按品牌标准投入、不追加不削减。华住收益模型测算多以 65% 出租率为基准——稳健是主旋律， fluctuations 留给经营期去应对。' },
             { key: 'inv-pes', scene: '悲观情景', occ: '出租率 50%', 摘要: '低客流市场，慢回收，约 8-10 年回本', advise: '谨慎投资，压缩预算', title: '悲观情景 · 投资决策', changes: [{ label: '投资规模', value: '压缩非必要预算', dir: 'up' }, { label: '品质定位', value: '保底线（卫生/床品/热水）', dir: '' }, { label: '预计回收期', value: '8-10 年', dir: 'down' }, { label: '风险', value: '现金流压力大，警惕资金链', dir: 'down' }], note: '悲观情景下每一分钱都要花在客人直接感知的地方（床品/热水/卫生），砍装修软装。低客流+高投入是最危险的组合，资金链断裂就出局。' },
           ].map(s => (
-            <div key={s.key} onClick={() => { onPick(s.key, { title: s.title, changes: s.changes, note: s.note }); chooseInvest(s.scene) }} style={{ ...(choices.invest === s.scene ? { cursor: 'pointer', border: '2px solid #E8940F', background: '#FFF4E0' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
- <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.invest === s.scene ? ' ' : ''}{s.scene} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{s.occ}</span>{picked[s.key] && <span style={{ fontSize: 10, color: '#A96407', marginLeft: 6 }}>已查看</span>}</div>
+            <div key={s.key} onClick={() => { onPick(s.key, { title: s.title, changes: s.changes, note: s.note }); chooseInvest(s.scene) }} style={{ ...(choices.invest === s.scene ? { cursor: 'pointer', border: '2px solid var(--primary)', background: 'var(--warn-bg)' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
+ <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.invest === s.scene ? ' ' : ''}{s.scene} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{s.occ}</span>{picked[s.key] && <span style={{ fontSize: 10, color: 'var(--warn)', marginLeft: 6 }}>已查看</span>}</div>
  {/* D-1 修复（Wave 4）：原先同一对象里 `note` 写了两次（短结论 + 长说明）⇒
                   JS 静默保留长文、短结论从未显示，且 build 有 3 条 "Duplicate key" 警告。
                   现拆成两个名字：卡片显示 摘要，浮层用完整 note（各自的用途都保住） */}
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{s.摘要}</div>
-              <div style={{ fontSize: 11, color: '#A96407', marginTop: 4 }}>建议：{s.advise}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{s.摘要}</div>
+              <div style={{ fontSize: 11, color: 'var(--warn)', marginTop: 4 }}>建议：{s.advise}</div>
             </div>
           ))}
-          <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             关键指标：RevPAR（每间可售房收入）= ADR × 出租率；GOP率（毛经营利润率）是业主最关注指标。追加投资提升品质能拉高房价，但拉长回收期——权衡投入与回报。
           </div>
  {/* §16.2-B5（2026-09-28）：投资项档位（W3-3 铺满版）——
               原先装修档/软装/IT/布草/开办费【整体悬置】；现在用【可配置默认档位】先填上：
               装修档锚定品牌官方单房造价，其余四项按占装修的教学比例；每档显式标「待老师确认」。
               老师给数 ⇒ 只改 src/establishmentInvest.mjs 的配置，不动代码。 */}
-          <div style={{ marginTop: 14, padding: '10px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
+          <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>
               投资项档位（{待老师确认文案}）
             </div>
             {投资项清单.map(it => (
               <div key={it.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, width: 62, color: '#78350F' }}>{it.key}</span>
+                <span style={{ fontSize: 11, width: 62, color: 'var(--warn)' }}>{it.key}</span>
                 {['低', '中', '高'].map(d => {
                   const on = (choices.investTiers?.[it.key] || '中') === d
                   return (
                     <span key={d} onClick={() => chooseTier(it.key, d)} style={{
                       fontSize: 10, padding: '2px 8px', borderRadius: 5, cursor: 'pointer',
-                      border: on ? '1px solid #E8940F' : '1px solid #E5E7EB',
-                      background: on ? '#FFF4E0' : '#FFFFFF', color: on ? '#A96407' : '#6B7280',
+                      border: on ? '1px solid var(--primary)' : '1px solid var(--border)',
+                      background: on ? 'var(--warn-bg)' : 'var(--card)', color: on ? 'var(--warn)' : 'var(--text-sub)',
                       fontWeight: on ? 700 : 400,
  }}>{d}{on ? ' ' : ''}</span>
                   )
                 })}
-                <span style={{ fontSize: 10, color: '#9CA3AF' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                 </span>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#92400E', marginTop: 6, borderTop: '1px dashed #FDE68A', paddingTop: 6, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 11, color: 'var(--warn)', marginTop: 6, borderTop: '1px dashed var(--warn-border)', paddingTop: 6, lineHeight: 1.7 }}>
               {测算.合计 == null
                 ? <>{测算.待补.join('；')}</>
                 : <>合计投资（估算）：<b>{(测算.合计 / 10000).toFixed(1)} 万</b>
                   （含装修 {(测算.明细[0].金额 / 10000).toFixed(1)} 万）· 品质影响：<b>{测算.品质分 > 0 ? '+' : ''}{测算.品质分}</b></>}
-              <div style={{ color: '#B45309', marginTop: 2 }}>
+              <div style={{ color: 'var(--warn)', marginTop: 2 }}>
  {口径.来源} —— 这是**教学默认档位**，不是官方市场价；老师给出金额档位后替换。
               </div>
             </div>
@@ -250,7 +250,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
     case 'license':
       return (
         <div>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>证照办理顺序（点击查看每张证照的要点，排错会延误开业）：</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>证照办理顺序（点击查看每张证照的要点，排错会延误开业）：</div>
           {licenses.map((l, i) => {
             const key = 'lic-' + i
             return (
@@ -259,15 +259,15 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                 changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: i === 0 ? '无主体一切免谈' : i === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }],
                 note: i === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : i === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`,
               })} style={{ ...clickable(key), borderRadius: 10, marginBottom: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#FFF4E0', color: '#A96407', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{l.name}{picked[key] && <span style={{ fontSize: 10, color: '#A96407', marginLeft: 6 }}>已查看</span>}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{l.dept} · {l.note}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{l.name}{picked[key] && <span style={{ fontSize: 10, color: 'var(--warn)', marginLeft: 6 }}>已查看</span>}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{l.dept} · {l.note}</div>
                 </div>
               </div>
             )
           })}
-          <div style={{ fontSize: 11, color: '#EF4444', lineHeight: 1.6, marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--bad)', lineHeight: 1.6, marginTop: 8 }}>
             前后置关系：营业执照是全部证照的前置；消防检查合格证是特种行业许可证的前置。顺序排错 → 触发"延误警告"，开业推迟，损失经营收入。
           </div>
         </div>
@@ -275,10 +275,10 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
     case 'purchase':
       return (
         <div>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>点击渠道查看结果，<b>选定一个</b>作为你的采购决策（必须选择才能进入下一步）：</div>
-          <div style={{ padding: '12px', background: '#FFF4E0', border: '1px solid #FBE3B3', borderRadius: 10, marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#A96407' }}>华住易购（官方采购平台）</div>
-            <div style={{ fontSize: 11, color: '#A96407', lineHeight: 1.6, marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>点击渠道查看结果，<b>选定一个</b>作为你的采购决策（必须选择才能进入下一步）：</div>
+          <div style={{ padding: '12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--warn)' }}>华住易购（官方采购平台）</div>
+            <div style={{ fontSize: 11, color: 'var(--warn)', lineHeight: 1.6, marginTop: 4 }}>
               九大承诺：正品、按时送达、优价保证（贵即赔）、降价退差、7天退货、30天包换、先行赔付、发票无忧、公开透明。采购品类：家具、电器、布草、建材、客控、软装、IT设备。
             </div>
           </div>
@@ -287,12 +287,12 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
             { key: 'buy-b', supplier: '供应商 B：指定供应商', quality: '中，基本达标', price: '适中', changes: [{ label: '品质分', value: '+5', dir: 'up' }, { label: '品牌一致性', value: '基本达标', dir: '' }, { label: '成本', value: '适中', dir: '' }, { label: '交期', value: '一般，需盯紧', dir: 'down' }], note: '折中方案：钱省一些、品质也降一档。交期要自己盯（延误开业=少赚）。适合预算紧但不想违反品牌标准的团队。' },
             { key: 'buy-c', supplier: '供应商 C：自行采购', quality: '低，可能不合规', price: '低', changes: [{ label: '品质分', value: '-10', dir: 'down' }, { label: '品牌一致性', value: '可能不达标，验收有风险', dir: 'down' }, { label: '成本', value: '最低', dir: 'up' }, { label: '开业后口碑', value: '设施差评隐患大', dir: 'down' }], note: '自采最便宜，但埋三颗雷：验收可能不过（返工更贵）、设施差评拉低口碑、可能违反加盟合同。省下的钱往往在经营期加倍还回去。' },
           ].map(s => (
-            <div key={s.key} onClick={() => { onPick(s.key, { title: `采购：${s.supplier}`, changes: s.changes, note: s.note }); chooseSupplier(s.supplier) }} style={{ ...(choices.supplier === s.supplier ? { cursor: 'pointer', border: '2px solid #E8940F', background: '#FFF4E0' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
- <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.supplier === s.supplier ? ' ' : ''}{s.supplier}{picked[s.key] && <span style={{ fontSize: 10, color: '#A96407', marginLeft: 6 }}>已查看</span>}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{s.quality} · {s.price}</div>
+            <div key={s.key} onClick={() => { onPick(s.key, { title: `采购：${s.supplier}`, changes: s.changes, note: s.note }); chooseSupplier(s.supplier) }} style={{ ...(choices.supplier === s.supplier ? { cursor: 'pointer', border: '2px solid var(--primary)', background: 'var(--warn-bg)' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
+ <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.supplier === s.supplier ? ' ' : ''}{s.supplier}{picked[s.key] && <span style={{ fontSize: 10, color: 'var(--warn)', marginLeft: 6 }}>已查看</span>}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>{s.quality} · {s.price}</div>
             </div>
           ))}
-          <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             华住标准化运营要求集中采购，保证品牌一致性。自采虽省成本，但埋下口碑隐患，且可能违反加盟合同。
           </div>
         </div>
@@ -300,19 +300,19 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
     case 'opening':
       return (
         <div>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>点击任务查看详情，<b>按你想启动的先后顺序依次点击三项任务</b>排优先级（排满才能开业）：</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>点击任务查看详情，<b>按你想启动的先后顺序依次点击三项任务</b>排优先级（排满才能开业）：</div>
           {[
             { key: 'open-deco', task: '装修', days: '90-150天', way: '华住提供标准化设计图纸 + 指定模组化施工队', confirm: '开发团队勘测→出图→施工→工程验收(竣工验收5000元/隐蔽样板房2000元)', changes: [{ label: '工期占比', value: '最长（关键路径）', dir: 'down' }, { label: '验收节点', value: '竣工验收+隐蔽工程样板', dir: '' }, { label: '费用', value: '验收 5000元/样板房 2000元', dir: 'down' }, { label: '优先级建议', value: '第一天就启动', dir: 'up' }], note: '装修是关键路径（最长工期），必须第一天启动，它拖一天开业就晚一天。隐蔽工程要做样板房验收——返工的代价远高于验收费。' },
             { key: 'open-hr', task: '招聘', days: '30-45天', way: '华住委派店长 + 自有招聘平台/人才市场/校企合作', confirm: '面试→岗前技能考核(老带新"传帮带")→上岗；岗位：店长/前台/客房/餐饮/维修', changes: [{ label: '工期', value: '30-45天，可与装修并行', dir: '' }, { label: '培训', value: '老带新"传帮带"', dir: '' }, { label: '岗位', value: '店长/前台/客房/餐饮/维修', dir: '' }, { label: '优先级建议', value: '开业前45天启动', dir: 'up' }], note: '招聘在装修后期启动即可，但开业前必须留足培训时间——没经过"传帮带"的新人前台，开业头两周差评会很难看。' },
             { key: 'open-it', task: '系统上线', days: '15-30天', way: '华住提供中央预订(CRS)+会员+PMS+智能客控', confirm: 'IT团队部署→系统对接测试→上线', changes: [{ label: '工期', value: '15-30天', dir: '' }, { label: '系统', value: 'CRS+会员+PMS+智能客控', dir: '' }, { label: '节点', value: '对接测试必须留足', dir: '' }, { label: '优先级建议', value: '开业前30天启动', dir: 'up' }], note: 'PMS/门锁/客控没调通就开业=前台手忙脚乱+客人进不了房。系统上线要赶在招聘完成前——新人上岗就得在真系统上培训。' },
           ].map(s => (
-            <div key={s.key} onClick={() => { onPick(s.key, { title: `开业任务：${s.task}`, changes: s.changes, note: s.note }); toggleOpeningTask(s.task) }} style={{ ...(choices.opening.includes(s.task) ? { cursor: 'pointer', border: '2px solid #E8940F', background: '#FFF4E0' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
- <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.opening.includes(s.task) ? ` 第${choices.opening.indexOf(s.task) + 1}优先 ` : ''}{s.task} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{s.days}</span>{picked[s.key] && <span style={{ fontSize: 10, color: '#A96407', marginLeft: 6 }}>已查看</span>}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>途径：{s.way}</div>
-              <div style={{ fontSize: 11, color: '#A96407', marginTop: 4 }}>确认：{s.confirm}</div>
+            <div key={s.key} onClick={() => { onPick(s.key, { title: `开业任务：${s.task}`, changes: s.changes, note: s.note }); toggleOpeningTask(s.task) }} style={{ ...(choices.opening.includes(s.task) ? { cursor: 'pointer', border: '2px solid var(--primary)', background: 'var(--warn-bg)' } : clickable(s.key)), borderRadius: 10, marginBottom: 10, padding: '14px' }}>
+ <div style={{ fontSize: 14, fontWeight: 600 }}>{choices.opening.includes(s.task) ? ` 第${choices.opening.indexOf(s.task) + 1}优先 ` : ''}{s.task} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>{s.days}</span>{picked[s.key] && <span style={{ fontSize: 10, color: 'var(--warn)', marginLeft: 6 }}>已查看</span>}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4 }}>途径：{s.way}</div>
+              <div style={{ fontSize: 11, color: 'var(--warn)', marginTop: 4 }}>确认：{s.confirm}</div>
             </div>
           ))}
-          <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             优先级影响总工期和开业日期。装修工期最长，招聘影响开业后服务质量，系统越早上线越早产生收入。
           </div>
         </div>

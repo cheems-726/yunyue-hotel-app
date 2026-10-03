@@ -65,18 +65,18 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         <div className="sub">你的酒店经营成果总结</div>
  {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
-          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+          <div style={{ margin: '8px 0 0', padding: '8px 10px', background: 'var(--fill)', border: '1px dashed var(--border-strong)', borderRadius: 8, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
             {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
-            <div style={{ color: '#9CA3AF' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
+            <div style={{ color: 'var(--text-muted)' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
           </div>
         )}
       </div>
 
       {/* 总成绩 */}
       <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-        <div style={{ fontSize: 56, fontWeight: 700, color: '#E8940F' }}>{finalScore}</div>
-        <div style={{ fontSize: 14, color: '#A96407', fontWeight: 600, marginTop: 4 }}>{grade}</div>
-        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 8 }}>满分 100 · 按四维加权评分</div>
+        <div style={{ fontSize: 56, fontWeight: 700, color: 'var(--primary)' }}>{finalScore}</div>
+        <div style={{ fontSize: 14, color: 'var(--warn)', fontWeight: 600, marginTop: 4 }}>{grade}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>满分 100 · 按四维加权评分</div>
       </div>
 
       {/* 四维评分 */}
@@ -85,11 +85,11 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         {dimensions.map(d => (
           <div key={d.label} style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }} title={d.hint}>{d.label} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>（权重{d.weight}）</span></span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#E8940F' }}>{d.score}分 · {d.value}</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }} title={d.hint}>{d.label} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>（权重{d.weight}）</span></span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{d.score}分 · {d.value}</span>
             </div>
-            <div style={{ height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: d.score + '%', background: d.score >= 80 ? '#16A34A' : d.score >= 60 ? '#E8940F' : '#DC2626', borderRadius: 4 }}></div>
+            <div style={{ height: 8, background: 'var(--fill)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: d.score + '%', background: d.score >= 80 ? 'var(--good)' : d.score >= 60 ? 'var(--primary)' : 'var(--bad)', borderRadius: 4 }}></div>
             </div>
           </div>
         ))}
@@ -97,7 +97,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
             本学期没跑满 ⇒ 退款未发生 ⇒ 如实标注（不假装退过、也不把它算进成绩）。
             金额读 week1 结算快照的实收（单源），不在此重算。 */}
         {保证金未退 != null && (
-          <div style={{ fontSize: 11, color: '#92400E', background: '#FFFBEB', border: '1px dashed #FCD34D', borderRadius: 6, padding: '6px 8px', lineHeight: 1.7 }}>
+          <div style={{ fontSize: 11, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px dashed var(--warn-border)', borderRadius: 6, padding: '6px 8px', lineHeight: 1.7 }}>
             ℹ️ 本学期经营了 {history.length}/{TOTAL_WEEKS} 周 —— 开业缴存的保证金 {(保证金未退 / 10000).toFixed(1)} 万
             <b>尚未退还</b>（按口径在第 {TOTAL_WEEKS} 周结算时全额退还）。{学期口径说明}
           </div>
@@ -122,11 +122,11 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               </div>
             )}
             {nodes.length > 0 && (
-              <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
+              <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
                 称号轨迹：{nodes.join(' → ')}
               </div>
             )}
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
               策略风格由 12 周的决策快照自动归纳；轨迹仅在称号变化处记录节点
             </div>
             {(() => {
@@ -136,12 +136,12 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5)
               if (!top.length) return null
               return (
-                <div style={{ fontSize: 11, color: '#374151', marginTop: 8, paddingTop: 8, borderTop: '1px dashed #F3F4F6', lineHeight: 1.8 }}>
+                <div style={{ fontSize: 11, color: 'var(--text)', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--fill)', lineHeight: 1.8 }}>
                   12周共触发事件 <b>{history.reduce((a, h) => a + (h.events || []).length, 0)}</b> 次，最常见：
                   {top.map(([key, n]) => {
                     // title 联动 EVENT_INFO：hover 显示触发条件与教学提示
                     const info = EVENT_INFO.find(e => e.icon + e.name === key)
-                    return <span key={key} title={info ? `触发条件：${info.trigger}` : undefined} style={{ background: '#F9FAFB', borderRadius: 5, padding: '1px 6px', marginRight: 4, cursor: 'help' }}>{key}×{n}</span>
+                    return <span key={key} title={info ? `触发条件：${info.trigger}` : undefined} style={{ background: 'var(--bg)', borderRadius: 5, padding: '1px 6px', marginRight: 4, cursor: 'help' }}>{key}×{n}</span>
                   })}
                 </div>
               )
@@ -158,14 +158,14 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               if (swing < 8) return null // 波动太小不值得点名
               const up = perf[worst] > perf[worst - 1]
               return (
-                <div style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 8, padding: '6px 10px', marginTop: 8, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 8, padding: '6px 10px', marginTop: 8, lineHeight: 1.6 }}>
                   最值得复盘：第 {history[worst].week} 周（综合表现较前一周{up ? '飙升' : '下滑'} {Math.round(swing)} 分）——去「我的」页经营操作记录看看那周做了什么决策
                   {(() => {
                     // 联动事件摘要：展示该周的主要事件（复盘有具体抓手）
                     const evs = (history[worst].events || [])
                     if (!evs.length) return null
                     return (
-                      <div style={{ fontSize: 10, color: '#991B1B', marginTop: 4 }}>
+                      <div style={{ fontSize: 10, color: 'var(--bad)', marginTop: 4 }}>
  该周事件：{evs.map(e => `${e.name}`).join('、')}
                       </div>
                     )
@@ -208,9 +208,9 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         })
         if (!crises.length) {
           return (
-            <div className="card" style={{ background: '#EAF9F0' }}>
+            <div className="card" style={{ background: 'var(--good-bg)' }}>
               <div className="card-title">事件应对复盘</div>
-              <div style={{ fontSize: 12, color: '#065F46', textAlign: 'center', padding: '10px 0' }}>
+              <div style={{ fontSize: 12, color: 'var(--good)', textAlign: 'center', padding: '10px 0' }}>
                 12 周零危机——差评没攒过线、资金没见底，风险控制本身就是实力
               </div>
             </div>
@@ -220,17 +220,17 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
           <div className="card">
             <div className="card-title">事件应对复盘（{crises.length} 次危机）</div>
             {crises.map((c, i) => (
-              <div key={i} style={{ padding: '8px 0', borderBottom: i < crises.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>
+              <div key={i} style={{ padding: '8px 0', borderBottom: i < crises.length - 1 ? '1px solid var(--fill)' : 'none' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bad)' }}>
                   第{c.week}周 <Icon name={c.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {c.name}
-                  <span style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', marginLeft: 6 }}>（当时决策完成 {c.decCnt}/18）</span>
-                  {c.response && <span style={{ fontSize: 10, fontWeight: 600, color: '#1E40AF', background: '#EFF6FF', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>应对：{c.response}</span>}
+                  <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-sub)', marginLeft: 6 }}>（当时决策完成 {c.decCnt}/18）</span>
+                  {c.response && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>应对：{c.response}</span>}
                 </div>
-                {c.result && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3, lineHeight: 1.6 }}>结果：{c.result}</div>}
-                {!c.response && <div style={{ fontSize: 10, color: '#DC2626', marginTop: 3 }}>当时未选择应对方案（按最差情况处理）</div>}
+                {c.result && <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 3, lineHeight: 1.6 }}>结果：{c.result}</div>}
+                {!c.response && <div style={{ fontSize: 10, color: 'var(--bad)', marginTop: 3 }}>当时未选择应对方案（按最差情况处理）</div>}
               </div>
             ))}
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
               危机不可怕，可怕的是没有预案。对照每次应对与结果，下次遇到就知道怎么选。
             </div>
           </div>
@@ -238,16 +238,16 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
       })()}
 
       {/* 经营总结 */}
-      <div className="card" style={{ background: '#FFF4E0' }}>
+      <div className="card" style={{ background: 'var(--warn-bg)' }}>
         <div className="card-title">经营总结</div>
-        <div style={{ fontSize: 13, color: '#A96407', lineHeight: 1.7 }}>
+        <div style={{ fontSize: 13, color: 'var(--warn)', lineHeight: 1.7 }}>
           你完成了 12 周经营。累计净利润 {totalProfit >= 0 ? '+' : ''}{(totalProfit / 10000).toFixed(2)} 万，
           平均出租率 {avgOccupancy}%，平均好评率 {avgGoodRate}%。
  {/* W2-3：GOP 与净利润分列（GOP 为经营毛利，不含租金 ⇒ 天然大于净利润）
               旧档周无 gop 字段 ⇒ 只统计有该字段的周并写明覆盖度，绝不按 0 补 */}
           <div title={GOP_DEF}>累计 {GOP_LABEL}：<b>{wan2(gopTotal.value)}</b>
-            {!gopTotal.complete && gopTotal.weeks > 0 && <span style={{ color: '#9CA3AF' }}>（仅统计 {gopTotal.weeks}/{gopTotal.total} 周，旧档周无 GOP 字段）</span>}
-            {gopTotal.weeks === 0 && <span style={{ color: '#9CA3AF' }}>（旧档无 GOP 字段，暂不可算）</span>}
+            {!gopTotal.complete && gopTotal.weeks > 0 && <span style={{ color: 'var(--text-muted)' }}>（仅统计 {gopTotal.weeks}/{gopTotal.total} 周，旧档周无 GOP 字段）</span>}
+            {gopTotal.weeks === 0 && <span style={{ color: 'var(--text-muted)' }}>（旧档无 GOP 字段，暂不可算）</span>}
           </div>
           <div title={NET_DEF}>累计 {NET_LABEL}（评分基准）：<b>{wan2(totalProfit)}</b></div>
           {(() => {

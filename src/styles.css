@@ -34,6 +34,9 @@
   /* 涨跌 = 语义 */
   --up: #0f7b4f;
   --down: #b42318;
+  /* 图表调色板（成本构成等 · 6 色） */
+  --chart-1: #f472b6; --chart-2: #fbbf24; --chart-3: #38bdf8;
+  --chart-4: #60a5fa; --chart-5: #34d399; --chart-6: #fb923c; --chart-7: #a78bfa; --chart-fallback: #94a3b8;
 
   /* 旧名兼容别名（JSX/CSS 既有引用 · 批2 逐处换成语义名后删除） */
   --blue-bg: var(--primary-bg);
@@ -66,6 +69,8 @@
 
     --up: #4ade80;
     --down: #f87171;
+    --chart-1: #f472b6; --chart-2: #fbbf24; --chart-3: #38bdf8;
+    --chart-4: #60a5fa; --chart-5: #34d399; --chart-6: #fb923c; --chart-7: #a78bfa; --chart-fallback: #94a3b8;
   }
 }
 

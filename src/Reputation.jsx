@@ -219,31 +219,31 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         const satisfaction = goodRatePct != null
           ? Math.min(100, Math.round(goodRatePct + (Number(attrs?.morale) || 65) / 4))
           : null
-        const goodColor = goodRatePct == null ? '#9CA3AF' : goodRatePct >= 80 ? '#16A34A' : goodRatePct >= 60 ? '#E8940F' : '#DC2626'
-        const handleColor = handleRate >= 80 ? '#16A34A' : handleRate >= 50 ? '#E8940F' : '#DC2626'
+        const goodColor = goodRatePct == null ? 'var(--text-muted)' : goodRatePct >= 80 ? 'var(--good)' : goodRatePct >= 60 ? 'var(--primary)' : 'var(--bad)'
+        const handleColor = handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'
         const box = (label, val, color) => (
           <div style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color }}>{val}</div>
-            <div style={{ fontSize: 9, color: '#9CA3AF' }}>{label}</div>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{label}</div>
           </div>
         )
         return (
-          <div className="card" style={{ background: '#F8FAFC' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 8 }}>口碑构成拆解（三个指标怎么互相影响）</div>
+          <div className="card" style={{ background: 'var(--bg)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 8 }}>口碑构成拆解（三个指标怎么互相影响）</div>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
               {box('差评处理率', handleRate + '%', handleColor)}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#A96407' }}>→</span>
-                <span style={{ fontSize: 8, color: '#9CA3AF' }}>拖后腿</span>
+                <span style={{ fontSize: 12, color: 'var(--warn)' }}>→</span>
+                <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>拖后腿</span>
               </div>
               {box('好评率', (goodRatePct ?? '—') + '%', goodColor)}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#A96407' }}>→</span>
-                <span style={{ fontSize: 8, color: '#9CA3AF' }}>衍生出</span>
+                <span style={{ fontSize: 12, color: 'var(--warn)' }}>→</span>
+                <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>衍生出</span>
               </div>
               {box('客人体验', satisfaction != null ? satisfaction + '%' : '—', goodColor)}
             </div>
-            <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.7 }}>
               欠着差评不处理 → 好评率被拖下水 → 客人体验跟着跌 → 客流流失。<b>处理率是口碑的源头活水</b>：处理一条，三个指标一起止血。
             </div>
           </div>
@@ -252,24 +252,24 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
 
       {/* 差评处理率进度条（评分权重15%的可视化） */}
       <div style={{ padding: '0 20px 12px' }}>
-        <div style={{ height: 6, background: '#F3F4F6', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? '#16A34A' : handleRate >= 50 ? '#E8940F' : '#DC2626', borderRadius: 3, transition: 'width 0.5s' }}></div>
+        <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)', borderRadius: 3, transition: 'width 0.5s' }}></div>
         </div>
-        <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
           处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
- {todayResolved > 0 && <b style={{ color: '#16A34A' }}> · 今天已处理 {todayResolved} 条 </b>}
+ {todayResolved > 0 && <b style={{ color: 'var(--good)' }}> · 今天已处理 {todayResolved} 条 </b>}
         </div>
         {/* 发酵预警：欠2条以上差评会触发危机事件（与引擎 minPending:2 对应） */}
         {pending.length === 1 && (
-          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#A96407', background: '#FFF4E0', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px' }}>
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, padding: '6px 10px' }}>
             再欠 1 条差评就到发酵危险区（欠 2 条以上会触发「差评发酵」危机，口碑额外受损）
-            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#16A34A', marginTop: 3 }}>今天已处理 {todayResolved} 条——照这个节奏马上就脱离危险区</div>}
+            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——照这个节奏马上就脱离危险区</div>}
           </div>
         )}
         {pending.length >= 2 && (
-          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
+          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px' }}>
             已欠 {pending.length} 条差评——已在发酵危机触发区！每多欠一条，口碑受损越重，立即处理
-            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#16A34A', marginTop: 3 }}>今天已处理 {todayResolved} 条——每处理一条，预警就会降级</div>}
+            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——每处理一条，预警就会降级</div>}
           </div>
         )}
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
@@ -283,25 +283,25 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           const x = i => PL + i * (W - PL - PR) / (pts.length - 1)
           const y = v => H - PB - ((v - lo) / span) * (H - PT - PB)
           const rising = pts[pts.length - 1].v >= pts[0].v
-          const color = pts[pts.length - 1].v >= 80 ? '#16A34A' : pts[pts.length - 1].v >= 60 ? '#E8940F' : '#DC2626'
+          const color = pts[pts.length - 1].v >= 80 ? 'var(--good)' : pts[pts.length - 1].v >= 60 ? 'var(--primary)' : 'var(--bad)'
           // 最低点标注（定位口碑最差周，复盘锚点）
           let minIdx = 0
           pts.forEach((p, i) => { if (p.v < pts[minIdx].v) minIdx = i })
           return (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 2 }}>好评率走势（历史各周{rising ? '，整体↑' : '，整体↓'}）</div>
+              <div style={{ fontSize: 10, color: 'var(--text-sub)', marginBottom: 2 }}>好评率走势（历史各周{rising ? '，整体↑' : '，整体↓'}）</div>
               <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
-                <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#F3F4F6" strokeWidth="1" />
+                <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
                 <polyline points={pts.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
                 {pts.map((p, i) => (
-                  <text key={'w' + i} x={p.x != null ? p.x : x(i)} y={H - 3} fontSize="7" fill="#9CA3AF" textAnchor="middle">W{i + 1}</text>
+                  <text key={'w' + i} x={p.x != null ? p.x : x(i)} y={H - 3} fontSize="7" fill="var(--text-muted)" textAnchor="middle">W{i + 1}</text>
                 ))}
                 {pts.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.v)} r="2.5" fill="#fff" stroke={color} strokeWidth="1.5" />)}
-                <text x={PL} y={8} fontSize="8" fill="#9CA3AF">当前 {pts[pts.length - 1].v}%</text>
+                <text x={PL} y={8} fontSize="8" fill="var(--text-muted)">当前 {pts[pts.length - 1].v}%</text>
                 {minIdx > 0 && minIdx < pts.length - 1 && (
-                  <text x={x(minIdx)} y={y(pts[minIdx].v) - 5} fontSize="8" fontWeight="700" fill="#DC2626" textAnchor="middle">↓{pts[minIdx].v}% 第{pts[minIdx].w}周</text>
+                  <text x={x(minIdx)} y={y(pts[minIdx].v) - 5} fontSize="8" fontWeight="700" fill="var(--bad)" textAnchor="middle">↓{pts[minIdx].v}% 第{pts[minIdx].w}周</text>
                 )}
-                {pts[minIdx].v < 60 && <circle cx={x(minIdx)} cy={y(pts[minIdx].v)} r="4" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeDasharray="2 2" />}
+                {pts[minIdx].v < 60 && <circle cx={x(minIdx)} cy={y(pts[minIdx].v)} r="4" fill="none" stroke="var(--bad)" strokeWidth="1.5" strokeDasharray="2 2" />}
               </svg>
             </div>
           )
@@ -311,26 +311,26 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {/* 处理率圆环 */}
       <div className="card" style={{display:'flex',alignItems:'center',gap:16,padding:16}}>
         <svg width="72" height="72" viewBox="0 0 72 72">
-          <circle cx="36" cy="36" r="30" fill="none" stroke="#F3F4F6" strokeWidth="7"/>
-          <circle cx="36" cy="36" r="30" fill="none" stroke={handleRate >= 80 ? '#10B981' : handleRate >= 50 ? '#E8940F' : '#EF4444'} strokeWidth="7"
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--fill)" strokeWidth="7"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke={handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'} strokeWidth="7"
             strokeDasharray={`${handleRate / 100 * 188.5} 188.5`} strokeLinecap="round"
             transform="rotate(-90 36 36)" style={{transition:'stroke-dasharray 0.8s ease'}}/>
-          <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill="#374151">{handleRate}%</text>
+          <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--text)">{handleRate}%</text>
         </svg>
         <div>
           <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>差评处理率</div>
-          <div style={{fontSize:11,color:'#6B7280'}}>占期末评分 15% 权重<br/>及时回复差评提高处理率</div>
+          <div style={{fontSize:11,color:'var(--text-sub)'}}>占期末评分 15% 权重<br/>及时回复差评提高处理率</div>
         </div>
       </div>
 
-      <div className="card" style={{background:'#FFF4E0',borderColor:'#FBE3B3',textAlign:'center',padding:18}}>
-        <div style={{fontSize:40,fontWeight:700,color:'#A96407'}}>
+      <div className="card" style={{background:'var(--warn-bg)',borderColor:'var(--warn-border)',textAlign:'center',padding:18}}>
+        <div style={{fontSize:40,fontWeight:700,color:'var(--warn)'}}>
           {Number.isFinite(goodRatePct) ? (goodRatePct / 20).toFixed(1) : '—'}
         </div>
         <div key={goodRatePct} className="stars-big stars-pop" style={{fontSize:20,letterSpacing:2,marginTop:4}}>
  {Number.isFinite(goodRatePct) ? ''.repeat(Math.max(1, Math.round(goodRatePct / 20))) + ''.repeat(5 - Math.max(1, Math.round(goodRatePct / 20))) : ''}
         </div>
-        <div style={{fontSize:12,color:'#A96407',marginTop:6}}>
+        <div style={{fontSize:12,color:'var(--warn)',marginTop:6}}>
           {goodRatePct != null ? `${goodRatePct}% 好评率` : '完成首次结算后显示好评率'} · 差评处理率 {handleRate}%
         </div>
       </div>
@@ -341,14 +341,14 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           {pending.map(r => (
             <div className="card" key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                <div style={{width:36,height:36,borderRadius:'50%',background:r.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
+                <div style={{width:36,height:36,borderRadius:'50%',background:r.bg==='blue'?'var(--primary-bg)':'var(--good-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
-                <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
+                <div style={{fontSize:13,color:'var(--primary)'}}>{starStr(r.stars)}</div>
               </div>
-              <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
               {(() => {
                 const tr = traceOf(r)
                 if (!tr) return null
@@ -360,7 +360,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
                       {open ? '收起关联经营' : '关联经营'}
                     </button>
                     {open && (
-                      <div style={{fontSize:11,color:'#4B5563',background:'#F9FAFB',border:'1px solid #E5E7EB',borderRadius:6,padding:'7px 9px',marginTop:6,lineHeight:1.6}}>
+                      <div style={{fontSize:11,color:'var(--text-sub)',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,padding:'7px 9px',marginTop:6,lineHeight:1.6}}>
                         来源：本组「{tr.name}」{tr.ans ? <> 选择了 <b>{tr.ans}</b></> : '（本周未提交）'} —— 客人不会告诉你为什么，这里说给你听。
                       </div>
                     )}
@@ -368,13 +368,13 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
                 )
               })()}
               {r.source && (
-                <div style={{fontSize:10,color:'#991B1B',background:'#FEF2F2',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                <div style={{fontSize:10,color:'var(--bad)',background:'var(--bad-bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：{r.source.icon} {r.source.name}——这条差评本可避免
                 </div>
               )}
  {/* §32-U4-R4：职务加成提示（谁处理不一样 · 但所有人都能处理 —— 不卡进度） */}
               {r.cause && (
-                <div style={{ fontSize: 11, color: '#A96407', background: '#FFF9F0', borderRadius: 8, padding: '5px 9px', marginTop: 8, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 11, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 8, padding: '5px 9px', marginTop: 8, lineHeight: 1.6 }}>
                   {建议职务文案(r.cause)}
                   {groupRole ? `　· 你当前职务：${groupRole}` : '　· 你未设职务（效果按 ×1.0 计，仍可正常处理）'}
                 </div>
@@ -382,7 +382,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               <div style={{display:'flex',gap:6,marginTop:10}}>
                 <button className="btn btn-primary" style={{flex:1}} onClick={() => setReplying({ review: r, isGood: false })}>回复</button>
                 <button className="btn btn-ghost" style={{flex:1}} onClick={() => handleResolve(r)}>整改</button>
-                <button className="btn btn-ghost" style={{flex:1, color:'#EF4444'}} onClick={() => handleIgnore(r)}>不处理</button>
+                <button className="btn btn-ghost" style={{flex:1, color:'var(--bad)'}} onClick={() => handleIgnore(r)}>不处理</button>
               </div>
             </div>
           ))}
@@ -390,10 +390,10 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       )}
 
       {pending.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', padding: '18px', background: '#EAF9F0' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '18px', background: 'var(--good-bg)' }}>
           <div style={{ fontSize: 26, display: 'flex', justifyContent: 'center' }}><Icon name="status.done" size={26} /></div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#065F46', marginTop: 4 }}>暂无待处理差评</div>
-          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>口碑很好，保持当前服务标准</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--good)', marginTop: 4 }}>暂无待处理差评</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>口碑很好，保持当前服务标准</div>
         </div>
       )}
 
@@ -403,20 +403,20 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           {resolved.map(r => (
             <div className="card" style={{opacity:0.6}} key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                <div style={{width:36,height:36,borderRadius:'50%',background:'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
+                <div style={{width:36,height:36,borderRadius:'50%',background:'var(--good-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
- <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#10B981'}}>已解决</span>{r.replyTier && <span style={{fontSize:10,background:r.replyTier==='excellent'?'#ECFDF5':r.replyTier==='good'?'#F0FDF4':'#F9FAFB',color:r.replyTier==='excellent'?'#065F46':r.replyTier==='good'?'#16A34A':'#6B7280',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
-                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+ <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'var(--good)'}}>已解决</span>{r.replyTier && <span style={{fontSize:10,background:r.replyTier==='excellent'?'var(--good-bg)':r.replyTier==='good'?'var(--good-bg)':'var(--bg)',color:r.replyTier==='excellent'?'var(--good)':r.replyTier==='good'?'var(--good)':'var(--text-sub)',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
               </div>
-              <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
               {r.replyText && (
-                <div style={{fontSize:11,color:'#1E40AF',background:'#EFF6FF',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
-                  <span style={{color:'#9CA3AF'}}>我的回复：</span>{r.replyText}
+                <div style={{fontSize:11,color:'var(--info)',background:'var(--primary-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+                  <span style={{color:'var(--text-muted)'}}>我的回复：</span>{r.replyText}
                 </div>
               )}
               {r.source && (
-                <div style={{fontSize:10,color:'#9CA3AF',background:'#F9FAFB',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                <div style={{fontSize:10,color:'var(--text-muted)',background:'var(--bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：{r.source.icon} {r.source.name}
                 </div>
               )}
@@ -429,17 +429,17 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {good.map(r => (
         <div className="card" key={r.id}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-            <div style={{width:36,height:36,borderRadius:'50%',background:'#EFF6FF',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
+            <div style={{width:36,height:36,borderRadius:'50%',background:'var(--primary-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
             <div style={{flex:1}}>
               <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-              <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+              <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
             </div>
-            <div style={{fontSize:13,color:'#E8940F'}}>{starStr(r.stars)}</div>
+            <div style={{fontSize:13,color:'var(--primary)'}}>{starStr(r.stars)}</div>
           </div>
-          <div style={{fontSize:13,color:'#374151',lineHeight:1.5}}>{r.text}</div>
+          <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
           {r.goodReplyText && (
-            <div style={{fontSize:11,color:'#065F46',background:'#EAF9F0',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
-              <span style={{color:'#9CA3AF'}}>我的回复：</span>{r.goodReplyText}
+            <div style={{fontSize:11,color:'var(--good)',background:'var(--good-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+              <span style={{color:'var(--text-muted)'}}>我的回复：</span>{r.goodReplyText}
             </div>
           )}
           {!r.goodReplyText && (
@@ -466,13 +466,13 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         }
         if (causes.length === 0) return null
         return (
-          <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
-            <div className="card-title" style={{ color: '#A96407' }}>差评来源分析</div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
+          <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
+            <div className="card-title" style={{ color: 'var(--warn)' }}>差评来源分析</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
             {causes.map((c, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
                 <span style={{ flexShrink: 0 }}>{c.icon}</span>
-                <span style={{ fontSize: 12, color: '#991B1B' }}>{c.text}</span>
+                <span style={{ fontSize: 12, color: 'var(--bad)' }}>{c.text}</span>
               </div>
             ))}
           </div>
@@ -483,20 +483,20 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {reviews.filter(r => r.status === 'ignored').length > 0 && (
         <>
           <div className="section-title" style={{ cursor: 'pointer' }} onClick={() => setShowIgnored(!showIgnored)}>
-            <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
+            <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
           </div>
           {showIgnored && reviews.filter(r => r.status === 'ignored').map(r => (
             <div className="card" style={{opacity:0.9}} key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
-                <div style={{width:36,height:36,borderRadius:'50%',background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
+                <div style={{width:36,height:36,borderRadius:'50%',background:'var(--fill)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
- <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'#EF4444'}}>已忽略</span></div>
-                  <div style={{fontSize:11,color:'#9CA3AF'}}>{r.date}</div>
+ <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'var(--bad)'}}>已忽略</span></div>
+                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}</div>
                 </div>
-                <div style={{fontSize:13,color:'#9CA3AF'}}>{starStr(r.stars)}</div>
+                <div style={{fontSize:13,color:'var(--text-muted)'}}>{starStr(r.stars)}</div>
               </div>
-              <div style={{fontSize:13,color:'#1F2937',lineHeight:1.6}}>{r.text}</div>
-              <div style={{fontSize:11,color:'#EF4444',marginTop:6,fontWeight:600}}>这条差评的负面影响全额生效且持续发酵</div>
+              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6}}>{r.text}</div>
+              <div style={{fontSize:11,color:'var(--bad)',marginTop:6,fontWeight:600}}>这条差评的负面影响全额生效且持续发酵</div>
             </div>
           ))}
         </>
@@ -510,10 +510,10 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         >
           <div onClick={e => e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:22,width:'100%',maxHeight:'82vh',overflowY:'auto',animation:'pageIn 0.2s ease-out'}}>
             <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>{replying.isGood ? '回复好评' : '回复差评'}</div>
-            <div style={{fontSize:12,color:'#374151',lineHeight:1.6,padding:'8px 12px',background:'#F9FAFB',borderRadius:8,marginBottom:10}}>
+            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'8px 12px',background:'var(--bg)',borderRadius:8,marginBottom:10}}>
               {replying.review.text}
             </div>
-            <div style={{fontSize:11,color:'#9CA3AF',marginBottom:8}}>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>
  用你自己的话回复这位客人。怎么说、说什么由你决定——客人会感受到诚意，也会感受到敷衍。
             </div>
             <textarea
@@ -521,11 +521,11 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               onChange={e => setReplyText(e.target.value)}
               placeholder={replying.isGood ? '写一段感谢的话……' : '写下你的回复话术（道歉？补偿？解决措施？由你决定）……'}
               rows={5}
-              style={{width:'100%',padding:'10px 12px',border:'1px solid #E5E7EB',borderRadius:10,fontSize:13,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
+              style={{width:'100%',padding:'10px 12px',border:'1px solid var(--border)',borderRadius:10,fontSize:13,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
             />
-            <div style={{fontSize:10,color:'#9CA3AF',marginBottom:6}}>快捷话术（点击填入，可自行修改）：{replyText.replace(/\s/g,'').length} 字</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>快捷话术（点击填入，可自行修改）：{replyText.replace(/\s/g,'').length} 字</div>
             {(replying.isGood ? quickGoodReplies : quickNegReplies).map((q, i) => (
-              <div key={i} onClick={() => setReplyText(q)} style={{fontSize:11,color:'#374151',padding:'7px 10px',background:'#F9FAFB',borderRadius:8,marginBottom:6,cursor:'pointer',lineHeight:1.5}}>
+              <div key={i} onClick={() => setReplyText(q)} style={{fontSize:11,color:'var(--text)',padding:'7px 10px',background:'var(--bg)',borderRadius:8,marginBottom:6,cursor:'pointer',lineHeight:1.5}}>
                 {q.slice(0, 42)}{q.length > 42 ? '…' : ''}
               </div>
             ))}

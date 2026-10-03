@@ -111,12 +111,12 @@ export default function Claim({ brand, location, onComplete }) {
 
       {/* 进度条 */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9CA3AF', marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
           <span>第 {step + 1} 步 / 共 {claimSteps.length} 步</span>
           <span>{progress}%</span>
         </div>
-        <div style={{ height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: progress + '%', background: '#E8940F', borderRadius: 4, transition: 'width 0.3s' }}></div>
+        <div style={{ height: 8, background: 'var(--fill)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: progress + '%', background: 'var(--primary)', borderRadius: 4, transition: 'width 0.3s' }}></div>
         </div>
       </div>
 
@@ -129,13 +129,13 @@ export default function Claim({ brand, location, onComplete }) {
               style={{
                 width: 30, height: 30, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13,
-                background: i === step ? '#FFF4E0' : (i < step ? '#ECFDF5' : '#F9FAFB'),
-                border: i === step ? '2px solid #E8940F' : (i < step ? '1px solid #10B981' : '1px solid #E5E7EB'),
+                background: i === step ? 'var(--warn-bg)' : (i < step ? 'var(--good-bg)' : 'var(--bg)'),
+                border: i === step ? '2px solid var(--primary)' : (i < step ? '1px solid var(--good)' : '1px solid var(--border)'),
               }}
             >
  {i < step ? '' : <Icon name={s.icon} size={16} />}
             </div>
-            <span style={{ fontSize: 8, color: i === step ? '#A96407' : '#9CA3AF', textAlign: 'center' }}>{s.title}</span>
+            <span style={{ fontSize: 8, color: i === step ? 'var(--warn)' : 'var(--text-muted)', textAlign: 'center' }}>{s.title}</span>
           </div>
         ))}
       </div>
@@ -143,35 +143,35 @@ export default function Claim({ brand, location, onComplete }) {
       {/* 当前步骤内容 */}
       <div className="card">
         <div className="card-title"><Icon name={current.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {current.title}</div>
-        <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>{current.desc}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 12 }}>{current.desc}</div>
 
         {/* 开店模式选择（第0步） */}
         {step === 0 && !bizMode && (
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>选择经营模式（不可更改）</div>
             {[
-              { mode: 'direct', icon: 'prop.hotel', name: '自主直营', desc: '完全自主定价、自主营销，利润全归自己，但客源靠本事，前期获客难', pros: '利润100%归自己 · 定价自由', cons: '前期客源少 · 营销成本高 · 风险自担', tag: '高风险高回报', tagColor: '#EF4444' },
-              { mode: 'ota', icon: 'event.ota', name: 'OTA平台合作', desc: '把酒店上架到OTA平台（携程/美团/飞猪）获取线上流量，享受平台曝光和订单分发，但需缴纳佣金且受平台规则限制', pros: '线上客源多且稳定 · 起步容易 · 有平台背书', cons: '平台抽成15% · 降价受限制 · 违规有处罚', tag: '稳健起步', tagColor: '#16A34A' },
+              { mode: 'direct', icon: 'prop.hotel', name: '自主直营', desc: '完全自主定价、自主营销，利润全归自己，但客源靠本事，前期获客难', pros: '利润100%归自己 · 定价自由', cons: '前期客源少 · 营销成本高 · 风险自担', tag: '高风险高回报', tagColor: 'var(--bad)' },
+              { mode: 'ota', icon: 'event.ota', name: 'OTA平台合作', desc: '把酒店上架到OTA平台（携程/美团/飞猪）获取线上流量，享受平台曝光和订单分发，但需缴纳佣金且受平台规则限制', pros: '线上客源多且稳定 · 起步容易 · 有平台背书', cons: '平台抽成15% · 降价受限制 · 违规有处罚', tag: '稳健起步', tagColor: 'var(--good)' },
             ].map(m => (
               <div key={m.mode} className="district-card" style={{ padding: 16, marginBottom: 10 }} onClick={() => { setBizMode(m.mode); onComplete({ mode: m.mode }) }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 16, fontWeight: 700 }}><Icon name={m.icon} size={16} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {m.name}</span>
                   <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: m.tagColor + '20', color: m.tagColor, fontWeight: 600 }}>{m.tag}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 8 }}>{m.desc}</div>
+                <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, marginBottom: 8 }}>{m.desc}</div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <span style={{ fontSize: 11, color: '#16A34A' }}>{m.pros}</span>
+                  <span style={{ fontSize: 11, color: 'var(--good)' }}>{m.pros}</span>
                 </div>
-                <div style={{ fontSize: 11, color: '#EF4444', marginTop: 2 }}>{m.cons}</div>
+                <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 2 }}>{m.cons}</div>
  {/* §32-U3-C：平台规则【明示】（学生选之前就该看见 —— 文案来自单源 otaRating.OTA_RULES，界面只渲染） */}
                 {m.mode === 'ota' && (
-                  <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, padding: '7px 9px', background: '#F9FAFB', borderRadius: 8, lineHeight: 1.7 }}>
-                    <b style={{ color: '#374151' }}>平台规则（会真实生效）：</b>
+                  <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 8, padding: '7px 9px', background: 'var(--bg)', borderRadius: 8, lineHeight: 1.7 }}>
+                    <b style={{ color: 'var(--text)' }}>平台规则（会真实生效）：</b>
                     {OTA_RULES.map((r, i) => <div key={i}>· {r}</div>)}
                   </div>
                 )}
                 {m.mode === 'direct' && (
-                  <div style={{ fontSize: 10, color: '#6B7280', marginTop: 8, padding: '7px 9px', background: '#F9FAFB', borderRadius: 8, lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 8, padding: '7px 9px', background: 'var(--bg)', borderRadius: 8, lineHeight: 1.7 }}>
                     · 不受 OTA 平台评分与平台罚款影响（也没有 OTA 的线上流量加成）
                   </div>
                 )}
@@ -181,7 +181,7 @@ export default function Claim({ brand, location, onComplete }) {
         )}
         {step === 0 && bizMode && (
           <div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>符合 {brand.name} 品牌标准的候选物业：</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>符合 {brand.name} 品牌标准的候选物业：</div>
             {propList.map(p => (
               <div
                 key={p.name}
@@ -191,19 +191,19 @@ export default function Claim({ brand, location, onComplete }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</span>
-                  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: p.match === '高' ? '#ECFDF5' : '#FFF4E0', color: p.match === '高' ? '#065F46' : '#A96407' }}>匹配度 {p.match}</span>
+                  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: p.match === '高' ? 'var(--good-bg)' : 'var(--warn-bg)', color: p.match === '高' ? 'var(--good)' : 'var(--warn)' }}>匹配度 {p.match}</span>
                 </div>
-                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 6 }}>{p.type} · {p.area} · {p.rooms} · 租金{p.rent}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 6 }}>{p.type} · {p.area} · {p.rooms} · 租金{p.rent}</div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>匹配度越高，未来经营越顺，但租金可能越高——权衡</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>匹配度越高，未来经营越顺，但租金可能越高——权衡</div>
           </div>
         )}
 
         {/* 中间步骤：流程说明 */}
         {step > 0 && (
           <div>
-            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, padding: '12px', background: '#F9FAFB', borderRadius: 10 }}>
+            <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.7, padding: '12px', background: 'var(--bg)', borderRadius: 10 }}>
  {step === 1 && '开发经理核对：商圈客源充足、交通便利、竞品适中、租金可承受。 初审通过'}
  {step === 2 && '实地勘址：柱网、电梯、消防、采光条件良好，可实现房量符合品牌标准。 勘址完成'}
               {step === 3 && (ledger
@@ -218,20 +218,20 @@ export default function Claim({ brand, location, onComplete }) {
                 缺数据的字段显示"待补"（franchiseModel 目前只有 汉庭·汉庭快捷 两个品牌）；
                 收益侧（出租率/ADR/回收期）需先定用哪套口径 ⇒ 属 A7，已进待决策队列，此处不编造。 */}
             {step === 3 && quote && (
-              <div style={{ marginTop: 12, padding: 12, background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#075985', marginBottom: 8 }}>
+              <div style={{ marginTop: 12, padding: 12, background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--info)', marginBottom: 8 }}>
                   物业报价单 · {quote.property}（{brand.name} 品牌标准）
                 </div>
                 {quote.lines.map(l => (
-                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed #E0F2FE' }}>
-                    <span style={{ color: '#0C4A6E', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
-                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? '#9CA3AF' : '#0369A1' }}>
+                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed var(--primary-bg)' }}>
+                    <span style={{ color: 'var(--info)', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
+                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? 'var(--text-muted)' : 'var(--info)' }}>
                       {fmtLine(l)}
                       {l.status !== STATUS.MISSING && l.fmt !== 'wan' ? ' ' + l.unit : ''}
                     </span>
                   </div>
                 ))}
-                <div style={{ fontSize: 10, color: '#0369A1', marginTop: 8, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 10, color: 'var(--info)', marginTop: 8, lineHeight: 1.6 }}>
                   报价单只算【投资侧】。房量取品牌标准（与结算同源）、年租金取引擎租金口径、
                   费率来自加盟资料三件套 ⇒ 每个数字可追溯；<b>没有来源的一律"待补"，不编造</b>。
                 </div>
@@ -244,19 +244,19 @@ export default function Claim({ brand, location, onComplete }) {
  回本周期已改用投资总额算（一页钱账 B3）；缺项品牌显式"待补"，不参与计算（不编）。 */}
             {step === 3 && quote && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <div style={{ flex: 1, padding: '10px 12px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF' }}>运营启动资金（IC）</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1E40AF', margin: '2px 0' }}>约 {SCALE.IC_NEW / 10000} 万</div>
-                  <div style={{ fontSize: 10, color: '#1E40AF', lineHeight: 1.6 }}><b>我手里的钱</b> —— 系统统一提供、全班一致，用来<b>周转经营</b>（发工资/付租金/交两费都从这里出）。</div>
+                <div style={{ flex: 1, padding: '10px 12px', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info)' }}>运营启动资金（IC）</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--info)', margin: '2px 0' }}>约 {SCALE.IC_NEW / 10000} 万</div>
+                  <div style={{ fontSize: 10, color: 'var(--info)', lineHeight: 1.6 }}><b>我手里的钱</b> —— 系统统一提供、全班一致，用来<b>周转经营</b>（发工资/付租金/交两费都从这里出）。</div>
                 </div>
-                <div style={{ flex: 1, padding: '10px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E' }}>投资总额（capex）</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E', margin: '2px 0' }}>
+                <div style={{ flex: 1, padding: '10px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)' }}>投资总额（capex）</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--warn)', margin: '2px 0' }}>
                     {quote.lines.find(x => x.label === '总投资（估算）').value != null
                       ? <>约 {(quote.lines.find(x => x.label === '总投资（估算）').value / 10000).toFixed(0)} 万</>
                       : '待补'}
                   </div>
-                  <div style={{ fontSize: 10, color: '#92400E', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装（缺项"待补"）。</div>
+                  <div style={{ fontSize: 10, color: 'var(--warn)', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装（缺项"待补"）。</div>
                 </div>
               </div>
             )}
@@ -266,36 +266,36 @@ export default function Claim({ brand, location, onComplete }) {
                 §14.3 起加盟两费（管理费+CRS）已由引擎按营收实收；回本周期必须带"外推"标注（W4 裁决）。
  §22.2-B3：回本周期【改用投资总额】算（onePageLedger 已是）；并排区分两笔钱（下方 B3 块）。 */}
             {step === 3 && ledger && (
-              <div style={{ marginTop: 12, padding: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', marginBottom: 8 }}>
+              <div style={{ marginTop: 12, padding: 12, background: 'var(--good-bg)', border: '1px solid var(--good-border)', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--good)', marginBottom: 8 }}>
                   一页钱账 · {brand.name} @ {ledger.property}（年化）
                 </div>
                 {ledger.lines.map(l => (
-                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed #DCFCE7' }}>
-                    <span style={{ color: '#14532D', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
-                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? '#9CA3AF' : (l.label.includes('现金流') ? (l.value > 0 ? '#15803D' : '#DC2626') : '#166534') }}>
+                  <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 12, padding: '3px 0', borderBottom: '1px dashed var(--good-bg)' }}>
+                    <span style={{ color: 'var(--good)', cursor: l.note ? 'help' : 'default' }} title={l.note}>{l.label}</span>
+                    <span style={{ fontWeight: 600, color: l.status === STATUS.MISSING ? 'var(--text-muted)' : (l.label.includes('现金流') ? (l.value > 0 ? 'var(--good)' : 'var(--bad)') : 'var(--good)') }}>
                       {fmtLine(l)}{l.status !== STATUS.MISSING && l.fmt !== 'wan' ? ' ' + l.unit : ''}
                     </span>
                   </div>
                 ))}
-                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 8, color: payback.ok ? '#166534' : '#92400E' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 8, color: payback.ok ? 'var(--good)' : 'var(--warn)' }}>
                   ⏳ {payback.text}
                 </div>
-                <div style={{ fontSize: 10, color: '#166534', marginTop: 8, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 10, color: 'var(--good)', marginTop: 8, lineHeight: 1.6 }}>
                 {/* §14.3：加盟费用条款 —— 哪几项【已实收】、哪几项【待接入】
                     硬要求（D53）：不许让学生以为全是真金 ⇒ 逐项标状态 */}
-                <div style={{ marginTop: 8, padding: '6px 8px', background: '#FFFFFF', border: '1px solid #DCFCE7', borderRadius: 6 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', marginBottom: 4 }}>
+                <div style={{ marginTop: 8, padding: '6px 8px', background: 'var(--card)', border: '1px solid var(--good-bg)', borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--good)', marginBottom: 4 }}>
                     加盟费用条款（{ledger.费用状态 && ledger.费用状态.接入 ? '引擎已按营收实收' : '费率待补 · 未计费'}）
                   </div>
                   {(ledger.加盟条款 || []).map(x => (
-                    <div key={x.科目} style={{ fontSize: 10, lineHeight: 1.7, color: x.状态 === '已实收' ? '#15803D' : '#9CA3AF' }}>
+                    <div key={x.科目} style={{ fontSize: 10, lineHeight: 1.7, color: x.状态 === '已实收' ? 'var(--good)' : 'var(--text-muted)' }}>
                       · {x.科目}：{x.状态}{x.费率 ? ` · ${x.费率}` : ''}{x.说明 ? ` · ${x.说明}` : ''}
  {/* §16.2-B6（2026-09-28）：置信度必须渲染出来 ——
                           原先只存在数据里（`费用清单()` 带 置信度 字段但界面不显示）⇒ 学生/老师
                           看不出「CRS 有效 2.4%」是建立在「渠道占比 30%」这个**低置信度教学假设**上的。
                           B6 明列要求"界面标置信度"，这里逐项标出（没有置信度的科目不显示）。 */}
-                      {x.置信度 ? <span style={{ color: '#B45309' }}>{` · 置信度：${x.置信度}`}</span> : null}
+                      {x.置信度 ? <span style={{ color: 'var(--warn)' }}>{` · 置信度：${x.置信度}`}</span> : null}
                     </div>
                   ))}
                 </div>
@@ -304,10 +304,10 @@ export default function Claim({ brand, location, onComplete }) {
                   <b>完整口径</b>（固定 {部门固定合计.toFixed(1)} 元/间·天含人力固定，另按入住量计变动），
                   与结算一致。<b>加盟两费</b>（管理费 5% + CRS 有效 2.4%）自 §14.3 起已由引擎按营收实收，本页读引擎实收（不重复计）。
                 </div>
-                <div style={{ fontSize: 10, color: '#92400E', marginTop: 6, lineHeight: 1.6, background: '#FFFBEB', borderRadius: 6, padding: '6px 8px' }}>
+                <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 6, lineHeight: 1.6, background: 'var(--warn-bg)', borderRadius: 6, padding: '6px 8px' }}>
                   ⏳ {ledger.extrapolation} —— 实际经营会因决策、事件与淡旺季偏离本页估计。
                 </div>
-                <div style={{ fontSize: 10, color: '#7C2D12', marginTop: 4, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 4, lineHeight: 1.6 }}>
  {ledger.engineFeeNote}（任务包原式只列了"人力"，本页按 W14 后的完整部门成本口径 ——
                   只扣人力会系统性高估现金流）
                 </div>
