@@ -185,7 +185,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         })
         return (
           <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
-            {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
+            <Icon name={ti.icon} size={13} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
             {nodes.length > 1 && <div style={{ color: 'var(--text-sub)', marginTop: 3 }}>轨迹：{nodes.join(' → ')}</div>}
           </div>
         )
@@ -209,7 +209,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               return (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? 'var(--good)' : 'var(--bad)', lineHeight: 1.5 }}>
                   <span style={{ flex: 1 }}>
- {isDone ? '' : ''} {d.icon} {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
+ {isDone ? '' : ''}<Icon name={d.icon} size={12} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
                   </span>
                   {!isDone && onGoDecision && (
                     <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
@@ -278,7 +278,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
             </div>
             {h.events && h.events.length > 0 && (
               <div style={{ fontSize: 11, color: 'var(--text-sub)', marginBottom: 4 }}>
- {h.events.map(e => `${e.icon}${e.name}`).join('、')}
+ {h.events.map(e => e.name).join('、')}
               </div>
             )}
             {entries.length === 0 ? (
@@ -295,7 +295,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               if (id === 'reputation' && val === '模板回复') risky.push('态度扣分')
               return (
                 <div key={id} style={{ fontSize: 11, padding: '2px 0', color: risky.length ? 'var(--bad)' : 'var(--text)' }}>
-                  · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtAnswer(val)}</b>
+                  · {d ? d.name : id}：<b>{fmtAnswer(val)}</b>
                   {risky.length > 0 && <span style={{ fontSize: 10, color: 'var(--bad)', marginLeft: 4 }}>{risky.join(' ')}</span>}
                 </div>
               )
@@ -557,7 +557,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
             .map(e => (
             <div key={e.id} onClick={() => set事件id(e.id)}
               style={{ padding: '7px 9px', borderRadius: 8, cursor: 'pointer', background: 事件id === e.id ? 'var(--warn-bg)' : 'var(--bg)', border: `1.5px solid ${事件id === e.id ? 'var(--primary)' : 'var(--fill)'}` }}>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>{e.icon} {e.name.replace(/（.*?）/, '')}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name={e.icon} size={13} /> {e.name.replace(/（.*?）/, '')}</div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 1 }}>{e.影响}</div>
             </div>
           ))}
@@ -1180,7 +1180,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'live' && chipDetail && (
         <div onClick={() => setChipDetail(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%', animation: 'pageIn 0.2s ease-out' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{chipDetail.icon} {chipDetail.name}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}><Icon name={chipDetail.icon} size={15} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {chipDetail.name}</div>
             <div style={{ fontSize: 12, color: 'var(--text)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, marginBottom: 10 }}>
               学生选择：<b>{chipDetail.answer}</b>
  {/* §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
@@ -1616,7 +1616,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               { v: 'teaching', icon: 'teach.point', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (
               <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid var(--fill)', cursor: 'pointer' }}>
-                <span style={{ fontSize: 18 }}>{x.icon}</span>
+                <span style={{ fontSize: 18, display: 'flex' }}><Icon name={x.icon} size={18} /></span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{x.label}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{x.desc}</div>
@@ -1641,7 +1641,7 @@ export default function TeacherDashboard({ user, onLogout }) {
         { key: 'me', icon: 'nav.me', label: '我的' },
       ].map(v => (
         <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
-          <div className="tab-icon">{v.icon}</div>
+          <div className="tab-icon"><Icon name={v.icon} size={20} /></div>
           <div className="tab-label">{v.label}</div>
         </button>
       ))}

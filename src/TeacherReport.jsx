@@ -232,7 +232,7 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
                     <div key={`${e.week}-${i}`} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i === 报告.时间线.length - 1 ? 'none' : '1px solid var(--fill)' }}>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 56 }}>第 {e.week} 周</div>
                       <div style={{ fontSize: 12, color: 'var(--text)' }}>
-                        <b>{e.icon} {e.name}</b>{e.impact && <span style={{ color: 'var(--warn)', marginLeft: 6 }}>{e.impact}</span>}
+                        <b><Icon name={e.icon} size={12} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {e.name}</b>{e.impact && <span style={{ color: 'var(--warn)', marginLeft: 6 }}>{e.impact}</span>}
                         {e.text && <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 2 }}>{e.text}</div>}
                         {e.tip && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{e.tip}</div>}
                       </div>

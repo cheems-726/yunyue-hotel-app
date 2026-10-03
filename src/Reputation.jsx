@@ -51,7 +51,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
     const meta = DEC_CATALOG.find(x => x.id === id)
     const ans = (decisions || {})[id]
     return {
-      name: meta ? `${meta.icon} ${meta.name}` : id,
+      name: meta ? meta.name : id,
       ans: Array.isArray(ans) ? ans.join('、') : (ans == null ? '' : String(ans)),
     }
   }
@@ -471,7 +471,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
             {causes.map((c, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
-                <span style={{ flexShrink: 0 }}>{c.icon}</span>
+                <span style={{ flexShrink: 0, display: 'flex' }}><Icon name={c.icon} size={13} /></span>
                 <span style={{ fontSize: 12, color: 'var(--bad)' }}>{c.text}</span>
               </div>
             ))}

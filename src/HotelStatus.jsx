@@ -547,7 +547,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
       {/* RPG称号条 */}
       <div style={{ background: 'linear-gradient(90deg,var(--warn-bg),var(--card))', border: '1px solid var(--warn-border)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--warn)' }}>{title.icon} {title.title}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--warn)' }}><Icon name={title.icon} size={14} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {title.title}</span>
           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>综合 {title.composite}</span>
         </div>
         <div style={{ height: 5, background: 'var(--fill)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>

@@ -370,7 +370,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const lv = brand?.level || ''
           const q = qualityOf(attrs)
           const t = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
-          return `${t.icon} ${t.title}`
+          return t.title
         })()}</div>
       </div>
 
@@ -429,7 +429,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           <div style={{ margin: '10px 0 0', padding: '7px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 11, color: 'var(--text-sub)' }}>
             上周事件 {report.events.length} 起：{report.events.map((e, i) => (
               <span key={i} style={{ color: e.type === 'crisis' ? 'var(--bad)' : e.type === 'good' ? 'var(--good)' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
-                {e.icon}{e.name}{i < report.events.length - 1 ? '、' : ''}
+                <Icon name={e.icon} size={12} style="{ display: 'inline-block', verticalAlign: '-2px' }" />{e.name}{i < report.events.length - 1 ? '、' : ''}
               </span>
             ))}
           </div>
@@ -1051,7 +1051,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               const lv = brand?.level || ''
               const q = qualityOf(attrs)
               const t = getTitle(occ, gr, q)
-              return `${t.icon} ${t.title}`
+              return t.title
             })()}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
