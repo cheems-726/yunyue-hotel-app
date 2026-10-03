@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { 代价文案 } from './decisionRisk.mjs'   // ★ §32-U4c-R6 原则④：代价文案单源（界面只渲染，不许自己拼）
+import Icon from './Icon.jsx'
+import { 代价文案 } from './decisionRisk.mjs' // §32-U4c-R6 原则④：代价文案单源（界面只渲染，不许自己拼）
 import ResultFeedback from './ResultFeedback.jsx'
 // 🔴 E3（N-3）：档位与'次日生效'口径来自 decisionCadence（单源；本文件不另写一份）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG, 归属日 } from './decisionCadence.mjs'
@@ -111,8 +112,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
           <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
           <span className="day-tag">{decision.module}</span>
         </div>
-        <div className="sub">{decision.icon} {decision.name}</div>
-        {/* 🔴 E3：学生要能一眼分辨"这项能不能随时改、什么时候生效" */}
+        <div className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icon name={decision.icon} size={15} /> {decision.name}</div>
+ {/* E3：学生要能一眼分辨"这项能不能随时改、什么时候生效" */}
         {(() => {
           const k = cadenceOf(decision.id); if (!k) return null
           const c = CAD_LANG[k]
@@ -129,13 +130,13 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
       </div>
 
       <div className="card">
-        <div className="card-title">{decision.icon} {decision.name}</div>
+        <div className="card-title"><Icon name={decision.icon} size={16} /> {decision.name}</div>
         <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
 
         {/* 上周状态参考：让决策有依据 */}
         {lastReport && (
           <div style={{ padding: '10px 12px', background: '#F9FAFB', borderRadius: 10, marginBottom: 12, fontSize: 11, color: '#6B7280', lineHeight: 1.7 }}>
-            📊 上周参考：出租率 <b style={{ color: '#111827' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? '#10B981' : '#EF4444' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
+            上周参考：出租率 <b style={{ color: '#111827' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? '#10B981' : '#EF4444' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
           </div>
         )}
         {/* 近3周决策趋势：该决策的历史选择轨迹，判断是否该换打法 */}
@@ -147,7 +148,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
           return (
             <div style={{ padding: '10px 12px', background: changed ? '#EFF6FF' : '#F9FAFB', borderRadius: 10, marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>
-                📈 该决策近{trail.length}周轨迹 {changed && <span style={{ color: '#1D4ED8' }}>· 上周换了打法</span>}
+                该决策近{trail.length}周轨迹 {changed && <span style={{ color: '#1D4ED8' }}>· 上周换了打法</span>}
               </div>
               {trail.map(x => (
                 <div key={x.week} style={{ fontSize: 11, color: '#374151', padding: '2px 0', lineHeight: 1.5 }}>
@@ -162,7 +163,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
 
         {/* 教学提示：引导学生在决策前思考 */}
         <div style={{ padding: '12px', background: '#FFF4E0', borderRadius: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#A96407', marginBottom: 4 }}>💡 决策前想一想</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#A96407', marginBottom: 4 }}>决策前想一想</div>
           <div style={{ fontSize: 12, color: '#A96407', lineHeight: 1.6 }}>
             {decision.tip || '这个决策会带来什么后果？权衡利弊后再选择。'}
           </div>
@@ -179,7 +180,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 onClick={() => pickOption(o.label, o.result)}
               >
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
-                {/* ★ §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
+ {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
                   <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
@@ -209,7 +210,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             </div>
             {/* 实时结果预览 */}
             <div style={{ marginTop: 12, padding: 12, background: '#FFF4E0', borderRadius: 10, fontSize: 12, color: '#A96407', lineHeight: 1.6 }}>
-              💡 {sliderResult()}
+              {sliderResult()}
             </div>
           </div>
         )}
@@ -242,7 +243,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             <div style={{ fontSize: 13, color: budgetTotal > decision.total ? '#EF4444' : '#A96407', fontWeight: 600, marginTop: 8 }}>
               已分配：{budgetTotal} / {decision.total}{budgetTotal > decision.total ? '（超出预算！）' : ''}
             </div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>💡 {budgetResult()}</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
           </div>
         )}
 
@@ -259,7 +260,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 </div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>💡 按优先级排序，前 5 项优先整改（预算有限）</div>
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
           </div>
         )}
 
@@ -278,7 +279,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 onClick={() => pickOption(o.label, o.result)}
               >
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
-                {/* ★ §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
+ {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
                   <div style={{ fontSize: 11, color: '#991B1B', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}

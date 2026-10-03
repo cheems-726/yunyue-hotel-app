@@ -52,9 +52,11 @@ console.log('\n[2] --since 限定范围（且结果 ⊆ 全量）')
   // 🔴 2026-09-28（夜间 N-0）：本等式原先没做**与扫描器同一套排除**（settle-old-* 快照按设计不扫），
   //   于是 一旦某提交带入 src/settle-old-*.mjs（如 A-1 校准基线 settle-old-a1.mjs），本自检就假红。
   //   修法：把 sinceFiles 先按同一前缀过滤再比 —— 判据没放宽（"扫了但没记"仍会被抓），只是口径对齐。
-  const 该扫 = (j2.scope.sinceFiles || []).filter(f => !f.startsWith('settle-old'))
+  // 🔴 2026-10-03（V10b）：同 N-0 先例再做一次口径对齐 —— 扫描器只扫 src 根的 .js/.jsx/.mjs
+  //   （styles.css 等非代码文件从来不在扫描范围），该扫清单按同一规则过滤后再比（判据不放宽）。
+  const 该扫 = (j2.scope.sinceFiles || []).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   ok(该扫.length === j2.scope.scannedFiles,
-    `scannedFiles 恰等于【该扫的】改动文件数（${该扫.length} 个；已按扫描器同口径排除 settle-old-*）`)
+    `scannedFiles 恰等于【该扫的】改动代码文件数（${该扫.length} 个；已按扫描器同口径排除 settle-old-* 与非代码文件）`)
   // ⊆：--since 的真残留集合必须是全量的子集（按 file:line）
   if (full) {
     const key = (h) => h.rule + '|' + h.file + '|' + h.line

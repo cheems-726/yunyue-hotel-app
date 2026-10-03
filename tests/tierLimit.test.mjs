@@ -59,7 +59,7 @@ console.log('\n[3] 前端侧：超档卡片 disabled + 点击拒绝（源码断�
   const 去注释 = (x) => x.split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
   const code = 去注释(bs)
   ok(/超档 \? \{ opacity: 0\.45/.test(code), '★ 超档卡片 disabled（降透明度 + 禁用光标）')
-  ok(/⛔ 超出本区档次上限/.test(code), '★ 超档卡片**写明不可选**（学生看得见为什么）')
+  ok(/超出本区档次上限/.test(code), '★ 超档卡片**写明不可选**（学生看得见为什么 · 前缀 emoji 已按 V10b 剥除）')
   ok(/if \(gi \+ 1 > maxTier\) \{[\s\S]{0,600}?return[\s\S]{0,600}?\}/.test(code), '★ handleBrandClick 超档直接 return（双保险 · 不进反馈/确认流）')
   ok(/handleBrandClick\(b, g\.level, gi\)/.test(code), '★ 档次序号 gi 已传入点击处理（否则校验无从判）')
   // RV 靶子：把 :81 的校验去掉 ⇒ [3] 必红（注释里写明）

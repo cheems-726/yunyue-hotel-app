@@ -1,4 +1,5 @@
 import React from 'react'
+import Icon from './Icon.jsx'
 
 import { strategyOf } from './TeacherDashboard.jsx'
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
@@ -59,10 +60,10 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   return (
     <div className="content">
       <div className="header">
-        <span className="step-tag">🏆 学期总结</span>
+        <span className="step-tag">学期总结</span>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>12 周经营成绩</h1>
         <div className="sub">你的酒店经营成果总结</div>
-        {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出；★ 不参与任何平均值分母（只展示，不回写 history） */}
+ {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
           <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
             {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
@@ -92,7 +93,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
             </div>
           </div>
         ))}
-        {/* ★ §22.2-B2：保证金在【第 {TOTAL_WEEKS} 周结算时】退还（引擎钩子）。
+ {/* §22.2-B2：保证金在【第 {TOTAL_WEEKS} 周结算时】退还（引擎钩子）。
             本学期没跑满 ⇒ 退款未发生 ⇒ 如实标注（不假装退过、也不把它算进成绩）。
             金额读 week1 结算快照的实收（单源），不在此重算。 */}
         {保证金未退 != null && (
@@ -114,15 +115,15 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         })
         return (
           <div className="card">
-            <div className="card-title">🎓 学期画像回顾</div>
+            <div className="card-title">学期画像回顾</div>
             {st && (
               <div style={{ fontSize: 13, fontWeight: 700, color: st.color, marginBottom: 6 }}>
-                {st.icon} 本学期策略风格：{st.tag}
+                <Icon name={st.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 本学期策略风格：{st.tag}
               </div>
             )}
             {nodes.length > 0 && (
               <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
-                📜 称号轨迹：{nodes.join(' → ')}
+                称号轨迹：{nodes.join(' → ')}
               </div>
             )}
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
@@ -136,7 +137,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               if (!top.length) return null
               return (
                 <div style={{ fontSize: 11, color: '#374151', marginTop: 8, paddingTop: 8, borderTop: '1px dashed #F3F4F6', lineHeight: 1.8 }}>
-                  ⚡ 12周共触发事件 <b>{history.reduce((a, h) => a + (h.events || []).length, 0)}</b> 次，最常见：
+                  12周共触发事件 <b>{history.reduce((a, h) => a + (h.events || []).length, 0)}</b> 次，最常见：
                   {top.map(([key, n]) => {
                     // title 联动 EVENT_INFO：hover 显示触发条件与教学提示
                     const info = EVENT_INFO.find(e => e.icon + e.name === key)
@@ -158,14 +159,14 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               const up = perf[worst] > perf[worst - 1]
               return (
                 <div style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 8, padding: '6px 10px', marginTop: 8, lineHeight: 1.6 }}>
-                  📌 最值得复盘：第 {history[worst].week} 周（综合表现较前一周{up ? '飙升' : '下滑'} {Math.round(swing)} 分）——去「我的」页经营操作记录看看那周做了什么决策
+                  最值得复盘：第 {history[worst].week} 周（综合表现较前一周{up ? '飙升' : '下滑'} {Math.round(swing)} 分）——去「我的」页经营操作记录看看那周做了什么决策
                   {(() => {
                     // 联动事件摘要：展示该周的主要事件（复盘有具体抓手）
                     const evs = (history[worst].events || [])
                     if (!evs.length) return null
                     return (
                       <div style={{ fontSize: 10, color: '#991B1B', marginTop: 4 }}>
-                        ⚡ 该周事件：{evs.map(e => `${e.icon}${e.name}`).join('、')}
+ 该周事件：{evs.map(e => `${e.name}`).join('、')}
                       </div>
                     )
                   })()}
@@ -177,9 +178,9 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
                 const grade = document.querySelector('.card div[style*="color: rgb(232, 148, 15)"]')
                 const score = history.length >= 1
                 const txt = [
-                  '🏨 云悦酒店 · 12周经营成绩单',
+                  '云悦酒店 · 12周经营成绩单',
                   `${user?.className ? user.className + ' · ' : ''}${user?.groupNo ? '第' + user.groupNo + '组 · ' : ''}${user?.name || ''}（学号 ${user?.id || '—'}）`,
-                  `策略风格：${st ? st.icon + ' ' + st.tag : '—'}`,
+                  `策略风格：${st ? st.tag : '—'}`,
                   `称号轨迹：${nodes.join(' → ') || '—'}`,
                   `累计净利润：${(totalProfit / 10000).toFixed(2)}万${gopTotal.weeks > 0 ? `（累计GOP ${(gopTotal.value / 10000).toFixed(2)}万）` : ''} · 平均出租率 ${avgOccupancy}% · 平均好评率 ${avgGoodRate}%`,
                   ...(teacherNote && teacherNote.note ? [`教师点评：${teacherNote.note.slice(0, 40)}${teacherNote.note.length > 40 ? '…' : ''}`] : []),
@@ -187,7 +188,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
                 ].join('\n')
                 navigator.clipboard.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {})
               }}
-            >{copied ? '✅ 已复制，去群里粘贴吧' : '📋 一键复制成绩单（发群里）'}</button>
+            >{copied ? '已复制，去群里粘贴吧' : '一键复制成绩单（发群里）'}</button>
           </div>
         )
       })()}
@@ -208,20 +209,20 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         if (!crises.length) {
           return (
             <div className="card" style={{ background: '#EAF9F0' }}>
-              <div className="card-title">🚨 事件应对复盘</div>
+              <div className="card-title">事件应对复盘</div>
               <div style={{ fontSize: 12, color: '#065F46', textAlign: 'center', padding: '10px 0' }}>
-                ✅ 12 周零危机——差评没攒过线、资金没见底，风险控制本身就是实力
+                12 周零危机——差评没攒过线、资金没见底，风险控制本身就是实力
               </div>
             </div>
           )
         }
         return (
           <div className="card">
-            <div className="card-title">🚨 事件应对复盘（{crises.length} 次危机）</div>
+            <div className="card-title">事件应对复盘（{crises.length} 次危机）</div>
             {crises.map((c, i) => (
               <div key={i} style={{ padding: '8px 0', borderBottom: i < crises.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>
-                  第{c.week}周 {c.icon} {c.name}
+                  第{c.week}周 <Icon name={c.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {c.name}
                   <span style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', marginLeft: 6 }}>（当时决策完成 {c.decCnt}/18）</span>
                   {c.response && <span style={{ fontSize: 10, fontWeight: 600, color: '#1E40AF', background: '#EFF6FF', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>应对：{c.response}</span>}
                 </div>
@@ -230,7 +231,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
               </div>
             ))}
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 6 }}>
-              💡 危机不可怕，可怕的是没有预案。对照每次应对与结果，下次遇到就知道怎么选。
+              危机不可怕，可怕的是没有预案。对照每次应对与结果，下次遇到就知道怎么选。
             </div>
           </div>
         )
@@ -238,24 +239,24 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
 
       {/* 经营总结 */}
       <div className="card" style={{ background: '#FFF4E0' }}>
-        <div className="card-title">📝 经营总结</div>
+        <div className="card-title">经营总结</div>
         <div style={{ fontSize: 13, color: '#A96407', lineHeight: 1.7 }}>
           你完成了 12 周经营。累计净利润 {totalProfit >= 0 ? '+' : ''}{(totalProfit / 10000).toFixed(2)} 万，
           平均出租率 {avgOccupancy}%，平均好评率 {avgGoodRate}%。
-          {/* 🔴 W2-3：GOP 与净利润分列（GOP 为经营毛利，不含租金 ⇒ 天然大于净利润）
+ {/* W2-3：GOP 与净利润分列（GOP 为经营毛利，不含租金 ⇒ 天然大于净利润）
               旧档周无 gop 字段 ⇒ 只统计有该字段的周并写明覆盖度，绝不按 0 补 */}
-          <div title={GOP_DEF}>📊 累计 {GOP_LABEL}：<b>{wan2(gopTotal.value)}</b>
+          <div title={GOP_DEF}>累计 {GOP_LABEL}：<b>{wan2(gopTotal.value)}</b>
             {!gopTotal.complete && gopTotal.weeks > 0 && <span style={{ color: '#9CA3AF' }}>（仅统计 {gopTotal.weeks}/{gopTotal.total} 周，旧档周无 GOP 字段）</span>}
             {gopTotal.weeks === 0 && <span style={{ color: '#9CA3AF' }}>（旧档无 GOP 字段，暂不可算）</span>}
           </div>
-          <div title={NET_DEF}>📈 累计 {NET_LABEL}（评分基准）：<b>{wan2(totalProfit)}</b></div>
+          <div title={NET_DEF}>累计 {NET_LABEL}（评分基准）：<b>{wan2(totalProfit)}</b></div>
           {(() => {
             // 🔴 T1.4/B1：RevPAR（每间可售房【每天】收入）= 总营收 ÷ (房量 × 周数 × 7)
             //   行业标准口径是"每天"；周营收必须 ÷7（缺口表 A3）
             const roomsArr = history.map(h => h.rooms).filter(Boolean)
             if (!roomsArr.length) return null
             const avgRooms = Math.round(roomsArr.reduce((a, b) => a + b, 0) / roomsArr.length)
-            const totalRevSum = totalRevenue(history)   // 🔴 E1：总营收也走单源（原自算 Σ revenue）
+ const totalRevSum = totalRevenue(history) // E1：总营收也走单源（原自算 Σ revenue）
             const revpar = Math.round(totalRevSum / (avgRooms * (history.length || 1) * 7))
             if (!revpar || revpar <= 0) return null
             return <div>单房收益（RevPAR）：<b>{revpar}</b> 元/间·天</div>

@@ -2,11 +2,11 @@
 // 口径与 HotelStatus/结算引擎一致
 
 export const TITLES = [
-  { min: 85, name: '标杆酒店', icon: '👑', desc: '片区标杆，同行来取经' },
-  { min: 75, name: '人气名店', icon: '🌟', desc: '一房难求，口碑相传' },
-  { min: 65, name: '精品酒店', icon: '💎', desc: '品质出众，客人是回头客' },
-  { min: 50, name: '舒适旅店', icon: '🛏️', desc: '安稳经营，略有起色' },
-  { min: 0, name: '普通旅社', icon: '🏠', desc: '刚起步，一切待证明' },
+  { min: 85, name: '标杆酒店', icon: 'achv.title', desc: '片区标杆，同行来取经' },
+  { min: 75, name: '人气名店', icon: 'achv.title', desc: '一房难求，口碑相传' },
+  { min: 65, name: '精品酒店', icon: 'achv.title', desc: '品质出众，客人是回头客' },
+  { min: 50, name: '舒适旅店', icon: 'achv.title', desc: '安稳经营，略有起色' },
+  { min: 0, name: '普通旅社', icon: 'achv.title', desc: '刚起步，一切待证明' },
 ]
 
 export function getTitle(occ, goodRatePct, quality) {

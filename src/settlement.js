@@ -134,28 +134,28 @@ const DECISION_IDS = Object.keys(DECISION_NAMES)
 
 // 事件一览（教学参考/图鉴用）：与下方触发逻辑一一对应
 export const EVENT_INFO = [
-  { icon: '🐢', name: '满负荷·响应慢', type: 'bad', trigger: '出租率≥85% 且排班精简', tip: '旺季保服务' },
-  { icon: '🧹', name: '卫生敷衍', type: 'bad', trigger: '第4周起未做深清洁', tip: '卫生是口碑底线' },
-  { icon: '💸', name: '性价比失衡', type: 'bad', trigger: '房价≥320 且口碑<80%', tip: '价格要和品质匹配' },
-  { icon: '🏪', name: '竞店开业', type: 'bad', trigger: '选址竞争≥4档', tip: '靠口碑和会员留客' },
-  { icon: '🔥', name: '差评发酵（危机）', type: 'crisis', trigger: '欠2条以上差评不处理', tip: '不处理就上热榜' },
-  { icon: '🧯', name: '消防检查', type: 'bad', trigger: '第6周起未做深清洁', tip: '合规是底线成本' },
-  { icon: '🚱', name: '市政停水半日', type: 'bad', trigger: '小概率随机（不可抗力）', tip: '谁都会遇到，别慌' },
-  { icon: '📸', name: '网红探店', type: 'good', trigger: '好评率≥85%', tip: '好口碑带来免费流量' },
-  { icon: '🔁', name: '会员复购潮', type: 'good', trigger: '会员转化选"强调品质"', tip: '品质转化忠诚度高' },
-  { icon: '🙏', name: '整改获认可·追加好评', type: 'good', trigger: '整改2条以上差评', tip: '整改不是白干' },
-  { icon: '🎪', name: '会展旺季', type: 'good', trigger: '选址客流≥4档', tip: '选对选址才接得住红利' },
-  { icon: '🏅', name: 'OTA金牌商家', type: 'good', trigger: '投放OTA 且好评率≥80%', tip: '流量倾斜跟着口碑走' },
-  { icon: '🎂', name: '员工关怀日', type: 'good', trigger: '第3周起满编保服务', tip: '对员工好=对客人好' },
-  { icon: '🌙', name: '深夜噪音投诉', type: 'bad', trigger: '小概率随机', tip: '夜班主动巡场防患未然' },
-  { icon: '🏆', name: '片区评选获奖', type: 'good', trigger: '上周好评率≥85%', tip: '长期主义会被看见' },
-  { icon: '🤒', name: '员工请假', type: 'bad', trigger: '第3周起小概率随机', tip: '关键时刻人员备份很重要' },
-  { icon: '🔧', name: '设备故障', type: 'bad', trigger: '第2周起小概率随机', tip: '定期检修预防突发故障' },
-  { icon: '🎆', name: '节假日爆单', type: 'good', trigger: '选址客流≥3档', tip: '盈利黄金期，提前备好人力' },
-  { icon: '🎤', name: '周边突发活动', type: 'good', trigger: '第2周起小概率随机', tip: '关注周边活动动态，提前调价' },
-  { icon: '📢', name: '负面舆情（危机）', type: 'crisis', trigger: '有差评未处理时小概率', tip: '及时回复防舆情扩散' },
-  { icon: '🚨', name: '资金链断裂（危机）', type: 'crisis', trigger: '资金见底', tip: '资金是生命线，宁少赚别乱花' },
-  { icon: '⚠️', name: '资金预警', type: 'bad', trigger: '资金接近预警线', tip: '立即控成本、增收' },
+  { icon: 'staff.slow', name: '满负荷·响应慢', type: 'bad', trigger: '出租率≥85% 且排班精简', tip: '旺季保服务' },
+  { icon: 'ops.cleaning', name: '卫生敷衍', type: 'bad', trigger: '第4周起未做深清洁', tip: '卫生是口碑底线' },
+  { icon: 'money.spend', name: '性价比失衡', type: 'bad', trigger: '房价≥320 且口碑<80%', tip: '价格要和品质匹配' },
+  { icon: 'event.competitor', name: '竞店开业', type: 'bad', trigger: '选址竞争≥4档', tip: '靠口碑和会员留客' },
+  { icon: 'status.crisis', name: '差评发酵（危机）', type: 'crisis', trigger: '欠2条以上差评不处理', tip: '不处理就上热榜' },
+  { icon: 'event.fire', name: '消防检查', type: 'bad', trigger: '第6周起未做深清洁', tip: '合规是底线成本' },
+  { icon: 'event.water', name: '市政停水半日', type: 'bad', trigger: '小概率随机（不可抗力）', tip: '谁都会遇到，别慌' },
+  { icon: 'event.influencer', name: '网红探店', type: 'good', trigger: '好评率≥85%', tip: '好口碑带来免费流量' },
+  { icon: 'guest', name: '会员复购潮', type: 'good', trigger: '会员转化选"强调品质"', tip: '品质转化忠诚度高' },
+  { icon: 'nav.review', name: '整改获认可·追加好评', type: 'good', trigger: '整改2条以上差评', tip: '整改不是白干' },
+  { icon: 'event.expo', name: '会展旺季', type: 'good', trigger: '选址客流≥4档', tip: '选对选址才接得住红利' },
+  { icon: 'achv.badge', name: 'OTA金牌商家', type: 'good', trigger: '投放OTA 且好评率≥80%', tip: '流量倾斜跟着口碑走' },
+  { icon: 'role.hr', name: '员工关怀日', type: 'good', trigger: '第3周起满编保服务', tip: '对员工好=对客人好' },
+  { icon: 'event.night', name: '深夜噪音投诉', type: 'bad', trigger: '小概率随机', tip: '夜班主动巡场防患未然' },
+  { icon: 'achv.title', name: '片区评选获奖', type: 'good', trigger: '上周好评率≥85%', tip: '长期主义会被看见' },
+  { icon: 'staff.sick', name: '员工请假', type: 'bad', trigger: '第3周起小概率随机', tip: '关键时刻人员备份很重要' },
+  { icon: 'ops.repair', name: '设备故障', type: 'bad', trigger: '第2周起小概率随机', tip: '定期检修预防突发故障' },
+  { icon: 'event.holiday', name: '节假日爆单', type: 'good', trigger: '选址客流≥3档', tip: '盈利黄金期，提前备好人力' },
+  { icon: 'event.concert', name: '周边突发活动', type: 'good', trigger: '第2周起小概率随机', tip: '关注周边活动动态，提前调价' },
+  { icon: 'status.crisis', name: '负面舆情（危机）', type: 'crisis', trigger: '有差评未处理时小概率', tip: '及时回复防舆情扩散' },
+  { icon: 'status.critical', name: '资金链断裂（危机）', type: 'crisis', trigger: '资金见底', tip: '资金是生命线，宁少赚别乱花' },
+  { icon: 'status.warn', name: '资金预警', type: 'bad', trigger: '资金接近预警线', tip: '立即控成本、增收' },
 ]
 
 // 事件参数集中配置（调平衡只改这里，不动逻辑）
@@ -424,7 +424,7 @@ if (bizMode === 'ota') {
   // 7.5 条件触发事件系统（按设计文档：属性条件 + 固定种子概率，非纯随机）
 // 负向压力机制：属性推到极端会招来事件，教学生权衡而非刷满
 const events = []
-if (hotActiveThisWeek) addEvent({ type: 'crisis', icon: '📉', name: '舆情危机期·客流大跌', text: '差评上热门的持续影响：本周出租率 −30%（危机期内每周如此）', impact: '出租率 −30%', tip: '处理差评 + 老师裁量是唯二出路；危机期结束自动恢复' })
+if (hotActiveThisWeek) addEvent({ type: 'crisis', icon: 'money.spend', name: '舆情危机期·客流大跌', text: '差评上热门的持续影响：本周出租率 −30%（危机期内每周如此）', impact: '出租率 −30%', tip: '处理差评 + 老师裁量是唯二出路；危机期结束自动恢复' })
 // ★ §32-U3-C：OTA 违规留痕（罚款金额此处只入事件文案，钱在下方统一计入 eventFine —— 单一入账点）
 for (const v of ota违规s) {
   addEvent({ type: 'bad', icon: v.icon, name: `平台处罚 · ${v.名}`, text: `${v.text}（触发值 ${v.触发值}）`, impact: `罚款 ${v.罚款} 元 · 渠道流量 ×${v.降权}`, tip: v.tip })
@@ -437,39 +437,39 @@ const negSources = [] // 差评来源追踪（只记录，不消耗rand，不影
 // ① 满负荷·响应慢：出租率过高 + 排班精简 → 服务跟不上
 if (occupancy >= 0.85 && decisions.shifts === '精简省成本' && rand() < EVENT_CONFIG.fullLoadSlow.prob) {
   negativeCount += 2
-  negSources.push({ icon: '🐢', name: '满负荷·响应慢' })
-  addEvent({ type: 'bad', icon: '🐢', name: '满负荷·响应慢', text: `出租率 ${Math.round(occupancy * 100)}% 却只留了精简人手，客人投诉入住/退房排队，新增 2 条差评`, impact: '差评 +2', tip: '旺季保服务：高出租率时该满编排班' })
+  negSources.push({ icon: 'staff.slow', name: '满负荷·响应慢' })
+  addEvent({ type: 'bad', icon: 'staff.slow', name: '满负荷·响应慢', text: `出租率 ${Math.round(occupancy * 100)}% 却只留了精简人手，客人投诉入住/退房排队，新增 2 条差评`, impact: '差评 +2', tip: '旺季保服务：高出租率时该满编排班' })
 }
 // ② 卫生敷衍：连续经营未做深清洁
 if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.hygieneSlack.minWeek && rand() < EVENT_CONFIG.hygieneSlack.prob) {
   negativeCount += 1
-  negSources.push({ icon: '🧹', name: '卫生敷衍' })
-  addEvent({ type: 'bad', icon: '🧹', name: '卫生敷衍', text: '连续多周未做深度清洁，客人发现布草污渍，新增 1 条差评', impact: '差评 +1', tip: '卫生是口碑底线，定期停房深清洁' })
+  negSources.push({ icon: 'ops.cleaning', name: '卫生敷衍' })
+  addEvent({ type: 'bad', icon: 'ops.cleaning', name: '卫生敷衍', text: '连续多周未做深度清洁，客人发现布草污渍，新增 1 条差评', impact: '差评 +1', tip: '卫生是口碑底线，定期停房深清洁' })
 }
 // ③ 性价比失衡：高房价 + 口碑平平 → 客人觉得不值
 if (price >= EVENT_CONFIG.valueMismatch.minPrice && goodRate < EVENT_CONFIG.valueMismatch.maxGoodRate && rand() < EVENT_CONFIG.valueMismatch.prob) {
   negativeCount += 1
-  negSources.push({ icon: '💸', name: '性价比失衡' })
-  addEvent({ type: 'bad', icon: '💸', name: '性价比失衡', text: `房价 ${Math.round(price)} 元但口碑平平（好评率 ${Math.round(goodRate * 100)}%），客人吐槽"不值这个价"`, impact: '差评 +1', tip: '价格要和品质匹配，否则招差评' })
+  negSources.push({ icon: 'money.spend', name: '性价比失衡' })
+  addEvent({ type: 'bad', icon: 'money.spend', name: '性价比失衡', text: `房价 ${Math.round(price)} 元但口碑平平（好评率 ${Math.round(goodRate * 100)}%），客人吐槽"不值这个价"`, impact: '差评 +1', tip: '价格要和品质匹配，否则招差评' })
 }
 // ④ 竞店开业：选址竞争激烈时被分流
 if ((s.竞争 || 3) >= EVENT_CONFIG.rivalOpen.minCompetition && rand() < EVENT_CONFIG.rivalOpen.prob) {
   occupancy = Math.max(occupancy * EVENT_CONFIG.rivalOpen.occCut, 0.3)
-  addEvent({ type: 'bad', icon: '🏪', name: '竞店开业', text: '附近新开一家同类酒店分走客流，本周出租率 -10%', impact: '出租率 -10%', tip: '竞争激烈地段要靠口碑和会员留客' })
+  addEvent({ type: 'bad', icon: 'event.competitor', name: '竞店开业', text: '附近新开一家同类酒店分走客流，本周出租率 -10%', impact: '出租率 -10%', tip: '竞争激烈地段要靠口碑和会员留客' })
 }
 // ⑤ 网红探店（正面）：口碑好被推荐
 if (goodRate >= EVENT_CONFIG.influencerVisit.minGoodRate && rand() < EVENT_CONFIG.influencerVisit.prob) {
-  addEvent({ type: 'good', icon: '📸', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', impact: '口碑 +2%', tip: '好口碑会带来免费流量' })
+  addEvent({ type: 'good', icon: 'event.influencer', name: '网红探店', text: '本地探店博主自发推荐了你家酒店，好评率小幅提升', impact: '口碑 +2%', tip: '好口碑会带来免费流量' })
   goodRate = Math.min(goodRate + EVENT_CONFIG.influencerVisit.goodRateUp, 0.95)
 }
 // ⑥ 会员复购（正面）：强调品质转化带来回头客
 if (decisions['member-convert'] === '强调品质' && rand() < EVENT_CONFIG.memberRepurchase.prob) {
-  addEvent({ type: 'good', icon: '🔁', name: '会员复购潮', text: '高品质转化的会员带朋友复购，本周散客口碑提升', impact: '—', tip: '强调品质的会员忠诚度更高' })
+  addEvent({ type: 'good', icon: 'guest', name: '会员复购潮', text: '高品质转化的会员带朋友复购，本周散客口碑提升', impact: '—', tip: '强调品质的会员忠诚度更高' })
 }
 // ⑦ 危机·差评发酵：欠了2条以上差评没处理，被顶上平台热榜
 if (pendingNegatives >= EVENT_CONFIG.reviewFerment.minPending && rand() < EVENT_CONFIG.reviewFerment.prob) {
   goodRate = Math.max(goodRate - EVENT_CONFIG.reviewFerment.goodRateDown, 0.3)
-  addEvent({ type: 'crisis', icon: '🔥', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, impact: '口碑 -3%', tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
+  addEvent({ type: 'crisis', icon: 'status.crisis', name: '差评发酵', text: `${pendingNegatives} 条差评长期未处理，被平台顶上"最近差评"热榜，口碑额外受损`, impact: '口碑 -3%', tip: '差评欠得越多发酵越快——口碑页的处理节奏就是口碑本身' })
 }
 // ★★ §32-U1 R2 · L3「差评上热门」（三级惩罚顶级 · **必触发非概率**）：
 //   触发 = 欠 ≥3 条未处理（pendingNegatives 是结算入参 ⇒ 确定性 · 全班同周同结果）。
@@ -479,7 +479,7 @@ if (pendingNegatives >= EVENT_CONFIG.reviewFerment.minPending && rand() < EVENT_
 if (shouldHotReview({ pendingNegatives })) {
   hotOut = { startWeek: week, weeks: hotCrisisWeeks(week), source: `欠 ${pendingNegatives} 条差评未处理 · 上热门`, override: null }
   goodRate = Math.max(goodRate - 0.05, 0.3)
-  addEvent({ type: 'crisis', icon: '🚨', name: '差评上热门（全网热榜）', text: `${pendingNegatives} 条差评长期不处理，被顶上本地生活平台热榜第一，全网可见！声誉腰斩，进入 ${hotCrisisWeeks(week)} 周舆情危机期（出租率 −30% · 差评概率 ×2）`, impact: `声誉 ×${HOT_REVIEW_CONFIG.reputationCut} · 危机期 ${hotCrisisWeeks(week)} 周`, tip: '这是口碑页三级警告的最高级——差评处理节奏就是酒店的命' })
+  addEvent({ type: 'crisis', icon: 'status.critical', name: '差评上热门（全网热榜）', text: `${pendingNegatives} 条差评长期不处理，被顶上本地生活平台热榜第一，全网可见！声誉腰斩，进入 ${hotCrisisWeeks(week)} 周舆情危机期（出租率 −30% · 差评概率 ×2）`, impact: `声誉 ×${HOT_REVIEW_CONFIG.reputationCut} · 危机期 ${hotCrisisWeeks(week)} 周`, tip: '这是口碑页三级警告的最高级——差评处理节奏就是酒店的命' })
 }
 // ⑧ 整改获认可（正面）：认真整改差评，客人追加好评（设计文档§三闭环的奖励侧）
 if (有效处理数 >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVENT_CONFIG.renovationPraise.prob) {
@@ -489,68 +489,68 @@ if (有效处理数 >= EVENT_CONFIG.renovationPraise.minResolved && rand() < EVE
   const 权重比 = resolvedCount > 0 ? 有效处理数 / resolvedCount : 1
   const 增益 = EVENT_CONFIG.renovationPraise.goodRateUp * 权重比
   goodRate = Math.min(goodRate + 增益, 0.95)
-  addEvent({ type: 'good', icon: '🙏', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位（有效处理量 ${有效处理数.toFixed(1)}），客人主动修改评价并追加好评，口碑 +${(增益 * 100).toFixed(1)}%`, impact: `口碑 +${(增益 * 100).toFixed(1)}%`, tip: '整改不是白干——认真处理差评会带来口碑回报；对岗处理（职务匹配）效果 ×1.3' })
+  addEvent({ type: 'good', icon: 'nav.review', name: '整改获认可·追加好评', text: `${resolvedCount} 条差评整改到位（有效处理量 ${有效处理数.toFixed(1)}），客人主动修改评价并追加好评，口碑 +${(增益 * 100).toFixed(1)}%`, impact: `口碑 +${(增益 * 100).toFixed(1)}%`, tip: '整改不是白干——认真处理差评会带来口碑回报；对岗处理（职务匹配）效果 ×1.3' })
 }
 // ⑨ 消防检查：长期不深清洁/不维护的店容易被查出发隐患
 if (decisions.hygiene !== '停房深清洁' && week >= EVENT_CONFIG.fireInspection.minWeek && rand() < EVENT_CONFIG.fireInspection.prob) {
   eventFine = EVENT_CONFIG.fireInspection.fine
-  addEvent({ type: 'bad', icon: '🧯', name: '消防检查', text: '消防突击检查发现疏散通道堆物，限期整改并罚款 ' + eventFine + ' 元（已计入本周成本）', impact: '成本 +' + eventFine + '元', tip: '合规是底线成本，别抱侥幸心理' })
+  addEvent({ type: 'bad', icon: 'event.fire', name: '消防检查', text: '消防突击检查发现疏散通道堆物，限期整改并罚款 ' + eventFine + ' 元（已计入本周成本）', impact: '成本 +' + eventFine + '元', tip: '合规是底线成本，别抱侥幸心理' })
 }
 // ⑩ 市政停水半日：任何店都可能碰上（小概率，全班同周同命中）
 if (rand() < EVENT_CONFIG.waterOutage.prob) {
   occupancy = Math.max(occupancy * EVENT_CONFIG.waterOutage.occCut, 0.3)
-  addEvent({ type: 'bad', icon: '🚱', name: '市政停水半日', text: '片区管网检修停水半天，部分客人提前退房，出租率 -5%', impact: '出租率 -5%', tip: '不可抗力谁都会遇到，别慌，下周就恢复' })
+  addEvent({ type: 'bad', icon: 'event.water', name: '市政停水半日', text: '片区管网检修停水半天，部分客人提前退房，出租率 -5%', impact: '出租率 -5%', tip: '不可抗力谁都会遇到，别慌，下周就恢复' })
 }
 // ⑪ 会展旺季（正面）：客流充沛地段吃到红利
 if ((s.客流 || 3) >= EVENT_CONFIG.expoSeason.minFlow && rand() < EVENT_CONFIG.expoSeason.prob) {
   occupancy = Math.min(occupancy + EVENT_CONFIG.expoSeason.occUp, 0.98)
-  addEvent({ type: 'good', icon: '🎪', name: '会展旺季', text: '片区大型会展开幕，周边酒店全线满房，本周出租率 +5%', impact: '出租率 +5%', tip: '选址选客流，红利期才接得住' })
+  addEvent({ type: 'good', icon: 'event.expo', name: '会展旺季', text: '片区大型会展开幕，周边酒店全线满房，本周出租率 +5%', impact: '出租率 +5%', tip: '选址选客流，红利期才接得住' })
 }
 // ⑫ OTA金牌商家（正面）：投放OTA且口碑达标
 if (decisions.ota && goodRate >= EVENT_CONFIG.otaGoldBadge.minGoodRate && rand() < EVENT_CONFIG.otaGoldBadge.prob) {
   goodRate = Math.min(goodRate + EVENT_CONFIG.otaGoldBadge.goodRateUp, 0.95)
-  addEvent({ type: 'good', icon: '🏅', name: 'OTA金牌商家', text: '平台授予金牌商家标识，线上转化率提升，口碑小幅上涨', impact: '口碑 +1%', tip: '线上渠道的流量倾斜跟着口碑走' })
+  addEvent({ type: 'good', icon: 'achv.badge', name: 'OTA金牌商家', text: '平台授予金牌商家标识，线上转化率提升，口碑小幅上涨', impact: '口碑 +1%', tip: '线上渠道的流量倾斜跟着口碑走' })
 }
 // ⑬ 员工关怀日（正面）：满编经营的店，员工状态好带动服务
 if (decisions.shifts === '满编保服务' && week >= EVENT_CONFIG.staffCareDay.minWeek && rand() < EVENT_CONFIG.staffCareDay.prob) {
   goodRate = Math.min(goodRate + EVENT_CONFIG.staffCareDay.goodRateUp, 0.95)
-  addEvent({ type: 'good', icon: '🎂', name: '员工关怀日', text: '为一线员工办生日会，服务热情度上升，客人感知更好', impact: '口碑 +1%', tip: '对员工好，员工才会对客人好' })
+  addEvent({ type: 'good', icon: 'role.hr', name: '员工关怀日', text: '为一线员工办生日会，服务热情度上升，客人感知更好', impact: '口碑 +1%', tip: '对员工好，员工才会对客人好' })
 }
 // ⑭ 深夜噪音投诉：任何店都可能碰到
 if (rand() < EVENT_CONFIG.noiseComplaint.prob) {
   negativeCount += 1
-  negSources.push({ icon: '🌙', name: '深夜噪音投诉' })
-  addEvent({ type: 'bad', icon: '🌙', name: '深夜噪音投诉', text: '深夜隔壁房间聚会喧哗，投诉处理不及时招来差评', impact: '差评 +1', tip: '前台夜班要主动巡场，防患于未然' })
+  negSources.push({ icon: 'event.night', name: '深夜噪音投诉' })
+  addEvent({ type: 'bad', icon: 'event.night', name: '深夜噪音投诉', text: '深夜隔壁房间聚会喧哗，投诉处理不及时招来差评', impact: '差评 +1', tip: '前台夜班要主动巡场，防患于未然' })
 }
 // ⑮ 片区评选获奖（正面）：口碑持续优秀被行业协会认可
 if (prevGoodRate != null && prevGoodRate >= EVENT_CONFIG.districtAward.minPrevGoodRate && rand() < EVENT_CONFIG.districtAward.prob) {
   goodRate = Math.min(goodRate + EVENT_CONFIG.districtAward.goodRateUp, 0.95)
-  addEvent({ type: 'good', icon: '🏆', name: '片区评选获奖', text: '酒店行业协会年度评选中获奖，品牌曝光度提升', impact: '口碑 +1.5%', tip: '长期主义会被看见' })
+  addEvent({ type: 'good', icon: 'achv.title', name: '片区评选获奖', text: '酒店行业协会年度评选中获奖，品牌曝光度提升', impact: '口碑 +1.5%', tip: '长期主义会被看见' })
 }
 // ⑯ 员工请假：人手短缺影响服务
 if (week >= 3 && rand() < EVENT_CONFIG.staffAbsent.prob) {
   negativeCount += 1
-  negSources.push({ icon: '🤒', name: '员工请假' })
-  addEvent({ type: 'bad', icon: '🤒', name: '员工请假', text: '前台员工突发感冒请假，人手短缺导致入住办理变慢，新增1条差评', impact: '差评 +1', tip: '关键时刻人员备份很重要' })
+  negSources.push({ icon: 'staff.sick', name: '员工请假' })
+  addEvent({ type: 'bad', icon: 'staff.sick', name: '员工请假', text: '前台员工突发感冒请假，人手短缺导致入住办理变慢，新增1条差评', impact: '差评 +1', tip: '关键时刻人员备份很重要' })
 }
 // ⑰ 设备故障：热水器/空调坏了需要维修
 if (week >= 2 && rand() < EVENT_CONFIG.equipmentBreak.prob) {
   eventFine += EVENT_CONFIG.equipmentBreak.repairCost || 800
-  addEvent({ type: 'bad', icon: '🔧', name: '设备故障', text: '热水系统突发故障，紧急维修花费800元，部分客人体验受影响', impact: '成本 +800元', tip: '定期检修可以预防突发故障' })
+  addEvent({ type: 'bad', icon: 'ops.repair', name: '设备故障', text: '热水系统突发故障，紧急维修花费800元，部分客人体验受影响', impact: '成本 +800元', tip: '定期检修可以预防突发故障' })
 }
 // ⑱ 节假日爆单（正面）：客流>=3的地段节假日客流入涌
 if ((site?.客流 || 3) >= 3 && rand() < EVENT_CONFIG.holidaySurge.prob) {
   occupancy = Math.min(occupancy + 0.08, 0.98)
-  addEvent({ type: 'good', icon: '🎆', name: '节假日爆单', text: '节假日来临，周边客流量大增，出租率 +8%', impact: '出租率 +8%', tip: '节假日是盈利黄金期，提前备好人力' })
+  addEvent({ type: 'good', icon: 'event.holiday', name: '节假日爆单', text: '节假日来临，周边客流量大增，出租率 +8%', impact: '出租率 +8%', tip: '节假日是盈利黄金期，提前备好人力' })
 }
 // ⑲ 周边突发活动（正面）：演唱会/展会等带动客流
 if (week >= 2 && rand() < 0.2) {
   occupancy = Math.min(occupancy + 0.06, 0.98)
-  addEvent({ type: 'good', icon: '🎤', name: '周边突发活动', text: '附近举办演唱会/展会，大量外地客涌入', impact: '出租率 +6%', tip: '关注周边活动动态，提前调价' })
+  addEvent({ type: 'good', icon: 'event.concert', name: '周边突发活动', text: '附近举办演唱会/展会，大量外地客涌入', impact: '出租率 +6%', tip: '关注周边活动动态，提前调价' })
 }
 // ⑳ 负面舆情（危机）：有差评且未处理时概率触发
 if (pendingNegatives >= 1 && rand() < 0.15) {
-  addEvent({ type: 'crisis', icon: '📢', name: '负面舆情', text: '有客人在社交媒体发布差评帖子，开始被转发议论', impact: '口碑风险', tip: '及时回复差评可以防止舆情扩散' })
+  addEvent({ type: 'crisis', icon: 'status.crisis', name: '负面舆情', text: '有客人在社交媒体发布差评帖子，开始被转发议论', impact: '口碑风险', tip: '及时回复差评可以防止舆情扩散' })
 }
 
   // [7.8] 竞品AI动态调价（每个竞品根据侵略性决定本周策略）
@@ -807,9 +807,9 @@ if (doneKeys.length === 18) {
   if (allSame) insights.push({ good: false, text: '⚠️ 决策模式异常一致，请确认是经过独立思考的选择' })
 }
 if (isBankrupt) {
-  addEvent({ type: 'crisis', icon: '🚨', name: '资金链断裂', text: `资金降至 ${Math.round(capital).toLocaleString()} 元！立即削成本或贷款。`, impact: '破产风险', tip: '减少支出' })
+  addEvent({ type: 'crisis', icon: 'status.critical', name: '资金链断裂', text: `资金降至 ${Math.round(capital).toLocaleString()} 元！立即削成本或贷款。`, impact: '破产风险', tip: '减少支出' })
 } else if (isWarning) {
-  addEvent({ type: 'bad', icon: '⚠️', name: '资金预警', text: `资金仅 ${Math.round(capital).toLocaleString()} 元。`, impact: '接近破产', tip: '控制成本' })
+  addEvent({ type: 'bad', icon: 'status.warn', name: '资金预警', text: `资金仅 ${Math.round(capital).toLocaleString()} 元。`, impact: '接近破产', tip: '控制成本' })
 }
 
 // 11. 评价生成
@@ -1030,23 +1030,23 @@ for (let i = 0; i < reviewCount; i++) {
       来源: 'teacher',
       ...(应对 ? { 你的应对: 应对 } : {}),
       // 补算 且 无应对记录 ⇒ 按最差计入的显著标注（文案唯一生成点在 teacherEvents.离线默认标注）
-      ...(补算 && !应对 ? { 离线标注: 离线默认标注(ev.name.replace('📌 老师注入 · ', ''), week) } : {}),
+      ...(补算 && !应对 ? { 离线标注: 离线默认标注(ev.name.replace(/^老师注入 · /, ''), week) } : {}),
     })
   }
   for (const ev of 注入互斥跳过) {
-    addEvent({ type: 'bad', icon: '🚫', name: '老师注入事件未生效（与本周随机事件互斥）', text: ev.name + ' 与本周已随机触发的事件同类 —— 按去重口径只生效一条（见事件系统注释）', impact: '无', tip: '同一市场冲击不该叠加成双倍' })
+    addEvent({ type: 'bad', icon: 'status.critical', name: '老师注入事件未生效（与本周随机事件互斥）', text: ev.name + ' 与本周已随机触发的事件同类 —— 按去重口径只生效一条（见事件系统注释）', impact: '无', tip: '同一市场冲击不该叠加成双倍' })
   }
   if (生效注入sByName.has('E3')) {
     const 全额 = (decisions.hygiene || '不停房') === '不停房'
     const 扣 = { quality: 全额 ? -8 : -4, reputation: 全额 ? -5 : -2 }
     attrsAfter = applyAttrsDelta(attrsAfter, 扣)
-    addEvent({ type: 'bad', icon: '🧹', name: '卫生突检结果', text: 全额 ? '检查发现卫生隐患（卫生计划为"不停房"）⇒ 品质 −8 / 声誉 −5' : '检查基本合格（已有停房深清洁）⇒ 品质 −4 / 声誉 −2（减半）', impact: '品质/声誉下滑', tip: '品质是底线投资：不整改 → 下周差评潮' })
+    addEvent({ type: 'bad', icon: 'ops.cleaning', name: '卫生突检结果', text: 全额 ? '检查发现卫生隐患（卫生计划为"不停房"）⇒ 品质 −8 / 声誉 −5' : '检查基本合格（已有停房深清洁）⇒ 品质 −4 / 声誉 −2（减半）', impact: '品质/声誉下滑', tip: '品质是底线投资：不整改 → 下周差评潮' })
   }
   if (生效注入sByName.has('E7')) {
     const 冷处理 = true   // 离线默认最差 / 30 秒未选 = 冷处理（与危机超时语义一致）
     if (冷处理) {
       attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })
-      addEvent({ type: 'bad', icon: '👥', name: '员工集体请辞威胁（冷处理）', text: '你没有（或没能）做出应对 ⇒ 团队士气 −10', impact: '士气 −10', tip: '人力是资产不是成本：涨薪（成本+）或招临时工（品质−）都是应对' })
+      addEvent({ type: 'bad', icon: 'event.resign', name: '员工集体请辞威胁（冷处理）', text: '你没有（或没能）做出应对 ⇒ 团队士气 −10', impact: '士气 −10', tip: '人力是资产不是成本：涨薪（成本+）或招临时工（品质−）都是应对' })
     }
   }
   // ★ §33-V8：E9+/自定义事件的属性效力（品质/声誉/士气 · 加法 · 量级带内 ∓3–15）
@@ -1070,12 +1070,12 @@ for (let i = 0; i < reviewCount; i++) {
   if (生效注入sByName.has('E8')) {
     // ★ §32-U8-补 §2②：共用上方数值分支的同一标志位（单源判定，见上方注释）
     if (!注入E8已整改) {
-      addEvent({ type: 'bad', icon: '🧯', name: '消防检查不达标（老师注入）', text: '未通过检查 ⇒ 罚款 5000 + 停业 2 天（离线/未应对按最差计入）', impact: '罚款 5,000 元 · 出租率 −2/7', tip: '唯一"建议必选"事件：合规成本远低于停业风险' })
+      addEvent({ type: 'bad', icon: 'event.fire', name: '消防检查不达标（老师注入）', text: '未通过检查 ⇒ 罚款 5000 + 停业 2 天（离线/未应对按最差计入）', impact: '罚款 5,000 元 · 出租率 −2/7', tip: '唯一"建议必选"事件：合规成本远低于停业风险' })
     } else {
-      addEvent({ type: 'bad', icon: '🧯', name: '消防检查（已立即整改）', text: '及时整改 ⇒ 花费 800 元，避免停业', impact: '成本 +800 元', tip: '损失不对称：整改 800 远优于停业 2 天' })
+      addEvent({ type: 'bad', icon: 'event.fire', name: '消防检查（已立即整改）', text: '及时整改 ⇒ 花费 800 元，避免停业', impact: '成本 +800 元', tip: '损失不对称：整改 800 远优于停业 2 天' })
     }
   }
-  if (r6延迟生效) addEvent({ type: 'bad', icon: '⏳', name: '上周决策的延迟代价', text: (pendingPenalty.项 || []).map(x => x.文案).filter(Boolean).join('；') || '上周的省成本决策本周显现代价', impact: '属性 ' + Object.entries(r6延迟生效).map(([k, v]) => ({ quality: '品质', reputation: '声誉', morale: '士气' })[k] + ' ' + (v > 0 ? '+' : '') + v).join(' / '), tip: '决策不是只看当周 —— 省下的钱，下周可能用服务与口碑去买单' })
+  if (r6延迟生效) addEvent({ type: 'bad', icon: 'staff.slow', name: '上周决策的延迟代价', text: (pendingPenalty.项 || []).map(x => x.文案).filter(Boolean).join('；') || '上周的省成本决策本周显现代价', impact: '属性 ' + Object.entries(r6延迟生效).map(([k, v]) => ({ quality: '品质', reputation: '声誉', morale: '士气' })[k] + ' ' + (v > 0 ? '+' : '') + v).join(' / '), tip: '决策不是只看当周 —— 省下的钱，下周可能用服务与口碑去买单' })
   const r6下周惩罚 = 本周延迟惩罚(decisions)
   const eventAttrEffects = [] // 本周事件对属性的影响（周报展示用）：只含真正产生变化的事件
   for (const ev of events) {

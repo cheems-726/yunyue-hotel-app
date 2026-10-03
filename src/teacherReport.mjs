@@ -116,7 +116,7 @@ export function 构建经营报告(gs, { 组名 = '', 批注 = [] } = {}) {
     运营启动资金: SCALE.IC_NEW,
     当前资金: Number.isFinite(s.capital) ? s.capital : null,
     资金状态: !Number.isFinite(s.capital) ? null
-      : (s.capital < SCALE.变红线 ? '🚨 破产预警线以下' : (s.capital < SCALE.变黄线 ? '⚠ 资金偏低' : '正常')),
+      : (s.capital < SCALE.变红线 ? '破产预警线以下' : (s.capital < SCALE.变黄线 ? '资金偏低' : '正常')),
     累计营收,
     累计净利_资金口径: 资金净利.value,
     累计净利_经营口径: 经营净利.value,

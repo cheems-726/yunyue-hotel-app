@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import Icon from './Icon.jsx'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { saveGameStateNow } from './supabaseClient.js'   // ★ §32-U1 R3：老师裁量写回学生存档（override）
-import { hotCrisisActive } from './hotReview.mjs'         // ★ R3：危机期是否仍生效（与引擎同一判定）
+import { saveGameStateNow } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）
+import { hotCrisisActive } from './hotReview.mjs' // R3：危机期是否仍生效（与引擎同一判定）
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
@@ -10,7 +11,7 @@ import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { normalizeAttrs, qualityOf } from './attrs.js'
-import { 代价文案 } from './decisionRisk.mjs'   // ★ §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
+import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
 // ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
 import { 注入事件库, 构建注入事件, 构建自定义事件, 校验注入合法性, 校验按日触发, 效力维度 } from './teacherEvents.mjs'
@@ -20,7 +21,7 @@ import { groupKeyOf } from './supabaseClient.js'
 // ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— TeacherReport 只在老师点「📄 经营报告」时才需要，
 //   改 React.lazy（Vite 自动切独立 chunk）；挂载点包 Suspense fallback（全屏覆盖层，加载提示即可）。
 import { lazy, Suspense } from 'react'
-const TeacherReport = lazy(() => import('./TeacherReport.jsx'))   // ★ §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
+const TeacherReport = lazy(() => import('./TeacherReport.jsx')) // §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
 
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
@@ -116,10 +117,10 @@ export function strategyOf(history) {
     if (d.corporate === '让利签约') service += 0.5
   })
   if (weeks < 2) return null // 信号不足不下结论
-  if (price >= 3) return { tag: '激进降价型', icon: '🔥', color: '#DC2626', bg: '#FEF2F2' }
-  if (cost >= 3 && cost > service) return { tag: '成本控制型', icon: '✂️', color: '#B45309', bg: '#FFFBEB' }
-  if (service >= 3 && service > cost) return { tag: '稳健服务型', icon: '🛡️', color: '#1D4ED8', bg: '#EFF6FF' }
-  return { tag: '均衡型', icon: '⚖️', color: '#4B5563', bg: '#F3F4F6' }
+  if (price >= 3) return { tag: '激进降价型', icon: 'status.crisis', color: '#DC2626', bg: '#FEF2F2' }
+  if (cost >= 3 && cost > service) return { tag: '成本控制型', icon: 'money.spend', color: '#B45309', bg: '#FFFBEB' }
+  if (service >= 3 && service > cost) return { tag: '稳健服务型', icon: 'role.service', color: '#1D4ED8', bg: '#EFF6FF' }
+  return { tag: '均衡型', icon: 'note.caliber', color: '#4B5563', bg: '#F3F4F6' }
 }
 
 // 策略标签（信号不足不渲染）
@@ -129,7 +130,7 @@ function StrategyTag({ rawStates, uid }) {
   if (!st) return null
   return (
     <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 5, padding: '2px 6px', marginLeft: 5, verticalAlign: '1px' }}>
-      {st.icon} {st.tag}
+      <Icon name={st.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {st.tag}
     </span>
   )
 }
@@ -154,7 +155,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
     <div style={{ padding: 12, background: '#F9FAFB', borderRadius: '0 0 10px 10px', marginBottom: 8 }}>
       {crisisLive && (
         <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, marginBottom: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>🚨 舆情危机期【待复核】（第 {crisis.startWeek} 周触发 · 还剩 {Math.max(0, crisis.startWeek + crisis.weeks - (s.week || 1))} 周）</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>舆情危机期【待复核】（第 {crisis.startWeek} 周触发 · 还剩 {Math.max(0, crisis.startWeek + crisis.weeks - (s.week || 1))} 周）</div>
           <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>原因：{crisis.source} · 后果：出租率 −30% · 差评概率 ×2（默认 = 照罚）</div>
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
             <button onClick={() => 裁量('维持处罚')} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', background: '#E5E7EB', color: '#374151', cursor: 'pointer' }}>维持处罚</button>
@@ -185,7 +186,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         return (
           <div style={{ fontSize: 11, color: '#A96407', marginBottom: 8 }}>
             {ti.icon} 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
-            {nodes.length > 1 && <div style={{ color: '#6B7280', marginTop: 3 }}>📜 轨迹：{nodes.join(' → ')}</div>}
+            {nodes.length > 1 && <div style={{ color: '#6B7280', marginTop: 3 }}>轨迹：{nodes.join(' → ')}</div>}
           </div>
         )
       })()}
@@ -199,7 +200,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         if (!duty.length) return null
         return (
           <div style={{ marginBottom: 10, padding: '8px 10px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>🎯 职责决策完成明细（组内职业对应项）</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>职责决策完成明细（组内职业对应项）</div>
             {duty.map(d => {
               const isDone = done[d.id] !== undefined
               // 负责人：组内职业匹配该决策 owner 的学生
@@ -208,7 +209,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               return (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? '#065F46' : '#991B1B', lineHeight: 1.5 }}>
                   <span style={{ flex: 1 }}>
-                    {isDone ? '✓' : '✗'} {d.icon} {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
+ {isDone ? '' : ''} {d.icon} {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
                   </span>
                   {!isDone && onGoDecision && (
                     <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
@@ -222,7 +223,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
           </div>
         )
       })()}
-      {/* 🔴 §22.3-C4（2026-09-29）：老师可查【每人操作】—— 聚合存档里的 operatorLogs（C3 产生）：
+ {/* §22.3-C4（2026-09-29）：老师可查【每人操作】—— 聚合存档里的 operatorLogs（C3 产生）：
           按人分组（谁 · 几条 · 碰了哪些决策 · 职位分布 · 净利影响），旧档无记录 ⇒ 如实显示"无操作记录"。
           数据面单源 = src/operatorLog.mjs 的 按人聚合()（与 C2 按职位聚合同一模块）。 */}
       {(() => {
@@ -234,13 +235,13 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         const 人 = 按人聚合(logs)
         return (
           <div style={{ marginBottom: 10, padding: '8px 10px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>👥 每人操作记录（{logs.length} 条 · 按人聚合）</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>每人操作记录（{logs.length} 条 · 按人聚合）</div>
             {人.map(p => (
               <div key={p.operatorId} style={{ fontSize: 11, padding: '3px 0', borderBottom: '1px dashed #DBEAFE', lineHeight: 1.7 }}>
                 <b>{p.operatorName || p.operatorId}</b>
                 <span style={{ color: '#6B7280' }}>（{p.operatorId === '未记录' ? '旧档未记录' : p.operatorId}）</span>
                 {' · '}操作 <b>{p.条数}</b> 条 · 周 {p.周.map(w => 亏损周.has(w)
-                  ? <span key={w} title="该周净利为负（亏损）" style={{ color: '#DC2626', fontWeight: 700 }}>第{w}周⚠</span>
+                  ? <span key={w} title="该周净利为负（亏损）" style={{ color: '#DC2626', fontWeight: 700 }}>第{w}周</span>
                   : <span key={w}>第{w}周</span>)}
                 {' · '}决策：{[...new Set(logs.filter(x => (x.operatorId || '未记录') === p.operatorId).map(x => x.决策名))].join('、')}
                 {p.净利影响 !== 0 && (
@@ -277,7 +278,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
             </div>
             {h.events && h.events.length > 0 && (
               <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>
-                ⚡ {h.events.map(e => `${e.icon}${e.name}`).join('、')}
+ {h.events.map(e => `${e.icon}${e.name}`).join('、')}
               </div>
             )}
             {entries.length === 0 ? (
@@ -295,7 +296,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               return (
                 <div key={id} style={{ fontSize: 11, padding: '2px 0', color: risky.length ? '#DC2626' : '#374151' }}>
                   · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtAnswer(val)}</b>
-                  {risky.length > 0 && <span style={{ fontSize: 10, color: '#DC2626', marginLeft: 4 }}>⚠ {risky.join(' ')}</span>}
+                  {risky.length > 0 && <span style={{ fontSize: 10, color: '#DC2626', marginLeft: 4 }}>{risky.join(' ')}</span>}
                 </div>
               )
             })}
@@ -310,7 +311,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         if (!mine.length) return null
         return (
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📜 批注时间线（{mine.length} 条）</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>批注时间线（{mine.length} 条）</div>
             {mine.map(n => (
               <div key={n.id || n.updated_at} style={{ padding: '7px 10px', background: '#FFF9F0', borderRadius: 8, marginBottom: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
@@ -318,9 +319,9 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 9, color: '#9CA3AF' }}>{new Date(n.updated_at).toLocaleString('zh-CN')}</span>
                     <button title="编辑这条批注" onClick={e => { e.stopPropagation(); setEditNote(n) }}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#9CA3AF', padding: '0 2px', fontFamily: 'inherit' }}>✏️</button>
+ style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#9CA3AF', padding: '0 2px', fontFamily: 'inherit' }}></button>
                     <button title="删除这条批注" onClick={e => { e.stopPropagation(); if (window.confirm('确定删除这条批注吗？')) onDeleteNote(n.id) }}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#D1D5DB', padding: '0 2px', fontFamily: 'inherit' }}>🗑</button>
+ style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, color: '#D1D5DB', padding: '0 2px', fontFamily: 'inherit' }}></button>
                   </span>
                 </div>
                 <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>
@@ -372,15 +373,15 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
 
   // 快捷批注：一键填充评语+分数（教师可再手改）
   const quickNotes = [
-    { label: '👍 优秀', score: 95, text: '经营策略清晰，决策完成度高，口碑与利润双优，保持节奏。' },
-    { label: '✅ 良好', score: 85, text: '整体经营稳健，定价与成本控制合理，差评处理再及时一些会更好。' },
-    { label: '✍️ 需改进', score: 70, text: '决策完成度不足，差评积压影响口碑——建议每周优先处理差评再优化定价。' },
-    { label: '⚠️ 预警', score: 50, text: '资金/口碑存在明显风险，注意控成本、提完成度，及时复盘调整策略。' },
+    { label: '优秀', score: 95, text: '经营策略清晰，决策完成度高，口碑与利润双优，保持节奏。' },
+    { label: '良好', score: 85, text: '整体经营稳健，定价与成本控制合理，差评处理再及时一些会更好。' },
+    { label: '需改进', score: 70, text: '决策完成度不足，差评积压影响口碑——建议每周优先处理差评再优化定价。' },
+    { label: '预警', score: 50, text: '资金/口碑存在明显风险，注意控成本、提完成度，及时复盘调整策略。' },
   ]
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '✏️ 正在编辑批注（保存后覆盖原批注）' : '📝 教师批注 & 打分（不计入评分，供复盘参考）'}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>{editNote ? '正在编辑批注（保存后覆盖原批注）' : '教师批注 & 打分（不计入评分，供复盘参考）'}</span>
         {editNote && (
           <button onClick={() => { setEditNote(null); setNote(''); setScore('') }}
             style={{ border: 'none', background: 'none', fontSize: 10, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit' }}>取消编辑</button>
@@ -418,7 +419,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
           onClick={save}
           disabled={saving || (!note.trim() && !score)}
           style={{ marginLeft: 'auto', border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
-        >{saving ? '保存中...' : saved ? '✅ 已保存' : '保存批注'}</button>
+ >{saving ? '保存中...' : saved ? ' 已保存' : '保存批注'}</button>
       </div>
     </div>
   )
@@ -442,7 +443,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
   const [搜索, set搜索] = useState('')
   const [生效日输入, set生效日输入] = useState('')   // 空 = 整周；1–7 = 第 D 天起
   const [编辑器开, set编辑器开] = useState(false)
-  const [自定义表, set自定义表] = useState({ 图标: '📌', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] })
+  const [自定义表, set自定义表] = useState({ 图标: 'note.caliber', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] })
   useEffect(() => {
     let 活 = true
     fetchClassState().then(cs => { if (!活) return; set库(Array.isArray(cs.injected_events) ? cs.injected_events : []); set通道就绪(!!cs.通道就绪) })
@@ -505,7 +506,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
     set忙(false)
     if (ok) {
       set库(prev => [...(prev || []), { ...新事件, targets }])
-      set提示({ type: 'ok', text: `✅ 已注入：${新事件.name.replace('📌 老师注入 · ', '')} → 第 ${周n} 周 · ${范围 === 'all' ? '全班' : 目标组s.map(k => (组s.find(g => g.key === k) || {}).label || k).join('、')}（该周结算时生效）` })
+ set提示({ type: 'ok', text: ` 已注入：${新事件.name.replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '')} → 第 ${周n} 周 · ${范围 === 'all' ? '全班' : 目标组s.map(k => (组s.find(g => g.key === k) || {}).label || k).join('、')}（该周结算时生效）` })
     } else {
       set提示({ type: 'err', text: '写入失败：云端不可用或迁移未应用（见下方通道状态）' })
     }
@@ -521,33 +522,33 @@ function InjectionPanel({ rawStates, profiles, user }) {
     set忙(true)
     const ok = await setClassInjections(新表)
     set忙(false)
-    if (ok) { set库(新表); set提示({ type: 'ok', text: `已撤销：${条目.week} 周「${(条目.name || '').replace('📌 老师注入 · ', '')}」` }) }
+    if (ok) { set库(新表); set提示({ type: 'ok', text: `已撤销：${条目.week} 周「${(条目.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '')}」` }) }
     else set提示({ type: 'err', text: '撤销失败：云端不可用' })
   }
   const 当前事件 = 注入事件库.find(e => e.id === 事件id) || {}
   return (
     <div>
       <div className="card">
-        <div className="card-title">📌 老师事件注入（内置 35 条 + 自定义 · 支持按日程）</div>
+        <div className="card-title">老师事件注入（内置 35 条 + 自定义 · 支持按日程）</div>
         <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
           选事件 × 选时间 × 选对象 ⇒ 写入全班通道 ⇒ 结算时生效。<br />
-          ★ §33-V8 支持按日程：<b>整周生效 或 指定「第 D 天」起</b>（生效日分段 · 前 3 天不带第 4 天起带）。<br />
-          ★ 公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同天生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
+ §33-V8 支持按日程：<b>整周生效 或 指定「第 D 天」起</b>（生效日分段 · 前 3 天不带第 4 天起带）。<br />
+ 公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同天生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
         </div>
         {通道就绪 === false && (
           <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
-            ⚠ 注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
+            注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
           </div>
         )}
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>① 选事件（内置 {注入事件库.length} 条 · 按类别筛 / 可搜 · 与既有随机事件有去重口径）</div>
-        {/* ★ §33-V8：类别筛 + 搜索（35 条不能平铺成一面墙） */}
+ {/* §33-V8：类别筛 + 搜索（35 条不能平铺成一面墙） */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {['全部', '钱', '属性', '口碑', '人力', '运营', '监管'].map(c => (
             <button key={c} onClick={() => set类别筛(c)}
               style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', background: 类别筛 === c ? '#E8940F' : '#F3F4F6', color: 类别筛 === c ? '#fff' : '#6B7280' }}>{c}</button>
           ))}
         </div>
-        <input value={搜索} onChange={e => set搜索(e.target.value)} placeholder="🔍 搜事件名/教学点…" 
+        <input value={搜索} onChange={e => set搜索(e.target.value)} placeholder="搜事件名/教学点…" 
           style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, marginBottom: 6 }} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10, maxHeight: 260, overflowY: 'auto' }}>
           {注入事件库
@@ -564,7 +565,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
         <div style={{ fontSize: 10, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
           {当前事件.icon} <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（★ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
+ <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           <input value={周} onChange={e => set周(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder={`如 ${建议周}`} inputMode="numeric"
             style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
@@ -575,7 +576,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
             style={{ width: 72, padding: '7px 9px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13 }} />
           <span style={{ fontSize: 10, color: '#9CA3AF' }}>生效日（周内第 D 天 · 2–7 · 留空 = 整周生效）· 按日程触发：第 D 天起分段生效</span>
         </div>
-        <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 10 }}>★ 公平红线：只影响未来 —— 生效日早于当前教学进度的会被校验拦住</div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 10 }}>公平红线：只影响未来 —— 生效日早于当前教学进度的会被校验拦住</div>
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>③ 选对象</div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           {[['all', '全班'], ['groups', '指定组']].map(([k, l]) => (
@@ -589,7 +590,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
             {组s.map(g => (
               <div key={g.key} onClick={() => set选中(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
                 style={{ fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: 选中[g.key] ? '#FFF4E0' : '#F9FAFB', border: `1.5px solid ${选中[g.key] ? '#E8940F' : '#F3F4F6'}` }}>
-                {选中[g.key] ? '✓ ' : ''}{g.label}
+ {选中[g.key] ? ' ' : ''}{g.label}
               </div>
             ))}
           </div>
@@ -599,7 +600,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
             <div style={{ fontWeight: 700, marginBottom: 3 }}>注入前校验（只影响未来 · 逐组当面拦）：</div>
             {逐组校验.map(x => (
               <div key={x.key} style={{ color: x.合法 ? '#065F46' : '#991B1B' }}>
-                {x.合法 ? '✓' : '✗'} {x.label}：{x.有档 ? `已结算到第 ${x.最靠前已结算周} 周` : '暂无开业存档'} {x.合法 ? `（可注入第 ${周n} 周）` : `—— ${x.原因}`}
+ {x.合法 ? '' : ''} {x.label}：{x.有档 ? `已结算到第 ${x.最靠前已结算周} 周` : '暂无开业存档'} {x.合法 ? `（可注入第 ${周n} 周）` : `—— ${x.原因}`}
               </div>
             ))}
             {有档人数 === 0 && <div style={{ color: '#9CA3AF' }}>（全班暂无开业存档：注入后各组开业到该周时照常生效）</div>}
@@ -611,10 +612,10 @@ function InjectionPanel({ rawStates, profiles, user }) {
         {提示 && (
           <div style={{ fontSize: 11, marginTop: 8, color: 提示.type === 'ok' ? '#065F46' : '#991B1B', background: 提示.type === 'ok' ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>{提示.text}</div>
         )}
-        {/* ★ §33-V8 §1①②：自定义事件编辑器（正文 + 受控效力面板 · 不许公式） */}
+ {/* §33-V8 §1①②：自定义事件编辑器（正文 + 受控效力面板 · 不许公式） */}
         <div style={{ borderTop: '1px dashed #E5E7EB', margin: '14px 0 10px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 700 }}>✏️ 自定义突发事件（老师自己写 · 走同一生效通道）</div>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>自定义突发事件（老师自己写 · 走同一生效通道）</div>
           <button onClick={() => set编辑器开(!编辑器开)}
             style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', background: 编辑器开 ? '#E8940F' : '#F3F4F6', color: 编辑器开 ? '#fff' : '#6B7280' }}>{编辑器开 ? '收起' : '新建'}</button>
         </div>
@@ -660,10 +661,10 @@ function InjectionPanel({ rawStates, profiles, user }) {
               )
             })}
             <div style={{ fontSize: 10, color: '#9CA3AF', margin: '6px 0' }}>
-              🔴 不许自由写数值（受控档位保证公平与可复跑）· 事件与内置库走同一生效通道（按日程触发 · 补算一致）
+ 不许自由写数值（受控档位保证公平与可复跑）· 事件与内置库走同一生效通道（按日程触发 · 补算一致）
             </div>
             <button className="btn btn-primary" disabled={忙 || !自定义表.标题 || !自定义表.正文 || !周n || !通道就绪}
-              onClick={() => { 注入({ ...自定义表 }); set编辑器开(false); set自定义表({ 图标: '📌', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] }) }}
+              onClick={() => { 注入({ ...自定义表 }); set编辑器开(false); set自定义表({ 图标: 'note.caliber', 标题: '', 正文: '', 类别: '钱', 教学点: '', 备注: '', 效力: [] }) }}
               style={{ width: '100%', padding: '10px 0', opacity: (忙 || !自定义表.标题 || !自定义表.正文 || !周n || !通道就绪) ? 0.5 : 1 }}>
               注入自定义事件到第 {周n || '?'} 周{生效日输入 ? `第 ${生效日输入} 天起` : ''}
             </button>
@@ -671,7 +672,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
         )}
       </div>
       <div className="card">
-        <div className="card-title">📋 已注入事件（全班通道 · 老师可查 / 学生周报可见）</div>
+        <div className="card-title">已注入事件（全班通道 · 老师可查 / 学生周报可见）</div>
         {库 === null && <div style={{ fontSize: 12, color: '#9CA3AF' }}>加载中…</div>}
         {库 && 库.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无注入记录。</div>}
         {(库 || []).slice().sort((a, b) => Number(b.week) - Number(a.week)).map(x => {
@@ -682,7 +683,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
           return (
           <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>{x.icon} 第 {x.week} 周{x.生效日 ? ` 第 ${x.生效日} 天起` : ''} · {(x.name || '').replace('📌 老师注入 · ', '')}
+              <div style={{ fontSize: 12, fontWeight: 700 }}><Icon name={x.icon || 'note.caliber'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 第 {x.week} 周{x.生效日 ? ` 第 ${x.生效日} 天起` : ''} · {(x.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '')}
                 <span style={{ fontSize: 9, fontWeight: 700, color: 状态.色, background: 状态.底, borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{状态.字}</span>
               </div>
               <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{Array.isArray(x.targets) && x.targets.length ? `指定组：${x.targets.join('、')}` : '全班'} · 注入人 {x.injectedBy || '?'} · {String(x.injectedAt || '').slice(0, 16).replace('T', ' ')}</div>
@@ -720,7 +721,7 @@ function SupervisorPanel({ rawStates, profiles }) {
     set忙(true)
     const ok = await setClassSupervisorAuth(Object.keys(新).length ? 新 : null)
     set忙(false)
-    if (ok) { setAuth(Object.keys(新).length ? 新 : null); set保留(`✅ 已更新全班默认授权（${Object.keys(新).length ? Object.keys(新).join('、') : '全部关闭'}）—— 学生端下次结算生效`) }
+    if (ok) { setAuth(Object.keys(新).length ? 新 : null); set保留(`已更新全班默认授权（${Object.keys(新).length ? Object.keys(新).join('、') : '全部关闭'}）—— 学生端下次结算生效`) }
     else set保留('写入失败：云端不可用或迁移未应用')
   }
   // 代管巡览：各组最近一周的 supervisorRecord（学生结算后产生）
@@ -735,7 +736,7 @@ function SupervisorPanel({ rawStates, profiles }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title">🤖 AI 领班 · 全班默认授权</div>
+        <div className="card-title">AI 领班 · 全班默认授权</div>
         <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
           领班 = 学生不在时的「看不见的手」：按你授权的范围代管决策，并留痕可复盘。<br />
           <b>二期：R3（超售止损）/ R6（能耗回归）的代管动作已真实生效</b>（并入学生决策集 · 学生自己做过的项领班不碰）；
@@ -744,7 +745,7 @@ function SupervisorPanel({ rawStates, profiles }) {
         </div>
         {就绪 === false && (
           <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
-            ⚠ 通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）。
+ 通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）。
           </div>
         )}
         {[['price_adj', '调价幅度（领班可在 ±10% 内调价）'], ['overbook', '超售清零止损'], ['energy', '客房温度回归 23℃']].map(([k, l]) => (
@@ -756,17 +757,17 @@ function SupervisorPanel({ rawStates, profiles }) {
             </button>
           </div>
         ))}
-        {保留 && <div style={{ fontSize: 11, marginTop: 8, color: 保留.startsWith('✅') ? '#065F46' : '#991B1B', background: 保留.startsWith('✅') ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px' }}>{保留}</div>}
+        {保留 && <div style={{ fontSize: 11, marginTop: 8, color: 保留.startsWith('已更新') ? '#065F46' : '#991B1B', background: 保留.startsWith('已更新') ? '#EAF9F0' : '#FEF2F2', borderRadius: 8, padding: '6px 10px' }}>{保留}</div>}
       </div>
       <div className="card">
-        <div className="card-title">📖 规则集（一期 4 条 · 与 aiSupervisor.mjs 单源）</div>
+        <div className="card-title">规则集（一期 4 条 · 与 aiSupervisor.mjs 单源）</div>
         {规则说明.map((t, i) => (
           <div key={i} style={{ fontSize: 11, color: '#374151', padding: '6px 9px', background: '#F9FAFB', borderRadius: 8, marginBottom: 5, lineHeight: 1.6 }}>{t}</div>
         ))}
-        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>★ 代管不享受职务加成 ×1.3（那是对岗真人的激励 —— 无双重加成，有守门断言）。</div>
+        <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>代管不享受职务加成 ×1.3（那是对岗真人的激励 —— 无双重加成，有守门断言）。</div>
       </div>
       <div className="card">
-        <div className="card-title">📊 代管巡览（各组最近一周 · 结算后生成）</div>
+        <div className="card-title">代管巡览（各组最近一周 · 结算后生成）</div>
         {最近.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无代管记录（学生结算后出现；当前默认全关 ⇒ 主要是"仅报告"条目）。</div>}
         {最近.slice(0, 20).map((x, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 2px', borderBottom: '1px solid #F3F4F6' }}>
@@ -793,7 +794,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
-  const [reportUid, setReportUid] = useState(null)     // ★ §32-U2：正在看经营报告的组（null = 关）
+ const [reportUid, setReportUid] = useState(null) // §32-U2：正在看经营报告的组（null = 关）
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
   const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
@@ -971,7 +972,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       <div className="header">
         <div className="row1"><span className="hotel-name">教师后台</span></div>
         <div className="sub">
-        {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出；★ 不参与任何平均值分母（只展示，不回写 history） */}
+ {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
           <div style={{ margin: '8px 0 0', padding: '8px 10px', background: '#F3F4F6', border: '1px dashed #D1D5DB', borderRadius: 8, fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
             {missingWeeks(history).map(w => <div key={w}>{missingLabel(w)}</div>)}
@@ -1027,7 +1028,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </button>
             </div>
             <div style={{ fontSize: 11, color: weekSaved ? '#16A34A' : '#9CA3AF', marginTop: 6, lineHeight: 1.6 }}>
-              {weekSaved ? '✅ 已保存，全班即时生效' : classWeek > 0 ? `学生只能结算到第 ${classWeek} 周——保证全班同一周看到同一个市场和事件（公平）` : '未限制：各组按自己节奏推进'}
+              {weekSaved ? '已保存，全班即时生效' : classWeek > 0 ? `学生只能结算到第 ${classWeek} 周——保证全班同一周看到同一个市场和事件（公平）` : '未限制：各组按自己节奏推进'}
             </div>
           </div>
 
@@ -1046,7 +1047,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600 }}>全班经营总览{filterClass ? ` · ${filterClass}` : ''}</div>
               {groups.length > 0 && (
                 <button onClick={exportWeeklyCSV} style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  📥 导出全班周报 CSV
+                  导出全班周报 CSV
                 </button>
               )}
             </div>
@@ -1065,7 +1066,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (!entries.length) return null
             return (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 5 }}>🎯 全班策略分布</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 5 }}>全班策略分布</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {entries.map(([key, v]) => (
                     <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
@@ -1076,7 +1077,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
             )
           })()}
-          {/* 🔴 W1-5（T3.7）：进度落后提示 —— 服务端 classDay vs 各组算到第几天
+ {/* W1-5（T3.7）：进度落后提示 —— 服务端 classDay vs 各组算到第几天
               验收口径：构造"3 天没提交决策"的组 → 这里必须明确列出来 */}
           {(() => {
             const behind = visibleGroups.filter(g => g.lag && g.lag.level === 'behind')
@@ -1084,14 +1085,14 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (!behind.length && !watch.length) {
               return classDay > 0 ? (
                 <div style={{ margin: '0 20px 12px', fontSize: 12, color: '#10B981', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '6px 10px' }}>
-                  ✅ 全班进度正常（服务端第 {classDay} 天，各组均已跟上）
+                  全班进度正常（服务端第 {classDay} 天，各组均已跟上）
                 </div>
               ) : null
             }
             return (
               <div style={{ margin: '0 20px 12px', fontSize: 12, background: behind.length ? '#FEF0EF' : '#FFF4E0', border: `1px solid ${behind.length ? '#FECACA' : '#FDE68A'}`, borderRadius: 8, padding: '8px 10px', lineHeight: 1.8 }}>
                 <div style={{ fontWeight: 700, color: behind.length ? '#DC2626' : '#A96407', marginBottom: 2 }}>
-                  {behind.length ? `⚠ ${behind.length} 组进度落后` : `· ${watch.length} 组需留意`}
+                  {behind.length ? `${behind.length} 组进度落后` : `· ${watch.length} 组需留意`}
                   <span style={{ fontWeight: 400, color: '#9CA3AF' }}>
                     （服务端第 {classDay} 天{classDay ? '' : '· 按教学周推算'}）
                   </span>
@@ -1145,14 +1146,14 @@ export default function TeacherDashboard({ user, onLogout }) {
                   style={{ padding: '12px', background: '#fff', borderRadius: 10, marginBottom: expanded ? 0 : 8, cursor: 'pointer', borderBottomLeftRadius: expanded ? 0 : 10, borderBottomRightRadius: expanded ? 0 : 10 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}>✍️</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></span>
+ <span style={{ fontSize: 14, fontWeight: 700 }}>{g.hotel} {g.title && <span style={{ fontSize: 11, color: '#A96407', background: '#FFF4E0', borderRadius: 6, padding: '2px 6px', marginLeft: 4 }}>{g.titleIcon} {g.title}</span>}{notedUids.has(g.uid) && <span title="已批注" style={{ fontSize: 12, marginLeft: 4 }}></span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></span>
                     <span style={{ fontSize: 11, color: '#9CA3AF' }}>{g.name} · {g.city}
-                      {/* ★ §32-U2：一键经营报告（stopPropagation ⇒ 不触发卡片展开） */}
+ {/* §32-U2：一键经营报告（stopPropagation ⇒ 不触发卡片展开） */}
                       <button
                         title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
                         onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
                         style={{ marginLeft: 8, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                      >📄 经营报告</button>
+                      >经营报告</button>
                       {' '}{expanded ? '▲' : '▼'}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: '#6B7280', flexWrap: 'wrap' }}>
@@ -1182,7 +1183,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{chipDetail.icon} {chipDetail.name}</div>
             <div style={{ fontSize: 12, color: '#374151', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 10 }}>
               学生选择：<b>{chipDetail.answer}</b>
-            {/* ★ §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
+ {/* §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
                 文案调单源 代价文案(decisionId, answer)，与学生决策面板**逐字一致**（同源保证）；
                 未登记的选项 ⇒ 返回 null ⇒ 不显示（不报错、不空行） */}
             {chipDetail.decisionId && 代价文案(chipDetail.decisionId, chipDetail.rawAnswer) && (
@@ -1193,7 +1194,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             </div>
             {chipDetail.tip && (
               <div style={{ fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 8, padding: '8px 10px', lineHeight: 1.7 }}>
-                💡 设计考量：{chipDetail.tip}
+ 设计考量：{chipDetail.tip}
               </div>
             )}
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 8, textAlign: 'center' }}>课堂提示：可现场问学生"为什么这么选"</div>
@@ -1237,7 +1238,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             {/* 大屏统计条 */}
             <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>📡 学生决策动向{liveWeekFilter > 0 ? `（第${liveWeekFilter}周快照）` : '（实时）'}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>学生决策动向{liveWeekFilter > 0 ? `（第${liveWeekFilter}周快照）` : '（实时）'}</div>
                 <span style={{ fontSize: 9, color: liveWeekFilter > 0 ? '#9CA3AF' : '#10B981', fontWeight: 700 }}>{liveWeekFilter > 0 ? '历史回放' : '● Realtime 自动刷新'}</span>
               </div>
               {/* 周次筛选chips */}
@@ -1267,7 +1268,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}
             <div className="card" style={{ background: '#FFFBF5', borderColor: '#FBE3B3' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>🧾 决策流水</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>决策流水</div>
                 <span style={{ fontSize: 9, color: logs.length ? '#10B981' : '#9CA3AF', fontWeight: 700 }}>
                   {logs.length ? `最近 ${Math.min(logs.length, 20)} 条 · ● 实时` : '暂无记录'}
                 </span>
@@ -1322,7 +1323,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                       return (
                         <span key={id} onClick={() => d && setChipDetail({ name: d.name, icon: d.icon, tip: d.tip, answer: short, decisionId: id, rawAnswer: val })}
                           style={{ fontSize: 10, cursor: 'pointer', background: isNew ? '#FFF7ED' : '#F9FAFB', border: isNew ? '1px solid #E8940F' : '1px solid #F3F4F6', borderRadius: 6, padding: '3px 8px', color: isNew ? '#A96407' : '#374151', fontWeight: isNew ? 700 : 400, animation: isNew ? 'newChip 1.2s ease-out' : undefined }}>
-                          {isNew && '🆕 '}{d ? `${d.icon} ${short}`.slice(0, 22) : short.slice(0, 18)}
+                          {isNew ? '新 · ' : ''}{d ? short.slice(0, 22) : short.slice(0, 18)}
                         </span>
                       )
                     })}
@@ -1353,7 +1354,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             if (!entries.length) return null
             return (
               <div className="card" style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>🎯 全班策略分布（同样市场，不同打法）</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>全班策略分布（同样市场，不同打法）</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {entries.map(([key, v]) => (
                     <span key={key} style={{ fontSize: 11, fontWeight: 700, color: v.color, background: v.bg, borderRadius: 999, padding: '4px 12px' }}>
@@ -1366,7 +1367,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             )
           })()}
           <div className="card" style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>📊 排序维度（点击切换，奖牌跟随变化）</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>排序维度（点击切换，奖牌跟随变化）</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {[
                 { k: 'score', label: '综合评分' },
@@ -1390,7 +1391,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#FBE3B3' : i === 1 ? '#E5E7EB' : i === 2 ? '#FDE8D0' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
-                  {['🥇', '🥈', '🥉'][i] ?? (i + 1)}
+                  {['①', '②', '③'][i] ?? (i + 1)}
                 </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{g.hotel} <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 400 }}>{g.name} · {g.finished ? '已结业' : `第${g.week || 1}周`}</span> {g.title && <span style={{ fontSize: 11, color: '#A96407' }}>{g.titleIcon} {g.title}</span>}<StrategyTag rawStates={rawStates} uid={g.uid} /></div>
@@ -1413,12 +1414,12 @@ export default function TeacherDashboard({ user, onLogout }) {
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
-                  {/* ★ §32-U2：排名行也能直接出经营报告（课堂上点排名即可讲评） */}
+ {/* §32-U2：排名行也能直接出经营报告（课堂上点排名即可讲评） */}
                   <button
                     title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
                     onClick={e => { e.stopPropagation(); setReportUid(g.uid) }}
                     style={{ marginTop: 4, border: '1px solid #FBE3B3', background: '#FFF9F0', color: '#A96407', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'block' }}
-                  >📄 经营报告</button>
+                  >经营报告</button>
                   {g.scorePrev != null && g.score !== g.scorePrev && (
                     <div style={{ fontSize: 10, fontWeight: 700, color: g.score > g.scorePrev ? '#10B981' : '#EF4444' }}>
                       {g.score > g.scorePrev ? '↑' : '↓'}{Math.abs(g.score - g.scorePrev)}
@@ -1441,13 +1442,13 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'groups' && groups !== null && (
         <div>
           <div className="card">
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 4 }}>👥 分组与班级管理</div>
+            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 4 }}>分组与班级管理</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>
               已注册学生 {profiles.length} 人 · 直接输入组号和班级即可保存（云端的进度数据不受影响）
             </div>
             {profiles.some(p => !p.group_no) && (
               <div style={{ fontSize: 12, color: '#991B1B', background: '#FEF0EF', borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span>⚠ 有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号</span>
+                <span>有 {profiles.filter(p => !p.group_no).length} 名学生还没分配组号</span>
                 <button
                   onClick={async () => {
                     if (!window.confirm('按注册顺序每 6 人一组自动填充未分组学生的组号？')) return
@@ -1458,7 +1459,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   }}
                   style={{ border: 'none', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 600, padding: '6px 10px', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
                 >
-                  🤖 一键分组（每6人）
+                  一键分组（每6人）
                 </button>
               </div>
             )}
@@ -1509,23 +1510,23 @@ export default function TeacherDashboard({ user, onLogout }) {
               )
             })}
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>
-              💡 设置组号后，排名和总览会显示「第N组」；班级用于多班教学区分。修改即时生效。
+              设置组号后，排名和总览会显示「第N组」；班级用于多班教学区分。修改即时生效。
             </div>
           </div>
         </div>
       )}
 
-      {/* ★ §32-U8-补 §2①：老师事件注入面板 */}
+ {/* §32-U8-补 §2①：老师事件注入面板 */}
       {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
 
-      {/* ★ §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
+ {/* §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
       {view === 'supervisor' && <SupervisorPanel rawStates={rawStates} profiles={profiles} />}
 
       {/* 教学参考 */}
       {view === 'teaching' && (
         <div>
           <div className="card">
-            <div className="card-title">🧮 四维评分规则（与学生端最终成绩同口径）</div>
+            <div className="card-title">四维评分规则（与学生端最终成绩同口径）</div>
             {[
               // 🔴 P3-2：与学生端 FinalResult 的实际分段同口径（T1.1 后为 500000/300000/100000/0）
               //    原写「≥5万=100分」而代码早已是 50 万 ⇒ 老师照此讲、学生照此做 = 教错了
@@ -1542,7 +1543,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>加权总分 = 各维度得分 × 权重之和；S≥90 / A≥80 / B≥70 / C≥60 / D&lt;60</div>
           </div>
           <div className="card">
-            <div className="card-title">⚡ 事件一览（12种，条件触发非纯随机）</div>
+            <div className="card-title">事件一览（12种，条件触发非纯随机）</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>
               讲事件课时对照：每个事件的触发条件都是学生的某个经营状态——"事件是你们自己招来的"
             </div>
@@ -1556,7 +1557,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             ))}
           </div>
           <div className="card" style={{ background: '#FFF4E0', borderColor: '#FBE3B3' }}>
-            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 8 }}>📖 教学参考 · 18项决策最佳实践</div>
+            <div style={{ fontSize: 13, color: '#A96407', fontWeight: 600, marginBottom: 8 }}>教学参考 · 18项决策最佳实践</div>
             <div style={{ fontSize: 11, color: '#A96407', marginBottom: 12 }}>
               老师讲解时可对照：每个决策的行业惯例和教学要点
             </div>
@@ -1568,7 +1569,7 @@ export default function TeacherDashboard({ user, onLogout }) {
               </div>
               <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{d.desc}</div>
               <div style={{ fontSize: 12, color: '#A96407', lineHeight: 1.6, background: '#FFF4E0', borderRadius: 8, padding: 10 }}>
-                💡 {d.tip || '权衡利弊后选择。'}
+ {d.tip || '权衡利弊后选择。'}
               </div>
             </div>
           ))}
@@ -1579,7 +1580,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'me' && (
         <div>
           <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>👩‍🏫</div>
+ <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>‍</div>
             <div style={{ fontSize: 17, fontWeight: 700 }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
             {/* 本班统计摘要 */}
@@ -1606,13 +1607,13 @@ export default function TeacherDashboard({ user, onLogout }) {
             })()}
           </div>
           <div className="card">
-            <div className="card-title">🧰 功能入口</div>
+            <div className="card-title">功能入口</div>
             {[
-              { v: 'overview', icon: '📊', label: '班级总览 & 教学进度控制', desc: '全班统计 / 锁周 / CSV导出' },
-              { v: 'inject', icon: '📌', label: '事件注入（课堂用）', desc: '8 事件 × 周 × 全班/指定组 · 只影响未来校验' },
-              { v: 'supervisor', icon: '🤖', label: 'AI 领班（全班默认授权）', desc: '默认全关 · 二期 R3/R6 真执行 · 代管巡览' },
-              { v: 'groups', icon: '👥', label: '分组管理', desc: '分组 / 班级 / 学号' },
-              { v: 'teaching', icon: '📖', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
+              { v: 'overview', icon: 'nav.report', label: '班级总览 & 教学进度控制', desc: '全班统计 / 锁周 / CSV导出' },
+              { v: 'inject', icon: 'note.caliber', label: '事件注入（课堂用）', desc: '8 事件 × 周 × 全班/指定组 · 只影响未来校验' },
+              { v: 'supervisor', icon: 'role.manager', label: 'AI 领班（全班默认授权）', desc: '默认全关 · 二期 R3/R6 真执行 · 代管巡览' },
+              { v: 'groups', icon: 'nav.group', label: '分组管理', desc: '分组 / 班级 / 学号' },
+              { v: 'teaching', icon: 'teach.point', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (
               <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid #F3F4F6', cursor: 'pointer' }}>
                 <span style={{ fontSize: 18 }}>{x.icon}</span>
@@ -1635,9 +1636,9 @@ export default function TeacherDashboard({ user, onLogout }) {
     {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     <div className="tabbar">
       {[
-        { key: 'live', icon: '📡', label: '实时决策' },
-        { key: 'ranking', icon: '🏆', label: '排名' },
-        { key: 'me', icon: '👤', label: '我的' },
+        { key: 'live', icon: 'nav.live', label: '实时决策' },
+        { key: 'ranking', icon: 'nav.rank', label: '排名' },
+        { key: 'me', icon: 'nav.me', label: '我的' },
       ].map(v => (
         <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
           <div className="tab-icon">{v.icon}</div>
@@ -1645,7 +1646,7 @@ export default function TeacherDashboard({ user, onLogout }) {
         </button>
       ))}
     </div>
-    {/* ★ §32-U2：经营报告（全屏覆盖层 · 只读汇总 · 可打印） */}
+ {/* §32-U2：经营报告（全屏覆盖层 · 只读汇总 · 可打印） */}
     {reportUid && (() => {
       const g = (groups || []).find(x => x.uid === reportUid)
       const gs = rawStates.find(x => x.user_id === reportUid)

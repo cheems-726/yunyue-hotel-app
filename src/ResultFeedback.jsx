@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import Icon from './Icon.jsx'
 import RadarChart from './RadarChart.jsx'
 
 // 通用结果反馈卡片：展示"你的选择会带来什么结果"（6秒自动收起，点击立即关）
@@ -32,7 +33,7 @@ export default function ResultFeedback({ result, onClose }) {
           <div style={{ height: '100%', background: '#E8940F', animation: 'shrinkBar 6s linear forwards' }} />
         </div>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 40 }}>📊</div>
+          <div style={{ fontSize: 40, display: 'flex', justifyContent: 'center' }}><Icon name="nav.report" size={40} /></div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 8 }}>你的选择会带来</div>
         </div>
 
@@ -60,13 +61,13 @@ export default function ResultFeedback({ result, onClose }) {
 
         {/* 说明 */}
         <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6, background: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 16 }}>
-          💡 {result.note}
+ {result.note}
         </div>
 
         {/* 选址场景：六维画像小雷达 */}
         {result.attrs && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center', marginBottom: 4 }}>📊 六维画像</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center', marginBottom: 4 }}>六维画像</div>
             <RadarChart attrs={result.attrs} size={180} />
           </div>
         )}

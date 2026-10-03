@@ -135,14 +135,14 @@ export default function SiteSelection({ onConfirm }) {
   return (
     <div className="content">
       <div className="header">
-        <span className="step-tag">🏁 第一步 · 选址</span>
+        <span className="step-tag">第一步 · 选址</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店所在地</h1>
         <div className="sub">每个区县都有代价，选对位置决定酒店生死</div>
       </div>
 
       {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}
       <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
-        <div className="card-title" style={{ marginBottom: 10 }}>🗺️ 地图选点（按真实方位）</div>
+        <div className="card-title" style={{ marginBottom: 10 }}>地图选点（按真实方位）</div>
         {['成都', '德阳', '绵阳', '承德', '重庆'].map(city => (
           <div key={city} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 11, color: '#A96407', fontWeight: 700, marginBottom: 4 }}>{city}</div>
@@ -171,7 +171,7 @@ export default function SiteSelection({ onConfirm }) {
             </div>
           </div>
         ))}
-        <div style={{ fontSize: 10, color: '#9CA3AF' }}>💡 位置按真实地理相对方位摆放，点芯片即选中（详细数据见下方列表）</div>
+        <div style={{ fontSize: 10, color: '#9CA3AF' }}>位置按真实地理相对方位摆放，点芯片即选中（详细数据见下方列表）</div>
       </div>
 
       {/* 城市切换 */}
@@ -193,7 +193,7 @@ export default function SiteSelection({ onConfirm }) {
         if (!d) return null
         return (
           <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
-            <div className="card-title">📊 {d.name} · 六维画像</div>
+            <div className="card-title">{d.name} · 六维画像</div>
             <RadarChart attrs={d.attrs} />
             <div style={{ fontSize: 10, color: '#9CA3AF', textAlign: 'center', marginTop: 4 }}>
               满分5档 · 面积越大市场越好，但租金/竞争也意味着更高代价
@@ -227,7 +227,7 @@ export default function SiteSelection({ onConfirm }) {
               <div className="attr-row" key={k}>
                 <div className="attr-label">
                   {attrLabels[k]}
-                  {/* ★ §27.3-②b（D74/D75）：未接线维显式标注；★ §28.1-① 返修（D76）：
+ {/* §27.3-②b（D74/D75）：未接线维显式标注； §28.1-① 返修（D76）：
                       「波动」**确实**进入结算（settlement.js:319-320 volatility → marketWave → demandStrength
                       → 出租率 → 营收），已从本名单**移除** —— 此前误标系守门假阳性所致（该守门原版只用
                       一组"撞 0.98 出租率上限"的配置做扰动 ⇒ 数量级类维度全部看不出变化）。
@@ -247,19 +247,19 @@ export default function SiteSelection({ onConfirm }) {
             ))}
 
             <div className="cost-box good">
-              <div className="cost-title">✅ 优势</div>{d.good}
+              <div className="cost-title">优势</div>{d.good}
             </div>
             <div className="cost-box warn">
-              <div className="cost-title">⚠️ 代价</div>{d.warn}
+              <div className="cost-title">代价</div>{d.warn}
             </div>
             {personaLine(currentCity, d.name) && (
               <div style={{ marginTop: 6, fontSize: 11, color: '#1E40AF', background: '#EFF6FF', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
-                👥 客群画像：{personaLine(currentCity, d.name)}
+                客群画像：{personaLine(currentCity, d.name)}
                 <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: '#6B7280' }}>ⓘ</span>
               </div>
             )}
             <div style={{ marginTop: 6, fontSize: 11, color: '#A96407' }}>
-              💡 推荐档次：{(() => {
+ 推荐档次：{(() => {
                 const flow = d.attrs['客流'] || 3
                 const rent = d.attrs['租金'] || 3
                 if (flow >= 4 && rent >= 3) return '中端型及以上'
@@ -269,17 +269,17 @@ export default function SiteSelection({ onConfirm }) {
               })()}
             </div>
 
-            {/* 🔴 2026-09-27 选址数据任务：周边竞品（选之前就能对比"这一片有哪些店、什么价位、什么档次"） */}
+ {/* 2026-09-27 选址数据任务：周边竞品（选之前就能对比"这一片有哪些店、什么价位、什么档次"） */}
             {(() => {
               const c = competitorSummary(d.name)
               if (c.empty) return (
                 <div style={{ marginTop: 6, fontSize: 11, color: '#9CA3AF', background: '#F9FAFB', borderRadius: 6, padding: '4px 8px' }}>
-                  🏢 {c.text}
+                  {c.text}
                 </div>
               )
               return (
                 <div style={{ marginTop: 6, fontSize: 11, color: '#374151', background: '#F9FAFB', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
-                  🏢 <b>周边竞品 {c.list.length} 家</b> · 价位带 <b>{c.价位带}</b> · {c.mix}
+                  <b>周边竞品 {c.list.length} 家</b> · 价位带 <b>{c.价位带}</b> · {c.mix}
                   <div style={{ color: '#6B7280', marginTop: 2 }}>
                     {c.list.slice(0, 3).map(x => `${x.name}（${LEVEL_LABEL[x.level] || x.level} ¥${x.basePrice}${x.priceBasis === 'avg' ? '均' : '起'}）`).join(' · ')}
                     {c.list.length > 3 ? ` 等 ${c.list.length} 家` : ''}
@@ -289,19 +289,19 @@ export default function SiteSelection({ onConfirm }) {
               )
             })()}
 
-            {/* 🔴 人流 / 经济（成都+德阳 14 区位为统计实测；其余 12 区按口径显式"待补"） */}
+ {/* 人流 / 经济（成都+德阳 14 区位为统计实测；其余 12 区按口径显式"待补"） */}
             {(() => {
               const p = profileRows(d.name)
               if (!p) return (
                 <div style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF', background: '#F9FAFB', borderRadius: 6, padding: '4px 8px' }}>
-                  👥 人流 / 💰 经济：<b>待补</b>（本区位未采统计口径 —— 不编造）
+                  人流 / 经济：<b>待补</b>（本区位未采统计口径 —— 不编造）
                 </div>
               )
               return (
                 <div style={{ marginTop: 4, fontSize: 11, color: '#374151', background: '#F9FAFB', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
-                  👥 <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '待补'}
+                  <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '待补'}
                   <div style={{ color: '#6B7280' }}>{p.traffic}</div>
-                  💰 <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
+                  <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
                   <div style={{ color: '#9CA3AF', fontSize: 10, marginTop: 2 }}>
                     来源：{p.src} · 置信度 {p.conf === 'high' ? '高' : p.conf === 'mid' ? '中' : '低'}
                   </div>

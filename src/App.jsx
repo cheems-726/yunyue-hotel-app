@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import Icon from './Icon.jsx'
 import SiteSelection from './SiteSelection.jsx'
 import { migrateSave, withScaleVersion, restoreFromCloud, SCALE } from './stateMigration.mjs'
 import BrandSelection from './BrandSelection.jsx'
@@ -149,13 +150,13 @@ function LoginPage({ onLogin }) {
     return (
       <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}>🏨</div>
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}><Icon name="prop.hotel" size={44} /></div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>云悦酒店</div>
           <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 6 }}>连锁酒店经营模拟系统</div>
         </div>
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>请选择你的身份</div>
-        <button className="btn btn-primary" style={{ padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>👨‍🎓 我是学生</button>
-        <button className="btn btn-ghost" style={{ padding: '16px 0', fontSize: 16 }} onClick={() => chooseRole('teacher')}>👩‍🏫 我是老师</button>
+        <button className="btn btn-primary" style={{ padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>
+        <button className="btn btn-ghost" style={{ padding: '16px 0', fontSize: 16 }} onClick={() => chooseRole('teacher')}>我是老师</button>
       </div>
     )
   }
@@ -232,7 +233,7 @@ function PlaceholderPage({ title, icon, onBack }) {
         </div>
       </div>
       <div className="placeholder-page" style={{ flex: 1 }}>
-        <div className="placeholder-icon">{icon}</div>
+        <div className="placeholder-icon"><Icon name={icon} size={38} /></div>
         <div className="placeholder-title">{title}</div>
         <div className="placeholder-desc">该功能正在建设中，敬请期待</div>
       </div>
@@ -298,7 +299,7 @@ function InjectedEventsCard({ 事件s, week }) {
           <div key={e.id || e.来源事件} style={{ padding: '10px 12px', borderRadius: 10, marginBottom: 8, background: '#FFF4E0', border: '1px solid #FBE3B3' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#A96407' }}>
-                {e.icon} {String(e.name || '').replace('📌 老师注入 · ', '老师注入 · ')}
+                <Icon name={e.icon || 'log.ops'} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {String(e.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '老师注入 · ')}
                 <span style={{ fontSize: 10, background: '#E8940F', color: '#fff', borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>老师注入{e.injectedBy ? ` · ${e.injectedBy}` : ''}</span>
               </div>
               {!已答 && <span style={{ fontSize: 18, fontWeight: 700, color: (左[e.来源事件] ?? 30) <= 10 ? '#EF4444' : '#A96407' }}>{左[e.来源事件] ?? 30}s</span>}
@@ -319,7 +320,7 @@ function InjectedEventsCard({ 事件s, week }) {
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>✅ 你的应对：{已答}——结果将在本周结算体现</div>
+              <div style={{ fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 6 }}>你的应对：{已答}——结果将在本周结算体现</div>
             )}
           </div>
         )
@@ -349,7 +350,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
     const n = Object.keys(doneDecisions || {}).length
     if (n === 18 && !celebratedRef.current) {
       celebratedRef.current = true
-      toast && toast('🎉 全部 18 项决策已完成，可以结算了！')
+      toast && toast('全部 18 项决策已完成，可以结算了')
     }
   }, [doneDecisions])
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
@@ -362,7 +363,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       <div className="header">
         <div className="row1">
           <span className="hotel-name">{property ? property.name : '云悦酒店'}</span>
-          <span className="day-tag">📅 第 {week} 周</span>
+          <span className="day-tag"><Icon name="date.week" size={13} /> 第 {week} 周</span>
         </div>
         <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
           const last = history.length ? history[history.length - 1] : null
@@ -409,7 +410,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             <div className="metric">
               <div className="label">差评</div>
               <div className="value">{neg}<span className="unit">条</span></div>
-              {neg > 0 && <div className="delta down" style={{color:'#A96407'}}>⚠ 需处理</div>}
+              {neg > 0 && <div className="delta down" style={{color:'#A96407'}}>需处理</div>}
             </div>
           </div>
         ) : (
@@ -421,12 +422,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         {pendingReviewCount > 0 && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, color: '#EF4444', borderColor: '#FECACA' }}
             onClick={() => onGoTab('reputation')}>
-            💬 去口碑页处理 {pendingReviewCount} 条差评（处理率占分 15%）→
+            去口碑页处理 {pendingReviewCount} 条差评（处理率占分 15%）→
           </button>
         )}
         {report && report.events && report.events.length > 0 && (
           <div style={{ margin: '10px 0 0', padding: '7px 12px', background: '#F9FAFB', borderRadius: 8, fontSize: 11, color: '#6B7280' }}>
-            ⚡ 上周事件 {report.events.length} 起：{report.events.map((e, i) => (
+            上周事件 {report.events.length} 起：{report.events.map((e, i) => (
               <span key={i} style={{ color: e.type === 'crisis' ? '#DC2626' : e.type === 'good' ? '#10B981' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
                 {e.icon}{e.name}{i < report.events.length - 1 ? '、' : ''}
               </span>
@@ -435,7 +436,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         )}
         {!report && doneCount < 18 && (
           <div style={{ marginTop: 8, fontSize: 11, color: '#A96407', textAlign: 'center' }}>
-            ⚠ 还有 {18 - doneCount} 项未决策，未做的按"维持现状"生效
+            还有 {18 - doneCount} 项未决策，未做的按"维持现状"生效
           </div>
         )}
         {(() => {
@@ -450,7 +451,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const demoted = tPrev && tNow.title !== tPrev.title && tNow.composite < tPrev.composite
           return (
             <div style={{ marginTop: 10, padding: '7px 12px', background: promoted ? '#ECFDF5' : demoted ? '#FEF0EF' : '#FFF4E0', borderRadius: 8, fontSize: 12, fontWeight: 600, color: promoted ? '#065F46' : demoted ? '#991B1B' : '#A96407', textAlign: 'center' }}>
-              {promoted ? `🎉 恭喜晋升：${tPrev.title} → ${tNow.title}` : demoted ? `⚠ 降级：${tPrev.title} → ${tNow.title}，下周稳住` : `${tNow.icon} 当前称号：${tNow.title}`}
+              {promoted ? `恭喜晋升：${tPrev.title} → ${tNow.title}` : demoted ? `降级：${tPrev.title} → ${tNow.title}，下周稳住` : `当前称号：${tNow.title}`}
               <div style={{ height: 4, background: '#F3F4F6', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: tNow.progress + '%', background: '#E8940F', borderRadius: 2 }} />
               </div>
@@ -463,7 +464,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         {report ? (
           <button className="btn btn-primary" style={{ width: '100%', marginTop: 12, padding: '12px 0', fontSize: 14 }}
             onClick={() => onGoReport()}>
-            📄 查看本周周报（第 {report.week} 周）
+            查看本周周报（第 {report.week} 周）
           </button>
         ) : (
           <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#F9FAFB', border: '1px dashed #E5E7EB', fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
@@ -476,7 +477,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         {history.length > 0 && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 6, fontSize: 12 }}
             onClick={() => onGoRecords()}>
-            📋 查看往期决策复盘（{history.length} 周）
+            查看往期决策复盘（{history.length} 周）
           </button>
         )}
       </div>
@@ -488,7 +489,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         const names = undoneKeys.map(id => decisions.find(d => d.id === id)?.name).filter(Boolean)
         return (
           <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: '#FEF0EF', border: '1px solid #FECACA', borderRadius: 10, fontSize: 12, color: '#991B1B', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ flexShrink: 0 }}>🔔</span>
+            <span style={{ flexShrink: 0, display: 'flex' }}><Icon name="status.warn" size={14} /></span>
             <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周经营结果</span>
           </div>
         )
@@ -520,7 +521,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             style={{ background: isCritical ? '#FEF0EF' : isLow ? '#FFF4E0' : '#F0FDF4', borderColor: isCritical ? '#FECACA' : isLow ? '#FDE68A' : '#BBF7D0', cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
-                {isCritical ? '🚨 破产预警' : isLow ? '⚠ 资金偏低' : '💰 资金状况'}
+                {isCritical ? '破产预警' : isLow ? '资金偏低' : '资金状况'}
               </span>
               <span style={{ fontSize: 16, fontWeight: 700, color: isCritical ? '#DC2626' : isLow ? '#A96407' : '#16A34A' }}>
                 {(cap / 10000).toFixed(1)} 万
@@ -566,14 +567,14 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                 </div>
               )
             })()}
-            {isCritical && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>⚠ 资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
+            {isCritical && <div style={{ fontSize: 11, color: '#DC2626', marginTop: 4, fontWeight: 600 }}>资金断裂将触发破产，期末扣分！立即控成本、增收</div>}
           </div>
         )
       })()}
       {/* 主力客群提示 */}
       {location?.district && (
         <div style={{ margin: '0 20px 8px', padding: '6px 12px', background: '#EFF6FF', borderRadius: 8, fontSize: 11, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 6 }}>
-          👥 决策时注意匹配 {location.district} 的主力客群偏好
+          决策时注意匹配 {location.district} 的主力客群偏好
         </div>
       )}
 
@@ -587,7 +588,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                     const modDecisions = decisions.filter(d => d.module === mod)
                     const done = modDecisions.filter(d => doneDecisions[d.id] !== undefined).length
                     const total = modDecisions.length
-                    return done === total ? `✅ ${done}/${total} 全完成` : `${done}/${total} 已决策`
+                    return done === total ? `${done}/${total} 全完成` : `${done}/${total} 已决策`
                   })()}
                 </span>
               </div>
@@ -604,7 +605,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                     style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid #E8940F', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
                     <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
-                      <div className={`task-icon ${bgMap[mod]}`}>{d.icon}</div>
+                      <div className={`task-icon ${bgMap[mod]}`}><Icon name={d.icon} size={22} /></div>
                       {(!isDone && KEY_DECISIONS.includes(d.id) || (d.id === 'reputation' && pendingReviewCount > 0)) && (
                         <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: '#EF4444', border: '2px solid #fff' }} />
                       )}
@@ -618,8 +619,8 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                             : k === CAD.周期 ? { background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE' }
                               : { background: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA' }
                           return <span title={c.说明} style={{ fontSize: 9, borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 600, ...style }}>{c.名}</span> })()}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
-  ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: '#1D4ED8', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>👤 我的职责</span>
-  : <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}>{OWNER_LABELS[d.owner].icon} {OWNER_LABELS[d.owner].label}</span>)}
+  ? <span title="这是你的职责决策" style={{ fontSize: 9, color: '#fff', background: '#1D4ED8', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>我的职责</span>
+  : <span title="建议负责职业" style={{ fontSize: 9, color: '#1E40AF', background: '#EFF6FF', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}><Icon name={OWNER_LABELS[d.owner].icon} size={11} style={{ display: 'inline-block', verticalAlign: '-1px' }} /> {OWNER_LABELS[d.owner].label}</span>)}
                       </div>
                       <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 11, lineHeight: 1.6, color: '#6B7280', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone
@@ -724,7 +725,7 @@ function BreakEvenChart({ history }) {
         <text x={PL} y={9} fontSize="9" fill="#E8940F">■ 累计利润</text>
       </svg>
       <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', marginTop: 4, color: breakeven ? '#059669' : acc >= 0 ? '#16A34A' : '#DC2626' }}>
-        {breakeven ? `🎉 第 ${history[beIdx].week} 周实现累计盈利，当前累计 ${acc.toLocaleString()} 元`
+        {breakeven ? `第 ${history[beIdx].week} 周实现累计盈利，当前累计 ${acc.toLocaleString()} 元`
           : acc >= 0 ? `持续盈利中，当前累计 ${acc.toLocaleString()} 元`
           : `⏳ 尚未回本，当前累计 ${acc.toLocaleString()} 元`}
       </div>
@@ -750,12 +751,12 @@ function Report({ report, week, history }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
   if (report) {
-    if (report.occupancy < 55) diagnoses.push({ icon: '⚠', text: `出租率 ${report.occupancy}%，距健康线 55% 还差 ${55 - report.occupancy} 个百分点。手段：调价让利拉客 / 加大OTA与活动投放 / 修口碑（见效慢但持久）。` })
-    if (report.occupancy >= 75) diagnoses.push({ icon: '⚠', text: `出租率 ${report.occupancy}% 处于满负荷区，注意服务品质——本周已有 ${report.negativeCount} 条差评，满房期更要盯排班和卫生。` })
-    if (report.profit < 0) diagnoses.push({ icon: '⚠', text: `本周亏损 ${Math.abs(report.profit)} 元（单房均亏 ${Math.round(Math.abs(report.profit) / report.rooms)} 元）。成本大头：固定 ${Math.round(report.rooms * 65)} 元档 + 人力浮动，先砍营销费再谈提价。` })
-    if (report.negativeCount > 0) diagnoses.push({ icon: '💬', text: `本周 ${report.negativeCount} 条差评：及时回复可减半负面影响（口碑少掉一半），拖到下周会触发「差评发酵」危机。` })
-    if (report.demandStrength < 0.8) diagnoses.push({ icon: '📉', text: `客源强度 ${report.demandStrength}（全班本周同值，市场大盘无法改变）——能改变的是应对：口碑与会员是逆风期的压舱石。` })
-    if (diagnoses.length === 0) diagnoses.push({ icon: '✅', text: `本周经营稳健：出租率 ${report.occupancy}%、好评率 ${report.finalGoodRate}%、利润 ${report.profit >= 0 ? '+' : ''}${report.profit} 元。继续保持节奏！` })
+    if (report.occupancy < 55) diagnoses.push({ icon: 'status.warn', text: `出租率 ${report.occupancy}%，距健康线 55% 还差 ${55 - report.occupancy} 个百分点。手段：调价让利拉客 / 加大OTA与活动投放 / 修口碑（见效慢但持久）。` })
+    if (report.occupancy >= 75) diagnoses.push({ icon: 'status.warn', text: `出租率 ${report.occupancy}% 处于满负荷区，注意服务品质——本周已有 ${report.negativeCount} 条差评，满房期更要盯排班和卫生。` })
+    if (report.profit < 0) diagnoses.push({ icon: 'status.warn', text: `本周亏损 ${Math.abs(report.profit)} 元（单房均亏 ${Math.round(Math.abs(report.profit) / report.rooms)} 元）。成本大头：固定 ${Math.round(report.rooms * 65)} 元档 + 人力浮动，先砍营销费再谈提价。` })
+    if (report.negativeCount > 0) diagnoses.push({ icon: 'nav.review', text: `本周 ${report.negativeCount} 条差评：及时回复可减半负面影响（口碑少掉一半），拖到下周会触发「差评发酵」危机。` })
+    if (report.demandStrength < 0.8) diagnoses.push({ icon: 'money.spend', text: `客源强度 ${report.demandStrength}（全班本周同值，市场大盘无法改变）——能改变的是应对：口碑与会员是逆风期的压舱石。` })
+    if (diagnoses.length === 0) diagnoses.push({ icon: 'status.done', text: `本周经营稳健：出租率 ${report.occupancy}%、好评率 ${report.finalGoodRate}%、利润 ${report.profit >= 0 ? '+' : ''}${report.profit} 元。继续保持节奏！` })
   }
 
   return (
@@ -812,9 +813,9 @@ function Report({ report, week, history }) {
 
           {/* 智能诊断 */}
           <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
-            <div className="card-title">🔍 智能诊断</div>
+            <div className="card-title">智能诊断</div>
             {diagnoses.map((d, i) => (
-              <div key={i} style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7, padding: '4px 0' }}>{d.icon} {d.text}</div>
+              <div key={i} style={{ fontSize: 13, color: '#1E40AF', lineHeight: 1.7, padding: '4px 0' }}><Icon name={d.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.text}</div>
             ))}
           </div>
         </>
@@ -827,7 +828,7 @@ function Report({ report, week, history }) {
       )}
 
       <div className="card">
-        <div className="card-title">📈 出租率与利润趋势</div>
+        <div className="card-title">出租率与利润趋势</div>
         {history.length > 1 ? (
           <TrendChart history={history} />
         ) : (
@@ -838,7 +839,7 @@ function Report({ report, week, history }) {
       </div>
 
       <div className="card">
-        <div className="card-title">💰 累计利润 · 盈亏平衡</div>
+        <div className="card-title">累计利润 · 盈亏平衡</div>
         {history.length > 0 ? (
           <BreakEvenChart history={history} />
         ) : (
@@ -847,7 +848,7 @@ function Report({ report, week, history }) {
       </div>
 
       <div className="card">
-        <div className="card-title">📋 历史周报</div>
+        <div className="card-title">历史周报</div>
         {history.length > 0 ? (
           history.slice().reverse().map((h, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
@@ -873,10 +874,10 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameVal, setRenameVal] = useState(user?.name || '')
   const menus = [
-    { icon: '📋', bg: 'blue', name: '经营操作记录', key: 'records' },
-    { icon: '🏆', bg: 'green', name: '积分与评分明细', key: 'scores' },
-    { icon: '👥', bg: 'blue', name: '小组成员', key: 'members' },
-    { icon: '❓', bg: 'amber', name: '玩法说明', key: 'help' },
+    { icon: 'log.ops', bg: 'blue', name: '经营操作记录', key: 'records' },
+    { icon: 'achv.title', bg: 'green', name: '积分与评分明细', key: 'scores' },
+    { icon: 'nav.group', bg: 'blue', name: '小组成员', key: 'members' },
+    { icon: 'teach.point', bg: 'amber', name: '玩法说明', key: 'help' },
   ]
   const orgDesc = user?.role === 'teacher'
     ? '教师'
@@ -899,9 +900,9 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       a.download = `云悦酒店备份-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
       URL.revokeObjectURL(a.href)
-      setBackupMsg('✅ 备份文件已下载，建议发到微信/邮箱保存')
+      setBackupMsg('备份文件已下载，建议发到微信/邮箱保存')
     } catch (e) {
-      setBackupMsg('❌ 导出失败：' + e.message)
+      setBackupMsg('导出失败：' + e.message)
     }
   }
   function importBackup(file) {
@@ -909,13 +910,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result)
-        if (data.app !== 'yunyue-hotel') { setBackupMsg('❌ 不是云悦酒店的备份文件'); return }
+        if (data.app !== 'yunyue-hotel') { setBackupMsg('不是云悦酒店的备份文件'); return }
         if (data.state) localStorage.setItem(STORAGE_KEY, data.state)
         if (data.reviews) localStorage.setItem('hotel-sim-reviews', data.reviews)
-        setBackupMsg('✅ 恢复成功，正在刷新…')
+        setBackupMsg('恢复成功，正在刷新…')
         setTimeout(() => window.location.reload(), 800)
       } catch (e) {
-        setBackupMsg('❌ 备份文件损坏：' + e.message)
+        setBackupMsg('备份文件损坏：' + e.message)
       }
     }
     reader.readAsText(file)
@@ -933,12 +934,12 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           const q = qualityOf(attrs)
           const name = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q).title
           return { '标杆酒店': '#FDE68A', '人气名店': '#EDE9FE', '精品酒店': '#DBEAFE', '舒适旅店': '#D1FAE5' }[name] || '#FFF4E0'
-        })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}>😊</div>
+        })(),display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,transition:'background 0.5s'}}><Icon name="guest" size={28} /></div>
       {/* 真实姓名修改弹窗（B2/B3：state 与弹窗都在本组件，与入口 ✏️ 同处） */}
       {renameOpen && (
         <div onClick={() => setRenameOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>✏️ 修改真实姓名</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>修改真实姓名</div>
             <input
               value={renameVal}
               onChange={e => setRenameVal(e.target.value)}
@@ -959,7 +960,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             title="点击修改真实姓名"
             onClick={() => setRenameOpen(true)}
           >
-            {user?.name || '未命名'} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>✏️改名</span>
+            {user?.name || '未命名'} <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 400 }}>改名</span>
           </div>
           <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>{orgDesc}</div>
         </div>
@@ -974,7 +975,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           return (<>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 13, color: '#A96407', fontWeight: 700 }}>{ti.icon} 我的酒店称号</div>
+                <div style={{ fontSize: 13, color: '#A96407', fontWeight: 700 }}><Icon name={ti.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 我的酒店称号</div>
                 <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>排名以教师端为准</div>
               </div>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#D97706' }}>{ti.title}</div>
@@ -1002,7 +1003,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         const changeTag = { up: { t: '晋升', c: '#065F46', bg: '#ECFDF5' }, down: { t: '降级', c: '#991B1B', bg: '#FEF0EF' }, start: { t: '起步', c: '#A96407', bg: '#FFF4E0' }, same: { t: '保持', c: '#6B7280', bg: '#F3F4F6' } }
         return (
           <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-title">📜 称号历程</div>
+            <div className="card-title">称号历程</div>
             {(() => {
               // 综合分走势迷你折线（复用结算数字配色）
               const W = 320, H = 46, PL = 10, PR = 10, PT = 8, PB = 8
@@ -1027,7 +1028,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
               return (
                 <div key={r.week} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #F3F4F6' }}>
                   <span style={{ fontSize: 11, color: '#9CA3AF', width: 44, flexShrink: 0 }}>第{r.week}周</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{r.icon} {r.title}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}><Icon name={r.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.title}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, color: tag.c, background: tag.bg, borderRadius: 6, padding: '2px 8px' }}>
                     {tag.t}{r.delta != null && r.change !== 'same' ? `（${r.delta > 0 ? '+' : ''}${r.delta}分）` : ''}
                   </span>
@@ -1040,7 +1041,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 
       {/* 我的酒店信息 */}
       <div className="card" style={{ marginTop: 12, paddingTop: 16 }}>
-        <div className="card-title" style={{ marginBottom: 10 }}>🏨 我的酒店档案</div>
+        <div className="card-title" style={{ marginBottom: 10 }}>我的酒店档案</div>
         <div style={{ fontSize: 13, color: '#374151', lineHeight: 2 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#9CA3AF' }}>酒店称号</span>
@@ -1090,11 +1091,11 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 
       {/* 本周决策记录 */}
       <div className="card">
-        <div className="card-title">📋 第 {week} 周决策记录</div>
+        <div className="card-title">第 {week} 周决策记录</div>
         {Object.keys(doneDecisions).length > 0 ? (
           decisions.filter(d => doneDecisions[d.id] !== undefined).map(d => (
             <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F9FAFB' }}>
-              <span style={{ fontSize: 13 }}>{d.icon} {d.name}</span>
+              <span style={{ fontSize: 13 }}><Icon name={d.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}</span>
               <span style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>✓ 已决策</span>
             </div>
           ))
@@ -1117,7 +1118,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         if (notes.length === 0) return null
         return (
           <div className="card" style={{ background: '#FFF4E0' }}>
-            <div className="card-title">📝 老师评语</div>
+            <div className="card-title">老师评语</div>
             {notes.map((n, i) => (
               <div key={i} style={{ padding: '8px 0', borderBottom: i < notes.length - 1 ? '1px solid #FBE3B3' : 'none' }}>
                 {n.note && <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{n.note}</div>}
@@ -1131,14 +1132,14 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 
       {/* 本地备份 */}
       <div className="card">
-        <div className="card-title">💾 数据备份</div>
+        <div className="card-title">数据备份</div>
         <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10, lineHeight: 1.6 }}>
           进度已自动存云端+本机。导出备份文件可防误删账号/清浏览器数据，双保险。
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" onClick={exportBackup}>⬇️ 导出备份</button>
+          <button className="btn btn-primary" onClick={exportBackup}>导出备份</button>
           <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
-            ⬆️ 导入恢复
+            导入恢复
             <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files[0] && importBackup(e.target.files[0])} />
           </label>
         </div>
@@ -1151,7 +1152,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
             style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',borderBottom:'1px solid #F9FAFB',cursor:'pointer',transition:'transform 0.12s'}}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>
-            <div style={{width:42,height:42,borderRadius:14,background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}>{m.icon}</div>
+            <div style={{width:42,height:42,borderRadius:14,background:m.bg==='amber'?'#FFF4E0':m.bg==='blue'?'#EFF6FF':'#ECFDF5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name={m.icon} size={19} /></div>
             <div style={{flex:1}}>
               <div style={{fontSize:14,fontWeight:600}}>{m.name}</div>
               <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{{records:'逐周决策复盘与批注时间线',scores:'四维评分与积分构成',members:'队友概况与职责分工',help:'玩法说明与常见问题'}[m.key] || ''}</div>
@@ -1162,7 +1163,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         <div onClick={onLogout} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 6px',cursor:'pointer',transition:'transform 0.12s'}}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = ''}>
-          <div style={{width:42,height:42,borderRadius:14,background:'#FEF2F2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}>🚪</div>
+          <div style={{width:42,height:42,borderRadius:14,background:'#FEF2F2',display:'flex',alignItems:'center',justifyContent:'center',fontSize:19}}><Icon name="event.resign" size={19} /></div>
           <div style={{flex:1}}>
             <div style={{fontSize:14,fontWeight:600,color:'#EF4444'}}>退出登录</div>
             <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>进度已自动保存，换设备登录不丢失</div>
@@ -1197,7 +1198,7 @@ function OperationRecords({ history, onBack }) {
 
       {weeks.length === 0 && (
         <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
-          📋 还没有结算记录<br />完成第一周结算后，这里会记录你的每个决策评价
+          还没有结算记录<br />完成第一周结算后，这里会记录你的每个决策评价
         </div>
       )}
 
@@ -1235,7 +1236,7 @@ function OperationRecords({ history, onBack }) {
                 const d = decisions.find(x => x.id === id)
                 return (
                   <div key={id} style={{ fontSize: 11, color: '#374151', padding: '2px 0' }}>
-                    · {d ? `${d.icon} ${d.name}` : id}：<b>{fmtDecision(val)}</b>
+                    · {d ? d.name : id}：<b>{fmtDecision(val)}</b>
                   </div>
                 )
               })}
@@ -1243,7 +1244,7 @@ function OperationRecords({ history, onBack }) {
           )}
           {(h.insights && h.insights.length > 0) ? h.insights.map((ins, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 0', borderBottom: i < h.insights.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-              <span style={{ fontSize: 14, flexShrink: 0 }}>{ins.good ? '✅' : '⚠️'}</span>
+              <span style={{ fontSize: 14, flexShrink: 0 }}><Icon name={ins.good ? 'status.done' : 'status.warn'} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /></span>
               <span style={{ fontSize: 12, color: ins.good ? '#065F46' : '#991B1B', lineHeight: 1.6 }}>{ins.text}</span>
             </div>
           )) : (
@@ -1260,16 +1261,16 @@ function OperationRecords({ history, onBack }) {
 // ===== 玩法说明页（学生自助答疑） =====
 function HelpPage({ onBack }) {
   const sections = [
-    { icon: '🎯', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
-    { icon: '📅', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
-    { icon: '⚡', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
-    { icon: '🏆', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
-    { icon: '⭐', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
-    { icon: '📋', title: '18项决策速查', body: '点击下方展开查看全部决策清单，课堂讨论时可以快速定位。' },
-    { icon: '💾', title: '数据安全', body: '进度自动存云端+本机。「我的」页可导出备份文件；换设备登录同一学号自动恢复。重开经营需二次确认且会覆盖云端，慎重。' },
-    { icon: '📺', title: '实时运营面板', body: '经营页「酒店状态」卡会随真实时间流动：每天早上退房高峰（12:00 前退房）、下午 2 点起办入住，在店人数、今日流水跟着涨落，还有前台/客房/工程部的实时动态滚动。数值是模拟演算，实际收支以每周结算为准。口碑页顶部还有「口碑构成拆解」卡——处理率、好评率、满意度三指标怎么互相影响，一张图看懂。' },
-    { icon: '👥', title: '组队共管', body: '老师把几位同学设为同班级+同组号后，你们将共同经营同一家酒店：任何人登录看到的都是同一份进度，决策互相接续。「小组成员」页可查看队友的酒店概况和称号。职业设定：进入「小组成员」页，每位成员点击自己的职业卡片即可选定（👔店长统筹 / 🛎️大堂经理服务客诉 / 💰财务资金报表 / 📈运营专员定价活动 / 👥人事排班招聘），选完立即生效——经营页里你职责范围内的决策会置顶并标「我的职责」。差评处理建议分工：🛎️大堂经理主笔回复话术（回复靠诚意得分，敷衍的回复等于没回），👔店长把关补偿尺度（补偿成本计入周结算），每周结算后全组一起过一遍口碑页——差评欠 2 条以上会触发「差评发酵」危机，别攒着。另外，教师评语供复盘参考，不计入评分；最终成绩由老师结合评语自行评判——评语会显示在你的「我的」页评语卡里，按周写的那条是老师对你当周经营的针对性点评，值得细读。' },
-    { icon: '📝', title: '常见操作指引', body: `改名：我的页 → 点名字旁✏️ → 输入新名字。导出备份：我的页 → 数据备份 → 导出。查看排名：教师端或帮老师查。查看历史：我的页 → 经营操作记录。\n\n当前 App 版本 v${APP_VERSION}（${APP_VERSION_CODE}）——若与老师通知的版本号不一致，说明你用的还是旧版：网页版刷新即可，安卓 App 请找管理员要新版安装包。` },
+    { icon: 'campaign', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
+    { icon: 'date.week', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
+    { icon: 'status.crisis', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
+    { icon: 'achv.title', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
+    { icon: 'achv.badge', title: '怎么涨分', body: '利润：控成本+提房价找平衡；口碑：及时回复差评、定期深清洁；出租率：55%-75% 是健康区；差评：总数越少分越高。全部逻辑与最终成绩完全一致。' },
+    { icon: 'log.ops', title: '18项决策速查', body: '点击下方展开查看全部决策清单，课堂讨论时可以快速定位。' },
+    { icon: 'note.caliber', title: '数据安全', body: '进度自动存云端+本机。「我的」页可导出备份文件；换设备登录同一学号自动恢复。重开经营需二次确认且会覆盖云端，慎重。' },
+    { icon: 'nav.live', title: '实时运营面板', body: '经营页「酒店状态」卡会随真实时间流动：每天早上退房高峰（12:00 前退房）、下午 2 点起办入住，在店人数、今日流水跟着涨落，还有前台/客房/工程部的实时动态滚动。数值是模拟演算，实际收支以每周结算为准。口碑页顶部还有「口碑构成拆解」卡——处理率、好评率、满意度三指标怎么互相影响，一张图看懂。' },
+    { icon: 'nav.group', title: '组队共管', body: '老师把几位同学设为同班级+同组号后，你们将共同经营同一家酒店：任何人登录看到的都是同一份进度，决策互相接续。「小组成员」页可查看队友的酒店概况和称号。职业设定：进入「小组成员」页，每位成员点击自己的职业卡片即可选定（店长统筹 / 大堂经理服务客诉 / 财务资金报表 / 运营专员定价活动 / 人事排班招聘），选完立即生效——经营页里你职责范围内的决策会置顶并标「我的职责」。差评处理建议分工：大堂经理主笔回复话术（回复靠诚意得分，敷衍的回复等于没回），店长把关补偿尺度（补偿成本计入周结算），每周结算后全组一起过一遍口碑页——差评欠 2 条以上会触发「差评发酵」危机，别攒着。另外，教师评语供复盘参考，不计入评分；最终成绩由老师结合评语自行评判——评语会显示在你的「我的」页评语卡里，按周写的那条是老师对你当周经营的针对性点评，值得细读。' },
+    { icon: 'teach.point', title: '常见操作指引', body: `改名：我的页 → 点名字旁 → 输入新名字。导出备份：我的页 → 数据备份 → 导出。查看排名：教师端或帮老师查。查看历史：我的页 → 经营操作记录。\n\n当前 App 版本 v${APP_VERSION}（${APP_VERSION_CODE}）——若与老师通知的版本号不一致，说明你用的还是旧版：网页版刷新即可，安卓 App 请找管理员要新版安装包。` },
   ]
   const faqs = [
     { q: '网页打不开怎么办？', a: '优先用安卓App；正式版会更换为国内直连域名，以老师通知的网址为准。' },
@@ -1282,16 +1283,16 @@ function HelpPage({ onBack }) {
     { q: '超售设置多少合适？', a: '超额预订是双刃剑：超售 1-2 间，能对冲客人临时取消，满房率↑；超售 3 间以上，到店无房的概率大增——每超 1 间约 8% 概率触发赔偿+差评。经验法则：参照历史 no-show 率（通常 3-5%），宁少勿多。旅游旺季可以适度激进，商务客为主的店要保守——商务客对「到店无房」几乎零容忍。' },
     { q: '带职业徽章的决策和普通决策有什么区别？', a: '本质上没有任何区别——18 项决策全组都能做。徽章只是分工建议：带「我的职责」蓝标的是与你的职业匹配的决策（如财务看报表诊断、运营看动态调价），系统会帮你置顶；带灰色「建议负责」的是队友职业对应的决策。全做完当然最好，但时间紧时先保自己的职责项。' },
     { q: '实时运营面板的数据是真的吗？', a: '面板里的日期、入住退房、今日流水都是随真实时间模拟演算的——帮助你理解酒店一天怎么运转。但它们只是「当日估算」，真正计入成绩的资金和经营数据以每周结算为准。看趋势学运营，算成绩等结算。' },
-    { q: '实时评价是什么？为什么突然冒出评价？', a: '客人会随时写下自己的体验：退房高峰（上午 12:00 前）最容易出评价，住店期间偶尔也会随手写一条。评价会同时出现在两个地方——口碑页的卡片，和经营页「实时运营」流里带 💬 的那一行。它出现的频率不高，而且你的酒店状态越极端（特别好或特别差）越容易出：满意和不满的客人更愿意开口，中间状态大多沉默。注意：实时评价只是「当日实时」的反馈，真正计入成绩的是每周结算。' },
+    { q: '实时评价是什么？为什么突然冒出评价？', a: '客人会随时写下自己的体验：退房高峰（上午 12:00 前）最容易出评价，住店期间偶尔也会随手写一条。评价会同时出现在两个地方——口碑页的卡片，和经营页「实时运营」流里的那一行。它出现的频率不高，而且你的酒店状态越极端（特别好或特别差）越容易出：满意和不满的客人更愿意开口，中间状态大多沉默。注意：实时评价只是「当日实时」的反馈，真正计入成绩的是每周结算。' },
     { q: '为什么我好评多、差评少？', a: '这是刻意的设计：当你的综合满意度在中性以上（品质/声誉/士气都不错）时，实时评价几乎只会是好话——做得好不该被骂。差评主要来自两条路：①状态真的差（满意度跌破中性，通常是品质/声誉被衰减或决策拖低之后）；②每周结算时按你的决策口径算出来的差评（这部分才是主体），比如不停房深清洁、低价采购、精简排班都会实打实地招差评。所以「实时好评多」不代表周报里没有差评。' },
     { q: '口碑页的卡片数，和周报里的评价数字对得上吗？', a: '对得上，这是刻意保证的一致：周报「本周 X 条评价、Y 条差评」就是本周评价卡片的总数——实时已经出现的那些先占位，结算时只补「差额」部分，不会重复生成。唯一会上浮的情况是触发「口碑爆发」（好评率≥80% 时的追加好评），卡片会比周报数字多 1-2 张。差评则永远不封顶：周报说几条差评，口碑页就有几张差评卡。' },
-    { q: '评价里的客人身份、「🔍 关联经营」是什么？', a: '每条评价都有一位自洽的客人：姓氏+称呼（🧑先生 / 👩女士，头像与称呼一致）、客群（商务出差/家庭出游/旅行散客/会议客人）、房型、住几晚——让评价读起来像真的。卡片上的「🔍 关联经营」默认是折叠的：客人不会告诉你他为什么不满，这一点保持真实；但当你想复盘时点开它，就能看到这条评价源于本组的哪项决策、当时选的是什么（例如「来源：本组『🛏️ 前台排班』选择了 精简省成本」）。它是把「客人抱怨」翻译成「经营因果」的开关。' },
+    { q: '评价里的客人身份、「关联经营」是什么？', a: '每条评价都有一位自洽的客人：姓氏+称呼（先生/女士，头像与称呼一致）、客群（商务出差/家庭出游/旅行散客/会议客人）、房型、住几晚——让评价读起来像真的。卡片上的「关联经营」默认是折叠的：客人不会告诉你他为什么不满，这一点保持真实；但当你想复盘时点开它，就能看到这条评价源于本组的哪项决策、当时选的是什么（例如「来源：本组『 前台排班』选择了 精简省成本」）。它是把「客人抱怨」翻译成「经营因果」的开关。' },
     { q: '决策没做完就结算会怎样？', a: '未做的决策按「维持现状」默认结算——不作为也是一种决策。但注意三点：①完成度不足 9 项会直接扣口碑；②「每日关键」决策（动态调价/前台排班/口碑管理）对当周结果影响最大，跳过它们等于主动放弃利润；③每周都有新情况，上周的对策这周可能就不管用了。建议：把带红点的关键决策做完再结算。' },
     { q: '差评回复怎么写才更有诚意？', a: '换位思考是关键：先真诚道歉接住客人情绪，再给出具体的解决措施（改什么、怎么改、什么时候改好），必要时提供合理补偿，并留下跟进渠道让客人放心。反过来，推卸责任、只用模板套话、光道歉不给方案，客人只会更生气——差评也解决不了。' },
     { q: '决策面板里的"近3周轨迹"怎么理解？', a: '轨迹列出了你这项决策近几周的选择，以及每周的实际结果（出租率/利润）。用法：对比不同选择的产出——如果连续两周同样的打法结果都不好，说明市场在变，该换思路了；如果换了之后结果明显变好，就坚持新打法。轨迹+趋势块一起看，复盘效率最高。' },
     { q: '老师的批注和打分怎么算？', a: '老师在你的下钻详情里按周写批注并打分（0-100），教师评语供复盘参考，不计入评分；最终成绩由老师结合评语自行评判。批注会显示在「我的」页评语卡，按周写的那条是对你当周经营的针对性点评。想拿高分：决策做完做透、差评及时处理、经营思路在决策里体现出来。' },
     { q: '重新开始经营，老师的批注还在吗？', a: '在。重新开始只清空你的经营进度（决策/周报/资金），老师的批注存在云端不受影响，新学期还能看到历史批注做参考。但如果换了组，新组员的进度会从第 1 周重新开始。' },
-    { q: '怎么看我们组的决策趋势？', a: '三个入口：①经营页打开任意决策，面板里有「📈 该决策近3周轨迹」；②「我的」页称号历程有综合分走势和每周决策记录；③教师端的实时决策大屏和周次快照可以看到全班的对比。复盘时先看轨迹再定打法。' },
+    { q: '怎么看我们组的决策趋势？', a: '三个入口：①经营页打开任意决策，面板里有「该决策近3周轨迹」；②「我的」页称号历程有综合分走势和每周决策记录；③教师端的实时决策大屏和周次快照可以看到全班的对比。复盘时先看轨迹再定打法。' },
     { q: '实时流水的数据会一直累积吗？', a: '不会。今日流水按天重置——每天从零开始记录当天的入账和支出。换到新的一周也会重新计数。想看累计的经营数据请看资金卡的累计利润和报表页的趋势图，那里才是记入成绩的数据。' },
     { q: '差评回复有字数限制吗？', a: '没有硬性限制，想写多长都可以。但记住：客人看的是诚意和方案，不是字数——堆砌漂亮话但没有具体措施，还不如几句实在话。回复框右下角有快捷话术可以参考，也可以自由发挥。' },
     { q: '怎么提高综合评分？', a: '四维权重从高到低逐个抓：①利润40%——控成本、合理定价；②口碑25%——差评及时处理、定期深清洁；③出租率20%——调价找平衡点（55%-75%是健康区）；④差评处理15%——回复或整改都算处理。优先做权重高的短板，提分效率最高。' },
@@ -1308,27 +1309,27 @@ function HelpPage({ onBack }) {
       </div>
       {sections.map(s => (
         <div className="card" key={s.title}>
-          <div className="card-title">{s.icon} {s.title}</div>
+          <div className="card-title"><Icon name={s.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {s.title}</div>
           <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>{s.body}</div>
         </div>
       ))}
 
       <div className="card">
-        <div className="card-title">💰 资金管理指南</div>
+        <div className="card-title">资金管理指南</div>
         <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.9 }}>
           <div><b>资金在哪看：</b>经营页顶部「资金状况」卡。开局系统给你一笔<b>运营启动资金</b>（约 {SCALE.IC_NEW / 10000} 万），每周结算后自动增减。<b>它是经营周转用的钱，不等于"开一家酒店的总投资"</b>——筹建投入见「报价单」。</div>
           <div><b>每周扣什么：</b>租金（按选址租金档，30–50 元/间·天）+ 部门成本（人力 / 客房 / 能耗 / 维修等，约合营收 45%）+ 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
-          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「⚠ 资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「🚨 破产预警」。</div>
+          <div><b>两条预警线：</b>低于 <b style={{ color: '#A96407' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「资金偏低」；低于 <b style={{ color: '#DC2626' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「破产预警」。</div>
           <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
         </div>
       </div>
 
       <div className="card">
-        <div className="card-title">⚡ 事件速览（22种，都是经营状态招来的）</div>
+        <div className="card-title">事件速览（22种，都是经营状态招来的）</div>
         {EVENT_INFO.map(e => (
           <div key={e.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
-            <span style={{ fontSize: 13, flexShrink: 0 }}>{e.icon}</span>
+            <span style={{ fontSize: 13, flexShrink: 0 }}><Icon name={e.icon} size={14} /></span>
             <span style={{ fontSize: 12, fontWeight: 600, color: e.type === 'good' ? '#065F46' : e.type === 'crisis' ? '#DC2626' : '#991B1B', flexShrink: 0 }}>{e.name}</span>
             <span style={{ fontSize: 11, color: '#9CA3AF' }}>{e.trigger}</span>
           </div>
@@ -1336,10 +1337,10 @@ function HelpPage({ onBack }) {
       </div>
 
       <div className="card">
-        <div className="card-title">🏆 称号一览（5级）</div>
+        <div className="card-title">称号一览（5级）</div>
         {TITLES.map((ti, i) => (
           <div key={ti.name} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '5px 0', borderBottom: '1px solid #F9FAFB' }}>
-            <span style={{ fontSize: 13 }}>{ti.icon}</span>
+            <span style={{ fontSize: 13 }}><Icon name={ti.icon} size={15} /></span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#A96407', flexShrink: 0 }}>{ti.name}</span>
             <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>综合 ≥ {ti.min}</span>
           </div>
@@ -1348,7 +1349,7 @@ function HelpPage({ onBack }) {
       </div>
 
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
-        <div className="card-title">💬 常见问题</div>
+        <div className="card-title">常见问题</div>
         {faqs.map(f => (
           <div key={f.q} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Q：{f.q}</div>
@@ -1357,7 +1358,7 @@ function HelpPage({ onBack }) {
         ))}
       </div>
       <div className="card">
-        <div className="card-title">📋 18项决策速查</div>
+        <div className="card-title">18项决策速查</div>
         {[
           ...decisions.slice(0, 7).map(d => ({ mod: '部门运营', ...d })),
           ...decisions.slice(7, 12).map(d => ({ mod: '会员推广', ...d })),
@@ -1365,7 +1366,7 @@ function HelpPage({ onBack }) {
         ].map((d, i) => (
           <div key={d.id} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '4px 0', borderBottom: '1px solid #F9FAFB' }}>
             <span style={{ fontSize: 11, color: '#D1D5DB', flexShrink: 0 }}>{i + 1}.</span>
-            <span style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{d.icon} {d.name}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, flexShrink: 0 }}><Icon name={d.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}</span>
             <span style={{ fontSize: 10, color: '#9CA3AF' }}>{d.module}</span>
           </div>
         ))}
@@ -1422,7 +1423,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
 
       {!hasGroup && (
         <div className="card" style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '32px 20px', lineHeight: 1.8 }}>
-          👥 老师还没给你分配组号和班级<br />
+          老师还没给你分配组号和班级<br />
           分配后这里会自动显示你的组员
         </div>
       )}
@@ -1444,15 +1445,15 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
       {/* 职位选择 */}
       {hasGroup && (
         <div className="card">
-          <div className="card-title">👔 我的职位</div>
+          <div className="card-title">我的职位</div>
           <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 10 }}>选择你在团队中的角色（影响课堂分工，全员均可做决策）</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {[
-              { role: 'manager', icon: '👔', label: '店长/总经理', desc: '全局统筹' },
-              { role: 'lobby', icon: '🛎️', label: '大堂经理', desc: '服务/客诉/调度' },
-              { role: 'finance', icon: '💰', label: '财务', desc: '资金/报表' },
-              { role: 'ops', icon: '📈', label: '运营专员', desc: '定价/OTA/活动' },
-              { role: 'hr', icon: '👥', label: '人事专员', desc: '招聘/排班' },
+              { role: 'manager', icon: 'role.manager', label: '店长/总经理', desc: '全局统筹' },
+              { role: 'lobby', icon: 'role.service', label: '大堂经理', desc: '服务/客诉/调度' },
+              { role: 'finance', icon: 'role.finance', label: '财务', desc: '资金/报表' },
+              { role: 'ops', icon: 'role.ops', label: '运营专员', desc: '定价/OTA/活动' },
+              { role: 'hr', icon: 'role.hr', label: '人事专员', desc: '招聘/排班' },
             ].map(r => (
               <button key={r.role}
                 onClick={() => { import('./supabaseClient.js').then(m => m.setGroupRole(user.uid, r.role)); setMyRole(r.role) }}
@@ -1462,7 +1463,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                   background: myRole === r.role ? '#FFF4E0' : '#fff',
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
                 }}>
-                <div style={{ fontSize: 20 }}>{r.icon}</div>
+                <div style={{ fontSize: 20, display: 'flex' }}><Icon name={r.icon} size={20} /></div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: myRole === r.role ? '#A96407' : '#374151' }}>{r.label}</div>
                 <div style={{ fontSize: 9, color: '#9CA3AF' }}>{r.desc}</div>
               </button>
@@ -1473,9 +1474,9 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
 
       {hasGroup && members !== null && (
         <div className="card">
-          <div className="card-title">👥 我的组员（{members.length + 1} 人）</div>
+          <div className="card-title">我的组员（{members.length + 1} 人）</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>😊</div>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name} <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>（我）</span></div>
               <div style={{ fontSize: 11, color: '#9CA3AF' }}>学号 {user.id}</div>
@@ -1486,7 +1487,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
             return (
               <div key={m.user_id} style={{ padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🧑</div>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}><Icon name="guest" size={18} /></div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>
                       {m.display_name}
@@ -1513,14 +1514,14 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                         style={{ fontSize: 10, fontWeight: 700, color: full ? '#065F46' : '#A96407', background: full ? '#ECFDF5' : '#FFF4E0', borderRadius: 5, padding: '2px 8px', cursor: 'pointer', display: 'inline-block' }}
                         title={full ? '职责决策全部完成' : '点击查看未完成的职责决策'}
                       >
-                        {full ? '✅' : '⏳'} {OWNER_LABELS[role]?.icon || ''} {OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成{!full ? ' · 点击查看' : ''}
+                        <Icon name={full ? 'status.done' : 'date.week'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {OWNER_LABELS[role] && <Icon name={OWNER_LABELS[role].icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} />}{OWNER_LABELS[role]?.label || role}职责决策 {doneCnt}/{duty.length} 完成{!full ? ' · 点击查看' : ''}
                       </span>
                       {dutyOpenUid === m.user_id && undone.length > 0 && (
                         <div style={{ marginTop: 4, padding: '6px 10px', background: '#FFF9F0', border: '1px solid #FBE3B3', borderRadius: 8 }}>
                           {undone.map(d => (
                             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
                               <span style={{ fontSize: 11, color: '#991B1B', flex: 1, lineHeight: 1.5 }}>
-                                · {d.icon} {d.name}——还没做，提醒 TA 去经营页完成
+                                · {d && <Icon name={d.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} />} {d?.name}——还没做，提醒 TA 去经营页完成
                               </span>
                               {onGoDecision && (
                                 <button onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
@@ -1600,26 +1601,26 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card">
-        <div className="card-title">🏅 勋章墙</div>
+        <div className="card-title">勋章墙</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
-            { icon: '💰', name: '首次盈利', got: history.some(h => h.profit > 0) },
-            { icon: '🚀', name: '出租率破80', got: history.some(h => h.occupancy >= 80) },
-            { icon: '⭐', name: '口碑4.5+', got: history.some(h => h.finalGoodRate >= 90) },
-            { icon: '🛡️', name: '零差评周', got: history.some(h => h.negativeCount === 0 && h.reviewCount > 0) },
+            { icon: 'money.profit', name: '首次盈利', got: history.some(h => h.profit > 0) },
+            { icon: 'prop.hotel', name: '出租率破80', got: history.some(h => h.occupancy >= 80) },
+            { icon: 'nav.review', name: '口碑4.5+', got: history.some(h => h.finalGoodRate >= 90) },
+            { icon: 'status.done', name: '零差评周', got: history.some(h => h.negativeCount === 0 && h.reviewCount > 0) },
             (() => {
               let owed = null
               try {
                 const revs = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
                 owed = revs.filter(r => r.status === 'pending' || r.status === 'ignored').length
               } catch (e) {}
-              return { icon: '🧹', name: '零欠差评', got: owed !== null && owed === 0 }
+              return { icon: 'ops.cleaning', name: '零欠差评', got: owed !== null && owed === 0 }
             })(),
-            { icon: '🏆', name: '跻身A级', got: cum.finalScore >= 80 },
-            { icon: '🎓', name: '完赛', got: history.length >= 12 },
+            { icon: 'achv.title', name: '跻身A级', got: cum.finalScore >= 80 },
+            { icon: 'achv.badge', name: '完赛', got: history.length >= 12 },
           ].map(b => (
             <div key={b.name} style={{ textAlign: 'center', padding: '10px 4px', background: b.got ? '#FFF4E0' : '#F9FAFB', borderRadius: 10, border: b.got ? '1px solid #FBE3B3' : '1px solid #F3F4F6' }}>
-              <div style={{ fontSize: 22, filter: b.got ? 'none' : 'grayscale(1)', opacity: b.got ? 1 : 0.35 }}>{b.icon}</div>
+              <div style={{ filter: b.got ? 'none' : 'grayscale(1)', opacity: b.got ? 1 : 0.35, display: 'flex' }}><Icon name={b.icon} size={22} /></div>
               <div style={{ fontSize: 10, fontWeight: 600, color: b.got ? '#A96407' : '#9CA3AF', marginTop: 2 }}>{b.name}</div>
             </div>
           ))}
@@ -1632,14 +1633,14 @@ function ScoreDetail({ history, onBack }) {
           逐周累计走势
           <button className="btn btn-ghost" style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
             onClick={() => {
-              const text = `🏆 云悦酒店·累计成绩（${history.length}周）
+              const text = `云悦酒店·累计成绩（${history.length}周）
 综合评分 ${cum.finalScore}（${grade}）
 出租率 ${cum.occupancyScore}分 | 口碑 ${cum.reputationScore}分 | 利润 ${cum.profitScore}分 | 差评处理 ${cum.negativeScore}分
 ——来自云悦酒店经营模拟`
               navigator.clipboard.writeText(text).then(() => setScoreCopied(true)).catch(() => setScoreCopied(false))
-            }}>📋 复制</button>
+            }}>复制</button>
         </div>
-        {scoreCopied && <div style={{ fontSize: 11, color: '#16A34A', marginBottom: 8 }}>✅ 已复制累计成绩</div>}
+        {scoreCopied && <div style={{ fontSize: 11, color: '#16A34A', marginBottom: 8 }}>已复制累计成绩</div>}
         {history.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF', padding: '12px 0' }}>还没结算过，先去经营页完成第一周</div>}
         {history.map((_, i) => {
           const upto = history.slice(0, i + 1)
@@ -1659,7 +1660,7 @@ function ScoreDetail({ history, onBack }) {
       </div>
 
       <div className="card" style={{ background: '#EFF6FF', borderColor: '#BFDBFE' }}>
-        <div className="card-title">📖 怎么涨分</div>
+        <div className="card-title">怎么涨分</div>
         <div style={{ fontSize: 12, color: '#1E40AF', lineHeight: 1.8 }}>
           利润（40%）：收入减成本的差额，累计≥50万=满分、≥30万=85 分档<br />
           口碑（25%）：差评及时回复、卫生质检是关键<br />
@@ -1710,7 +1711,7 @@ class AppErrorBoundary extends React.Component {
     const msg = String((this.state.err && this.state.err.message) || this.state.err)
     return (
       <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: 44 }}>😵</div>
+        <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center' }}><Icon name="status.critical" size={44} /></div>
         <div style={{ fontSize: 17, fontWeight: 700, marginTop: 12 }}>页面出了点问题</div>
         <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8, wordBreak: 'break-all', lineHeight: 1.6 }}>{msg}</div>
         <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>你的经营进度已自动保存，不受影响</div>
@@ -1807,10 +1808,10 @@ export default function App() {
     if (!name || !user || name === user.name) return
     if (user.cloud && user.uid) {
       const ok = await updateOwnName(user.uid, name)
-      if (!ok) { toast('❌ 改名失败，请重试'); return }
+      if (!ok) { toast('改名失败，请重试'); return }
     }
     setUser(prev => ({ ...prev, name }))
-    toast(`✅ 已改名为「${name}」，教师端同步更新`)
+    toast(`已改名为「${name}」，教师端同步更新`)
   }
 
   // 断网监听：顶部横幅提醒（本地存档不丢）
@@ -1990,10 +1991,10 @@ export default function App() {
   }, [user?.uid, tab])
 
   const tabs = [
-    { key: 'business', icon: '🏠', label: '经营' },
-    { key: 'report', icon: '📊', label: '报表' },
-    { key: 'reputation', icon: '⭐', label: '口碑', badge: true },
-    { key: 'profile', icon: '👤', label: '我的' },
+    { key: 'business', icon: 'nav.business', label: '经营' },
+    { key: 'report', icon: 'nav.report', label: '报表' },
+    { key: 'reputation', icon: 'nav.review', label: '口碑', badge: true },
+    { key: 'profile', icon: 'nav.me', label: '我的' },
   ]
 
   function open(title, icon, key) {
@@ -2037,7 +2038,7 @@ export default function App() {
           setWelcomed(!!cloudSaved.welcomed)
           setAttrs(normalizeAttrs(cloudSaved.attrs)) // 旧云档无 attrs → 回退初值
           // 欢迎回来提示（老档才提示）
-          if (cloudSaved.location) toast(`👋 欢迎回来，第 ${cloudSaved.week || 1} 周经营中`)
+          if (cloudSaved.location) toast(`欢迎回来，第 ${cloudSaved.week || 1} 周经营中`)
         } else if (user && user.id !== userInfo.id) {
           // 换账号登录且云端无档：清掉上一账号的本机残留
           resetProgress()
@@ -2259,7 +2260,7 @@ export default function App() {
       if (!/等级限制/.test(String(e && e.message))) throw e
       const 区 = location?.district ?? '本区域'
       const 上限 = /上限为第 (\d+) 档/.exec(String(e.message))?.[1] ?? 'N'
-      const 消息 = `⛔「${brand?.name ?? '所选品牌'}」超出「${区}」可开档次（上限第 ${上限} 档），无法结算。\n这是旧存档与新版规则冲突 —— 请返回重选符合档位的品牌（低消费区开高端酒店必亏）。`
+      const 消息 = `「${brand?.name ?? '所选品牌'}」超出「${区}」可开档次（上限第 ${上限} 档），无法结算。\n这是旧存档与新版规则冲突 —— 请返回重选符合档位的品牌（低消费区开高端酒店必亏）。`
       toast(消息)
       if (window.confirm(消息 + '\n\n【确定】现在返回品牌选择页（必需步骤）')) {
         setBrand(null); setTab('brand')
@@ -2310,13 +2311,13 @@ export default function App() {
         const 新日志 = []
         for (const [项, to] of Object.entries(领班记录.代管决策 || {})) {
           const 规则 = 落点规则[项] || ''
-          const 条 = 记录一条({ decisionId: 项, answer: to, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null })
+          const 条 = 记录一条({ decisionId: 项, answer: to, operatorName: 'AI 领班', week, classDay: 权威日, profitImpact: null })
           const 依据 = (领班记录.actions || []).find(a => a.item === 项)
           if (条) 新日志.push({ ...条, 依据规则: 依据 ? 依据.ruleId : 规则, 领班reason: 依据 ? 依据.reason : '', 生效周: week })
         }
         for (const r of (领班记录.reports || [])) {
           const d = r.ruleId === 'R7' ? 'hygiene' : null
-          const 条 = d ? 记录一条({ decisionId: d, answer: null, operatorName: '🤖 AI 领班', week, classDay: 权威日, profitImpact: null }) : null
+          const 条 = d ? 记录一条({ decisionId: d, answer: null, operatorName: 'AI 领班', week, classDay: 权威日, profitImpact: null }) : null
           if (条) 新日志.push({ ...条, 依据规则: r.ruleId, 领班reason: r.reason })
         }
         if (新日志.length) setOperatorLogs(prev => [...prev, ...新日志])
@@ -2438,11 +2439,11 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         {restoring ? (
           <div className="content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <div style={{ fontSize: 44 }}>🏨</div>
+            <div style={{ fontSize: 44 }}><Icon name="prop.hotel" size={44} /></div>
             <div style={{ fontSize: 13, color: '#9CA3AF' }}>正在恢复登录状态…</div>
           </div>
         ) : (
@@ -2458,7 +2459,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <TeacherDashboard user={user} onLogout={handleLogout}  onGoDecision={(id) => { setOpenPage(null); setTab("business"); const d = decisions.find(x => x.id === id); if (d) setCurrentDecision(d) }} />
       </div>
@@ -2471,7 +2472,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <Welcome user={user} onStart={() => setWelcomed(true)} />
       </div>
@@ -2484,7 +2485,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <SiteSelection onConfirm={handleSiteConfirm} />
       </div>
@@ -2497,7 +2498,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <BrandSelection location={location} onConfirm={handleBrandConfirm} />
       </div>
@@ -2510,7 +2511,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <Claim brand={brand} location={location} onComplete={handleClaimComplete} />
       </div>
@@ -2523,7 +2524,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <Establishment brand={brand} property={property} onComplete={handleEstablished} />
       </div>
@@ -2537,7 +2538,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
       </div>
@@ -2550,7 +2551,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <WeeklyReport result={report} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} />
       </div>
@@ -2563,7 +2564,7 @@ export default function App() {
       <div className="app">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
-          <span className="icons">📶 🔋</span>
+          <span className="icons" />
         </div>
         <DecisionPanel
           key={currentDecision.id}
@@ -2653,7 +2654,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: '📋', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
@@ -2665,7 +2666,7 @@ export default function App() {
     <div className="app">
       <div className="statusbar">
         <span className="time">{time || '09:41'}</span>
-        <span className="icons">📶 🔋</span>
+        <span className="icons" />
       </div>
       <AppErrorBoundary onReset={() => { setOpenPage(null); setCurrentDecision(null); setTab('business') }}>
         {/* 切页动画包装层：必须是可收缩的 flex 容器，否则会被内容撑高、把 .tabbar 顶出视口（9-19 回归） */}
@@ -2674,7 +2675,7 @@ export default function App() {
       {/* 断网横幅 */}
       {offline && (
         <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: '#FEF0EF', border: '1px solid #FECACA', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-          ⚠ 网络异常，进度已保存在本机
+          网络异常，进度已保存在本机
         </div>
       )}
       {/* 轻提示栈（顶部滑入） */}
@@ -2691,7 +2692,7 @@ export default function App() {
       <div className="tabbar">
         {tabs.map(t => (
           <button className={`tab ${tab === t.key && !openPage ? 'active' : ''}`} key={t.key} onClick={() => { setTab(t.key); close() }}>
-            <div className="tab-icon">{t.icon}</div>
+            <div className="tab-icon"><Icon name={t.icon} size={20} /></div>
             <div className="tab-label">{t.label}</div>
             {t.key === 'reputation' && pendingReviewCount > 0 && <div className="badge-num">{pendingReviewCount}</div>}
           </button>

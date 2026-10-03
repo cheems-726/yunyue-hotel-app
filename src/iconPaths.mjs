@@ -2,6 +2,8 @@
 export const ICONS = {
   'achv.badge': '<circle cx="12" cy="9.2" r="5.4"/><path d="M9.6 13.4 8.4 20.4M14.4 13.4l1.2 7"/><path d="M8.4 20.4 12 18.4l3.6 2"/>',
   'achv.title': '<path d="M7.6 4h8.8v4.6a4.4 4.4 0 0 1-8.8 0z"/><path d="M7.6 5.6H5.2A2.4 2.4 0 0 0 7.6 10"/><path d="M16.4 5.6h2.4A2.4 2.4 0 0 1 16.4 10"/><path d="M12 13v3.4"/><path d="M8.6 20.4h6.8l-.8-4H9.4z"/>',
+  'campaign': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+  'corporate': '<path d="M5 15.5 3.6 14a2.1 2.1 0 0 1 0-3l5.4-5.4 3-.5-.5 3L6 13.6"/><path d="M9.5 20.4 8 19"/><path d="M11.5 18.4 10 16.9"/><path d="M13.5 16.4 12 14.9"/><path d="M12.5 10.5 19 4"/><path d="M15.5 5.5 18 3l3 3-2.5 2.5"/>',
   'date.week': '<rect x="3.6" y="5.4" width="16.8" height="15" rx="3.8"/><path d="M3.6 10.2h16.8"/><path d="M8.2 3.4v3.4M15.8 3.4v3.4"/><circle cx="9" cy="14.6" r="1.15" fill="currentColor" stroke="none"/><circle cx="12.6" cy="14.6" r="1.15" fill="currentColor" stroke="none"/><circle cx="16.2" cy="14.6" r="1.15" fill="currentColor" stroke="none"/>',
   'event.competitor': '<path d="M4.4 9.6 9.6 6l5.2 3.6"/><path d="M5.6 10.4V19h8V10.4"/><path d="M16.4 11.6a4 4 0 0 1 4 4"/><path d="M20.4 15.6v2.8h-2.8"/>',
   'event.concert': '<path d="M15.4 3.6v9.8"/><circle cx="12.6" cy="15.4" r="3.4"/><path d="M15.4 3.6l4.2 1.4v3l-4.2-1.4"/>',
@@ -41,6 +43,7 @@ export const ICONS = {
   'event.water': '<path d="M12 3.6s5.4 6 5.4 9.4a5.4 5.4 0 0 1-10.8 0C6.6 9.6 12 3.6 12 3.6z"/><path d="M4.4 4.4 19.6 19.6"/>',
   'guest': '<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c0-3.6 3.2-5.6 7.2-5.6s7.2 2 7.2 5.6"/>',
   'log.ops': '<path d="M8 7h11M8 12h11M8 17h11"/><circle cx="4.8" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="17" r="1.3" fill="currentColor" stroke="none"/>',
+  'member': '<circle cx="10" cy="8.5" r="3.4"/><path d="M4 19.5c.6-3.4 3.2-5.1 6-5.1 1.6 0 3.1.5 4.2 1.5"/><path d="M18 13.5v5M15.5 16h5"/>',
   'money.balance': '<ellipse cx="12" cy="7.6" rx="4.0" ry="3"/><path d="M4.8 7.6v4c0 1.7 3.2 3 7.2 3s7.2-1.3 7.2-3v-4"/><path d="M4.8 11.6v4c0 1.7 3.2 3 7.2 3s7.2-1.3 7.2-3v-4"/>',
   'money.profit': '<path d="M4 16.4l4.6-4.8 3.2 3 6.6-6.8"/><path d="M13.6 7.8h4.8v4.8"/>',
   'money.spend': '<path d="M4 7.6l4.6 4.8 3.2-3 6.6 6.8"/><path d="M13.6 16.2h4.8v-4.8"/>',
@@ -71,4 +74,7 @@ export const ICONS = {
   'status.warn': '<path d="M12 4.6 20.2 19H3.8z"/><path d="M12 10v4"/><circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none"/>',
   'teach.point': '<path d="M2.8 9.2 12 5l9.2 4.2L12 13.4z"/><path d="M6.4 11v4.6c0 1.3 2.5 2.4 5.6 2.4s5.6-1.1 5.6-2.4V11"/><path d="M20.6 10v5"/>',
   'tip.decision': '<path d="M9.2 16.6h5.6"/><path d="M10 19.4h4"/><path d="M12 3.8a5.4 5.4 0 0 0-3.1 9.8v3h6.2v-3A5.4 5.4 0 0 0 12 3.8z"/>',
+  'weather.cloudy': '<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.2 9.6 3.7 3.7 0 0 1 17 17.9z"/>',
+  'weather.storm': '<path d="M6.5 14A3.5 3.5 0 0 1 6.1 7.03 4.8 4.8 0 0 1 15.5 8.4 3.2 3.2 0 0 1 15.3 14z"/><path d="M11 17l-1.6 3M15.5 16l-1.6 3"/>',
+  'weather.sunny': '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
 }

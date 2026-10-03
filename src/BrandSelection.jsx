@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
 
@@ -7,48 +8,48 @@ const brandGroups = [
   {
     level: '经济型 · 国民',
     brands: [
-      { name: '汉庭', icon: '🏨', fee: '2800元/间(≥18万)', cost: '6.77万/间', price: '180-280元', standard: '客房70间起', desc: '华住旗舰经济型，干净便捷性价比高，全球单一品牌客房数第二。' },
+      { name: '汉庭', icon: 'prop.hotel', fee: '2800元/间(≥18万)', cost: '6.77万/间', price: '180-280元', standard: '客房70间起', desc: '华住旗舰经济型，干净便捷性价比高，全球单一品牌客房数第二。' },
       // 🔴 §16.2-B1（2026-09-28）：你好/桔子/桔子水晶 = **半接入**（造价/门槛有官方现行 API，费率查不到）
       //   ⇒ 原先手写的"约2000元/间 / 5-6万间"这类**无来源数字**一律撤下，改显式「费率待补」+ 官方造价原文。
       //   （边界① 不许编造数据；依据 5-参考资料/加盟数值层-…-参数表.md §一 覆盖矩阵）
-      { name: '你好', icon: '👋', fee: '费率待补', cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
-      { name: '海友', icon: '🌊', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
-      { name: '宜必思', icon: '🇫🇷', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
+      { name: '你好', icon: 'prop.hotel', fee: '费率待补', cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
+      { name: '海友', icon: 'prop.hotel', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
+      { name: '宜必思', icon: 'prop.hotel', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
     ]
   },
   {
     level: '中档',
     brands: [
-      { name: '全季', icon: '🏮', fee: '约4000元/间', cost: '8-10万/间', price: '280-400元', standard: '客房80间起', desc: '华住主力中档，东方人文、极简设计、好而不贵。' },
-      { name: '桔子', icon: '🍊', fee: '费率待补', cost: '10.8万/间·官方现行', price: '260-380元', standard: '客房80间起', desc: '中档精品，时尚设计，年轻客群。' },
-      { name: '星程', icon: '⭐', fee: '约3500元/间', cost: '7-9万/间', price: '240-350元', standard: '客房70间起', desc: '中档连锁，商务休闲兼顾。' },
-      { name: '漫心', icon: '🌸', fee: '约4000元/间', cost: '8-10万/间', price: '300-420元', standard: '客房70间起', desc: '中档精品，人文艺术风格。' },
+      { name: '全季', icon: 'prop.hotel', fee: '约4000元/间', cost: '8-10万/间', price: '280-400元', standard: '客房80间起', desc: '华住主力中档，东方人文、极简设计、好而不贵。' },
+      { name: '桔子', icon: 'prop.hotel', fee: '费率待补', cost: '10.8万/间·官方现行', price: '260-380元', standard: '客房80间起', desc: '中档精品，时尚设计，年轻客群。' },
+      { name: '星程', icon: 'prop.hotel', fee: '约3500元/间', cost: '7-9万/间', price: '240-350元', standard: '客房70间起', desc: '中档连锁，商务休闲兼顾。' },
+      { name: '漫心', icon: 'prop.hotel', fee: '约4000元/间', cost: '8-10万/间', price: '300-420元', standard: '客房70间起', desc: '中档精品，人文艺术风格。' },
     ]
   },
   {
     level: '精选 · 中高档',
     brands: [
-      { name: '桔子水晶', icon: '💎', fee: '费率待补', cost: '15.43万/间·官方现行', price: '400-600元', standard: '客房80间起', desc: '桔子升级版，更高品质设计。' },
-      { name: '全季大观', icon: '🏛️', fee: '约5000元/间', cost: '10-13万/间', price: '400-550元', standard: '客房80间起', desc: '全季升级版，更高端中档。' },
-      { name: '城际', icon: '🚄', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
-      { name: '美居', icon: '🏰', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
-      { name: '美仑', icon: '🏙️', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },
+      { name: '桔子水晶', icon: 'prop.hotel', fee: '费率待补', cost: '15.43万/间·官方现行', price: '400-600元', standard: '客房80间起', desc: '桔子升级版，更高品质设计。' },
+      { name: '全季大观', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '400-550元', standard: '客房80间起', desc: '全季升级版，更高端中档。' },
+      { name: '城际', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
+      { name: '美居', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
+      { name: '美仑', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },
     ]
   },
   {
     level: '高档',
     brands: [
-      { name: '禧玥', icon: '🏯', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '华住高端，东方雅致生活。' },
-      { name: '花间堂', icon: '🏡', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房50间起', desc: '度假型高端，人文度假。' },
-      { name: '施柏阁', icon: '🏰', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
-      { name: '诺富特', icon: '🏨', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
+      { name: '禧玥', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '华住高端，东方雅致生活。' },
+      { name: '花间堂', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房50间起', desc: '度假型高端，人文度假。' },
+      { name: '施柏阁', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
+      { name: '诺富特', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
     ]
   },
   {
     level: '奢华',
     brands: [
-      { name: '宋品', icon: '👑', fee: '洽谈', cost: '30万+/间', price: '1000-2000元', standard: '客房50间起', desc: '华住奢华，东方奢华。' },
-      { name: '施柏阁大观', icon: '🏆', fee: '洽谈', cost: '30万+/间', price: '1200-2500元', standard: '客房50间起', desc: '施柏阁顶级，极致奢华。' },
+      { name: '宋品', icon: 'prop.hotel', fee: '洽谈', cost: '30万+/间', price: '1000-2000元', standard: '客房50间起', desc: '华住奢华，东方奢华。' },
+      { name: '施柏阁大观', icon: 'prop.hotel', fee: '洽谈', cost: '30万+/间', price: '1200-2500元', standard: '客房50间起', desc: '施柏阁顶级，极致奢华。' },
     ]
   },
 ]
@@ -85,7 +86,7 @@ export default function BrandSelection({ location, onConfirm }) {
     // ★ §31.2-A1【真强制】：超档品牌直接拒绝（反馈面板写明原因 —— 学生看得见为什么）
     if (gi + 1 > maxTier) {
       setFeedback({
-        title: `⛔「${b.name}」在当前区域不可选`,
+        title: `「${b.name}」在当前区域不可选`,
         changes: [
           { label: '区域限制', value: `${location?.district ?? '本区域'}（客流 ${flow} 档）最高只能开档次 ${maxTier}`, dir: 'down' },
           { label: '品牌档次', value: `第 ${gi + 1} 档（${g_levelName(gi)}）`, dir: '' },
@@ -109,7 +110,7 @@ export default function BrandSelection({ location, onConfirm }) {
   return (
     <div className="content">
       <div className="header">
-        <span className="step-tag">🏷️ 第二步 · 选品牌</span>
+        <span className="step-tag">第二步 · 选品牌</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店品牌</h1>
         <div className="sub">品牌决定物业标准、加盟费用、房价带</div>
       </div>
@@ -118,22 +119,22 @@ export default function BrandSelection({ location, onConfirm }) {
         华住全品牌 · 共 {brandGroups.reduce((s, g) => s + g.brands.length, 0)} 个，点击选择
       </div>
       <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, fontSize: 10, color: '#9A3412', lineHeight: 1.6 }}>
-        ⚠️ 免责声明：本系统中的酒店价格为<b>模拟经营数据</b>，仅供教学演示使用，不代表实际市场定价。实际投资需以专业可行性调研为准。
+        免责声明：本系统中的酒店价格为<b>模拟经营数据</b>，仅供教学演示使用，不代表实际市场定价。实际投资需以专业可行性调研为准。
       </div>
       {location && maxTier < 5 && (
         <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 11, color: '#991B1B' }}>
-          🚫 {location.district}（客流{flow}档）限开：{maxTier === 1 ? '仅经济型品牌' : '经济型～中端型品牌'}，高端品牌在此区域必亏
+          {location.district}（客流{flow}档）限开：{maxTier === 1 ? '仅经济型品牌' : '经济型～中端型品牌'}，高端品牌在此区域必亏
         </div>
       )}
 
-      {/* 🔴 P3-3：各档"初始资金"文案改口（建议 (a)）—— 实际是【系统统一提供启动资金】，
+ {/* P3-3：各档"初始资金"文案改口（建议 (a)）—— 实际是【系统统一提供启动资金】，
           不再是"经济型30万/中端50万…"的分档金额；档次差异体现在装修标准/房价带/房量门槛。
-          🔴 W2 收尾修正：原硬编码"约 502 万"是 T1.1 时代的量级，W2-2 后 IC = 149 万
+ W2 收尾修正：原硬编码"约 502 万"是 T1.1 时代的量级，W2-2 后 IC = 149 万
           ⇒ 学生看到"约 502 万"却只拿到 149 万（学生可见错值）⇒ 改为从 SCALE.IC_NEW 推导，单源。
-          🔴 A-3（2026-09-27 · D47-g）：正名【运营启动资金】—— IC 149 万 ≠ 投资总额
+ A-3（2026-09-27 · D47-g）：正名【运营启动资金】—— IC 149 万 ≠ 投资总额
           （单房造价 7.18 万 × 100 间 = 718 万），叫"启动资金"学生会当成开店总投 ⇒ 名字要写全。 */}
       <div style={{ margin: '0 0 10px', padding: '8px 12px', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, fontSize: 12, color: '#1E40AF', lineHeight: 1.7 }}>
-        💰 <b>运营启动资金：系统统一提供约 {SCALE.IC_NEW / 10000} 万</b>（全班一致）。
+        <b>运营启动资金：系统统一提供约 {SCALE.IC_NEW / 10000} 万</b>（全班一致）。
         这笔钱是<b>用来周转经营的</b>，<b>不等于"开一家酒店的总投资"</b>——筹建投入（装修/软装/IT/布草等）
         另算，「报价单」里单列。品牌档次的差异体现在
         <b>装修标准 / 房价带 / 房量门槛</b>上，而不是这笔钱多少 —— 档越高，同样的钱越要花在品质上。
@@ -163,21 +164,21 @@ export default function BrandSelection({ location, onConfirm }) {
               >
                 {超档 && (
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#991B1B', marginBottom: 4 }}>
-                    ⛔ 超出本区档次上限（限开 {maxTier} 档）—— 不可选
+                    超出本区档次上限（限开 {maxTier} 档）—— 不可选
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}>{b.icon} {b.name}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700 }}><Icon name={b.icon} size={16} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.name}</span>
                   {selected === b.name && (
-                    <span style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+ <span style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: '#E8940F', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}></span>
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, marginTop: 4 }}>{b.desc}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>💰 {b.fee}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>🏗️ {b.cost}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>💵 {b.price}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>📋 {b.standard}</span>
+                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>加盟费 {b.fee}</span>
+                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>单房造价 {b.cost}</span>
+                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>门市价 {b.price}</span>
+                  <span style={{ fontSize: 10, padding: '3px 7px', background: '#F9FAFB', borderRadius: 5 }}>房量 {b.standard}</span>
                 </div>
               </div>
               )})}

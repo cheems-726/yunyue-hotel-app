@@ -59,6 +59,6 @@ export function rollLiveReview({
     source: 'live', room, isCheckout,
   }
   const brief = review.text.length > 16 ? review.text.slice(0, 16) + '…' : review.text
-  const feedText = `💬 [${clockTag}] ${room}房客人留下评价 ${'⭐'.repeat(stars)}「${brief}」`
+  const feedText = `[${clockTag}] ${room}房客人留下评价 ${'★'.repeat(stars)}「${brief}」`
   return { hit: true, kind, stars, review, entry, feedText, p }
 }

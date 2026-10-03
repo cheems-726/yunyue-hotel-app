@@ -50,7 +50,7 @@ console.log('\n[2] 三处界面：资金量级只能来自 SCALE')
   ok(/\$\{SCALE\.变黄线 \/ 10000\}/.test(wr), 'WeeklyReport：预警文案的金额由常量推导（不是写死数字）')
   // ★ 本批实抓（BL-10 家族）：原行把 `if (...)` 与 `forecasts.unshift({...})` 挤在一行、
   //   中间插了 `//` 注释 ⇒ 整句 unshift 从未执行，资金预警一直是死的。这里按【写法】守门。
-  ok(/forecasts\.unshift\(\{ icon: '🚨'/.test(wr), 'WeeklyReport：🚨 资金预警语句是【真代码】')
+  ok(/forecasts\.unshift\(\{ icon: 'status.critical'/.test(wr), 'WeeklyReport：资金预警语句是【真代码】（icon 键化 · V10b）')
   const swallowed = src('WeeklyReport.jsx').split(/\r?\n/).some(l => {
     const i = l.indexOf('//')
     // ★ 只在【注释前还有真代码】时才算"被吞"（独立说明注释里提到调用形态不算——D33：

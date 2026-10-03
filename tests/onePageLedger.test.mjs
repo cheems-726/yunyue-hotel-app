@@ -134,7 +134,7 @@ console.log('\n[4] 零影响层：纯计算 + 结算路径不受影响 + UI 静�
   const claim = strip(src('Claim.jsx'))
   ok(/from '\.\/onePageLedger\.mjs'/.test(claim) && /onePageLedger\(\{ brand, property: selectedProperty/.test(claim),
     'Claim.jsx：引入并调用 onePageLedger')
-  ok(/\{step === 3 && ledger &&/.test(claim) && /📒 一页钱账/.test(claim) && /ledger\.lines\.map/.test(claim) && /paybackText\(ledger\)/.test(claim),
+  ok(/\{step === 3 && ledger &&/.test(claim) && /一页钱账/.test(claim) && /ledger\.lines\.map/.test(claim) && /paybackText\(ledger\)/.test(claim),
     'Claim.jsx：第 3 步渲染钱账（条件渲染 + 标题 + 逐行 + 回本周期）')
   ok(!/预计出租率 65%/.test(claim), 'Claim.jsx：旧的写死"预计出租率 65%"已清除（改由引擎基准周推导）')
   ok(/加盟费用条款/.test(claim) && /'已实收'/.test(claim), 'Claim.jsx：条款表逐项标「已实收/待接入」（不许让学生以为全是真金）')

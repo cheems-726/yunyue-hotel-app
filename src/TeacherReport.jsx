@@ -3,6 +3,7 @@
 //   数据全部来自 `src/teacherReport.mjs` 的纯模型（该模型只读权威源 · 零自算）
 //   本文件【不做任何数字运算】—— 只管排版与格式化（格式化统一走 metricDefs 的 pct/wan2/yuanFmt）
 import React, { useState } from 'react'
+import Icon from './Icon.jsx'
 import { 构建经营报告, 周序列 } from './teacherReport.mjs'
 import { pct, wan2, yuanFmt, NET_LABEL, GOP_SHORT } from './metricDefs.mjs'
 
@@ -71,15 +72,15 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
       {/* 工具条（打印时隐藏） */}
       <div className="tr-noprint" style={{ position: 'sticky', top: 0, background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
         <button onClick={onClose} style={{ border: 'none', background: '#F3F4F6', borderRadius: 8, padding: '7px 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← 返回</button>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>📄 经营报告{组名 ? ` · ${组名}` : ''}</div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>经营报告{组名 ? ` · ${组名}` : ''}</div>
         <div style={{ flex: 1 }} />
-        <button onClick={打印} style={{ border: 'none', background: '#A96407', color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🖨 打印 / 另存 PDF</button>
+        <button onClick={打印} style={{ border: 'none', background: '#A96407', color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>打印 / 另存 PDF</button>
       </div>
 
       <div className="tr-page" style={{ maxWidth: 1000, margin: '0 auto', padding: '14px 16px 40px' }}>
         {报告.未开业 ? (
           <div style={{ ...卡片, textAlign: 'center', padding: '36px 16px' }}>
-            <div style={{ fontSize: 34, marginBottom: 8 }}>🕓</div>
+            <div style={{ fontSize: 34, marginBottom: 8, display: 'flex', justifyContent: 'center' }}><Icon name="date.week" size={34} /></div>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>该组还没有可报告的经营数据</div>
             <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>{报告.未开业提示}</div>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 10 }}>
@@ -94,11 +95,11 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 800 }}>{报告.头部.酒店}</div>
                   <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                    {组名 && <span style={{ marginRight: 10 }}>👥 {组名}</span>}
-                    {报告.头部.品牌 && <span style={{ marginRight: 10 }}>🏷 {报告.头部.品牌}</span>}
-                    {报告.头部.选址 && <span style={{ marginRight: 10 }}>📍 {报告.头部.选址}</span>}
-                    <span style={{ marginRight: 10 }}>🏢 {报告.头部.开店模式}</span>
-                    <span>📅 {报告.头部.已结业 ? '已结业' : `进行到第 ${报告.头部.当前周} 周`} · 已结算 {报告.头部.已结算周数} 周</span>
+                    {组名 && <span style={{ marginRight: 10 }}>{组名}</span>}
+                    {报告.头部.品牌 && <span style={{ marginRight: 10 }}>{报告.头部.品牌}</span>}
+                    {报告.头部.选址 && <span style={{ marginRight: 10 }}>{报告.头部.选址}</span>}
+                    <span style={{ marginRight: 10 }}>{报告.头部.开店模式}</span>
+                    <span>{报告.头部.已结业 ? '已结业' : `进行到第 ${报告.头部.当前周} 周`} · 已结算 {报告.头部.已结算周数} 周</span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -108,7 +109,7 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
               </div>
               {报告.头部.缺周.length > 0 && (
                 <div style={{ marginTop: 8, fontSize: 11, color: '#92400E', background: '#FEF3C7', borderRadius: 8, padding: '6px 10px' }}>
-                  ⚠ 有 {报告.头部.缺周.length} 个周次未经营（老师跳过）：{报告.头部.缺周.join('、')} —— 这些周**不参与**任何平均值分母
+                  有 {报告.头部.缺周.length} 个周次未经营（老师跳过）：{报告.头部.缺周.join('、')} —— 这些周**不参与**任何平均值分母
                 </div>
               )}
             </div>
@@ -131,10 +132,10 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
               {(!报告.关键.覆盖度.净利完整 || !报告.关键.覆盖度.GOP完整 || 报告.关键.覆盖度.净利周数 < 报告.关键.覆盖度.周数) && (
                 <div style={{ marginTop: 10, fontSize: 11, color: '#92400E', lineHeight: 1.7 }}>
                   {!报告.关键.覆盖度.净利完整 && (
-                    <div>⚠ 净利润覆盖度：{报告.关键.覆盖度.净利周数}/{报告.关键.覆盖度.周数} 周有净利润字段（旧档周缺字段时**不按 0 计入**，避免总额被静默低估）</div>
+                    <div>净利润覆盖度：{报告.关键.覆盖度.净利周数}/{报告.关键.覆盖度.周数} 周有净利润字段（旧档周缺字段时**不按 0 计入**，避免总额被静默低估）</div>
                   )}
                   {!报告.关键.覆盖度.GOP完整 && (
-                    <div>⚠ GOP 覆盖度：本组有旧档周（无 GOP 字段）⇒ GOP 列显示"—"，这是**如实留空**，不是算不出来（GOP 口径见上）</div>
+                    <div>GOP 覆盖度：本组有旧档周（无 GOP 字段）⇒ GOP 列显示"—"，这是**如实留空**，不是算不出来（GOP 口径见上）</div>
                   )}
                 </div>
               )}
@@ -176,7 +177,7 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
                                   <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 4 }}>
                                     第 {r.week} 周逐日流水（Σ7 天 ≡ 周值 · 引擎 splitExact 精确分摊）
                                     {r.日快照自证 && <span style={{ marginLeft: 8, color: r.日快照自证.ok ? '#10B981' : '#EF4444' }}>
-                                      {r.日快照自证.ok ? `✓ 自证通过（${r.日快照自证.rows} 天）` : `✗ 与周值不等：${(r.日快照自证.diff || []).join('、')}（异常，请报告）`}
+ {r.日快照自证.ok ? ` 自证通过（${r.日快照自证.rows} 天）` : ` 与周值不等：${(r.日快照自证.diff || []).join('、')}（异常，请报告）`}
                                     </span>}
                                   </div>
                                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -233,7 +234,7 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
                       <div style={{ fontSize: 12, color: '#111827' }}>
                         <b>{e.icon} {e.name}</b>{e.impact && <span style={{ color: '#A96407', marginLeft: 6 }}>{e.impact}</span>}
                         {e.text && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{e.text}</div>}
-                        {e.tip && <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>💡 {e.tip}</div>}
+                        {e.tip && <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{e.tip}</div>}
                       </div>
                     </div>
                   ))}

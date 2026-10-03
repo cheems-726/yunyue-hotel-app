@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import Icon from './Icon.jsx'
 import { getTitle } from './hotelTitle.js'
 import { parseRooms } from './settlement.js'
 import { normalizeAttrs, ATTR_LABELS, applyDecisionToAttrs } from './attrs.js'
@@ -167,13 +168,13 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     function tryLiveReview(isCheckout, clockTag, room) {
       try {   // 实时评价是锦上添花：任何异常都不许打断经营流水
         if (document.hidden) return
-        const dayNo = teachingDayKey()   // ★ §26.5（P0d）：教学日口径（原 floor(gameMin/1440) = 游戏日，与教学日界线不一致）
+ const dayNo = teachingDayKey() // §26.5（P0d）：教学日口径（原 floor(gameMin/1440) = 游戏日，与教学日界线不一致）
         if (dayNo !== rvDayNo) { rvDayNo = dayNo; rvDayCount = 0 }   // 跨游戏日 → 当日计数归零
         const list = readRvList()
         const ctx = rvCtxRef.current
         const res = rollLiveReview({   // 掷骰与造条在纯核心里（src/liveReview.js）
           isCheckout, week, clockTag, room, price,
-          rooms, occupancy: rooms > 0 ? (occupiedRooms / rooms) * 100 : 60,   // 🔴 口径修正：guests.js 期望 0-100（原先传 0-1 → "满负荷服务跟不上"类原因永远命不中）
+ rooms, occupancy: rooms > 0 ? (occupiedRooms / rooms) * 100 : 60, // 口径修正：guests.js 期望 0-100（原先传 0-1 → "满负荷服务跟不上"类原因永远命不中）
           brandLevel: ctx.brandLevel, attrs: ctx.attrs, decisions: ctx.decisions,
           dayCount: rvDayCount, weekCount: rvWeekCount,
           realDayCount: list.filter(r => r.live && r.liveDate === rvToday).length,
@@ -209,46 +210,46 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
 
       // 到期的清扫任务：退房后 15-35 游戏分钟完成
       // ★ §26.3（P0b）：清扫耗材成本**不再由面板自记**（引擎周成本已含部门成本）⇒ 此处只报事件，不动任何金额
-      const due = pendingClean.filter(x => x.due <= Date.now())   // ★ P0d：真实时间比较
+ const due = pendingClean.filter(x => x.due <= Date.now()) // P0d：真实时间比较
       if (due.length) {
         pendingClean = pendingClean.filter(x => x.due > gameMin)
         due.forEach(x => {
-          pushFeed(`🧹 [${clockTag}] ${x.room}房退房清扫完成`, 0)
+          pushFeed(`[${clockTag}] ${x.room}房退房清扫完成`, 0)
         })
       }
 
       if (ph.checkout > 0 && roll < EVENT_PROB.checkout && s.checkout + s.checkin < Math.round(occupiedRooms * 0.8)) {
         // ★ §26.3（P0b）：房费金额**不再由面板随机造**（原 `price × (0.85 + Math.random()*0.3)`）——
         //   今日/本周流水一律取引擎日快照（同源）；这里只推进"已退房"计数与文案。
-        pendingClean.push({ room, due: Date.now() + (15 + Math.floor(Math.random() * 20)) * 60000 })   // ★ P0d：真实毫秒（原为「gameMin+15」的分钟制）
+ pendingClean.push({ room, due: Date.now() + (15 + Math.floor(Math.random() * 20)) * 60000 }) // P0d：真实毫秒（原为「gameMin+15」的分钟制）
         apply({ checkout: s.checkout + 1, guests: Math.max(4, s.guests - 2) })
-        pushFeed(`🧳 [${clockTag}] ${room}房客人退房结账（12:00 前退房）`, 0)
+        pushFeed(`[${clockTag}] ${room}房客人退房结账（12:00 前退房）`, 0)
         tryLiveReview(true, clockTag, room)   // 退房时段：正常概率（实时评价主要来源）
       } else if (ph.checkin > 0 && roll < EVENT_PROB.checkin && s.checkin < Math.round(occupiedRooms * 0.6)) {
         const g = ['商务出差', '家庭出游', '旅行散客', '会议客人'][Math.floor(Math.random() * 4)]
         apply({ checkin: s.checkin + 1, guests: s.guests + 2 })
-        pushFeed(`🛎️ [${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人`, 0)
+        pushFeed(`[${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
         // ★ §26.3（P0b）：事件文案保留（教学趣味），但**金额一律为 0** —— 文案不许再自造金额
         const evs = [
-          { t: `🔧 ${room}房空调维修，更换零件` },
-          { t: `🛒 客房部补充易耗品（洗漱用品/瓶装水）` },
-          { t: `🍬 大堂便利角售出零食饮料` },
-          { t: `😤 处理客诉，赠送果盘致歉` },
-          { t: `⭐ 前台转化 1 名会员 · 赠送欢迎水果` },
-          { t: `💳 为 ${room}房客人退还押金` },
+          { t: `${room}房空调维修，更换零件` },
+          { t: `客房部补充易耗品（洗漱用品/瓶装水）` },
+          { t: `大堂便利角售出零食饮料` },
+          { t: `处理客诉，赠送果盘致歉` },
+          { t: `前台转化 1 名会员 · 赠送欢迎水果` },
+ { t: ` 为 ${room}房客人退还押金` },
         ]
         const ev = evs[Math.floor(Math.random() * evs.length)]
-        pushFeed(`🕐 [${clockTag}] ${ev.t}`, 0)
+        pushFeed(`[${clockTag}] ${ev.t}`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
       } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
         const evs = [
-          { t: `🌙 夜班保安巡场完毕，楼层安静` },
-          { t: `🔦 夜班前台接待 1 位深夜到店客人` },
+          { t: `夜班保安巡场完毕，楼层安静` },
+          { t: `夜班前台接待 1 位深夜到店客人` },
         ]
         const ev = evs[Math.floor(Math.random() * evs.length)]
-        pushFeed(`🌙 [${clockTag}] ${ev.t}`, 0)
+        pushFeed(`[${clockTag}] ${ev.t}`, 0)
         tryLiveReview(false, clockTag, room)   // 深夜时段 ×1/5
       }
       persist()
@@ -282,14 +283,14 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     // 倒序插入：多条同时到达时，最新的排在最上面
     added.slice().reverse().forEach(id => {
       const meta = DEC_CATALOG.find(x => x.id === id)
-      const name = meta ? `${meta.icon} ${meta.name}` : id
+      const name = meta ? meta.name : id
       const next = applyDecisionToAttrs(attrsNow, id, decisions[id])
       const parts = []
       for (const k of ['quality', 'reputation', 'morale']) {
         const d = (next[k] || 0) - (attrsNow[k] || 0)
         if (d !== 0) parts.push(`${ATTR_LABELS[k]} ${d > 0 ? '+' : ''}${d}`)
       }
-      api.push(`🎯 [${tag}] 完成「${name}」→ ${fmtAns(decisions[id])}${parts.length ? ' · ' + parts.join('，') : ''}`, 0)
+      api.push(`[${tag}] 完成「${name}」→ ${fmtAns(decisions[id])}${parts.length ? ' · ' + parts.join('，') : ''}`, 0)
     })
     api.persist()
     try { localStorage.setItem(seenKey, JSON.stringify(ids)) } catch (e) {}
@@ -323,7 +324,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>📡 实时运营动态</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}><Icon name="nav.live" size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 实时运营动态</span>
         <span style={{ fontSize: 9, color: '#9CA3AF' }}>按概率随机发生 · 退房12点前 · 入住14点后</span>
       </div>
       {feed.map((f, i) => (
@@ -414,14 +415,14 @@ export default function HotelStatus({ report, brand, property, week, history, at
 
   // RPG 三属性（物/名/人）：替代原先"口碑分/满意度"这类好评率派生值
   const attrRows = [
-    { key: 'quality', icon: '💎', label: ATTR_LABELS.quality, hint: '硬件·卫生', value: A.quality },
-    { key: 'reputation', icon: '⭐', label: ATTR_LABELS.reputation, hint: '口碑·形象', value: A.reputation },
-    { key: 'morale', icon: '😊', label: ATTR_LABELS.morale, hint: '团队·状态', value: A.morale },
+    { key: 'quality', icon: 'achv.title', label: ATTR_LABELS.quality, hint: '硬件·卫生', value: A.quality },
+    { key: 'reputation', icon: 'nav.review', label: ATTR_LABELS.reputation, hint: '口碑·形象', value: A.reputation },
+    { key: 'morale', icon: 'role.hr', label: ATTR_LABELS.morale, hint: '团队·状态', value: A.morale },
   ]
   // 经营指标（真实统计值，非派生）：与属性池分开展示，避免"派生值冒充属性"
   const bizRows = [
-    { icon: '💯', label: '好评率', value: goodRate, display: goodRate + '%' },
-    { icon: '🏠', label: '出租率', value: occupancy, display: occupancy + '%' },
+    { icon: 'status.done', label: '好评率', value: goodRate, display: goodRate + '%' },
+    { icon: 'prop.hotel', label: '出租率', value: occupancy, display: occupancy + '%' },
   ]
 
   // 实时反馈（规格 §8「数字跳动 + 飘字」）：增量由 App 在确认决策时权威下发
@@ -457,13 +458,13 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const attrPanel = (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>🎭 酒店属性</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#A96407' }}>酒店属性</span>
         <span style={{ fontSize: 9, color: '#9CA3AF' }}>做决策立即变化 · 每周自然衰减</span>
       </div>
       {attrRows.map(a => (
         <div key={a.key} style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: '#6B7280' }}>{a.icon} {a.label}<span style={{ fontSize: 9, color: '#D1D5DB', marginLeft: 5 }}>{a.hint}</span></span>
+            <span style={{ fontSize: 12, color: '#6B7280' }}><Icon name={a.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {a.label}<span style={{ fontSize: 9, color: '#D1D5DB', marginLeft: 5 }}>{a.hint}</span></span>
             <span style={{ position: 'relative', fontSize: 12, fontWeight: 700, color: barColor(a.value) }}>
               {/* 飘字：属性变化时出现（+5 / -3），1.5s 自动消失 */}
               {flash && flash[a.key] != null && (
@@ -491,12 +492,12 @@ export default function HotelStatus({ report, brand, property, week, history, at
       <div className="card" style={{ background: '#FFF9F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="card-title" style={{ marginBottom: 0 }}>
-            <span style={{ fontSize: 18 }}>🏨</span> 酒店状态
+            <Icon name="prop.hotel" size={18} /> 酒店状态
           </div>
           <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>{brand?.name} · {property?.name}</span>
         </div>
         <div style={{ marginTop: 10, padding: '8px 12px', background: '#FFF4E0', borderRadius: 10, fontSize: 12, fontWeight: 700, color: '#A96407', textAlign: 'center' }}>
-          📅 今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
+ 今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
         </div>
         {attrPanel}
         <LiveFeed occupiedRooms={6} price={230} week={week} />
@@ -519,7 +520,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
     <div className="card" style={{ background: '#FFF9F0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div className="card-title" style={{ marginBottom: 0 }}>
-          <span style={{ fontSize: 18 }}>🏨</span> 酒店状态
+          <Icon name="prop.hotel" size={18} /> 酒店状态
         </div>
         <span style={{ fontSize: 11, color: '#A96407', fontWeight: 600 }}>
           累计利润 {profit >= 0 ? '+' : ''}{(profit / 10000).toFixed(2)}万
@@ -527,8 +528,8 @@ export default function HotelStatus({ report, brand, property, week, history, at
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF4E0', borderRadius: 10, padding: '7px 12px', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>📅 今天是 {dateInfo.text}（{dateInfo.weekday}）</span>
-        {/* ★ §26.7（P0e②）：教学日的**来源必须可见** —— 服务端权威 vs 本地推算。
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#A96407' }}>今天是 {dateInfo.text}（{dateInfo.weekday}）</span>
+ {/* §26.7（P0e②）：教学日的**来源必须可见** —— 服务端权威 vs 本地推算。
             「取不到就静默用本地」正是"日期随机"的根因（T9：服务端 classDay 才是唯一权威）。 */}
         {daySource === 'local' && (
           <span title="未取到服务端教学日（class_day_now 不可用）⇒ 本机推算。日期可能与其他组/老师不同步。"
@@ -574,20 +575,20 @@ export default function HotelStatus({ report, brand, property, week, history, at
         const big = Math.round(total * 0.5), twin = Math.round(total * 0.35), suite = total - big - twin
         return (
           <div style={{ marginBottom: 12, padding: '8px 10px', background: '#F8FAFC', borderRadius: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>📋 预抵客人构成（按客群 · <span style={{ color: '#B45309' }}>估算</span>）</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>预抵客人构成（按客群 · <span style={{ color: '#B45309' }}>估算</span>）</div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10, background: '#EFF6FF', color: '#1E40AF', borderRadius: 5, padding: '2px 8px' }}>商务 {biz} 间</span>
               <span style={{ fontSize: 10, background: '#ECFDF5', color: '#065F46', borderRadius: 5, padding: '2px 8px' }}>旅游 {tour} 间</span>
               <span style={{ fontSize: 10, background: '#FFF4E0', color: '#A96407', borderRadius: 5, padding: '2px 8px' }}>家庭 {fam} 间</span>
             </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>🛏️ 按房型</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>按房型</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10, background: '#F9FAFB', color: '#374151', borderRadius: 5, padding: '2px 8px' }}>大床 {big} 间</span>
               <span style={{ fontSize: 10, background: '#F9FAFB', color: '#374151', borderRadius: 5, padding: '2px 8px' }}>双床 {twin} 间</span>
               <span style={{ fontSize: 10, background: '#F9FAFB', color: '#374151', borderRadius: 5, padding: '2px 8px' }}>套房 {suite} 间</span>
             </div>
-            <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 5 }}>💡 建议按预抵构成提前排房：团队连排、商务高楼层、家庭相邻间</div>
-            <div style={{ fontSize: 9, color: '#B45309', marginTop: 3 }}>⚠️ 本组数字为**面板估算**（按在店×30%＋波动推算）· <b>不影响任何结算</b>；引擎按周建模，无"明日"真值</div>
+            <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 5 }}>建议按预抵构成提前排房：团队连排、商务高楼层、家庭相邻间</div>
+            <div style={{ fontSize: 9, color: '#B45309', marginTop: 3 }}>本组数字为**面板估算**（按在店×30%＋波动推算）· <b>不影响任何结算</b>；引擎按周建模，无"明日"真值</div>
           </div>
         )
       })()}
@@ -600,14 +601,14 @@ export default function HotelStatus({ report, brand, property, week, history, at
         {bizRows.map(b => (
           <div key={b.label} style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>{b.display}</div>
-            <div style={{ fontSize: 9, color: '#9CA3AF' }}>{b.icon} {b.label}</div>
+            <div style={{ fontSize: 9, color: '#9CA3AF' }}><Icon name={b.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.label}</div>
           </div>
         ))}
       </div>
 
       {/* 房型结构（档次越高价格越高，匹配成本） */}
       <div style={{ marginTop: 4 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>🛏️ 房型结构（共 {rooms} 间）</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#A96407', marginBottom: 6 }}>房型结构（共 {rooms} 间）</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           {types.map((tp, idx) => (
             <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
@@ -620,7 +621,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
         <div style={{ fontSize: 9, color: '#9CA3AF', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
       </div>
 
-      {/* ★ §26.3：dayFlows = App 以【与 doSettle 同一套入参】跑出的预览结算的 dailySnapshots（7 天）
+ {/* §26.3：dayFlows = App 以【与 doSettle 同一套入参】跑出的预览结算的 dailySnapshots（7 天）
           ⇒ 面板"今日流水"与周报/结算**同源**。dayIndex 由 App 传 1-based（教学日序号推导），此处转 0-based。 */}
       <LiveFeed occupiedRooms={occRooms} price={price} week={week} rooms={rooms} brandLevel={brand?.level} attrs={A} decisions={decisions} onStats={setLiveStats} dayFlows={dayFlows} dayIndex={(Number(dayIndex) || 1) - 1} />
 

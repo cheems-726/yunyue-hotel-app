@@ -84,7 +84,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -92,7 +92,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -100,7 +100,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -108,7 +108,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -118,14 +118,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -188,13 +188,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -213,13 +213,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -238,13 +238,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -263,13 +263,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -517,7 +517,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -525,7 +525,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -533,7 +533,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -541,7 +541,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -551,14 +551,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -621,13 +621,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -646,13 +646,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -671,13 +671,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -696,13 +696,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -721,13 +721,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "黄女士 · 商务出差",
      "guest": {
       "surname": "黄",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "商务出差",
       "roomType": "套房",
       "nights": 3,
@@ -975,7 +975,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -983,7 +983,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -991,7 +991,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -999,7 +999,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -1009,14 +1009,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -1079,13 +1079,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -1104,13 +1104,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -1129,13 +1129,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -1154,13 +1154,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -1408,7 +1408,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -1416,7 +1416,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -1424,7 +1424,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -1432,7 +1432,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -1442,14 +1442,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -1512,13 +1512,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -1537,13 +1537,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -1562,13 +1562,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -1587,13 +1587,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -1612,13 +1612,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "黄女士 · 商务出差",
      "guest": {
       "surname": "黄",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "商务出差",
       "roomType": "套房",
       "nights": 3,
@@ -1637,13 +1637,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "高女士 · 商务出差",
      "guest": {
       "surname": "高",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "商务出差",
       "roomType": "大床房",
       "nights": 4,
@@ -1891,7 +1891,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -1899,7 +1899,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -1907,7 +1907,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -1915,7 +1915,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -1925,14 +1925,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -1995,13 +1995,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -2020,13 +2020,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -2045,13 +2045,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -2299,7 +2299,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -2307,7 +2307,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -2315,7 +2315,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -2323,7 +2323,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -2333,14 +2333,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -2403,13 +2403,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -2428,13 +2428,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -2453,13 +2453,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -2478,13 +2478,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -2732,7 +2732,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -2740,7 +2740,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -2748,7 +2748,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -2756,7 +2756,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -2766,14 +2766,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -2836,13 +2836,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -2861,13 +2861,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -2886,13 +2886,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -3140,7 +3140,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -3148,7 +3148,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -3156,7 +3156,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -3164,7 +3164,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -3174,14 +3174,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -3244,13 +3244,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -3269,13 +3269,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -3294,13 +3294,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -3319,13 +3319,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -3573,7 +3573,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -3581,7 +3581,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -3589,7 +3589,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -3597,7 +3597,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -3607,14 +3607,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -3677,13 +3677,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -3702,13 +3702,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -3727,13 +3727,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -3981,7 +3981,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -3989,7 +3989,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -3997,7 +3997,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -4005,7 +4005,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -4015,14 +4015,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -4085,13 +4085,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -4110,13 +4110,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -4135,13 +4135,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -4160,13 +4160,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -4414,7 +4414,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -4422,7 +4422,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -4430,7 +4430,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -4438,7 +4438,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -4448,14 +4448,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -4518,13 +4518,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -4543,13 +4543,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -4568,13 +4568,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -4593,13 +4593,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -4847,7 +4847,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -4855,7 +4855,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -4863,7 +4863,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -4871,7 +4871,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -4881,14 +4881,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -4951,13 +4951,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -4976,13 +4976,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -5001,13 +5001,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -5026,13 +5026,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -5051,13 +5051,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "黄女士 · 商务出差",
      "guest": {
       "surname": "黄",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "商务出差",
       "roomType": "套房",
       "nights": 3,
@@ -5305,7 +5305,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -5313,7 +5313,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -5321,7 +5321,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -5329,7 +5329,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -5339,14 +5339,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -5409,13 +5409,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -5434,13 +5434,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -5459,13 +5459,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -5484,13 +5484,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -5738,7 +5738,7 @@
    "events": [
     {
      "type": "good",
-     "icon": "📸",
+     "icon": "event.influencer",
      "name": "网红探店",
      "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
      "impact": "口碑 +2%",
@@ -5746,7 +5746,7 @@
     },
     {
      "type": "bad",
-     "icon": "🚱",
+     "icon": "event.water",
      "name": "市政停水半日",
      "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
      "impact": "出租率 -5%",
@@ -5754,7 +5754,7 @@
     },
     {
      "type": "good",
-     "icon": "🎪",
+     "icon": "event.expo",
      "name": "会展旺季",
      "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
      "impact": "出租率 +5%",
@@ -5762,7 +5762,7 @@
     },
     {
      "type": "good",
-     "icon": "🎆",
+     "icon": "event.holiday",
      "name": "节假日爆单",
      "text": "节假日来临，周边客流量大增，出租率 +8%",
      "impact": "出租率 +8%",
@@ -5772,14 +5772,14 @@
    "eventAttrEffects": [
     {
      "name": "网红探店",
-     "icon": "📸",
+     "icon": "event.influencer",
      "deltas": {
       "reputation": 3
      }
     },
     {
      "name": "会展旺季",
-     "icon": "🎪",
+     "icon": "event.expo",
      "deltas": {
       "morale": 2
      }
@@ -5842,13 +5842,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "郭女士 · 会议客人",
      "guest": {
       "surname": "郭",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "标准双床",
       "nights": 5,
@@ -5867,13 +5867,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "林女士 · 家庭出游",
      "guest": {
       "surname": "林",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "家庭出游",
       "roomType": "标准双床",
       "nights": 1,
@@ -5892,13 +5892,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "罗先生 · 会议客人",
      "guest": {
       "surname": "罗",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "会议客人",
       "roomType": "套房",
       "nights": 1,
@@ -5917,13 +5917,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "🧑",
+     "avatar": "guest",
      "name": "王先生 · 旅行散客",
      "guest": {
       "surname": "王",
       "gender": "male",
       "title": "先生",
-      "avatar": "🧑",
+      "avatar": "guest",
       "persona": "旅行散客",
       "roomType": "大床房",
       "nights": 3,
@@ -5942,13 +5942,13 @@
      "bg": "green",
      "date": "第1周",
      "status": "good",
-     "avatar": "👩",
+     "avatar": "guest",
      "name": "黄女士 · 商务出差",
      "guest": {
       "surname": "黄",
       "gender": "female",
       "title": "女士",
-      "avatar": "👩",
+      "avatar": "guest",
       "persona": "商务出差",
       "roomType": "套房",
       "nights": 3,
@@ -6197,7 +6197,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -6205,7 +6205,7 @@
      },
      {
       "type": "bad",
-      "icon": "🚱",
+      "icon": "event.water",
       "name": "市政停水半日",
       "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
       "impact": "出租率 -5%",
@@ -6213,7 +6213,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -6221,7 +6221,7 @@
      },
      {
       "type": "good",
-      "icon": "🎆",
+      "icon": "event.holiday",
       "name": "节假日爆单",
       "text": "节假日来临，周边客流量大增，出租率 +8%",
       "impact": "出租率 +8%",
@@ -6231,14 +6231,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -6301,13 +6301,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "郭女士 · 会议客人",
       "guest": {
        "surname": "郭",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 5,
@@ -6326,13 +6326,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "林女士 · 家庭出游",
       "guest": {
        "surname": "林",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "标准双床",
        "nights": 1,
@@ -6351,13 +6351,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "罗先生 · 会议客人",
       "guest": {
        "surname": "罗",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 1,
@@ -6605,7 +6605,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -6613,7 +6613,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -6623,14 +6623,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -6693,13 +6693,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "郑先生 · 会议客人",
       "guest": {
        "surname": "郑",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 4,
@@ -6718,13 +6718,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 家庭出游",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 2,
@@ -6743,13 +6743,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "胡女士 · 家庭出游",
       "guest": {
        "surname": "胡",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "大床房",
        "nights": 2,
@@ -6997,7 +6997,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "🎂",
+      "icon": "role.hr",
       "name": "员工关怀日",
       "text": "为一线员工办生日会，服务热情度上升，客人感知更好",
       "impact": "口碑 +1%",
@@ -7007,7 +7007,7 @@
     "eventAttrEffects": [
      {
       "name": "员工关怀日",
-      "icon": "🎂",
+      "icon": "role.hr",
       "deltas": {
        "morale": 4
       }
@@ -7070,13 +7070,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 商务出差",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "标准双床",
        "nights": 2,
@@ -7095,13 +7095,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "陈女士 · 旅行散客",
       "guest": {
        "surname": "陈",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "旅行散客",
        "roomType": "大床房",
        "nights": 4,
@@ -7120,13 +7120,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 商务出差",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "套房",
        "nights": 3,
@@ -7146,13 +7146,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "张先生 · 会议客人",
       "guest": {
        "surname": "张",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 3,
@@ -7172,13 +7172,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 家庭出游",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 1,
@@ -7428,7 +7428,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -7436,7 +7436,7 @@
      },
      {
       "type": "bad",
-      "icon": "🚱",
+      "icon": "event.water",
       "name": "市政停水半日",
       "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
       "impact": "出租率 -5%",
@@ -7444,7 +7444,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -7452,7 +7452,7 @@
      },
      {
       "type": "good",
-      "icon": "🎆",
+      "icon": "event.holiday",
       "name": "节假日爆单",
       "text": "节假日来临，周边客流量大增，出租率 +8%",
       "impact": "出租率 +8%",
@@ -7462,14 +7462,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -7532,13 +7532,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "郭女士 · 会议客人",
       "guest": {
        "surname": "郭",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 5,
@@ -7557,13 +7557,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "林女士 · 家庭出游",
       "guest": {
        "surname": "林",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "标准双床",
        "nights": 1,
@@ -7582,13 +7582,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "罗先生 · 会议客人",
       "guest": {
        "surname": "罗",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 1,
@@ -7607,13 +7607,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "王先生 · 旅行散客",
       "guest": {
        "surname": "王",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "旅行散客",
        "roomType": "大床房",
        "nights": 3,
@@ -7861,7 +7861,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -7869,7 +7869,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -7879,14 +7879,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -7949,13 +7949,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "郑先生 · 会议客人",
       "guest": {
        "surname": "郑",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 4,
@@ -7974,13 +7974,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 家庭出游",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 2,
@@ -7999,13 +7999,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "胡女士 · 家庭出游",
       "guest": {
        "surname": "胡",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "大床房",
        "nights": 2,
@@ -8253,7 +8253,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "🎂",
+      "icon": "role.hr",
       "name": "员工关怀日",
       "text": "为一线员工办生日会，服务热情度上升，客人感知更好",
       "impact": "口碑 +1%",
@@ -8263,7 +8263,7 @@
     "eventAttrEffects": [
      {
       "name": "员工关怀日",
-      "icon": "🎂",
+      "icon": "role.hr",
       "deltas": {
        "morale": 4
       }
@@ -8326,13 +8326,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 商务出差",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "标准双床",
        "nights": 2,
@@ -8351,13 +8351,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "陈女士 · 旅行散客",
       "guest": {
        "surname": "陈",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "旅行散客",
        "roomType": "大床房",
        "nights": 4,
@@ -8376,13 +8376,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 商务出差",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "套房",
        "nights": 3,
@@ -8402,13 +8402,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "张先生 · 会议客人",
       "guest": {
        "surname": "张",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 3,
@@ -8428,13 +8428,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 家庭出游",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 1,
@@ -8684,7 +8684,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -8692,7 +8692,7 @@
      },
      {
       "type": "bad",
-      "icon": "🚱",
+      "icon": "event.water",
       "name": "市政停水半日",
       "text": "片区管网检修停水半天，部分客人提前退房，出租率 -5%",
       "impact": "出租率 -5%",
@@ -8700,7 +8700,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -8708,7 +8708,7 @@
      },
      {
       "type": "good",
-      "icon": "🎆",
+      "icon": "event.holiday",
       "name": "节假日爆单",
       "text": "节假日来临，周边客流量大增，出租率 +8%",
       "impact": "出租率 +8%",
@@ -8718,14 +8718,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -8788,13 +8788,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "郭女士 · 会议客人",
       "guest": {
        "surname": "郭",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 5,
@@ -8813,13 +8813,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "林女士 · 家庭出游",
       "guest": {
        "surname": "林",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "标准双床",
        "nights": 1,
@@ -8838,13 +8838,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "罗先生 · 会议客人",
       "guest": {
        "surname": "罗",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 1,
@@ -8863,13 +8863,13 @@
       "bg": "green",
       "date": "第1周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "王先生 · 旅行散客",
       "guest": {
        "surname": "王",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "旅行散客",
        "roomType": "大床房",
        "nights": 3,
@@ -9117,7 +9117,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "📸",
+      "icon": "event.influencer",
       "name": "网红探店",
       "text": "本地探店博主自发推荐了你家酒店，好评率小幅提升",
       "impact": "口碑 +2%",
@@ -9125,7 +9125,7 @@
      },
      {
       "type": "good",
-      "icon": "🎪",
+      "icon": "event.expo",
       "name": "会展旺季",
       "text": "片区大型会展开幕，周边酒店全线满房，本周出租率 +5%",
       "impact": "出租率 +5%",
@@ -9135,14 +9135,14 @@
     "eventAttrEffects": [
      {
       "name": "网红探店",
-      "icon": "📸",
+      "icon": "event.influencer",
       "deltas": {
        "reputation": 3
       }
      },
      {
       "name": "会展旺季",
-      "icon": "🎪",
+      "icon": "event.expo",
       "deltas": {
        "morale": 2
       }
@@ -9205,13 +9205,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "郑先生 · 会议客人",
       "guest": {
        "surname": "郑",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "标准双床",
        "nights": 4,
@@ -9230,13 +9230,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 家庭出游",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 2,
@@ -9255,13 +9255,13 @@
       "bg": "green",
       "date": "第2周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "胡女士 · 家庭出游",
       "guest": {
        "surname": "胡",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "大床房",
        "nights": 2,
@@ -9509,7 +9509,7 @@
     "events": [
      {
       "type": "good",
-      "icon": "🎂",
+      "icon": "role.hr",
       "name": "员工关怀日",
       "text": "为一线员工办生日会，服务热情度上升，客人感知更好",
       "impact": "口碑 +1%",
@@ -9519,7 +9519,7 @@
     "eventAttrEffects": [
      {
       "name": "员工关怀日",
-      "icon": "🎂",
+      "icon": "role.hr",
       "deltas": {
        "morale": 4
       }
@@ -9582,13 +9582,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 商务出差",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "标准双床",
        "nights": 2,
@@ -9607,13 +9607,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "陈女士 · 旅行散客",
       "guest": {
        "surname": "陈",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "旅行散客",
        "roomType": "大床房",
        "nights": 4,
@@ -9632,13 +9632,13 @@
       "bg": "green",
       "date": "第3周",
       "status": "good",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "杨女士 · 商务出差",
       "guest": {
        "surname": "杨",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "商务出差",
        "roomType": "套房",
        "nights": 3,
@@ -9658,13 +9658,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "🧑",
+      "avatar": "guest",
       "name": "张先生 · 会议客人",
       "guest": {
        "surname": "张",
        "gender": "male",
        "title": "先生",
-       "avatar": "🧑",
+       "avatar": "guest",
        "persona": "会议客人",
        "roomType": "套房",
        "nights": 3,
@@ -9684,13 +9684,13 @@
       "date": "第3周",
       "status": "good",
       "surge": "口碑爆发",
-      "avatar": "👩",
+      "avatar": "guest",
       "name": "李女士 · 家庭出游",
       "guest": {
        "surname": "李",
        "gender": "female",
        "title": "女士",
-       "avatar": "👩",
+       "avatar": "guest",
        "persona": "家庭出游",
        "roomType": "套房",
        "nights": 1,

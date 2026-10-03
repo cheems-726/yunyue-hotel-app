@@ -21,11 +21,11 @@ export const ROLE_BONUS = 1.3
 
 // 职务标签（界面显示用；owner 词汇与 decisions.js 一致）
 export const 职务标签 = {
-  lobby: '🛎️ 大堂经理',
-  finance: '💰 财务经理',
-  hr: '👥 人事经理',
-  ops: '📣 运营经理',
-  manager: '🧑‍💼 店长',
+  lobby: '大堂经理',
+  finance: '财务经理',
+  hr: '人事经理',
+  ops: '运营经理',
+  manager: '店长',
 }
 
 // 差评 cause（guests.js 的词表）→ 责任职务

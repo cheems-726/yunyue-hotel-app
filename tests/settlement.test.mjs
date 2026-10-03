@@ -237,8 +237,8 @@ const REV_DEC = { pricing: '跟降 10%', shifts: '精简省成本', hygiene: '�
 const rv = settle({ site: SITE, brand: BRAND, decisions: REV_DEC, week: 5, attrs: { quality: 45, reputation: 60, morale: 55 } })
 
 // ① 身份自洽：不会出现"先生/女士"与头像不符
-const badGuest = rv.generatedReviews.filter(r => !r.guest || !((r.guest.gender === 'male' && r.guest.title === '先生' && r.guest.avatar === '🧑') || (r.guest.gender === 'female' && r.guest.title === '女士' && r.guest.avatar === '👩')))
-ok(rv.generatedReviews.length > 0 && badGuest.length === 0, `身份自洽（${rv.generatedReviews.length} 条评价，全部 avatar↔title↔gender 一致）`, JSON.stringify(badGuest.slice(0, 1)))
+const badGuest = rv.generatedReviews.filter(r => !r.guest || !((r.guest.gender === 'male' && r.guest.title === '先生' && r.guest.avatar === 'guest') || (r.guest.gender === 'female' && r.guest.title === '女士' && r.guest.avatar === 'guest')))
+ok(rv.generatedReviews.length > 0 && badGuest.length === 0, `身份自洽（${rv.generatedReviews.length} 条评价，全部 title↔gender 一致 · avatar=guest 图标键）`, JSON.stringify(badGuest.slice(0, 1)))
 ok(rv.generatedReviews.every(r => r.avatar === r.guest.avatar && r.name === r.guest.card), 'avatar/name(名片) 与 guest 一致')
 
 // ② cause 绑定 + 可解释：每条都有合法 cause，且能反查到来源决策或明确为 null

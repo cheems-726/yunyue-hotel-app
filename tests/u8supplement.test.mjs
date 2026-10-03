@@ -67,7 +67,7 @@ console.log('\n[2] §2① 教师端注入面板：真调单源 + 周粒度说明
   //   "把渲染整块摘掉"照样绿（面板变死代码却无人报警 = 本项目老病的同族）。
   ok(/\{view === 'inject' && <InjectionPanel/.test(TD), '★ 注入面板真的挂在视图上（view=inject 渲染 —— 不是死代码）')
   ok(/\{view === 'supervisor' && <SupervisorPanel/.test(TD), '★ 领班授权页真的挂在视图上（view=supervisor 渲染 —— 不是死代码）')
-  ok(/v: 'inject', icon: '📌'/.test(TD) && /v: 'supervisor', icon: '🤖'/.test(TD), '「我的」功能入口含注入/领班两条（老师找得到）')
+  ok(/v: 'inject', icon: 'note.caliber'/.test(TD) && /v: 'supervisor', icon: 'role.manager'/.test(TD), '「我的」功能入口含注入/领班两条（老师找得到 · icon 键化 V10b）')
   // 行为：非法注入被拦
   ok(校验注入合法性({ 注入周: 2, 已结算周: 4 }).合法 === false, '★ 行为：注入周(2) ≤ 已结算周(4) ⇒ 非法（拦）')
 }
@@ -155,7 +155,7 @@ console.log('\n[5] §2④ AI 领班：不再死代码（有调用方）· 默认
 {
   ok(/import \{ 生效授权, 领班决策, 代管率 \} from '\.\/aiSupervisor\.mjs'/.test(APPJSX), '★ App 引用 aiSupervisor（生效授权/领班决策/代管率）—— 不再零调用方（死代码修复）')
   ok(/supervisorRecord/.test(APPJSX), 'App 结算后生成 result.supervisorRecord（随 history 持久化 ⇒ 复盘可见）')
-  ok(/operatorName: '🤖 AI 领班'/.test(APPJSX), '代管/建议逐条写 operatorLogs（代管人 = AI 领班 · 留痕）')
+  ok(/operatorName: 'AI 领班'/.test(APPJSX), '代管/建议逐条写 operatorLogs（代管人 = AI 领班 · 留痕 · 前缀 emoji 已剥 V10b）')
   ok(/依据规则: a\.ruleId/.test(APPJSX) || /依据规则: r\.ruleId/.test(APPJSX), '留痕带【依据规则 id】（谁/何时/什么/依据）')
   ok(/import \{ 默认授权, 领班规则 \} from '\.\/aiSupervisor\.mjs'/.test(TD), '教师端领班页 import 默认授权/领班规则（单源）')
   ok(/setClassSupervisorAuth/.test(TD), '教师端写全班默认授权（setClassSupervisorAuth）')

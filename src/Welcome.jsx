@@ -2,12 +2,12 @@
 // 欢迎页：首次登录的引导，介绍整个经营流程
 export default function Welcome({ user, onStart }) {
   const steps = [
-    { icon: '🗺️', title: '选址', desc: '在成德绵片区选择你的酒店所在地' },
-    { icon: '🏷️', title: '选品牌', desc: '从华住30+品牌中选择经营品牌' },
-    { icon: '🏨', title: '认领酒店', desc: '走加盟流程，认领一家真实物业' },
-    { icon: '🏗️', title: '筹建开业', desc: '投资/证照/采购/开业，从零开酒店' },
-    { icon: '📈', title: '连续经营', desc: '12周经营，每周决策、结算、复盘' },
-    { icon: '🏆', title: '最终评分', desc: '利润/口碑/出租率/差评处理四维评分' },
+    { icon: 'search', title: '选址', desc: '在成德绵片区选择你的酒店所在地' },
+    { icon: 'campaign', title: '选品牌', desc: '从华住30+品牌中选择经营品牌' },
+    { icon: 'prop.hotel', title: '认领酒店', desc: '走加盟流程，认领一家真实物业' },
+    { icon: 'ops.repair', title: '筹建开业', desc: '投资/证照/采购/开业，从零开酒店' },
+    { icon: 'nav.report', title: '连续经营', desc: '12周经营，每周决策、结算、复盘' },
+    { icon: 'achv.title', title: '最终评分', desc: '利润/口碑/出租率/差评处理四维评分' },
   ]
 
   return (
@@ -15,7 +15,7 @@ export default function Welcome({ user, onStart }) {
       {/* 欢迎区 */}
       <div style={{ textAlign: 'center', padding: '40px 20px 20px' }}>
         <div style={{ width: 88, height: 88, borderRadius: 28, background: '#FFF4E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(232,148,15,0.15)' }}>
-          🏨
+ 
         </div>
         <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.3px' }}>欢迎你，{user?.name}</div>
         <div style={{ fontSize: 14, color: '#6B7280', marginTop: 8, lineHeight: 1.6 }}>
@@ -39,7 +39,7 @@ export default function Welcome({ user, onStart }) {
       {/* 开始按钮 */}
       <div style={{ padding: '24px 20px 32px', marginTop: 'auto' }}>
         <button className="btn-confirm" onClick={onStart}>
-          🚀 开始我的酒店之旅
+          开始我的酒店之旅
         </button>
       </div>
     </div>

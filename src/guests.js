@@ -50,7 +50,7 @@ export function guestOf(rnd) {
   const surname = pickOne(SURNAMES, r)
   const gender = r() < 0.5 ? 'male' : 'female'
   const title = gender === 'male' ? '先生' : '女士'   // ← 称呼由 gender 决定，不再随机
-  const avatar = gender === 'male' ? '🧑' : '👩'      // ← 与 gender 严格一致（避免"王先生配👩"）
+  const avatar = 'guest'   // V10b：头像统一项目图标（渲染点 <Icon name="guest"/>）      // ← 与 gender 严格一致（避免"王先生配👩"）
   const persona = pickOne(PERSONAS, r)
   const roomType = pickOne(ROOM_TYPES, r)
   const nights = 1 + Math.floor(r() * 5)              // 1~5 晚
