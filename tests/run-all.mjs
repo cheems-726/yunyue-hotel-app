@@ -147,6 +147,7 @@ const SUITES = [
         + '二分已排除本批代码（src 退回 5dad7dc 同样 8 红 · 周五 2026-10-03 同套件 37/0）。'
         + '★ 修法方向（待决策 V12-⑤）：套件内把 MockDate 基准设为最近一个教学日，或 app 暴露测试钩子；'
         + '教学日（周一至周五）应复绿 37/0 —— 复绿后从本表移除。',
+      since: '2026-10-04', decision: 'V12-⑤（待决策队列）', owner: '决策端',
     } },
   { name: 'location-matrix（选址矩阵）', file: 'tests/location-matrix.mjs', knownRed: {
       reason: '★ 【口径：含加盟两费（§14.3 起）】本轮实测 {死亡选址}：'
