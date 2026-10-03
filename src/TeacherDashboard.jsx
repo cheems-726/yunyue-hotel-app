@@ -427,7 +427,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
 // ★ §32-U8-补 §2①：老师事件注入面板（一期 · 周粒度）
 //   · 通道：class_state.injected_events（老师专属写 / 全班读 —— 学生端整包保存不会覆盖它）
 //   · 公平红线 (a)：注入前对每个目标组调 校验注入合法性({注入周, 已结算周})，不合法**当场拦**（不等结算才发现）
-//   · ★ 一期只到「周」粒度：事件选「第 N 周」，结算第 N 周时生效；不承诺「第 D 天」（二期真日引擎兑现）
+//   · ★ §33-V8：支持「整周」或「指定第 D 天起」（生效日分段 · weekSegments 按天生效通道）；不承诺分钟级精度
 function InjectionPanel({ rawStates, profiles, user }) {
   const [库, set库] = useState(null)          // null=拉取中；[]=空
   const [通道就绪, set通道就绪] = useState(null)
@@ -528,11 +528,11 @@ function InjectionPanel({ rawStates, profiles, user }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title">📌 老师事件注入（一期 · 周粒度）</div>
+        <div className="card-title">📌 老师事件注入（内置 35 条 + 自定义 · 支持按日程）</div>
         <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.7, marginBottom: 8 }}>
-          选事件 × 选周 × 选对象 ⇒ 写入全班通道 ⇒ <b>该周结算时生效</b>。<br />
-          ★ 一期只到「周」粒度：事件选「第 N 周」，<b>不承诺「第 D 天」</b>（二期真日引擎兑现）。<br />
-          ★ 公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同周生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
+          选事件 × 选时间 × 选对象 ⇒ 写入全班通道 ⇒ 结算时生效。<br />
+          ★ §33-V8 支持按日程：<b>整周生效 或 指定「第 D 天」起</b>（生效日分段 · 前 3 天不带第 4 天起带）。<br />
+          ★ 公平三红线：①只影响未来（注入前当场校验，不合法拦住）②全班同步（同一事件同天生效，不为离线组卡住全班）③离线补算按最差 + 周报显著标注。
         </div>
         {通道就绪 === false && (
           <div style={{ fontSize: 11, color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
@@ -674,15 +674,23 @@ function InjectionPanel({ rawStates, profiles, user }) {
         <div className="card-title">📋 已注入事件（全班通道 · 老师可查 / 学生周报可见）</div>
         {库 === null && <div style={{ fontSize: 12, color: '#9CA3AF' }}>加载中…</div>}
         {库 && 库.length === 0 && <div style={{ fontSize: 12, color: '#9CA3AF' }}>暂无注入记录。</div>}
-        {(库 || []).slice().sort((a, b) => Number(b.week) - Number(a.week)).map(x => (
+        {(库 || []).slice().sort((a, b) => Number(b.week) - Number(a.week)).map(x => {
+          // ★ §33-V7-0.5③：状态标签（待生效/已生效/已过期）—— 按当前教学周 vs 事件周（服务端 classDay 权威）
+          const 状态 = (classDay > 0 && Number(x.week) < Math.ceil(classDay / 7)) ? { 字: '已过期', 色: '#9CA3AF', 底: '#F9FAFB' }
+            : (classDay > 0 && Number(x.week) === Math.ceil(classDay / 7)) ? { 字: '已生效（本周）', 色: '#065F46', 底: '#EAF9F0' }
+            : { 字: '待生效', 色: '#A96407', 底: '#FFF9F0' }
+          return (
           <div key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#F9FAFB', borderRadius: 8, marginBottom: 6 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>{x.icon} 第 {x.week} 周 · {(x.name || '').replace('📌 老师注入 · ', '')}</div>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>{x.icon} 第 {x.week} 周{x.生效日 ? ` 第 ${x.生效日} 天起` : ''} · {(x.name || '').replace('📌 老师注入 · ', '')}
+                <span style={{ fontSize: 9, fontWeight: 700, color: 状态.色, background: 状态.底, borderRadius: 5, padding: '1px 6px', marginLeft: 6 }}>{状态.字}</span>
+              </div>
               <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{Array.isArray(x.targets) && x.targets.length ? `指定组：${x.targets.join('、')}` : '全班'} · 注入人 {x.injectedBy || '?'} · {String(x.injectedAt || '').slice(0, 16).replace('T', ' ')}</div>
             </div>
             <button onClick={() => 撤销(x)} disabled={忙} style={{ fontSize: 10, fontWeight: 700, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', background: '#FEF2F2', color: '#991B1B' }}>撤销</button>
           </div>
-        ))}
+          )
+        })}
         <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.6 }}>撤销同样遵守「只影响未来」：该周一旦有目标组结算过 ⇒ 不再可撤。</div>
       </div>
     </div>
