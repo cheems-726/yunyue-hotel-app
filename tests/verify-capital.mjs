@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs'
 import { SCALE } from '../src/stateMigration.mjs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const PORT = 5199
+const PORT = 4177
 const BASE = `http://localhost:${PORT}/`
 const results = []
 const sleep = ms => new Promise(r => setTimeout(r, ms))
