@@ -57,7 +57,7 @@ console.log('【RV §32-U8-补】界面接线摘掉 ⇒ 必红（红→绿可逆
   `      {/* ★ §32-U8-补 §2①：老师事件注入面板 */}
       {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}`,
   `      {/* RV：注入面板被摘除 */}`,
-  'import 注入事件库')
+  '注入面板 import 单源（含 V8 自定义/效力/按日）')
 // RV-4：附 —— reportCaliber 属性列【品质位】加严（篡改文档 ⇒ 必红）
 {
   const 备份 = readFileSync(长跑报告, 'utf8')
