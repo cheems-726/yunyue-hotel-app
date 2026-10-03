@@ -155,8 +155,8 @@ function LoginPage({ onLogin }) {
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>连锁酒店经营模拟系统</div>
         </div>
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, marginBottom: 16 }}>请选择你的身份</div>
-        <button className="btn btn-primary" style={{ padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>
-        <button className="btn btn-ghost" style={{ padding: '16px 0', fontSize: 16 }} onClick={() => chooseRole('teacher')}>我是老师</button>
+        <button className="btn btn-primary" style={{ flex: '0 0 auto', padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>
+        <button className="btn btn-ghost" style={{ flex: '0 0 auto', padding: '16px 0', fontSize: 16 }} onClick={() => chooseRole('teacher')}>我是老师</button>
       </div>
     )
   }
@@ -2386,7 +2386,7 @@ export default function App() {
   function handleNextWeek() {
     const newHistory = [...history, report]
     setHistory(newHistory)
-    setDecisionChanges([])          // 🔴 E2：本周流水已进周报 ⇒ 清空，下周重新记
+    setDecisionChanges([])          // E2：本周流水已进周报 ⇒ 清空，下周重新记
     prevDecisionsRef.current = {}   // 新一周：首次填写不算"改动"
     if (week >= 12) {
       // 12周经营结束，出最终成绩
@@ -2456,7 +2456,7 @@ export default function App() {
   // 老师登录 → 直接进教师后台（不走选址/品牌/认领/筹建）
   if (user.role === 'teacher') {
     return (
-      <div className="app">
+      <div className="app" data-role="teacher">
         <div className="statusbar">
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />

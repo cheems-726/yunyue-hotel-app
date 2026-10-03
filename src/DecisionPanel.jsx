@@ -182,7 +182,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ display: 'inline-block', fontSize: 13, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}
@@ -268,7 +268,9 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         {decision.type === 'timer' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 44, fontWeight: 700, color: timeLeft <= 10 ? 'var(--bad)' : 'var(--warn)' }}>{timeLeft}s</div>
+              <div style={{ width: 96, height: 96, margin: '0 auto 8px', borderRadius: '50%', background: `conic-gradient(var(--primary) ${Math.round((timeLeft / 30) * 360)}deg, var(--fill) 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 78, height: 78, borderRadius: '50%', background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: timeLeft <= 10 ? 'var(--bad)' : 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{timeLeft}</div>
+              </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>倒计时中，请尽快决策</div>
             </div>
             {decision.options.map(o => (
@@ -281,7 +283,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ display: 'inline-block', fontSize: 13, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}

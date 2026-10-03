@@ -781,7 +781,15 @@ function SupervisorPanel({ rawStates, profiles }) {
 }
 
 export default function TeacherDashboard({ user, onLogout }) {
-  const [view, setView] = useState('live') // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
+  const [view, setView] = useState('live')
+  // ★ V10b：>1024 三栏后台（照稿 _mockup-v10b-老师端）—— 顶栏 + 左导航 168 + 主区 + 注入右栏 250
+  const [大屏, set大屏] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1025px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1025px)')
+    const fn = e => set大屏(e.matches)
+    mq.addEventListener ? mq.addEventListener('change', fn) : mq.addListener(fn)
+    return () => { mq.removeEventListener ? mq.removeEventListener('change', fn) : mq.removeListener(fn) }
+  }, []) // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
   const [rankBy, setRankBy] = useState('score') // 排名排序维度：score/profit/occ/rating
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
   const [cloudOk, setCloudOk] = useState(true)
@@ -968,6 +976,35 @@ export default function TeacherDashboard({ user, onLogout }) {
 
   return (
     <>
+    {大屏 && (
+      <div className="t-top">
+        <b>云悦酒店 · 教学控制台</b>
+        <span>{(profiles && profiles[0] && profiles[0].class_name) || '模拟班'} · 第 {classWeek > 0 ? classWeek : 1} 周起</span>
+        <span>学生 {profiles ? profiles.length : 0} 人</span>
+        <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+    )}
+    <div className="t-body3">
+    {大屏 && (
+      <nav className="t-nav">
+        {[
+          { k: 'live', icon: 'nav.live', t: '实时决策' },
+          { k: 'ranking', icon: 'nav.rank', t: '排名' },
+          { k: 'overview', icon: 'nav.report', t: '班级总览' },
+          { k: 'inject', icon: 'note.caliber', t: '事件注入' },
+          { k: 'supervisor', icon: 'role.manager', t: 'AI 领班' },
+          { k: 'groups', icon: 'nav.group', t: '分组管理' },
+          { k: 'teaching', icon: 'teach.point', t: '教学参考' },
+          { k: 'me', icon: 'nav.me', t: '我的' },
+        ].map(x => (
+          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => setView(x.k === 'inject' && 大屏 ? 'overview' : x.k)}>
+            <Icon name={x.icon} size={16} />{x.t}
+          </a>
+        ))}
+        <a onClick={onLogout} style={{ color: 'var(--bad)' }}><Icon name="event.resign" size={16} />退出登录</a>
+      </nav>
+    )}
+    <div className="t-main">
     <div className="content" style={{ paddingBottom: 24 }}>
       <div className="header">
         <div className="row1"><span className="hotel-name">教师后台</span></div>
@@ -1388,8 +1425,8 @@ export default function TeacherDashboard({ user, onLogout }) {
             {visibleRanked.map((g, i) => (
               <div key={g.uid}>
               <div onClick={() => setExpandedUid(expandedUid === g.uid ? null : g.uid)} style={{ padding: '12px', background: '#fff', borderRadius: expandedUid === g.uid ? '10px 10px 0 0' : 10, marginBottom: expandedUid === g.uid ? 0 : 8, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}>
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.01)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = '' }}>
                 <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? 'var(--warn-border)' : i === 1 ? 'var(--border)' : i === 2 ? 'var(--warn-bg)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                   {['①', '②', '③'][i] ?? (i + 1)}
                 </span>
@@ -1517,7 +1554,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       )}
 
  {/* §32-U8-补 §2①：老师事件注入面板 */}
-      {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
+      {view === 'inject' && !大屏 && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
 
  {/* §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
       {view === 'supervisor' && <SupervisorPanel rawStates={rawStates} profiles={profiles} />}
@@ -1633,7 +1670,10 @@ export default function TeacherDashboard({ user, onLogout }) {
 
       </div>
     </div>
-    {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
+       </div>
+    {大屏 && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} /></aside>}
+    </div>
+ {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     <div className="tabbar">
       {[
         { key: 'live', icon: 'nav.live', label: '实时决策' },

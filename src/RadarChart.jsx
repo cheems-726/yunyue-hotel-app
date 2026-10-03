@@ -19,20 +19,20 @@ export default function RadarChart({ attrs, size = 220 }) {
   return (
     <svg viewBox="0 0 240 204" style={{ width: size, maxWidth: '100%', display: 'block', margin: '0 auto' }}>
       {[1, 2, 3, 4, 5].map(v => (
-        <polygon key={v} points={ring(v)} fill={v === 5 ? '#F9FAFB' : 'none'} stroke={v === 5 ? '#E5E7EB' : '#F3F4F6'} strokeWidth="1" />
+        <polygon key={v} points={ring(v)} fill={v === 5 ? 'var(--bg)' : 'none'} stroke={v === 5 ? 'var(--border)' : 'var(--fill)'} strokeWidth="1" />
       ))}
       {dims.map((_, i) => {
         const [x, y] = pt(i, 5)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#F3F4F6" strokeWidth="1" />
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--fill)" strokeWidth="1" />
       })}
-      <polygon points={dims.map((k, i) => pt(i, attrs[k] || 1).join(',')).join(' ')} fill="rgba(232,148,15,0.22)" stroke="#E8940F" strokeWidth="2" />
+      <polygon points={dims.map((k, i) => pt(i, attrs[k] || 1).join(',')).join(' ')} fill="rgba(232,148,15,0.22)" stroke="var(--primary)" strokeWidth="2" />
       {dims.map((k, i) => {
         const [x, y] = pt(i, attrs[k] || 1)
         const lb = labelPos(i)
         return (
           <g key={k}>
-            <circle cx={x} cy={y} r="2.5" fill="#E8940F" />
-            <text x={lb.x} y={lb.y} textAnchor={lb.anchor} fontSize="11" fill="#6B7280" fontWeight="600">{k} {attrs[k]}</text>
+            <circle cx={x} cy={y} r="2.5" fill="var(--primary)" />
+            <text x={lb.x} y={lb.y} textAnchor={lb.anchor} fontSize="11" fill="var(--text-sub)" fontWeight="600">{k} {attrs[k]}</text>
           </g>
         )
       })}

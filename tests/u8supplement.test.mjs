@@ -65,7 +65,7 @@ console.log('\n[2] §2① 教师端注入面板：真调单源 + 周粒度说明
   ok(/disabled=\{忙 \|\| !全部合法 \|\| !通道就绪\}/.test(TD), '注入按钮在校验不通过时禁用（公平红线机器化）')
   // ★ 死代码判据（RV-3 实测补上）：面板必须真的挂在【视图 + 入口】上 —— 只查 import/内部实现的话，
   //   "把渲染整块摘掉"照样绿（面板变死代码却无人报警 = 本项目老病的同族）。
-  ok(/\{view === 'inject' && <InjectionPanel/.test(TD), '★ 注入面板真的挂在视图上（view=inject 渲染 —— 不是死代码）')
+  ok(/\{view === 'inject' && !大屏 && <InjectionPanel/.test(TD) && /className="t-side"><InjectionPanel/.test(TD), '★ 注入面板真的挂在视图上（小屏 view=inject 渲染 + 大屏 t-side 右栏常驻 —— 不是死代码 · V10b 三栏）')
   ok(/\{view === 'supervisor' && <SupervisorPanel/.test(TD), '★ 领班授权页真的挂在视图上（view=supervisor 渲染 —— 不是死代码）')
   ok(/v: 'inject', icon: 'note.caliber'/.test(TD) && /v: 'supervisor', icon: 'role.manager'/.test(TD), '「我的」功能入口含注入/领班两条（老师找得到 · icon 键化 V10b）')
   // 行为：非法注入被拦
