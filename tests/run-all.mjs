@@ -163,7 +163,12 @@ const SUITES = [
       since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
-  { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true },
+  { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true, knownRed: {
+      reason: '★ 【V12 批10 发现 · 跨周末脚手架缺陷】周六非教学日 ⇒ 游戏日不推进 ⇒ A 段 0 产出（2026-10-04 稳定复现）。'
+        + '二分排除本批代码（src@5dad7dc 同样 8 红 · 周五 10-03 同套件 37/0）。'
+        + '★ 修法待决策 V12-⑤：MockDate 基准设为最近教学日或 app 暴露测试钩子；教学日复绿 37/0 后移除本条。',
+      since: '2026-10-04', decision: 'V12-⑤（待决策队列）', owner: '决策端',
+    } },
   { name: 'ui-smoke（已并入 npm run test:ui）', file: null, npm: 'test:ui', browser: true, note: '含 build' },
 ]
 
