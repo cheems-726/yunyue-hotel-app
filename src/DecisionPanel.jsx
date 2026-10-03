@@ -122,8 +122,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               : { bg: 'var(--bad-bg)', fg: 'var(--bad)', bd: 'var(--bad-border)' }
           return (
             <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 7px', background: 色.bg, color: 色.fg, border: '1px solid ' + 色.bd }}>{c.名}</span>
-              <span style={{ fontSize: 10, color: 'var(--text-sub)' }}>{c.说明}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, borderRadius: 4, padding: '2px 7px', background: 色.bg, color: 色.fg, border: '1px solid ' + 色.bd }}>{c.名}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>{c.说明}</span>
             </div>
           )
         })()}
@@ -131,11 +131,11 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
 
       <div className="card">
         <div className="card-title"><Icon name={decision.icon} size={16} /> {decision.name}</div>
-        <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
+        <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 12, lineHeight: 1.6 }}>{decision.desc}</div>
 
         {/* 上周状态参考：让决策有依据 */}
         {lastReport && (
-          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, marginBottom: 12, fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.7 }}>
+          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, marginBottom: 12, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
             上周参考：出租率 <b style={{ color: 'var(--text)' }}>{lastReport.occupancy}%</b> · 利润 <b style={{ color: lastReport.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{lastReport.profit >= 0 ? '+' : ''}{lastReport.profit}元</b> · 差评 {lastReport.negativeCount} 条 · 好评率 {lastReport.finalGoodRate}%
           </div>
         )}
@@ -147,16 +147,16 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
           const changed = trail.length >= 2 && trail[trail.length - 1].choice !== trail[trail.length - 2].choice
           return (
             <div style={{ padding: '10px 12px', background: changed ? 'var(--primary-bg)' : 'var(--bg)', borderRadius: 10, marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>
                 该决策近{trail.length}周轨迹 {changed && <span style={{ color: 'var(--primary)' }}>· 上周换了打法</span>}
               </div>
               {trail.map(x => (
-                <div key={x.week} style={{ fontSize: 11, color: 'var(--text)', padding: '2px 0', lineHeight: 1.5 }}>
+                <div key={x.week} style={{ fontSize: 12, color: 'var(--text)', padding: '2px 0', lineHeight: 1.5 }}>
                   第{x.week}周：<b>{x.choice.length > 30 ? x.choice.slice(0, 30) + '…' : x.choice}</b>
                   <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>出租率 {x.occ}% · 利润 {x.profit >= 0 ? '+' : ''}{x.profit}元</span>
                 </div>
               ))}
-              {changed && <div style={{ fontSize: 10, color: 'var(--info)', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
+              {changed && <div style={{ fontSize: 12, color: 'var(--info)', marginTop: 4 }}>上周已经换过打法——这次再换前，先想想上周换了之后结果如何</div>}
             </div>
           )
         })()}
@@ -179,10 +179,10 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 style={{ padding: 14, marginBottom: 8 }}
                 onClick={() => pickOption(o.label, o.result)}
               >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ display: 'inline-block', fontSize: 13, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ display: 'inline-block', fontSize: 16, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}
@@ -204,7 +204,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               onTouchMove={e => e.stopPropagation()}
               style={{ width: '100%', accentColor: 'var(--primary)', touchAction: 'pan-y' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
               <span>{decision.min}{decision.unit}</span>
               <span>{decision.max}{decision.unit}</span>
             </div>
@@ -221,7 +221,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             {decision.items.map(item => (
               <div key={item} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{item}</span>
+                  <span style={{ fontSize: 16, fontWeight: 600 }}>{item}</span>
                   <span style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>{budget[item] || 0}</span>
                 </div>
                 <input
@@ -240,10 +240,10 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 />
               </div>
             ))}
-            <div style={{ fontSize: 13, color: budgetTotal > decision.total ? 'var(--bad)' : 'var(--warn)', fontWeight: 600, marginTop: 8 }}>
+            <div style={{ fontSize: 16, color: budgetTotal > decision.total ? 'var(--bad)' : 'var(--warn)', fontWeight: 600, marginTop: 8 }}>
               已分配：{budgetTotal} / {decision.total}{budgetTotal > decision.total ? '（超出预算！）' : ''}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
           </div>
         )}
 
@@ -253,14 +253,14 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             {sortItems.map((item, i) => (
               <div key={item} style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 10, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                <span style={{ fontSize: 14, flex: 1 }}>{item}</span>
+                <span style={{ fontSize: 16, flex: 1 }}>{item}</span>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === 0 ? 'default' : 'pointer', fontSize: 14, opacity: i === 0 ? 0.4 : 1 }}>↑</button>
-                  <button onClick={() => moveItem(i, 1)} disabled={i === sortItems.length - 1} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === sortItems.length - 1 ? 'default' : 'pointer', fontSize: 14, opacity: i === sortItems.length - 1 ? 0.4 : 1 }}>↓</button>
+                  <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === 0 ? 'default' : 'pointer', fontSize: 16, opacity: i === 0 ? 0.4 : 1 }}>↑</button>
+                  <button onClick={() => moveItem(i, 1)} disabled={i === sortItems.length - 1} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: '#fff', cursor: i === sortItems.length - 1 ? 'default' : 'pointer', fontSize: 16, opacity: i === sortItems.length - 1 ? 0.4 : 1 }}>↓</button>
                 </div>
               </div>
             ))}
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
           </div>
         )}
 
@@ -280,15 +280,15 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                 style={{ padding: 14, marginBottom: 8 }}
                 onClick={() => pickOption(o.label, o.result)}
               >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{o.label}</div>
  {/* §32-U4c-R6 原则④：代价可见（每选项一行；文案来自单源） */}
                 {代价文案(decision.id, o.label) && (
-                  <div style={{ display: 'inline-block', fontSize: 13, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
+                  <div style={{ display: 'inline-block', fontSize: 16, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', borderRadius: 7, padding: '3px 8px', marginTop: 6, lineHeight: 1.5 }}>{代价文案(decision.id, o.label)}</div>
                 )}
               </div>
             ))}
             {timeLeft === 0 && !selected && (
-              <div style={{ color: 'var(--bad)', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>时间到！已默认"不处理"</div>
+              <div style={{ color: 'var(--bad)', fontSize: 16, fontWeight: 600, textAlign: 'center' }}>时间到！已默认"不处理"</div>
             )}
           </div>
         )}

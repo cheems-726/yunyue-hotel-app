@@ -115,14 +115,14 @@ export default function BrandSelection({ location, onConfirm }) {
         <div className="sub">品牌决定物业标准、加盟费用、房价带</div>
       </div>
 
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 20px', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 20px', marginBottom: 8 }}>
         华住全品牌 · 共 {brandGroups.reduce((s, g) => s + g.brands.length, 0)} 个，点击选择
       </div>
-      <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, fontSize: 10, color: 'var(--warn)', lineHeight: 1.6 }}>
+      <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}>
         免责声明：本系统中的酒店价格为<b>模拟经营数据</b>，仅供教学演示使用，不代表实际市场定价。实际投资需以专业可行性调研为准。
       </div>
       {location && maxTier < 5 && (
-        <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, fontSize: 11, color: 'var(--bad)' }}>
+        <div style={{ margin: '0 20px 12px', padding: '8px 12px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, fontSize: 12, color: 'var(--bad)' }}>
           {location.district}（客流{flow}档）限开：{maxTier === 1 ? '仅经济型品牌' : '经济型～中端型品牌'}，高端品牌在此区域必亏
         </div>
       )}
@@ -143,8 +143,8 @@ export default function BrandSelection({ location, onConfirm }) {
         {brandGroups.map((g, gi) => (
           <div key={g.level} style={{ marginBottom: 16 }}>
             <div style={{ background: 'var(--warn-bg)', borderRadius: 12, padding: '10px 14px', marginBottom: 8, border: '1px solid var(--warn-border)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)', marginBottom: 4 }}>{g.level}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--warn)', marginBottom: 4 }}>{g.level}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
                 {gi === 0 && '经济型酒店主打干净、便捷、高性价比。装修简约，服务标准化，目标客群是预算有限的出差和旅行客人。房量与装修门槛最低，适合新手起步。'}
                 {gi === 1 && '中端型酒店强调设计感和舒适体验，房价更高但客人要求也更高。需要平衡品质与成本，是竞争最激烈的档次。'}
                 {gi === 2 && '中高端酒店在硬件和服务上全面升级，房价400+，对服务细节要求极高。适合有一定经营经验的团队。'}
@@ -152,7 +152,7 @@ export default function BrandSelection({ location, onConfirm }) {
                 {gi === 4 && '奢华酒店是顶级定位，极致服务和独特设计，目标客群是高端商务和奢侈品消费者。只有最优秀的团队才能盈利。'}
               </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)', marginBottom: 8, padding: '0 4px' }}>{g.level}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--warn)', marginBottom: 8, padding: '0 4px' }}>{g.level}</div>
             {g.brands.map(b => {
               const 超档 = gi + 1 > maxTier
               return (
@@ -163,22 +163,22 @@ export default function BrandSelection({ location, onConfirm }) {
                 style={{ marginBottom: 8, padding: 12, ...(超档 ? { opacity: 0.45, cursor: 'not-allowed', background: 'var(--fill)' } : {}) }}
               >
                 {超档 && (
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--bad)', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bad)', marginBottom: 4 }}>
                     超出本区档次上限（限开 {maxTier} 档）—— 不可选
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}><Icon name={b.icon} size={16} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.name}</span>
+                  <span style={{ fontSize: 16, fontWeight: 700 }}><Icon name={b.icon} size={16} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.name}</span>
                   {selected === b.name && (
- <span style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: 'var(--primary)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}></span>
+ <span style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: '50%', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}></span>
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginTop: 4 }}>{b.desc}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>加盟费 {b.fee}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>单房造价 {b.cost}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>门市价 {b.price}</span>
-                  <span style={{ fontSize: 10, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>房量 {b.standard}</span>
+                  <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>加盟费 {b.fee}</span>
+                  <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>单房造价 {b.cost}</span>
+                  <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>门市价 {b.price}</span>
+                  <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>房量 {b.standard}</span>
                 </div>
               </div>
               )})}

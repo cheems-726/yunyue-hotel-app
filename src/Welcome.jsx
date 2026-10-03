@@ -20,7 +20,7 @@ export default function Welcome({ user, onStart }) {
  
         </div>
         <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.3px' }}>欢迎你，{user?.name}</div>
-        <div style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 16, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.6 }}>
           你将体验从零开始经营一家酒店的完整过程
         </div>
       </div>
@@ -31,7 +31,7 @@ export default function Welcome({ user, onStart }) {
           <div key={s.title} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: i < steps.length - 1 ? '1px solid var(--fill)' : 'none' }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}><Icon name={s.icon} size={22} /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{i + 1}. {s.title}</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{i + 1}. {s.title}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{s.desc}</div>
             </div>
           </div>

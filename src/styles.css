@@ -294,10 +294,11 @@ body {
 .city-tab.active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); }
 
 /* 区县/选项卡片 */
-.district-list { padding: 0 20px; }
+.district-list { padding: 0 20px; display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 481px) { .district-list { grid-template-columns: repeat(2, 1fr); } }
 .district-card {
   border: 1px solid var(--border); border-radius: 14px; padding: 16px;
-  margin-bottom: 10px; cursor: pointer; background: var(--card);
+  cursor: pointer; background: var(--card);
   transition: border-color 0.2s, background 0.2s;
 }
 .district-card.selected { border-color: var(--primary); background: var(--primary-bg); }
@@ -470,4 +471,16 @@ input[type="range"]::-webkit-slider-thumb {
     display: block; width: 250px; flex: none; background: var(--card);
     border-left: 1px solid var(--border); padding: 12px; overflow-y: auto;
   }
+}
+
+/* ── V12批8 · 打印 A4（周报 / 期末成绩单 · 一页 · 无裁切）── */
+@media print {
+  /* 只打主内容：导航/状态栏/按钮/弹层全收 */
+  .tabbar, .statusbar, .edge-guard, .modal-mask, button { display: none !important; }
+  html, body, #root, .app { height: auto !important; overflow: visible !important; max-width: none !important; background: #fff !important; }
+  .content { overflow: visible !important; height: auto !important; padding: 0 8mm !important; animation: none !important; }
+  .card { break-inside: avoid; page-break-inside: avoid; margin: 0 0 6mm !important; max-width: none !important; }
+  /* 打印底色用白、字用深色（暗色变量在 print 下强制浅色语义） */
+  :root { --bg: #fff !important; --card: #fff !important; --text: #1d1d1f !important; --text-sub: #555 !important; --text-muted: #888 !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

@@ -132,6 +132,23 @@ for (const f of readdirSync(join(APP, 'src')).filter(f => f.endsWith('.jsx'))) {
 }
 ok(键名漏出.length === 0, '⑧ 可见文本不得出现图标键名（静态槽位扫描 · D133 缺陷家族）', 键名漏出.slice(0, 3).join(' | '))
 
+// ⑩ 学生端正文最小字号 ≥16px（V12批6 · M3 body-l · 静态层：学生端组件内联 fontSize 白名单 = {≥16, 12}
+const 学生端 = ['App.jsx', 'WeeklyReport.jsx', 'Reputation.jsx', 'DecisionPanel.jsx', 'HotelStatus.jsx',
+  'Claim.jsx', 'Establishment.jsx', 'SiteSelection.jsx', 'BrandSelection.jsx', 'FinalResult.jsx', 'Welcome.jsx', 'ResultFeedback.jsx']
+const 违小 = []
+for (const f of 学生端) {
+  const lines = readFileSync(join(APP, 'src', f), 'utf8').split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]
+    if (isComment(l)) continue
+    for (const m of l.matchAll(/fontSize:\s*(\d+)\b/g)) {
+      const v = Number(m[1])
+      if (v !== 12 && v < 16) 违小.push(`${f}:${i + 1}: ${v}px`)
+    }
+  }
+}
+ok(违小.length === 0, '⑩ 学生端 fontSize 白名单（≥16 正文 / 12 标签 · M3 body-l/label-m）', 违小.slice(0, 3).join(' | '))
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('RV（tests/_rv-33v10b.mjs）：塞回裸emoji / 断点锁回480 / 删暗色媒体查询 ⇒ 各必红')
 process.exit(fail ? 1 : 0)

@@ -60,5 +60,11 @@ const Css = join(APP, 'src', 'styles.css')
     '图标键名')
 }
 
-console.log(`\n判定：${全过 ? '✓ RV 全过（5 靶：emoji/锁断点/删dark/色值/键名漏出）' : '❌ 有靶子未按预期变红/还原'}`)
+// ⑥（V12批6）学生端正文调回 13px ⇒ 必红（⑩ 字号白名单）
+靶('RV-6 学生端正文调回 13px', App,
+  s => s.replace("fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>",
+                 "fontSize: 13, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>"),
+  'fontSize 白名单')
+
+console.log(`\n判定：${全过 ? '✓ RV 全过（6 靶：emoji/锁断点/删dark/色值/键名漏出/字号回退）' : '❌ 有靶子未按预期变红/还原'}`)
 process.exit(全过 ? 0 : 1)

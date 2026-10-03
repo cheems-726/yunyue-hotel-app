@@ -145,7 +145,7 @@ export default function SiteSelection({ onConfirm }) {
         <div className="card-title" style={{ marginBottom: 10 }}>地图选点（按真实方位）</div>
         {['成都', '德阳', '绵阳', '承德', '重庆'].map(city => (
           <div key={city} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 700, marginBottom: 4 }}>{city}</div>
+            <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700, marginBottom: 4 }}>{city}</div>
             <div style={{ position: 'relative', height: 44 * (Math.max(...cityGeo[city].map(p => p.row)) + 1), }}>
               {cityGeo[city].map(p => {
                 const d = districts[city].find(x => x.name === p.name)
@@ -164,14 +164,14 @@ export default function SiteSelection({ onConfirm }) {
                     }}
                   >
                     <div style={{ fontSize: 12, fontWeight: 600, color: isSel ? 'var(--warn)' : 'var(--text)' }}>{p.short || p.name.slice(0, -1)}</div>
-                    <span className={`district-tag ${geoTagCls[d.tag] || 'tag-county'}`} style={{ fontSize: 9, padding: '1px 5px' }}>{d.tag}</span>
+                    <span className={`district-tag ${geoTagCls[d.tag] || 'tag-county'}`} style={{ fontSize: 12, padding: '1px 5px' }}>{d.tag}</span>
                   </button>
                 )
               })}
             </div>
           </div>
         ))}
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>位置按真实地理相对方位摆放，点芯片即选中（详细数据见下方列表）</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>位置按真实地理相对方位摆放，点芯片即选中（详细数据见下方列表）</div>
       </div>
 
       {/* 城市切换 */}
@@ -195,7 +195,7 @@ export default function SiteSelection({ onConfirm }) {
           <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
             <div className="card-title">{d.name} · 六维画像</div>
             <RadarChart attrs={d.attrs} />
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
               满分5档 · 面积越大市场越好，但租金/竞争也意味着更高代价
             </div>
           </div>
@@ -213,6 +213,12 @@ export default function SiteSelection({ onConfirm }) {
             <div className="district-head">
               <span className="district-name">{d.name}</span>
               <span className={`district-tag ${d.tagCls}`}>{d.tag}</span>
+              {/* V12批7：三个数字徽标（租金/客流/竞争 · 12px · 与六维画像同源 d.attrs · 选点不再盲选） */}
+              <span style={{ display: 'inline-flex', gap: 4, marginLeft: 'auto', flexShrink: 0 }}>
+                {[['租金', d.attrs['租金']], ['客流', d.attrs['客流']], ['竞争', d.attrs['竞争']]].map(([l, v]) => (
+                  <span key={l} style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', background: 'var(--fill)', borderRadius: 6, padding: '2px 6px', fontVariantNumeric: 'tabular-nums' }}>{l} {v}</span>
+                ))}
+              </span>
               {(() => {
                 const cb = CONFIDENCE_BADGE[d.confidence]
                 if (!cb) return null
@@ -234,7 +240,7 @@ export default function SiteSelection({ onConfirm }) {
                       现仅剩【房价 / 人力】两维未接线；守门已改多配置 + 阳性对照自校准（不再会这样骗人）。 */}
                   {未接线维.includes(k) && (
                     <span title="该维目前不进入结算公式：引擎按品牌与决策定价、部门成本按标准比例。"
-                      style={{ marginLeft: 4, fontSize: 8, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-border)', border: '1px solid var(--warn-border)', borderRadius: 4, padding: '0 3px' }}>
+                      style={{ marginLeft: 4, fontSize: 12, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-border)', border: '1px solid var(--warn-border)', borderRadius: 4, padding: '0 3px' }}>
                       暂不影响结算
                     </span>
                   )}
@@ -253,12 +259,12 @@ export default function SiteSelection({ onConfirm }) {
               <div className="cost-title">代价</div>{d.warn}
             </div>
             {personaLine(currentCity, d.name) && (
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
                 客群画像：{personaLine(currentCity, d.name)}
                 <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
               </div>
             )}
-            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--warn)' }}>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--warn)' }}>
  推荐档次：{(() => {
                 const flow = d.attrs['客流'] || 3
                 const rent = d.attrs['租金'] || 3
@@ -273,18 +279,18 @@ export default function SiteSelection({ onConfirm }) {
             {(() => {
               const c = competitorSummary(d.name)
               if (c.empty) return (
-                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
                   {c.text}
                 </div>
               )
               return (
-                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
                   <b>周边竞品 {c.list.length} 家</b> · 价位带 <b>{c.价位带}</b> · {c.mix}
                   <div style={{ color: 'var(--text-sub)', marginTop: 2 }}>
                     {c.list.slice(0, 3).map(x => `${x.name}（${LEVEL_LABEL[x.level] || x.level} ¥${x.basePrice}${x.priceBasis === 'avg' ? '均' : '起'}）`).join(' · ')}
                     {c.list.length > 3 ? ` 等 ${c.list.length} 家` : ''}
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 2 }}>来源：{c.来源}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>来源：{c.来源}</div>
                 </div>
               )
             })()}
@@ -293,16 +299,16 @@ export default function SiteSelection({ onConfirm }) {
             {(() => {
               const p = profileRows(d.name)
               if (!p) return (
-                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
                   人流 / 经济：<b>待补</b>（本区位未采统计口径 —— 不编造）
                 </div>
               )
               return (
-                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
                   <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '待补'}
                   <div style={{ color: 'var(--text-sub)' }}>{p.traffic}</div>
                   <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
-                  <div style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 2 }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>
                     来源：{p.src} · 置信度 {p.conf === 'high' ? '高' : p.conf === 'mid' ? '中' : '低'}
                   </div>
                 </div>

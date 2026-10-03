@@ -301,22 +301,22 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--good-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--good)' : 'var(--text-muted)' }}>{今日流水 ? '+' + 今日流水.入账.toLocaleString() : '—'}</div>
-          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>今日入账</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日入账</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--bad-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--bad)' : 'var(--text-muted)' }}>{今日流水 ? '-' + 今日流水.支出.toLocaleString() : '—'}</div>
-          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>今日支出</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日支出</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--primary-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: !今日流水 ? 'var(--text-muted)' : (今日流水.入账 - 今日流水.支出 >= 0 ? 'var(--primary)' : 'var(--bad)') }}>{!今日流水 ? '—' : ((今日流水.入账 - 今日流水.支出 >= 0 ? '+' : '') + (今日流水.入账 - 今日流水.支出).toLocaleString())}</div>
-          <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>今日净流入</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日净流入</div>
         </div>
       </div>
       {detailOpen && (
         <div style={{ marginBottom: 8, padding: '6px 8px', background: 'var(--bg)', borderRadius: 8, maxHeight: 150, overflowY: 'auto' }}>
-          {flowsRef.current.length === 0 && <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>暂无流水记录，经营事件发生后这里会滚动记录</div>}
+          {flowsRef.current.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '4px 0' }}>暂无流水记录，经营事件发生后这里会滚动记录</div>}
           {flowsRef.current.map((f, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 10, padding: '3px 0', borderBottom: i < flowsRef.current.length - 1 ? '1px solid var(--fill)' : 'none' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 12, padding: '3px 0', borderBottom: i < flowsRef.current.length - 1 ? '1px solid var(--fill)' : 'none' }}>
               <span style={{ color: 'var(--text)', lineHeight: 1.4, flex: 1 }}>{f.text}</span>
               <span style={{ fontWeight: 700, color: f.amt > 0 ? 'var(--good)' : 'var(--bad)', flexShrink: 0 }}>{f.amt > 0 ? '+' : ''}{f.amt}元</span>
             </div>
@@ -324,15 +324,15 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)' }}><Icon name="nav.live" size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 实时运营动态</span>
-        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>按概率随机发生 · 退房12点前 · 入住14点后</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)' }}><Icon name="nav.live" size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 实时运营动态</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>按概率随机发生 · 退房12点前 · 入住14点后</span>
       </div>
       {feed.map((f, i) => (
-        <div key={f + i} style={{ fontSize: 10, color: i === 0 ? 'var(--text)' : 'var(--text-muted)', padding: '3px 0', lineHeight: 1.5, opacity: 1 - i * 0.18 }}>
+        <div key={f + i} style={{ fontSize: 12, color: i === 0 ? 'var(--text)' : 'var(--text-muted)', padding: '3px 0', lineHeight: 1.5, opacity: 1 - i * 0.18 }}>
           {f}
         </div>
       ))}
-      <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
         {日快照
           ? `今日流水取自引擎日快照（本周第 ${(Number.isInteger(dayIndex) ? dayIndex : 0) + 1}/7 天）· 本周累计 入账 +${本周累计.入账.toLocaleString()} / 支出 -${本周累计.支出.toLocaleString()} · 第 7 天 === 周报周值`
           : '今日流水待引擎日快照就绪后显示（预览未成功 · 不显示估算值）'}
@@ -458,13 +458,13 @@ export default function HotelStatus({ report, brand, property, week, history, at
   const attrPanel = (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)' }}>酒店属性</span>
-        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>做决策立即变化 · 每周自然衰减</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)' }}>酒店属性</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>做决策立即变化 · 每周自然衰减</span>
       </div>
       {attrRows.map(a => (
         <div key={a.key} style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-sub)' }}><Icon name={a.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {a.label}<span style={{ fontSize: 9, color: 'var(--border-strong)', marginLeft: 5 }}>{a.hint}</span></span>
+            <span style={{ fontSize: 12, color: 'var(--text-sub)' }}><Icon name={a.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {a.label}<span style={{ fontSize: 12, color: 'var(--border-strong)', marginLeft: 5 }}>{a.hint}</span></span>
             <span style={{ position: 'relative', fontSize: 12, fontWeight: 700, color: barColor(a.value) }}>
               {/* 飘字：属性变化时出现（+5 / -3），1.5s 自动消失 */}
               {flash && flash[a.key] != null && (
@@ -494,7 +494,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
           <div className="card-title" style={{ marginBottom: 0 }}>
             <Icon name="prop.hotel" size={18} /> 酒店状态
           </div>
-          <span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>{brand?.name} · {property?.name}</span>
+          <span style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>{brand?.name} · {property?.name}</span>
         </div>
         <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--warn-bg)', borderRadius: 10, fontSize: 12, fontWeight: 700, color: 'var(--warn)', textAlign: 'center' }}>
  今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
@@ -522,7 +522,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
         <div className="card-title" style={{ marginBottom: 0 }}>
           <Icon name="prop.hotel" size={18} /> 酒店状态
         </div>
-        <span style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>
           累计利润 {profit >= 0 ? '+' : ''}{(profit / 10000).toFixed(2)}万
         </span>
       </div>
@@ -533,27 +533,27 @@ export default function HotelStatus({ report, brand, property, week, history, at
             「取不到就静默用本地」正是"日期随机"的根因（T9：服务端 classDay 才是唯一权威）。 */}
         {daySource === 'local' && (
           <span title="未取到服务端教学日（class_day_now 不可用）⇒ 本机推算。日期可能与其他组/老师不同步。"
-            style={{ fontSize: 9, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-border)', border: '1px solid var(--warn-border)', borderRadius: 6, padding: '1px 5px', marginLeft: 6 }}>
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-border)', border: '1px solid var(--warn-border)', borderRadius: 6, padding: '1px 5px', marginLeft: 6 }}>
             离线 · 本地推算
           </span>
         )}
-        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>第 {week} 周 · 开业第 {(week - 1) * 7 + new Date().getDay() + 1} 天</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>第 {week} 周 · 开业第 {(week - 1) * 7 + new Date().getDay() + 1} 天</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--good-bg)', border: '1px solid var(--good-border)', borderRadius: 10, padding: '6px 12px', marginBottom: 12 }}>
-    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--good)' }}> 当前运营时段：{phase.name}（{phase.window}）</span>
-        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>退房12点前 · 入住14点后</span>
+    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--good)' }}> 当前运营时段：{phase.name}（{phase.window}）</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>退房12点前 · 入住14点后</span>
       </div>
 
       {/* RPG称号条 */}
       <div style={{ background: 'linear-gradient(90deg,var(--warn-bg),var(--card))', border: '1px solid var(--warn-border)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--warn)' }}><Icon name={title.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {title.title}</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>综合 {title.composite}</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--warn)' }}><Icon name={title.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {title.title}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>综合 {title.composite}</span>
         </div>
         <div style={{ height: 5, background: 'var(--fill)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: title.progress + '%', background: 'var(--primary)', borderRadius: 3, transition: 'width 0.5s' }}></div>
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
           {title.next ? `再提升经营指标即可晋升「${title.next}」` : '已是最高称号'}
         </div>
       </div>
@@ -562,8 +562,8 @@ export default function HotelStatus({ report, brand, property, week, history, at
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
         {roomsCell.map(s => (
           <div key={s.l} onClick={s.click ? () => setPreOpen(o => !o) : undefined} style={{ background: '#fff', borderRadius: 10, padding: '8px 10px', cursor: s.click ? 'pointer' : 'default' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: s.c }}>{s.v}{s.live && <span style={{ fontSize: 9, color: 'var(--good)', marginLeft: 4 }}>● 实时</span>}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.l} · {s.click && preOpen ? '点击收起' : s.sub}{s.click && !preOpen ? '（点击看构成）' : ''}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: s.c }}>{s.v}{s.live && <span style={{ fontSize: 12, color: 'var(--good)', marginLeft: 4 }}>● 实时</span>}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.l} · {s.click && preOpen ? '点击收起' : s.sub}{s.click && !preOpen ? '（点击看构成）' : ''}</div>
           </div>
         ))}
       </div>
@@ -575,20 +575,20 @@ export default function HotelStatus({ report, brand, property, week, history, at
         const big = Math.round(total * 0.5), twin = Math.round(total * 0.35), suite = total - big - twin
         return (
           <div style={{ marginBottom: 12, padding: '8px 10px', background: 'var(--bg)', borderRadius: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>预抵客人构成（按客群 · <span style={{ color: 'var(--warn)' }}>估算</span>）</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>预抵客人构成（按客群 · <span style={{ color: 'var(--warn)' }}>估算</span>）</div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 10, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 5, padding: '2px 8px' }}>商务 {biz} 间</span>
-              <span style={{ fontSize: 10, background: 'var(--good-bg)', color: 'var(--good)', borderRadius: 5, padding: '2px 8px' }}>旅游 {tour} 间</span>
-              <span style={{ fontSize: 10, background: 'var(--warn-bg)', color: 'var(--warn)', borderRadius: 5, padding: '2px 8px' }}>家庭 {fam} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 5, padding: '2px 8px' }}>商务 {biz} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--good-bg)', color: 'var(--good)', borderRadius: 5, padding: '2px 8px' }}>旅游 {tour} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--warn-bg)', color: 'var(--warn)', borderRadius: 5, padding: '2px 8px' }}>家庭 {fam} 间</span>
             </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>按房型</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--info)', marginBottom: 4 }}>按房型</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 10, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>大床 {big} 间</span>
-              <span style={{ fontSize: 10, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>双床 {twin} 间</span>
-              <span style={{ fontSize: 10, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>套房 {suite} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>大床 {big} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>双床 {twin} 间</span>
+              <span style={{ fontSize: 12, background: 'var(--bg)', color: 'var(--text)', borderRadius: 5, padding: '2px 8px' }}>套房 {suite} 间</span>
             </div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 5 }}>建议按预抵构成提前排房：团队连排、商务高楼层、家庭相邻间</div>
-            <div style={{ fontSize: 9, color: 'var(--warn)', marginTop: 3 }}>本组数字为**面板估算**（按在店×30%＋波动推算）· <b>不影响任何结算</b>；引擎按周建模，无"明日"真值</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>建议按预抵构成提前排房：团队连排、商务高楼层、家庭相邻间</div>
+            <div style={{ fontSize: 12, color: 'var(--warn)', marginTop: 3 }}>本组数字为**面板估算**（按在店×30%＋波动推算）· <b>不影响任何结算</b>；引擎按周建模，无"明日"真值</div>
           </div>
         )
       })()}
@@ -600,32 +600,32 @@ export default function HotelStatus({ report, brand, property, week, history, at
       <div style={{ display: 'flex', gap: 8, marginTop: 2, marginBottom: 4 }}>
         {bizRows.map(b => (
           <div key={b.label} style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{b.display}</div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)' }}><Icon name={b.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{b.display}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}><Icon name={b.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.label}</div>
           </div>
         ))}
       </div>
 
       {/* 房型结构（档次越高价格越高，匹配成本） */}
       <div style={{ marginTop: 4 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>房型结构（共 {rooms} 间）</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>房型结构（共 {rooms} 间）</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           {types.map((tp, idx) => (
             <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{tp.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--warn)', fontWeight: 700 }}>{tp.price}元/晚</div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{tp.total} 间 · 在店 {occByType[idx]}</div>
+              <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700 }}>{tp.price}元/晚</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tp.total} 间 · 在店 {occByType[idx]}</div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>套房面积大、成本高，定价也最高——档次与价格匹配</div>
       </div>
 
  {/* §26.3：dayFlows = App 以【与 doSettle 同一套入参】跑出的预览结算的 dailySnapshots（7 天）
           ⇒ 面板"今日流水"与周报/结算**同源**。dayIndex 由 App 传 1-based（教学日序号推导），此处转 0-based。 */}
       <LiveFeed occupiedRooms={occRooms} price={price} week={week} rooms={rooms} brandLevel={brand?.level} attrs={A} decisions={decisions} onStats={setLiveStats} dayFlows={dayFlows} dayIndex={(Number(dayIndex) || 1) - 1} />
 
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
         {brand?.name} · {property?.name} · 共 {rooms} 间房 · 第 {week} 周
       </div>
     </div>

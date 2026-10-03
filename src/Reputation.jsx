@@ -223,27 +223,27 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         const handleColor = handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'
         const box = (label, val, color) => (
           <div style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color }}>{val}</div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color }}>{val}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</div>
           </div>
         )
         return (
           <div className="card" style={{ background: 'var(--bg)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warn)', marginBottom: 8 }}>口碑构成拆解（三个指标怎么互相影响）</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 8 }}>口碑构成拆解（三个指标怎么互相影响）</div>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
               {box('差评处理率', handleRate + '%', handleColor)}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--warn)' }}>→</span>
-                <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>拖后腿</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>拖后腿</span>
               </div>
               {box('好评率', (goodRatePct ?? '—') + '%', goodColor)}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--warn)' }}>→</span>
-                <span style={{ fontSize: 8, color: 'var(--text-muted)' }}>衍生出</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>衍生出</span>
               </div>
               {box('客人体验', satisfaction != null ? satisfaction + '%' : '—', goodColor)}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.7 }}>
               欠着差评不处理 → 好评率被拖下水 → 客人体验跟着跌 → 客流流失。<b>处理率是口碑的源头活水</b>：处理一条，三个指标一起止血。
             </div>
           </div>
@@ -255,21 +255,21 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)', borderRadius: 3, transition: 'width 0.5s' }}></div>
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
           处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
  {todayResolved > 0 && <b style={{ color: 'var(--good)' }}> · 今天已处理 {todayResolved} 条 </b>}
         </div>
         {/* 发酵预警：欠2条以上差评会触发危机事件（与引擎 minPending:2 对应） */}
         {pending.length === 1 && (
-          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, padding: '6px 10px' }}>
+          <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, padding: '6px 10px' }}>
             再欠 1 条差评就到发酵危险区（欠 2 条以上会触发「差评发酵」危机，口碑额外受损）
-            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——照这个节奏马上就脱离危险区</div>}
+            {todayResolved > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——照这个节奏马上就脱离危险区</div>}
           </div>
         )}
         {pending.length >= 2 && (
-          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px' }}>
+          <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px' }}>
             已欠 {pending.length} 条差评——已在发酵危机触发区！每多欠一条，口碑受损越重，立即处理
-            {todayResolved > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——每处理一条，预警就会降级</div>}
+            {todayResolved > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--good)', marginTop: 3 }}>今天已处理 {todayResolved} 条——每处理一条，预警就会降级</div>}
           </div>
         )}
         {/* 好评率走势迷你图（历史各周，≥3周才画） */}
@@ -289,7 +289,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           pts.forEach((p, i) => { if (p.v < pts[minIdx].v) minIdx = i })
           return (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-sub)', marginBottom: 2 }}>好评率走势（历史各周{rising ? '，整体↑' : '，整体↓'}）</div>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 2 }}>好评率走势（历史各周{rising ? '，整体↑' : '，整体↓'}）</div>
               <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }}>
                 <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="var(--fill)" strokeWidth="1" />
                 <polyline points={pts.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
@@ -318,8 +318,8 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--text)">{handleRate}%</text>
         </svg>
         <div>
-          <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>差评处理率</div>
-          <div style={{fontSize:11,color:'var(--text-sub)'}}>占期末评分 15% 权重<br/>及时回复差评提高处理率</div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:2}}>差评处理率</div>
+          <div style={{fontSize:12,color:'var(--text-sub)'}}>占期末评分 15% 权重<br/>及时回复差评提高处理率</div>
         </div>
       </div>
 
@@ -343,24 +343,24 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:r.bg==='blue'?'var(--primary-bg)':'var(--good-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+                  <div style={{fontSize:16,fontWeight:600}}>{r.name}</div>
+                  <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
-                <div style={{fontSize:13,color:'var(--primary)'}}>{starStr(r.stars)}</div>
+                <div style={{fontSize:16,color:'var(--primary)'}}>{starStr(r.stars)}</div>
               </div>
-              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
+              <div style={{fontSize:16,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
               {(() => {
                 const tr = traceOf(r)
                 if (!tr) return null
                 const open = openTrace === r.id
                 return (
                   <>
-                    <button className="btn btn-ghost" style={{fontSize:11,padding:'3px 10px',marginTop:8}}
+                    <button className="btn btn-ghost" style={{fontSize:12,padding:'3px 10px',marginTop:8}}
                       onClick={() => setOpenTrace(open ? null : r.id)}>
                       {open ? '收起关联经营' : '关联经营'}
                     </button>
                     {open && (
-                      <div style={{fontSize:11,color:'var(--text-sub)',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,padding:'7px 9px',marginTop:6,lineHeight:1.6}}>
+                      <div style={{fontSize:12,color:'var(--text-sub)',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,padding:'7px 9px',marginTop:6,lineHeight:1.6}}>
                         来源：本组「{tr.name}」{tr.ans ? <> 选择了 <b>{tr.ans}</b></> : '（本周未提交）'} —— 客人不会告诉你为什么，这里说给你听。
                       </div>
                     )}
@@ -368,13 +368,13 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
                 )
               })()}
               {r.source && (
-                <div style={{fontSize:10,color:'var(--bad)',background:'var(--bad-bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                <div style={{fontSize:12,color:'var(--bad)',background:'var(--bad-bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：<Icon name={r.source.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.source.name}——这条差评本可避免
                 </div>
               )}
  {/* §32-U4-R4：职务加成提示（谁处理不一样 · 但所有人都能处理 —— 不卡进度） */}
               {r.cause && (
-                <div style={{ fontSize: 11, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 8, padding: '5px 9px', marginTop: 8, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: 'var(--warn)', background: 'var(--warn-bg)', borderRadius: 8, padding: '5px 9px', marginTop: 8, lineHeight: 1.6 }}>
                   {建议职务文案(r.cause)}
                   {groupRole ? `　· 你当前职务：${groupRole}` : '　· 你未设职务（效果按 ×1.0 计，仍可正常处理）'}
                 </div>
@@ -392,8 +392,8 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {pending.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '18px', background: 'var(--good-bg)' }}>
           <div style={{ fontSize: 26, display: 'flex', justifyContent: 'center' }}><Icon name="status.done" size={26} /></div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--good)', marginTop: 4 }}>暂无待处理差评</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>口碑很好，保持当前服务标准</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--good)', marginTop: 4 }}>暂无待处理差评</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>口碑很好，保持当前服务标准</div>
         </div>
       )}
 
@@ -405,18 +405,18 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'var(--good-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
- <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'var(--good)'}}>已解决</span>{r.replyTier && <span style={{fontSize:10,background:r.replyTier==='excellent'?'var(--good-bg)':r.replyTier==='good'?'var(--good-bg)':'var(--bg)',color:r.replyTier==='excellent'?'var(--good)':r.replyTier==='good'?'var(--good)':'var(--text-sub)',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
-                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+ <div style={{fontSize:16,fontWeight:600}}>{r.name} <span style={{fontSize:12,color:'var(--good)'}}>已解决</span>{r.replyTier && <span style={{fontSize:12,background:r.replyTier==='excellent'?'var(--good-bg)':r.replyTier==='good'?'var(--good-bg)':'var(--bg)',color:r.replyTier==='excellent'?'var(--good)':r.replyTier==='good'?'var(--good)':'var(--text-sub)',borderRadius:5,padding:'1px 6px',marginLeft:5}}>{r.replyTier==='excellent'?'回复：非常出色':r.replyTier==='good'?'回复：有诚意':'回复：一般'}</span>}</div>
+                  <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
                 </div>
               </div>
-              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
+              <div style={{fontSize:16,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
               {r.replyText && (
-                <div style={{fontSize:11,color:'var(--info)',background:'var(--primary-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+                <div style={{fontSize:12,color:'var(--info)',background:'var(--primary-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
                   <span style={{color:'var(--text-muted)'}}>我的回复：</span>{r.replyText}
                 </div>
               )}
               {r.source && (
-                <div style={{fontSize:10,color:'var(--text-muted)',background:'var(--bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
+                <div style={{fontSize:12,color:'var(--text-muted)',background:'var(--bg)',borderRadius:5,padding:'3px 8px',marginTop:6,display:'inline-block'}}>
                   来源：<Icon name={r.source.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {r.source.name}
                 </div>
               )}
@@ -431,14 +431,14 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:'50%',background:'var(--primary-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
             <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600}}>{r.name}</div>
-              <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
+              <div style={{fontSize:16,fontWeight:600}}>{r.name}</div>
+              <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.date}{r.roomType ? ` · ${r.roomType}${r.nights ? ` · 入住${r.nights}天` : ''}` : ''}</div>
             </div>
-            <div style={{fontSize:13,color:'var(--primary)'}}>{starStr(r.stars)}</div>
+            <div style={{fontSize:16,color:'var(--primary)'}}>{starStr(r.stars)}</div>
           </div>
-          <div style={{fontSize:13,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
+          <div style={{fontSize:16,color:'var(--text)',lineHeight:1.5}}>{r.text}</div>
           {r.goodReplyText && (
-            <div style={{fontSize:11,color:'var(--good)',background:'var(--good-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
+            <div style={{fontSize:12,color:'var(--good)',background:'var(--good-bg)',borderRadius:8,padding:'6px 10px',marginTop:6,lineHeight:1.6}}>
               <span style={{color:'var(--text-muted)'}}>我的回复：</span>{r.goodReplyText}
             </div>
           )}
@@ -468,7 +468,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         return (
           <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
             <div className="card-title" style={{ color: 'var(--warn)' }}>差评来源分析</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>你的经营决策直接影响了差评类型——改掉源头才能止血</div>
             {causes.map((c, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
                 <span style={{ flexShrink: 0, display: 'flex' }}><Icon name={c.icon} size={13} /></span>
@@ -483,20 +483,20 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {reviews.filter(r => r.status === 'ignored').length > 0 && (
         <>
           <div className="section-title" style={{ cursor: 'pointer' }} onClick={() => setShowIgnored(!showIgnored)}>
-            <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
+            <span className="left">已忽略 {reviews.filter(r => r.status === 'ignored').length} 条 {showIgnored ? '▲' : '▼'}<span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>（点击展开查看代价）</span></span>
           </div>
           {showIgnored && reviews.filter(r => r.status === 'ignored').map(r => (
             <div className="card" style={{opacity:0.9}} key={r.id}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'var(--fill)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}><Icon name={r.avatar} size={18} /></div>
                 <div style={{flex:1}}>
- <div style={{fontSize:13,fontWeight:600}}>{r.name} <span style={{fontSize:11,color:'var(--bad)'}}>已忽略</span></div>
-                  <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.date}</div>
+ <div style={{fontSize:16,fontWeight:600}}>{r.name} <span style={{fontSize:12,color:'var(--bad)'}}>已忽略</span></div>
+                  <div style={{fontSize:12,color:'var(--text-muted)'}}>{r.date}</div>
                 </div>
-                <div style={{fontSize:13,color:'var(--text-muted)'}}>{starStr(r.stars)}</div>
+                <div style={{fontSize:16,color:'var(--text-muted)'}}>{starStr(r.stars)}</div>
               </div>
-              <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6}}>{r.text}</div>
-              <div style={{fontSize:11,color:'var(--bad)',marginTop:6,fontWeight:600}}>这条差评的负面影响全额生效且持续发酵</div>
+              <div style={{fontSize:16,color:'var(--text)',lineHeight:1.6}}>{r.text}</div>
+              <div style={{fontSize:12,color:'var(--bad)',marginTop:6,fontWeight:600}}>这条差评的负面影响全额生效且持续发酵</div>
             </div>
           ))}
         </>
@@ -513,7 +513,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'8px 12px',background:'var(--bg)',borderRadius:8,marginBottom:10}}>
               {replying.review.text}
             </div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:8}}>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>
  用你自己的话回复这位客人。怎么说、说什么由你决定——客人会感受到诚意，也会感受到敷衍。
             </div>
             <textarea
@@ -521,11 +521,11 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
               onChange={e => setReplyText(e.target.value)}
               placeholder={replying.isGood ? '写一段感谢的话……' : '写下你的回复话术（道歉？补偿？解决措施？由你决定）……'}
               rows={5}
-              style={{width:'100%',padding:'10px 12px',border:'1px solid var(--border)',borderRadius:10,fontSize:13,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
+              style={{width:'100%',padding:'10px 12px',border:'1px solid var(--border)',borderRadius:10,fontSize:16,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
             />
-            <div style={{fontSize:10,color:'var(--text-muted)',marginBottom:6}}>快捷话术（点击填入，可自行修改）：{replyText.replace(/\s/g,'').length} 字</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:6}}>快捷话术（点击填入，可自行修改）：{replyText.replace(/\s/g,'').length} 字</div>
             {(replying.isGood ? quickGoodReplies : quickNegReplies).map((q, i) => (
-              <div key={i} onClick={() => setReplyText(q)} style={{fontSize:11,color:'var(--text)',padding:'7px 10px',background:'var(--bg)',borderRadius:8,marginBottom:6,cursor:'pointer',lineHeight:1.5}}>
+              <div key={i} onClick={() => setReplyText(q)} style={{fontSize:12,color:'var(--text)',padding:'7px 10px',background:'var(--bg)',borderRadius:8,marginBottom:6,cursor:'pointer',lineHeight:1.5}}>
                 {q.slice(0, 42)}{q.length > 42 ? '…' : ''}
               </div>
             ))}

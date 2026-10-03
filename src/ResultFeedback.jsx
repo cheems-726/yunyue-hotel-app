@@ -37,18 +37,18 @@ export default function ResultFeedback({ result, onClose }) {
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 8 }}>你的选择会带来</div>
         </div>
 
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--warn)', marginBottom: 12 }}>{result.title}</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--warn)', marginBottom: 12 }}>{result.title}</div>
 
         {/* 结果变化列表（数值飘字动画） */}
         <div style={{ marginBottom: 16 }}>
           {result.changes.map((c, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 13, color: 'var(--text)' }}>{c.label}</span>
-              <span style={{ position: 'relative', fontSize: 13, fontWeight: 700, color: c.dir === 'up' ? 'var(--good)' : (c.dir === 'down' ? 'var(--bad)' : 'var(--warn)') }}>
+              <span style={{ fontSize: 16, color: 'var(--text)' }}>{c.label}</span>
+              <span style={{ position: 'relative', fontSize: 16, fontWeight: 700, color: c.dir === 'up' ? 'var(--good)' : (c.dir === 'down' ? 'var(--bad)' : 'var(--warn)') }}>
                 {(c.dir === 'up' || c.dir === 'down') && (
                   <span
                     className="float-num"
-                    style={{ '--delay': (0.3 + i * 0.25) + 's', position: 'absolute', right: 0, top: -18, fontSize: 15, pointerEvents: 'none', whiteSpace: 'nowrap' }}
+                    style={{ '--delay': (0.3 + i * 0.25) + 's', position: 'absolute', right: 0, top: -18, fontSize: 16, pointerEvents: 'none', whiteSpace: 'nowrap' }}
                   >
                     {c.dir === 'up' ? '↑↑' : '↓↓'}
                   </span>
