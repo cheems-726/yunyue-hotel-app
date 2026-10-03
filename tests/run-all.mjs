@@ -124,6 +124,8 @@ const SUITES = [
   { name: 'personaWeight（V6 客群加权）', file: 'tests/personaWeight.test.mjs' },
   // ★ §33-V5：数据溯源守门（每格必须有来源 · 看板升级防抖 · 城市级锚点警示）
   { name: 'dataProvenance（V5 溯源）', file: 'tests/dataProvenance.test.mjs' },
+  // ★ §33-V7：教辅守门（机制标记查 src · 黑名单反向断言 · 课程参数现读 · 不碰评分）
+  { name: 'teachingClaims（V7 教辅）', file: 'tests/teachingClaims.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },

@@ -60,7 +60,8 @@ console.log('\n[2] §2① 教师端注入面板：真调单源 + 周粒度说明
   ok(/生效日输入/.test(TD) && /校验按日触发\(/.test(TD), '★ V8 面板：按日程触发输入 + 只影响未来校验')
   ok(/setClassInjections/.test(TD) && /fetchClassState/.test(TD), '面板写通道 setClassInjections / 读通道 fetchClassState')
   ok(/校验注入合法性\(\{\s*注入周:\s*周n,\s*已结算周:/.test(TD), '★ 注入前逐组调 校验注入合法性({注入周, 已结算周})（不合法当场拦，不等结算）')
-  ok(/一期只到「周」粒度/.test(rd('src/TeacherDashboard.jsx')) && /不承诺「第 D 天」/.test(rd('src/TeacherDashboard.jsx')), '★ 面板写明一期只到「周」粒度（不许承诺「第 D 天」）')
+  // ★ §33-V7-0.5②：面板文案已升级为 V8 实况（按日程：整周 或 第 D 天起）——旧判据（一期周粒度）已过期
+  ok(/§33-V8 支持按日程/.test(rd('src/TeacherDashboard.jsx')) && /指定「第 D 天」起/.test(rd('src/TeacherDashboard.jsx')), '★ 面板写明 V8 按日程实况（整周或第 D 天起 · 与 D114 文案矛盾修正一致）')
   ok(/disabled=\{忙 \|\| !全部合法 \|\| !通道就绪\}/.test(TD), '注入按钮在校验不通过时禁用（公平红线机器化）')
   // ★ 死代码判据（RV-3 实测补上）：面板必须真的挂在【视图 + 入口】上 —— 只查 import/内部实现的话，
   //   "把渲染整块摘掉"照样绿（面板变死代码却无人报警 = 本项目老病的同族）。
