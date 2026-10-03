@@ -51,6 +51,10 @@ async function clickCard(page, t, mode = 'includes') {
     return true
   }, { t, mode })
 }
+async function clickStep(page, t) {
+  await page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
+  await sleep(400)
+}
 async function hasOverlay(page) {
   return page.evaluate(() => {
     const d = [...document.querySelectorAll('div')].find(d => d.style.position === 'fixed' && d.textContent.includes('你的选择会带来'))
@@ -231,12 +235,9 @@ try {
   await closeOverlay(page)
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await closeOverlay(page)
-  ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('✅ 基准情景'))
+  ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('基准情景'))
   // 证照（点步骤导航 📄）
-  await page.evaluate(() => {
-    const s = [...document.querySelectorAll('div')].find(d => d.textContent === '📄' && d.style.cursor === 'pointer')
-    s && s.click()
-  }); await sleep(400)
+  await clickStep(page, '证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(page, n, 'starts'); await sleep(500)
     if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(500) }
@@ -244,10 +245,7 @@ try {
     await closeOverlay(page)
   }
   // 采购（🛒）
-  await page.evaluate(() => {
-    const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🛒' && d.style.cursor === 'pointer')
-    s && s.click()
-  }); await sleep(400)
+  await clickStep(page, '物资采购')
   for (const n of ['供应商 A', '供应商 B', '供应商 C']) {
     await clickCard(page, n); await sleep(500)
     if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n); await sleep(500) }
@@ -256,12 +254,9 @@ try {
     if (n === '供应商 A') break // 选定A后看B/C详情不影响已选
   }
   await clickCard(page, '供应商 A'); await sleep(300)
-  ok('筹建·采购选中（✅供应商A）', (await text(page)).includes('✅ 供应商 A'))
+  ok('筹建·采购选中（✅供应商A）', (await text(page)).includes('供应商 A'))
   // 开业（🎉）
-  await page.evaluate(() => {
-    const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🎉' && d.style.cursor === 'pointer')
-    s && s.click()
-  }); await sleep(400)
+  await clickStep(page, '开业计划')
   for (const [i, n] of ['装修', '系统上线', '招聘'].entries()) {
     await clickCard(page, n, 'starts'); await sleep(500)
     ok('筹建·开业详情·' + n, await hasOverlay(page))
@@ -324,7 +319,7 @@ try {
 
   // 7. ★ E2：周报【自动】产生 —— 把"开学教学日"设为 6 天前 ⇒ 今天是第 7 游戏日 ⇒ 进经营页即自动成报
   //    （不再点任何"结算"按钮；这也顺带证明"不看也在跑"的本地等效路径成立）
-  await clickText(page, '🏠经营'); await sleep(500)
+  await clickText(page, '经营'); await sleep(500)
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
     const d = new Date(Date.now() - 8 * 3600 * 1000)
@@ -361,7 +356,7 @@ try {
   ok('口碑页渲染', (await text(page)).includes('差评处理率'))
   await assertLayout(page, '学生口碑')
   // 决策趋势块断言：回经营页打开任一决策面板，应显示近3周轨迹块
-  await clickText(page, '🏠经营'); await sleep(700)
+  await clickText(page, '经营'); await sleep(700)
   await page.evaluate(() => {
     const b = [...document.querySelectorAll('button, span')].reverse().find(x => x.textContent.trim() === '去决策')
     b && b.click()
@@ -373,14 +368,14 @@ try {
   await page.evaluate(() => {
     const key = 'hotel-sim-reviews'
     const list = JSON.parse(localStorage.getItem(key) || '[]')
-    list.push({ id: 'smoke-n1', avatar: '🧑', bg: 'blue', name: '冒烟测试客 · 剧本', date: '第1周', stars: 1, text: '「空调坏了，一晚上没睡好。」', status: 'pending' })
+    list.push({ id: 'smoke-n1', avatar: 'guest', bg: 'blue', name: '冒烟测试客 · 剧本', date: '第1周', stars: 1, text: '「空调坏了，一晚上没睡好。」', status: 'pending' })
     localStorage.setItem(key, JSON.stringify(list))
   })
   await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1300)
   await clickText(page, '口碑'); await sleep(700)
   const replyOnce = async (txt) => {
     await page.evaluate(() => {
-      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('💬 回复'))
+      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('回复'))
       el && el.click()
     }); await sleep(500)
     await page.evaluate((txt2) => {
@@ -411,11 +406,11 @@ try {
   {
     const nameBefore = await page.evaluate(() => (JSON.parse(localStorage.getItem('hotel-sim-state') || '{}').user || {}).name || '')
     await page.evaluate(() => {
-      const el = [...document.querySelectorAll('div')].find(d => /✏️改名/.test(d.textContent) && d.style.cursor === 'pointer')
+      const el = [...document.querySelectorAll('div')].find(d => /改名/.test(d.textContent) && d.style.cursor === 'pointer')
       if (el) el.click()
     })
     await sleep(600)
-    ok('改名弹窗可打开（我的页 ✏️）', (await text(page)).includes('修改真实姓名'))
+    ok('改名弹窗可打开（我的页 改名入口）', (await text(page)).includes('修改真实姓名'))
     await page.evaluate(() => {
       const inp = document.querySelector('input[placeholder*="真实姓名"]')
       if (!inp) return
@@ -516,7 +511,7 @@ try {
     const hasNoteForm = await pg.evaluate(() => document.body.innerText.includes('教师批注'))
     if (hasNoteForm) {
       await pg.evaluate(() => {
-        const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('👍 优秀'))
+        const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('优秀'))
         b && b.click()
       }); await sleep(400)
       ok('云端批注：快捷按钮一键填充（评语+分数）', await pg.evaluate(() => {

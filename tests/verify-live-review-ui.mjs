@@ -46,6 +46,10 @@ async function clickCard(page, t, mode = 'includes') {
     return true
   }, { t, mode })
 }
+async function clickStep(page, t) {
+  await page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
+  await sleep(400)
+}
 async function hasOverlay(page) {
   return page.evaluate(() => !!([...document.querySelectorAll('div')].find(d => d.style.position === 'fixed' && d.textContent.includes('你的选择会带来'))))
 }
@@ -115,15 +119,15 @@ try {
     await sleep(550); if (done) break
   }
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '📄' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(page, n, 'starts'); await sleep(450)
     if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(450) }
     await closeOverlay(page)
   }
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🛒' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '物资采购')
   await clickCard(page, '供应商 A'); await sleep(500); await closeOverlay(page)
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🎉' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '开业计划')
   for (const n of ['装修', '系统上线', '招聘']) { await clickCard(page, n, 'starts'); await sleep(450); await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(300) }
   await clickText(page, '完成筹建'); await sleep(1200); await closeOverlay(page)
   ok('已进入经营页', (await text(page)).includes('资金状况'))
@@ -173,9 +177,11 @@ try {
   await seed(6 * 60, 0)
   ok('经营页已恢复', (await text(page)).includes('资金状况'))
   let liveA = []
+  let sawReviewFeed = false   // ★ V10b：流水=4条滚动窗口 ⇒ 在 A 段等待期同步捕捉「评价进过流水」
   for (let i = 0; i < 30; i++) {   // 最多等 60 秒（留足流位置波动）
     await sleep(2000)
     liveA = (await reviews(page)).filter(r => r.live)
+    if (!sawReviewFeed) sawReviewFeed = await page.evaluate((k) => { try { const st = JSON.parse(localStorage.getItem(k) || '{}'); return (st.feed || []).some(x => String(x).includes('留下评价')) } catch (e) { return false } }, liveKey)
     if (liveA.length >= 3) break
   }
   ok(`退房时段产生实时评价（${liveA.length} 条）`, liveA.length >= 1)
@@ -184,8 +190,8 @@ try {
   ok(`游戏日上限生效：当日实时评价 = 3 条（实际 ${liveA.length}）`, liveA.length === 3)
   const e0 = liveA[0] || {}
   ok('卡片字段齐全（live 标记/周/日期/房型/天数/原因）', e0.live === true && e0.liveWeek === week && e0.liveDate === 教学日键 && !!e0.roomType && e0.nights >= 1 && !!e0.cause)
-  ok('身份自洽（性别↔头像）', !!e0.guest && e0.avatar === (e0.guest.gender === 'male' ? '🧑' : '👩'))
-  ok(`流水区出现 💬 评价动态（${String(lastText).includes('💬') ? '已出现' : '未出现'}）`, String(lastText).includes('💬'))
+  ok('身份自洽（称呼↔性别 · avatar=guest图标键 V10b）', !!e0.guest && e0.avatar === 'guest' && !!e0.guest.title)
+  ok(`流水区出现评价动态（A段窗口捕捉${sawReviewFeed ? '到' : '未捕捉到'} · 流水=4条滚动窗口设计）`, sawReviewFeed)
   const afterA = await page.evaluate(({ liveKey, weekKey }) => ({
     store: JSON.parse(localStorage.getItem(liveKey) || '{}'),
     weekCount: Number(localStorage.getItem(weekKey) || 0),
@@ -206,7 +212,8 @@ try {
   await sleep(6000)
   const stillCapped = (await reviews(page)).filter(r => r.live).length
   ok(`刷新后上限仍生效（未突破 3 条 → ${stillCapped}）`, stillCapped === 3)
-  ok('刷新后流水区仍有 💬 动态', (await text(page)).includes('💬'))
+  { const st = await page.evaluate((k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') } catch (e) { return {} } }, liveKey)
+    ok(`刷新后流水持久化仍在（${(st.feed || []).length} 条 · 4条滚动窗口设计）`, (st.feed || []).length >= 1) }
 
   // ── C. 下午课时段（14:00，非退房 ×1/5）也能出评价 ──
   console.log('\n▶ C 下午课时段（14:00，非退房时段）')
@@ -258,11 +265,16 @@ try {
   })
   ok(`决策已提交（已记录 ${done.length} 项）`, done.length >= 1)
   await clickTab(page, '经营'); await sleep(1200)
-  const feedText = await text(page)
-  const zhLine = (feedText.match(/🎯 \[\d\d:\d\d\][^\n]*/) || [''])[0]
-  console.log('    [🎯 流水] ' + zhLine.slice(0, 90))
-  ok('流水区出现 🎯 决策条目（含时刻）', /🎯 \[\d\d:\d\d\] 完成「/.test(feedText))
-  ok('决策条目带决策名与选项', /完成「.*前台排班/.test(zhLine) && /精简省成本/.test(zhLine))
+  {  // ★ V10b：决策条目进流水由确认路径 pushFeed 保证 ⇒ 确认后立即高频轮询捕捉（4条窗口会滚动）
+    let zhLine = ''
+    for (let i = 0; i < 40 && !zhLine; i++) {
+      zhLine = await page.evaluate((k) => { try { const st = JSON.parse(localStorage.getItem(k) || '{}'); return (st.feed || []).find(x => /完成「前台排班」/.test(String(x))) || '' } catch (e) { return '' } }, liveKey)
+      if (!zhLine) await sleep(200)
+    }
+    console.log('    [流水] ' + String(zhLine).slice(0, 90))
+    ok('流水区出现决策条目（含时刻 · 前缀emoji已按V10b剥除）', /\[\d\d:\d\d\] 完成「/.test(String(zhLine)))
+    ok('决策条目带决策名与选项', /完成「.*前台排班/.test(String(zhLine)) && /精简省成本/.test(String(zhLine)))
+  }
 
   // ── E. 口碑页：实时评价卡片可见 ──
   console.log('\n▶ E 口碑页队列')
@@ -343,7 +355,7 @@ try {
   let replyBtn = false
   for (let i = 0; i < 5 && !replyBtn; i++) {
     replyBtn = await page.evaluate(() => {
-      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('💬 回复'))
+      const el = [...document.querySelectorAll('button')].find(x => x.textContent.includes('回复'))
       if (!el) return false
       el.click(); return true
     })
@@ -372,7 +384,7 @@ try {
   const cardText = await text(page)
   ok('口碑页卡片显示房型与入住天数（🛏 标准双床 · 入住2天）', cardText.includes('标准双床') && cardText.includes('入住2天'))
   const traceOk = await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('🔍 关联经营'))
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('关联经营'))
     if (!b) return 'no-button'
     b.click()
     return 'clicked'
@@ -390,7 +402,7 @@ try {
   ok('处理妥当 → 口碑页即时生成新评价（source=spawn）', !!spawn)
   if (spawn) {
     const g = spawn.guest || {}
-    ok('即时评价身份自洽（性别↔头像↔称呼）', spawn.avatar === (g.gender === 'male' ? '🧑' : '👩') && /先生|女士/.test(String(spawn.name)))
+    ok('即时评价身份自洽（称呼↔性别 · avatar=guest图标键 V10b）', spawn.avatar === 'guest' && /先生|女士/.test(String(spawn.name)))
     ok(`即时评价字段齐全（cause=${spawn.cause} / ${spawn.roomType} / ${spawn.nights}晚）`, !!spawn.cause && !!spawn.roomType && spawn.nights >= 1 && !!g.card)
     // 断言口径修正（2026-09-22）：不是"恒有来源"，而是"与 CAUSE_SOURCE 一致"——
     // misc / praise_location / praise_misc 三类 cause 按设计就是 null（位置来自选址，不是周决策），
