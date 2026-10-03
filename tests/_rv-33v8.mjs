@@ -21,21 +21,23 @@ let 全过 = true
 const 例 = (label, 文件, 旧, 新, 片段, 测试) => {
   const 旧s = Array.isArray(旧) ? 旧 : [旧]
   const 新s = Array.isArray(新) ? 新 : [新]
-  const 备份 = readFileSync(文件, 'utf8').replace(/\r\n/g, '\n')
+  const 原始 = readFileSync(文件, 'utf8')
+  const 是CRLF = 原始.includes('\r\n')
+  const 备份 = 是CRLF ? 原始.replace(/\r\n/g, '\n') : 原始
   try {
     if (!旧s.every(x => 备份.includes(x))) { console.log(`     ❌ 找不到靶子：${label}（期望片段：${旧s[0].slice(0, 80)}）`); 全过 = false; return }
     let 改 = 备份
     for (let i = 0; i < 旧s.length; i++) 改 = 改.replace(旧s[i], 新s[i])
-    writeFileSync(文件, 改)
+    writeFileSync(文件, (是CRLF ? 改.replace(/\n/g, '\r\n') : 改))
     const r = 跑(测试)
     if (process.env.RV_DEBUG) console.log('     [debug] 改后尾部：', r.out.slice(-300))
     const 掉红 = r.code !== 0 && r.out.includes(片段)
-    writeFileSync(文件, 备份)
+    writeFileSync(文件, 原始)
     const 还原 = 跑(测试)
     const 复绿 = 还原.code === 0
     if (!(掉红 && 复绿)) 全过 = false
     console.log(`     ${掉红 && 复绿 ? '✓' : '✗'} ${label}：改后 exit=${r.code}（红=${掉红}）· 还原后 exit=${还原.code}（绿=${复绿}）`)
-  } finally { writeFileSync(文件, 备份) }
+  } finally { writeFileSync(文件, 原始) }
 }
 console.log('【RV §33-V8】自定义/按日事件四防线（红→绿可逆）\n')
 // RV-1 只影响未来：校验按日触发的"已过去"分支改成恒合法 ⇒ weeklyAuto 的按日断言场景失效…

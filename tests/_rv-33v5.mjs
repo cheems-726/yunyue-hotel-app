@@ -18,18 +18,20 @@ const 跑 = () => {
 }
 let 全过 = true
 const 例 = (label, 文件, 旧, 新, 片段) => {
-  const 备份 = readFileSync(文件, 'utf8').replace(/\r\n/g, '\n')
+  const 原始 = readFileSync(文件, 'utf8')
+  const 是CRLF = 原始.includes('\r\n')
+  const 备份 = 是CRLF ? 原始.replace(/\r\n/g, '\n') : 原始
   try {
     if (!备份.includes(旧)) { console.log(`     ❌ 找不到靶子：${label}（期望片段：${旧.slice(0, 80)}）`); 全过 = false; return }
-    writeFileSync(文件, 备份.replace(旧, 新))
+    writeFileSync(文件, (是CRLF ? 备份.replace(旧, 新).replace(/\n/g, '\r\n') : 备份.replace(旧, 新)))
     const r = 跑()
     const 掉红 = r.code !== 0 && r.out.includes(片段)
-    writeFileSync(文件, 备份)
+    writeFileSync(文件, 原始)
     const 还原 = 跑()
     const 复绿 = 还原.code === 0
     if (!(掉红 && 复绿)) 全过 = false
     console.log(`     ${掉红 && 复绿 ? '✓' : '✗'} ${label}：改后 exit=${r.code}（红=${掉红}）· 还原后 exit=${还原.code}（绿=${复绿}）`)
-  } finally { writeFileSync(文件, 备份) }
+  } finally { writeFileSync(文件, 原始) }
 }
 console.log('【RV §33-V5】数据溯源守门（红→绿可逆）\n')
 例('RV-1 造无来源格：删软装行「来源」字段',
