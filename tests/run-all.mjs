@@ -127,6 +127,7 @@ const SUITES = [
   // ★ §33-V7：教辅守门（机制标记查 src · 黑名单反向断言 · 课程参数现读 · 不碰评分）
   { name: 'teachingClaims（V7 教辅）', file: 'tests/teachingClaims.test.mjs' },
   { name: 'uiTokens（V10b 视觉）', file: 'tests/uiTokens.test.mjs' },
+  { name: 'dataCompleteness（V12 区域数据）', file: 'tests/dataCompleteness.test.mjs' },
   { name: 'docs-sync（M5 文档同步守卫）', file: 'tests/docs-sync.mjs' },
   { name: 'rehearsal（6组×12周彩排）', file: 'tests/rehearsal.mjs' },
   { name: 'rehearsal-stress（压力与边界）', file: 'tests/rehearsal-stress.mjs' },
