@@ -315,7 +315,7 @@ function InjectedEventsCard({ 事件s, week }) {
                   </div>
                 ))}
                 <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  ⏱ {左[e.来源事件] ?? 30}s 内不选将按最差选项记录
+          {左[e.来源事件] ?? 30}s 内不选将按最差选项记录
                   {可执行 ? ' · 本事件应对【即刻生效】（进入本周结算）' : ' · 你随后的经营决策决定实际结果（应对留痕进周报复盘）'}
                 </div>
               </div>
@@ -429,7 +429,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           <div style={{ margin: '10px 0 0', padding: '7px 12px', background: 'var(--bg)', borderRadius: 8, fontSize: 11, color: 'var(--text-sub)' }}>
             上周事件 {report.events.length} 起：{report.events.map((e, i) => (
               <span key={i} style={{ color: e.type === 'crisis' ? 'var(--bad)' : e.type === 'good' ? 'var(--good)' : 'inherit', fontWeight: e.type === 'crisis' ? 700 : 400 }}>
-                <Icon name={e.icon} size={12} style="{ display: 'inline-block', verticalAlign: '-2px' }" />{e.name}{i < report.events.length - 1 ? '、' : ''}
+                <Icon name={e.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} />{e.name}{i < report.events.length - 1 ? '、' : ''}
               </span>
             ))}
           </div>
@@ -468,7 +468,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           </button>
         ) : (
           <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg)', border: '1px dashed var(--border)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>
-            ⏳ 本周经营中 · 第 <b>{classDayIndex ?? 1}/7</b> 天
+       本周经营中 · 第 <b>{classDayIndex ?? 1}/7</b> 天
             <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
               到第 7 天<b>自动出周报</b>（不用点结算）· 已决策 {Object.keys(doneDecisions).length}/18
             </div>
@@ -727,7 +727,7 @@ function BreakEvenChart({ history }) {
       <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', marginTop: 4, color: breakeven ? 'var(--good)' : acc >= 0 ? 'var(--good)' : 'var(--bad)' }}>
         {breakeven ? `第 ${history[beIdx].week} 周实现累计盈利，当前累计 ${acc.toLocaleString()} 元`
           : acc >= 0 ? `持续盈利中，当前累计 ${acc.toLocaleString()} 元`
-          : `⏳ 尚未回本，当前累计 ${acc.toLocaleString()} 元`}
+     : ` 尚未回本，当前累计 ${acc.toLocaleString()} 元`}
       </div>
     </>
   )
@@ -2080,7 +2080,7 @@ export default function App() {
         if (cs) { setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : []); setClassSupAuth(cs.supervisor_auth || null) }
         fetchClassWeek().then(classWeek => {
           if (classWeek > 0 && week > classWeek) {
-            window.alert(`⏱️ 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
+      window.alert(` 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
           } else {
             doSettle({}, inj ? { injectedEvents: inj, supervisorAuth: cs.supervisor_auth || null } : null)
           }
@@ -2701,7 +2701,7 @@ export default function App() {
       {/* 全班进度提示：老师锁周且学生超前时显示 */}
       {classWeek > 0 && !report && !finished && week > classWeek && (
         <div onClick={() => setTab('business')} style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 999, whiteSpace: 'nowrap', zIndex: 50, maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          ⏱ 老师已推进全班到第 {classWeek} 周，你在第 {week} 周——决策可先做，结算等开课
+      老师已推进全班到第 {classWeek} 周，你在第 {week} 周——决策可先做，结算等开课
         </div>
       )}
     </div>

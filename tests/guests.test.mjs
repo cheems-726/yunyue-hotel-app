@@ -22,7 +22,7 @@ ok(guests.every(g => PERSONAS.includes(g.persona)), '客群全部合法（4 种�
 ok(guests.every(g => ROOM_TYPES.includes(g.roomType)), '房型全部合法（3 种）')
 ok(guests.every(g => g.nights >= 1 && g.nights <= 5), '入住天数都在 1~5 晚')
 ok(guests.every(g => g.name === g.surname + g.title && g.card === g.name + ' · ' + g.persona), '称呼/名片拼接正确')
-ok(guests.every(g => ['🧑', '👩'].includes(g.avatar)), '头像只可能是 🧑 或 👩')
+ok(guests.every(g => g.avatar === 'guest'), '头像统一为项目图标键 guest（V10b · 系统 emoji 退役）')
 const genders = new Set(guests.map(g => g.gender))
 ok(genders.size === 2, '男女都出现过（随机分布正常）')
 const personasSeen = new Set(guests.map(g => g.persona))

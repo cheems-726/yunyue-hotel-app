@@ -540,14 +540,14 @@ export default function HotelStatus({ report, brand, property, week, history, at
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>第 {week} 周 · 开业第 {(week - 1) * 7 + new Date().getDay() + 1} 天</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--good-bg)', border: '1px solid var(--good-border)', borderRadius: 10, padding: '6px 12px', marginBottom: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--good)' }}>⏰ 当前运营时段：{phase.name}（{phase.window}）</span>
+    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--good)' }}> 当前运营时段：{phase.name}（{phase.window}）</span>
         <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>退房12点前 · 入住14点后</span>
       </div>
 
       {/* RPG称号条 */}
       <div style={{ background: 'linear-gradient(90deg,var(--warn-bg),var(--card))', border: '1px solid var(--warn-border)', borderRadius: 12, padding: '10px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--warn)' }}><Icon name={title.icon} size={14} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {title.title}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--warn)' }}><Icon name={title.icon} size={14} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {title.title}</span>
           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>综合 {title.composite}</span>
         </div>
         <div style={{ height: 5, background: 'var(--fill)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>

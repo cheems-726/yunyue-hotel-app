@@ -120,13 +120,13 @@ head('4. 评价卡片质量')
   ok(!!got, '极差状态 + 精简排班/不停房 → 掷出评价')
   if (got) {
     const g = got.review.guest, e = got.entry
-    ok(g.avatar === (g.gender === 'male' ? '🧑' : '👩'), `头像与性别自洽（${g.name} → ${g.avatar}）`)
+    ok(g.avatar === 'guest' && g.title === (g.gender === 'male' ? '先生' : '女士'), `头像=guest图标键 + 称呼与性别自洽（${g.name} → ${g.title}）`)
     ok(/先生|女士/.test(g.name) && g.name.includes(g.surname), `称呼自洽（${g.name}）`)
     ok(!!e.roomType && e.nights >= 1 && !!e.date, `房型/天数/时间齐全（${e.roomType} · ${e.date}）`)
     ok(e.status === 'pending' && e.stars <= 3, `差评进待处理队列（${e.stars} 星 / ${e.status}）`)
     ok(['front_slow', 'hygiene'].includes(e.cause), `原因绑定决策（cause=${e.cause} ← ${e.relatedDecision || '-'}）`)
     ok(e.live === true && e.liveWeek === WEEK && e.liveDate === base.today, '带 live 标记（供结算差额与真实日计数使用）')
-    ok(/^💬 \[\d\d:\d\d\] 312房客人留下评价 ⭐+「/.test(got.feedText), `流水文案符合约定：${got.feedText.slice(0, 34)}…`)
+    ok(/^\[\d\d:\d\d\] 312房客人留下评价 ★+「/.test(got.feedText), `流水文案符合约定：${got.feedText.slice(0, 34)}…`)
     ok(e.text === `「${got.review.text}」`, '卡片正文与流水摘要同源')
   }
   // 好评侧

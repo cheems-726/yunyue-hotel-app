@@ -141,7 +141,7 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   ok(cardOK, `${name}：卡片总数 === reviewCount 与 negativeCount 的较大者 + 口碑爆发追加`, badRow ? `w${badRow.w}: cards=${badRow.new.generatedReviews.length} rv=${badRow.new.reviewCount} neg=${badRow.new.negativeCount}` : '')
   // 身份自洽
   const gs = rows.flatMap(r => r.new.generatedReviews.map(x => x.guest))
-  ok(gs.every(g => (g.gender === 'male' ? g.avatar === '🧑' && g.title === '先生' : g.avatar === '👩' && g.title === '女士')), `${name}：身份自洽（${gs.length} 个客人）`)
+  ok(gs.every(g => (g.gender === 'male' ? g.avatar === 'guest' && g.title === '先生' : g.avatar === 'guest' && g.title === '女士')), `${name}：身份自洽（${gs.length} 个客人 · avatar=guest 键 V10b）`)
   // 抽样展示（人工可读）
   console.log('   改后样例：')
   rows.slice(0, 3).forEach(r => r.new.generatedReviews.slice(0, 2).forEach(x => console.log(`     · ${x.avatar}${x.name} ⭐${x.stars} [${x.cause}] ${x.text.slice(0, 52)}…`)))

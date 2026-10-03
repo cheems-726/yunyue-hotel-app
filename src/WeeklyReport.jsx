@@ -102,7 +102,7 @@ function CrisisCard({ event, week }) {
               <span style={{ fontSize: 10, color: 'var(--warn)' }}>{c.effect}</span>
             </div>
           ))}
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>⏱ {timeLeft}s 内不选将自动按"不理会"处理</div>
+     <div style={{ fontSize: 10, color: 'var(--text-muted)' }}> {timeLeft}s 内不选将自动按"不理会"处理</div>
         </div>
       ) : (
         <div style={{ fontSize: 12, color: 'var(--good)', fontWeight: 600, marginTop: 6 }}>你的应对：{choice}——结果将在下周结算体现</div>
@@ -709,7 +709,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
  经营页保留只读回看入口「 查看本周周报」（不允许这里再改任何数值） */}
         {onLater && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, fontSize: 12 }} onClick={onLater}>
-            ⏸ 稍后再看（返回经营页，先继续做决策）
+       稍后再看（返回经营页，先继续做决策）
           </button>
         )}
       </div>

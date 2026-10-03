@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs'
 import { SCALE } from '../src/stateMigration.mjs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const PORT = 4177
+const PORT = 5199
 const BASE = `http://localhost:${PORT}/`
 const results = []
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -36,6 +36,10 @@ async function clickCard(page, t, mode = 'includes') {
     inner.click(); return true
   }, { t, mode })
 }
+async function clickStep(page, t) {
+  await page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
+  await sleep(400)
+}
 async function hasOverlay(page) {
   return page.evaluate(() => !!([...document.querySelectorAll('div')].find(d => d.style.position === 'fixed' && d.textContent.includes('你的选择会带来'))))
 }
@@ -56,6 +60,9 @@ browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
 const page = await ctx.newPage()
 page.on('pageerror', e => { if (!String(e.message).includes('plugin is not implemented')) ok('页面JS异常: ' + e.message, false) })
+let 监听 = false
+page.on('console', m => { const t = m.text(); if (!监听 && (t.includes('CSSStyleDeclaration') || t.includes('Error'))) { 监听 = true; console.error('CONSOLE-STACK ' + t.slice(0, 1500)) } })
+page.on('pageerror', e => { const st = String(e.stack || e.message || ''); if (st.includes('CSSStyleDeclaration')) { console.error('STACK-START'); console.error(st.slice(0, 1200)); console.error('STACK-END') } })
 
 try {
   console.log('▶ 资金权威 + B5 验收')
@@ -84,15 +91,15 @@ try {
     await sleep(550); if (done) break
   }
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '📄' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(page, n, 'starts'); await sleep(450)
     if (!(await hasOverlay(page))) { await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(450) }
     await closeOverlay(page)
   }
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🛒' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '物资采购')
   await clickCard(page, '供应商 A'); await sleep(500); await closeOverlay(page)
-  await page.evaluate(() => { const s = [...document.querySelectorAll('div')].find(d => d.textContent === '🎉' && d.style.cursor === 'pointer'); s && s.click() }); await sleep(400)
+  await clickStep(page, '开业计划')
   for (const n of ['装修', '系统上线', '招聘']) { await clickCard(page, n, 'starts'); await sleep(450); await closeOverlay(page); await clickCard(page, n, 'starts'); await sleep(300) }
   await clickText(page, '完成筹建'); await sleep(1300); await closeOverlay(page)
   ok('已进入经营页', (await text(page)).includes('资金状况'))
@@ -141,7 +148,7 @@ try {
   // ── P5 对账：周报「期末资金」=== 权威 state（精确）=== 资金卡显示（容差 ±500，显示为 x.x 万）──
   let wrCap = null
   {
-    const mCap = wr.match(/💰 期末资金\s*([\d,]+)\s*元/)
+    const mCap = wr.match(/期末资金\s*([\d,]+)\s*元/)
     ok(`周报显示「期末资金」（${mCap ? mCap[1] : '未匹配'}）`, !!mCap)
     if (mCap) {
       wrCap = Number(mCap[1].replace(/,/g, ''))
@@ -157,7 +164,7 @@ try {
     const R = st2.report || {}
     const metrics = await page.evaluate(() => [...document.querySelectorAll('.metric')].map(m => m.innerText.replace(/\s+/g, ' ').trim()))
     const occBlock = metrics.find(t => t.startsWith('出租率'))
-    const goodBlocks = [...wr.matchAll(/⭐ 好评率\s*([\d.]+)%\s*→\s*([\d.]+)%/g)]
+    const goodBlocks = [...wr.matchAll(/好评率\s*([\d.]+)%\s*→\s*([\d.]+)%/g)]
     ok(`周报「出租率」指标块可读（${occBlock || '未匹配'}）`, !!occBlock)
     if (occBlock) {
       const n = Number((occBlock.match(/([\d.]+)\s*%/) || [])[1])
@@ -173,6 +180,8 @@ try {
 
   // ── ④ 进入下一周 → 资金卡显示累积值（不再是每周重置的 50 万+本周）──
   await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
+  { const t = await text(page); console.log('PROBE1 资金状况=' + t.includes('资金状况') + ' 进入第=' + t.includes('进入第') + ' len=' + t.length) }
+  { const t2 = await text(page); console.log('PROBE2 ' + JSON.stringify(t2.slice(0, 260))) }
   const st3 = await state(page)
   const card2 = await readCardCap()
   // 卡片显示格式为 (cap/10000).toFixed(1) 万 → 容差 ±500（显示精度，不是精度差）

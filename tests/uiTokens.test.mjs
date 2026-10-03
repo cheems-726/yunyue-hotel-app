@@ -19,7 +19,7 @@ const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } 
 const isComment = (l) => { const t = l.trim(); return t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*') }
 // emoji 判定：符号区，排除排版符号（箭头/星/勾/圈数字等——它们是文字）
 const 排版 = new Set([...'+-→⇑⇒↑↓←↔↩↺↳①②③④⑤⑥⑦✓✗✘★☆·—–−×÷'])
-const EMO = /[\u2600-\u27BF\u2B00-\u2BFF\u{1F000}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\uFE0F\u2190-\u21FF]/gu
+const EMO = /[\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF\u{1F000}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\uFE0F\u2190-\u21FF]/gu
 
 // ① 裸 emoji 计数（注释行除外）
 let emojiCount = 0

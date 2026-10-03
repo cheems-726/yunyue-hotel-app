@@ -279,7 +279,7 @@ export default function Claim({ brand, location, onComplete }) {
                   </div>
                 ))}
                 <div style={{ fontSize: 12, fontWeight: 700, marginTop: 8, color: payback.ok ? 'var(--good)' : 'var(--warn)' }}>
-                  ⏳ {payback.text}
+          {payback.text}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--good)', marginTop: 8, lineHeight: 1.6 }}>
                 {/* §14.3：加盟费用条款 —— 哪几项【已实收】、哪几项【待接入】
@@ -305,7 +305,7 @@ export default function Claim({ brand, location, onComplete }) {
                   与结算一致。<b>加盟两费</b>（管理费 5% + CRS 有效 2.4%）自 §14.3 起已由引擎按营收实收，本页读引擎实收（不重复计）。
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 6, lineHeight: 1.6, background: 'var(--warn-bg)', borderRadius: 6, padding: '6px 8px' }}>
-                  ⏳ {ledger.extrapolation} —— 实际经营会因决策、事件与淡旺季偏离本页估计。
+          {ledger.extrapolation} —— 实际经营会因决策、事件与淡旺季偏离本页估计。
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 4, lineHeight: 1.6 }}>
  {ledger.engineFeeNote}（任务包原式只列了"人力"，本页按 W14 后的完整部门成本口径 ——

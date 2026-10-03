@@ -185,7 +185,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         })
         return (
           <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 8 }}>
-            <Icon name={ti.icon} size={13} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
+            <Icon name={ti.icon} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 称号：{ti.title}（综合 {ti.composite}）{ti.next ? ` · 距「${ti.next}」还差综合 ${ti.nextAt - ti.composite} 分` : ' · 已是最高称号'}
             {nodes.length > 1 && <div style={{ color: 'var(--text-sub)', marginTop: 3 }}>轨迹：{nodes.join(' → ')}</div>}
           </div>
         )
@@ -209,7 +209,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
               return (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '2px 0', color: isDone ? 'var(--good)' : 'var(--bad)', lineHeight: 1.5 }}>
                   <span style={{ flex: 1 }}>
- {isDone ? '' : ''}<Icon name={d.icon} size={12} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
+ {isDone ? '' : ''}<Icon name={d.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {d.name}{ownerName && !isDone && ` —— 负责人：${ownerName}，尚未完成`}
                   </span>
                   {!isDone && onGoDecision && (
                     <button title="跳回经营页打开该决策" onClick={e => { e.stopPropagation(); onGoDecision(d.id) }}
@@ -1048,7 +1048,7 @@ export default function TeacherDashboard({ user, onLogout }) {
         <div>
           {/* 教学进度控制：全班统一周 */}
           <div className="card" style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>⏱️ 教学进度控制（全班统一周）</div>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}> 教学进度控制（全班统一周）</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: 'var(--text-sub)', flexShrink: 0 }}>当前设定</span>
               <input
@@ -1217,7 +1217,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       {view === 'live' && chipDetail && (
         <div onClick={() => setChipDetail(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%', animation: 'pageIn 0.2s ease-out' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}><Icon name={chipDetail.icon} size={15} style="{ display: 'inline-block', verticalAlign: '-2px' }" /> {chipDetail.name}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}><Icon name={chipDetail.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {chipDetail.name}</div>
             <div style={{ fontSize: 12, color: 'var(--text)', padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, marginBottom: 10 }}>
               学生选择：<b>{chipDetail.answer}</b>
  {/* §32-U8-补 §1（主菜）：老师当场能指着屏幕问「你选这个的代价是什么？」—— R6 教学闭环
