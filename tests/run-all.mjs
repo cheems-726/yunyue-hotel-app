@@ -254,6 +254,18 @@ const totalFail = rows.reduce((a, r) => a + (Number(r.fail) || 0), 0)
 for (const r of rows) console.log(`  ${r.state}  ${String(r.name).padEnd(40)} ${String(r.pass).padStart(4)} 通过 / ${String(r.fail).padStart(2)} 失败  ${r.secs}s`)
 console.log(`\n合计断言：${total} 通过 / ${totalFail} 失败${skipped ? ` · 跳过 ${skipped} 项` : ''}`)
 const knownReds = rows.filter(r => r.knownRed)
+// ★ V16批1-T2真修：knownRed 去重（SUITES 两表各一条同名 ⇒ rows 含重复 ⇒ knownReds 也含）。
+//   去重后供全部下游（打印 / 记录写入 / 已知红键投影）使用 · 防回归：同名重复 = 本套件自身红。
+{
+  const seen = new Set()
+  const 去重后 = knownReds.filter(r => !seen.has(r.name) && seen.add(r.name))
+  if (去重后.length !== knownReds.length) {
+    failed++
+    console.error(`🔴 V16批1-T2：knownReds 含同名重复（${knownReds.length} → 去重 ${去重后.length}）⇒ 已自动去重并计失败（防回归）`)
+    knownReds.length = 0
+    knownReds.push(...去重后)
+  }
+}
 if (knownReds.length) {
   console.log('\n⏳ 已知红（在门禁内保留 · 断言未改动 · 不计入失败数）：')
   knownReds.forEach(r => {
@@ -361,13 +373,21 @@ if (!failed || 仅本套件失败) {
         dirty,                       // ★ true = 【codeTree 子树】有未提交改动 ⇒ 数字无法对到某个提交
         fullDirty,                   // 仅供参考：整仓是否脏（含文档）
       },
-      已知红: knownReds.map(r => r.name),   // V15批2-T2：此处为 已知红明细 的【机械投影】（唯一真相源 = 已知红明细）
+      // ★ V15批2-T2 + V16批1-T2真修：旧键 = 已知红明细 的【机械投影】（先算明细·再投影 · 非直接 knownReds
+      //   —— knownReds 含同名重复因 SUITES 两表各一条 vlr ⇒ 直接投影带重复）。
+      //   断言（docs-sync 消费）：已知红 === 已知红明细.map(name) 逐字一致且无重复。
+      已知红: (() => {
+        const seen = new Set()
+        return knownReds.filter(r => !seen.has(r.name) && seen.add(r.name)).map(r => r.name)
+      })(),
       // ★ V14批1-M1：统一口径 —— 原始失败 = 各套件失败数之和（【含 knownRed 的】）；
       //   `失败` 字段 = 计入门禁结论的失败（knownRed 不计）⇒ 报告/AGENTS 只许写
       //   「X 通过 / Y 失败（其中 Z 为已知红原始失败）」单一口径。
       原始失败: totalFail,
-      // ★ V14批1-M3：已知红元数据入库（不再是裸名字）—— 可直接读出"为什么红/谁拍板/从哪天起"。
-      已知红明细: (() => { const seen = new Set(); return knownReds.filter(r => !seen.has(r.name) && seen.add(r.name)).map(r => {
+      // ★ V14批1-M3 + V16批1：已知红元数据入库（去重提取提到旧键之前 · 旧键从此投影于此）。
+      已知红明细: (() => {
+        const seen = new Set()
+        return knownReds.filter(r => !seen.has(r.name) && seen.add(r.name)).map(r => {
         const row = rows.find(x => x.name === r.name)
         return {
           name: r.name,
