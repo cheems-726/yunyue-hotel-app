@@ -384,7 +384,7 @@ if (!failed || 仅本套件失败) {
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
     console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过} 通过 / ${记失败} 失败（其中原始失败 ${totalFail} · 含已知红）· head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
-  } catch (e) { console.error("[诊断] 记录写盘异常:", e && e.message, e && e.stack && e.stack.split(String.fromCharCode(10))[1]); }
+  } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
 
 // ★ §23.3-③：与上次基线的计数漂移提示（⚠ 可见但不作失败 —— 计数随批次合法增长/减少）
