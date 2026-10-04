@@ -38,6 +38,11 @@ console.log('最差12个组合（勤奋策略12周）:')
 rows.slice(0, 12).forEach(r => console.log(`  ${r.loc} [${r.brand}] ${r.profit >= 0 ? '+' : ''}${r.profit} 元`))
 const dead = rows.filter(r => r.profit < -20000)
 console.log(`\n重亏组合（<-2万）: ${dead.length}/${rows.length}`)
+// ★ V14批1-M2：补断言计数行（本套件原只有 exit 1 无"X 通过 / Y 失败" ⇒ run-all 解析不出 fail ⇒
+//   perSuite 无基线 ⇒ M2 豁免边界对本套件失效）。断言本体一个字没改 —— 只加汇总行。
+const 断言总数 = rows.length
+const 断言失败 = dead.length            // 每个重亏组合 = 1 条"该选址不可行"失败断言（knownRed 口径不变）
+console.log(`\n结果: ${断言总数 - 断言失败} 通过 / ${断言失败} 失败`)
 if (dead.length > rows.length * 0.15) {
   console.error('❌ 死亡选址过多（>15%），需要调整租金成本曲线')
   process.exit(1)
