@@ -27,6 +27,22 @@ const 原始失败 = gate.原始失败 != null ? gate.原始失败 : '?'
 const 指纹新 = `收尾指纹：HEAD ${head} · 未推 **${未推}**`
 const 数字新 = `全量 **${full通过} 通过 / 0 失败（其中 ${原始失败} 为已知红原始失败）** · 快检 **${fast通过}/0（其中 ${gate.原始失败 != null ? Math.max(0, 原始失败 - (full通过 ? (gate.full.原始失败 ?? 0) : 0)) : '?'} 为已知红原始失败）**`
 
+// ★ D147 补：数值目标（非"收尾指纹"文件，但同样会被门禁数字判据比对）
+const 数字目标 = [
+  { p: join(APP, 'AGENTS.md'), 名: 'AGENTS.md（§2 状态行）' },
+  { p: join(ROOT, '1-总纲与进度', '长效任务总表（总纲·开工先读）.md'), 名: '长效任务总表（§7 守门行）' },
+]
+for (const t of 数字目标) {
+  try {
+    let x = readFileSync(t.p, 'utf8')
+    const 前 = x
+    x = x.replace(/(快检 \*\*)\d+(\s*\/\s*0)/g, `$1${fast通过}$2`)
+    x = x.replace(/(全量 \*\*)\d+( 通过 \/ 0 失败)/g, `$1${full通过}$2`)
+    if (x !== 前) { if (CHECK) { console.log(`  [check] ${t.名} 需更新`); 不一致++ } else { writeFileSync(t.p, x, 'utf8'); console.log(`  ✓ ${t.名} 数字已刷（full ${full通过} · fast ${fast通过}）`) } }
+    else console.log(`  - ${t.名} 数字已一致`)
+  } catch (e) { console.error('  ✗ ' + t.名, e.message) }
+}
+
 const 文件 = [
   join(ROOT, '9-夜间自动化', '夜间开工闸门.txt'),
   join(ROOT, '9-夜间自动化', 'night-run-log.md'),
@@ -72,12 +88,12 @@ if (!CHECK) {
   const 过审包 = join(ROOT, '4-审计与报告', '全日过审包-20260929.md')
   try {
     let s = readFileSync(过审包, 'utf8')
-    // 快检数
-    s = s.replace(/(快检 \*\*)\d+(\/0（其中 \d+ 为已知红原始失败）\*\*)/, `$1${fast通过}$2`)
-    // 全量数
-    s = s.replace(/(全量 \*\*)\d+( 通过 \/ 0 失败)/, `$1${full通过}$2`)
-    writeFileSync(过审包, s, 'utf8')
-    console.log(`  ✓ 过审包 数字行已刷（full ${full通过} · fast ${fast通过}）`)
+    const 前 = s
+    // ★ D147 修：措辞容差（原正则要求「为已知红原始失败」，实际文件写「已知红原始失败」⇒ 从不匹配却谎报 ✓）
+    s = s.replace(/(快检 \*\*)\d+(\s*\/\s*0)/, `$1${fast通过}$2`)
+    s = s.replace(/(全量[^\n]*?\*\*)\d+( 通过)/, `$1${full通过}$2`)
+    if (s !== 前) { writeFileSync(过审包, s, 'utf8'); console.log(`  ✓ 过审包 数字行已刷（full ${full通过} · fast ${fast通过}）`) }
+    else console.log('  - 过审包 数字行已一致')
   } catch (e) { console.error('  ✗ 过审包', e.message) }
 
   const 交接卡 = join(ROOT, '4-审计与报告', '会话交接卡.md')
@@ -96,9 +112,10 @@ if (!CHECK) {
         i++
       }
     }
+    const 前卡 = s
     s = parts.join('')
-    writeFileSync(交接卡, s, 'utf8')
-    console.log(`  ✓ 交接卡 数字行 + ⑥ 段 HEAD/未推已刷（full ${full通过} · fast ${fast通过} · HEAD ${head} · 未推 ${未推}）`)
+    if (s !== 前卡) { writeFileSync(交接卡, s, 'utf8'); console.log(`  ✓ 交接卡 数字行 + ⑥ 段 HEAD/未推已刷（full ${full通过} · fast ${fast通过} · HEAD ${head} · 未推 ${未推}）`) }
+    else console.log('  - 交接卡 数字行 + ⑥ 段 已一致')
   } catch (e) { console.error('  ✗ 交接卡', e.message) }
 }
 
