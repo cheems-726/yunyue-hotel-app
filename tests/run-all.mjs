@@ -380,8 +380,9 @@ if (!failed || 仅本套件失败) {
         }
       }),
       // ★ §23.3-③ + V14批1-M2：期望计数基线 —— 形状升级为 {pass, fail}（M2 需要 fail 基线）。
-      perSuite: Object.fromEntries(rows.filter(x => Number.isFinite(Number(x.pass)) && x.state !== '⏭ 跳过（--fast）')
-        .map(x => [x.name, { pass: Number(x.pass), fail: Number(x.fail) || 0 }])),
+      //   knownRed 行即使 pass='-'（如 location 输出）也收录 fail 基线 —— M2 边界必须对其生效。
+      perSuite: Object.fromEntries(rows.filter(x => x.state !== '⏭ 跳过（--fast）' && (Number.isFinite(Number(x.pass)) || x.knownRed))
+        .map(x => [x.name, { pass: Number(x.pass) || 0, fail: Number(x.fail) || 0 }])),
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
