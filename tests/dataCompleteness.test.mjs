@@ -73,6 +73,32 @@ if (existsSync(看板)) {
   console.log(`  ✓ 看板已生成（${区位.length} 区位）`)
 }
 
+// ── V18批3 · 甲3 两表逐格覆盖（表一 1.2-4 / 表二 1.2-5 · V17批4/V18批2 交付）────────
+//   卡判据：dataCompleteness 扩到覆盖新增两表（26 区位 × 维度）· 格数 === 区位数（机械）
+//   逐格文件 = WebSearch 官方通报汇编（仓外 4-审计与报告/），本守门机械读表防"表在≠盖全"：
+//     ① 每表恰好 26 行（编号行；区位多一少一都红）② 每行带 🟢/🟡/🔴 三态
+//     ③ 🟢 行必带来源（通报/转载/官网/机构 等实词）④ 🟢 行不得出现「估算/推测」（RV 靶③）
+const 甲3表 = [
+  { f: '数据-甲3表一逐格26区位-20261005.md', 表名: '表一(1.2-4 景区/节假日)' },
+  { f: '数据-甲3表二逐格26区位-20261005.md', 表名: '表二(1.2-5 商业密度/商务)' },
+]
+for (const { f, 表名 } of 甲3表) {
+  const p = join(DOC, f)
+  if (!existsSync(p)) { ok(false, `甲3 ${表名} 逐格文件存在`, f); continue }
+  const t = readFileSync(p, 'utf8')
+  const 行 = t.split('\n').filter(l => /^\| \d+ \| /.test(l))
+  ok(行.length === 26, `甲3 ${表名}：逐格行数 === 26（实读 ${行.length}）`)
+  const 无态 = 行.filter(l => !/🟢|🟡|🔴/.test(l))
+  ok(无态.length === 0, `甲3 ${表名}：每行带状态三态`, 无态.slice(0, 2).join(' | '))
+  const 绿无源 = 行.filter(l => l.includes('🟢') && !/(通报|转载|官网|研究院|新闻|日报|收录|来源)/.test(l))
+  ok(绿无源.length === 0, `甲3 ${表名}：🟢 行必带来源`, 绿无源.slice(0, 2).join(' | '))
+  const 绿估算 = 行.filter(l => l.includes('🟢') && /(估算|推测)/.test(l))
+  ok(绿估算.length === 0, `甲3 ${表名}：🟢 行无估算/推测（RV 靶③）`, 绿估算.slice(0, 2).join(' | '))
+  // 🟡 行必须写明口径短板（市级口径/合计/收入口径/定性 之一）—— 不许裸 🟡
+  const 裸黄 = 行.filter(l => l.includes('🟡') && !/(口径|定性|合计|参考|收录)/.test(l))
+  ok(裸黄.length === 0, `甲3 ${表名}：🟡 行写明口径短板`, 裸黄.slice(0, 2).join(' | '))
+}
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('RV（_rv-33v12.mjs）：删竞品 source / 改区位数 / 字号回退 ⇒ 必红')
 process.exit(fail ? 1 : 0)
