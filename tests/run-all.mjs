@@ -367,7 +367,7 @@ if (!failed || 仅本套件失败) {
       //   「X 通过 / Y 失败（其中 Z 为已知红原始失败）」单一口径。
       原始失败: totalFail,
       // ★ V14批1-M3：已知红元数据入库（不再是裸名字）—— 可直接读出"为什么红/谁拍板/从哪天起"。
-      已知红明细: knownReds.map(r => {
+      已知红明细: (() => { const seen = new Set(); return knownReds.filter(r => !seen.has(r.name) && seen.add(r.name)).map(r => {
         const row = rows.find(x => x.name === r.name)
         return {
           name: r.name,
@@ -378,7 +378,7 @@ if (!failed || 仅本套件失败) {
           owner: r.knownRed.owner || null,
           reason: r.knownRed.reason || null,
         }
-      }),
+      }) })(),
       // ★ §23.3-③ + V14批1-M2：期望计数基线 —— 形状升级为 {pass, fail}（M2 需要 fail 基线）。
       //   knownRed 行即使 pass='-'（如 location 输出）也收录 fail 基线 —— M2 边界必须对其生效。
       perSuite: Object.fromEntries(rows.filter(x => x.state !== '⏭ 跳过（--fast）' && (Number.isFinite(Number(x.pass)) || x.knownRed))
