@@ -268,6 +268,28 @@ if (knownReds.length) {
     console.log(`    理由：${reason}`)
     console.log(`    拍板：${r.knownRed.decision}（${r.knownRed.since}）· 归属：${r.knownRed.owner}`)
   })
+  // ★ V14批1-M2：knownRed 豁免边界 —— 套件级豁免只保【基线数】的失败；新增失败 ⇒ 门禁红。
+  //   （防"套件级豁免"变成无边界白名单：老的 8 条豁免，新的第 9 条必红。）
+  //   fail < 基线 = 改善（提示"部分转绿"）；首次无基线（旧形状纯数字）⇒ 不判。
+  {
+    const m2违规 = []
+    for (const r of knownReds) {
+      const prevF = prev.perSuite ? prev.perSuite[r.name] : null
+      const prevFail = prevF && typeof prevF === 'object' ? Number(prevF.fail) : null
+      if (prevFail == null) continue
+      const cur = rows.find(x => x.name === r.name)
+      const curFail = Number(cur && cur.fail) || 0
+      if (curFail > prevFail) m2违规.push(r.name + ': ' + prevFail + ' → ' + curFail + '（新增 ' + (curFail - prevFail) + ' 条失败）')
+    }
+    if (m2违规.length) {
+      failed++
+      console.error('')
+      console.error('🔴 M2 豁免边界触发：knownRed 套件出现【新增失败】（基线外不豁免）——')
+      m2违规.forEach(x => console.error('   · ' + x))
+      console.error('   ⇒ 处理：修新增失败，或走待决策队列新增/修订 knownRed 条目（不许直接放宽）。')
+    }
+  }
+
   // 🔴 A-1（2026-09-27）：本行原写「不许调阈值 / 不许调租金曲线来变绿」——D39 冻结期的措辞。
   //    D47-e 已授权调租金曲线（且**调了也不绿**：23.1% > 15%）=改教学难度基准，不是"变绿"；
   //    门禁标准本身（≤15%）待用户在 (i)/(ii) 中拍板 ⇒ 纪律改成"不许为了让门禁变绿而改标准/参数"。
@@ -338,10 +360,26 @@ if (!failed || 仅本套件失败) {
         fullDirty,                   // 仅供参考：整仓是否脏（含文档）
       },
       已知红: knownReds.map(x => x.name),
-      // ★ §23.3-③：期望计数基线（各套件通过数快照）—— 下次运行时与本次对比，
-      //   漂移 ⚠ 提示（计数随批次合法增长，不作失败）；真正的失败判定是上面的「解析失败」。
+      // ★ V14批1-M1：统一口径 —— 原始失败 = 各套件失败数之和（【含 knownRed 的】）；
+      //   `失败` 字段 = 计入门禁结论的失败（knownRed 不计）⇒ 报告/AGENTS 只许写
+      //   「X 通过 / Y 失败（其中 Z 为已知红原始失败）」单一口径。
+      原始失败: totalFail,
+      // ★ V14批1-M3：已知红元数据入库（不再是裸名字）—— 可直接读出"为什么红/谁拍板/从哪天起"。
+      已知红明细: knownReds.map(r => {
+        const row = rows.find(x => x.name === r.name)
+        return {
+          name: r.name,
+          pass: row ? row.pass : '-',
+          fail: row ? row.fail : '-',
+          decision: r.knownRed.decision || null,
+          since: r.knownRed.since || null,
+          owner: r.knownRed.owner || null,
+          reason: r.knownRed.reason || null,
+        }
+      }),
+      // ★ §23.3-③ + V14批1-M2：期望计数基线 —— 形状升级为 {pass, fail}（M2 需要 fail 基线）。
       perSuite: Object.fromEntries(rows.filter(x => Number.isFinite(Number(x.pass)) && x.state !== '⏭ 跳过（--fast）')
-        .map(x => [x.name, Number(x.pass)])),
+        .map(x => [x.name, { pass: Number(x.pass), fail: Number(x.fail) || 0 }])),
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
@@ -354,7 +392,8 @@ if (!failed || 仅本套件失败) {
 try {
   const prevSuite = 上次perSuite快照 || {}
   const curSuite = Object.fromEntries(rows.filter(x => Number.isFinite(Number(x.pass))).map(x => [x.name, Number(x.pass)]))
-  const 漂移 = Object.entries(curSuite).filter(([n, v]) => prevSuite[n] != null && prevSuite[n] !== v)
+  const 旧值 = (v) => (v && typeof v === 'object') ? v.pass : v   // V14批1-M2：perSuite 已升级 {pass, fail}
+  const 漂移 = Object.entries(curSuite).filter(([n, v]) => prevSuite[n] != null && 旧值(prevSuite[n]) !== v)
   if (漂移.length) {
     console.log('\n⚠ 计数基线漂移（与上次运行比 · 通常 = 新增/修改了断言，可见即可）：')
     漂移.slice(0, 8).forEach(([n, v]) => console.log(`   · ${n}: ${prevSuite[n]} → ${v}`))
