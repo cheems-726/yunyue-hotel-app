@@ -636,13 +636,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                     </div>
                     {!isDone && d.owner && d.owner !== user?.groupRole && (
                       <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 8, bottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
                         <button title="记录移交：本项交由责任职务处理（留痕 operatorLog · 不改数值）"
                           onClick={() => onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                          style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
+                          style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
                         <button title="代提交：责任人当周未操作该项时，由我代为提交（留痕区分 代提交人/责任人 · 不改数值）"
                           onClick={() => onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                          style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: '#fff', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
+                          style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: '#fff', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
                       </div>
                     )}
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
