@@ -329,7 +329,7 @@ function InjectedEventsCard({ 事件s, week }) {
   )
 }
 
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [] }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -602,7 +602,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                   const lastChoice = history.length && history[history.length - 1].decisions ? history[history.length - 1].decisions[d.id] : undefined
                   return (
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
-                    style={!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid var(--primary)', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}}
+                    style={{ position: 'relative', ...(!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid var(--primary)', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}) }}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
                     <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
                       <div className={`task-icon ${bgMap[mod]}`}><Icon name={d.icon} size={22} /></div>
@@ -634,6 +634,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '1px 0 2px' }}>上周：{String(fmtDecision(lastChoice)).slice(0, 18)}{String(fmtDecision(lastChoice)).length > 18 ? '…' : ''}</div>
                       )}
                     </div>
+                    {!isDone && d.owner && d.owner !== user?.groupRole && (
+                      <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 8, bottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
+                        <button title="记录移交：本项交由责任职务处理（留痕 operatorLog · 不改数值）"
+                          onClick={() => onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString() })}
+                          style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
+                        <button title="代提交：责任人当周未操作该项时，由我代为提交（留痕区分 代提交人/责任人 · 不改数值）"
+                          onClick={() => onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString() })}
+                          style={{ fontSize: 10, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: '#fff', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
+                      </div>
+                    )}
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
                   </div>
                   )
@@ -2654,7 +2665,7 @@ export default function App() {
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
