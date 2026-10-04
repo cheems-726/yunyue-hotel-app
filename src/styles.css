@@ -484,3 +484,14 @@ input[type="range"]::-webkit-slider-thumb {
   :root { --bg: #fff !important; --card: #fff !important; --text: #1d1d1f !important; --text-sub: #555 !important; --text-muted: #888 !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ── V13批8 · 老师端决策流水投屏放大（D139 实测 9–11px 投影后排看不清 · 只放大不破冻）── */
+@media (min-width: 1025px) {
+  /* React 内联 style 渲染为 kebab-case（font-size: 10px）且内联 > 类选择器 ⇒ 必须 !important */
+  .t-flow { font-size: 16px; }
+  .t-flow [style*="font-size: 9px"]  { font-size: 13px !important; }
+  .t-flow [style*="font-size: 10px"] { font-size: 15px !important; }
+  .t-flow [style*="font-size: 11px"] { font-size: 16px !important; }
+  .t-flow [style*="font-size: 12px"] { font-size: 16px !important; }
+  .t-flow [style*="font-size: 13px"] { font-size: 18px !important; }
+}

@@ -1303,7 +1303,7 @@ export default function TeacherDashboard({ user, onLogout }) {
             </div>
 
             {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}
-            <div className="card" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
+            <div className="card t-flow" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>决策流水</div>
                 <span style={{ fontSize: 9, color: logs.length ? 'var(--good)' : 'var(--text-muted)', fontWeight: 700 }}>
