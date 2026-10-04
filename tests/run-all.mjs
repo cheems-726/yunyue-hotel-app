@@ -272,9 +272,11 @@ if (knownReds.length) {
   //   （防"套件级豁免"变成无边界白名单：老的 8 条豁免，新的第 9 条必红。）
   //   fail < 基线 = 改善（提示"部分转绿"）；首次无基线（旧形状纯数字）⇒ 不判。
   {
+    // ★ prev 是【写盘块内】的局部变量（此处尚不可见）⇒ M2 自读上次记录（V14 首跑实踩：ReferenceError 崩掉整个 run-all 尾部）
+    const prevGate = (() => { try { return JSON.parse(readFileSync(new URL('./_last-gate.json', import.meta.url), 'utf8')) } catch (e) { return {} } })()
     const m2违规 = []
     for (const r of knownReds) {
-      const prevF = prev.perSuite ? prev.perSuite[r.name] : null
+      const prevF = prevGate.perSuite ? prevGate.perSuite[r.name] : null
       const prevFail = prevF && typeof prevF === 'object' ? Number(prevF.fail) : null
       if (prevFail == null) continue
       const cur = rows.find(x => x.name === r.name)
