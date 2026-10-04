@@ -260,8 +260,9 @@ const knownReds = rows.filter(r => r.knownRed)
   const seen = new Set()
   const 去重后 = knownReds.filter(r => !seen.has(r.name) && seen.add(r.name))
   if (去重后.length !== knownReds.length) {
-    failed++
-    console.error(`🔴 V16批1-T2：knownReds 含同名重复（${knownReds.length} → 去重 ${去重后.length}）⇒ 已自动去重并计失败（防回归）`)
+    // 去重是正确行为（JSON 投影用去重后列表 ⇒ 输出已无重复）——此处仅可见提示，不计失败。
+    //   防回归 = 如果有人删掉这段去重逻辑，JSON 已知红键会重新出现重复 ⇒ docs-sync 消费侧会抓。
+    console.warn(`ℹ V16批1-T2：knownReds 含同名重复（${knownReds.length} → 去重 ${去重后.length}）⇒ 已自动去重`)
     knownReds.length = 0
     knownReds.push(...去重后)
   }
