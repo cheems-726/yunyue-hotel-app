@@ -83,10 +83,22 @@ if (!CHECK) {
   const 交接卡 = join(ROOT, '4-审计与报告', '会话交接卡.md')
   try {
     let s = readFileSync(交接卡, 'utf8')
-    s = s.replace(/(node tests\/run-all\.mjs --fast --no-build   → \*\*)\d+(\/0)/, `$1${fast通过}$2`)
-    s = s.replace(/(node tests\/run-all\.mjs\s+→ \*\*)\d+( 通过 \/ 0 失败)/, `$1${full通过}$2`)
+    const EOL = s.includes('\r\n') ? '\r\n' : '\n'
+    // ★ D145 补：⑥ 段【段内作用域】——① 段有历史基线（HEAD xxx 是发布时点·不许动）⇒ 只改 ⑥ 段
+    const parts = s.split(/^(## .*)$/m)
+    for (let i = 0; i < parts.length; i++) {
+      if (/^##\s*⑥/.test(parts[i]) && i + 1 < parts.length) {
+        parts[i + 1] = parts[i + 1]
+          .replace(/(HEAD \`)[0-9a-f]{7,8}(\`)/g, `$1${head}$2`)                       // ⑥ 的 HEAD 引用
+          .replace(/(git log origin\/main\.\.HEAD --oneline\s+→ \*\*未推 )\d+(\*\*)/, `$1${未推}$2`)  // ⑥ 的未推行
+          .replace(/(node tests\/run-all\.mjs --fast --no-build   → \*\*)\d+(\/0)/, `$1${fast通过}$2`)
+          .replace(/(node tests\/run-all\.mjs\s+→ \*\*)\d+( 通过 \/ 0 失败)/, `$1${full通过}$2`)
+        i++
+      }
+    }
+    s = parts.join('')
     writeFileSync(交接卡, s, 'utf8')
-    console.log(`  ✓ 交接卡 数字行已刷（full ${full通过} · fast ${fast通过}）`)
+    console.log(`  ✓ 交接卡 数字行 + ⑥ 段 HEAD/未推已刷（full ${full通过} · fast ${fast通过} · HEAD ${head} · 未推 ${未推}）`)
   } catch (e) { console.error('  ✗ 交接卡', e.message) }
 }
 
