@@ -17,7 +17,7 @@ export default function Welcome({ user, onStart }) {
       {/* 欢迎区 */}
       <div style={{ textAlign: 'center', padding: '40px 20px 20px' }}>
         <div style={{ width: 88, height: 88, borderRadius: 28, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, margin: '0 auto 16px', }}>
- 
+          <Icon name="prop.hotel" size={48} />   {/* V19批4：V10b 去 emoji 后 hero 空块补回图标键 */}
         </div>
         <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.3px' }}>欢迎你，{user?.name}</div>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginTop: 8, lineHeight: 1.6 }}>
