@@ -345,7 +345,7 @@ if (!failed || 仅本套件失败) {
     }
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
-    console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过}/0 · head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
+    console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过} 通过 / ${记失败} 失败（其中原始失败 ${totalFail} · 含已知红）· head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
   } catch (e) { /* 记录失败不影响门禁结论 */ }
 }
 
