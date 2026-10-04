@@ -111,6 +111,10 @@ if (!CHECK) {
           .replace(/(git log origin\/main\.\.HEAD --oneline\s+→ \*\*未推 )\d+(\*\*)/, `$1${未推}$2`)  // ⑥ 的未推行
           .replace(/(node tests\/run-all\.mjs --fast --no-build   → \*\*)\d+(\/0)/, `$1${fast通过}$2`)
           .replace(/(node tests\/run-all\.mjs\s+→ \*\*)\d+( 通过 \/ 0 失败)/, `$1${full通过}$2`)
+          // ★ V17批2：⑥ 段【内嵌数】也机械刷（此前只刷了标题数 ⇒ "其中 8/其中 35/记录 @旧哈希"写死残留）
+          .replace(/(--no-build\s+→ \*\*\d+\/0（其中 )\d+( 已知红原始失败）\*\*)/, `$1${fast原始失败}$2`)
+          .replace(/(run-all\.mjs\s+→ \*\*\d+ 通过 \/ 0 失败（其中 )\d+( 已知红原始失败）\*\*)/, `$1${full原始失败}$2`)
+          .replace(/(记录 @\`)[0-9a-f]{7,8}(\`)/, `$1${head}$2`)
         i++
       }
     }
