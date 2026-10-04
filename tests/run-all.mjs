@@ -361,7 +361,7 @@ if (!failed || 仅本套件失败) {
         dirty,                       // ★ true = 【codeTree 子树】有未提交改动 ⇒ 数字无法对到某个提交
         fullDirty,                   // 仅供参考：整仓是否脏（含文档）
       },
-      已知红: knownReds.map(x => x.name),
+      已知红: knownReds.map(r => r.name),   // V15批2-T2：此处为 已知红明细 的【机械投影】（唯一真相源 = 已知红明细）
       // ★ V14批1-M1：统一口径 —— 原始失败 = 各套件失败数之和（【含 knownRed 的】）；
       //   `失败` 字段 = 计入门禁结论的失败（knownRed 不计）⇒ 报告/AGENTS 只许写
       //   「X 通过 / Y 失败（其中 Z 为已知红原始失败）」单一口径。

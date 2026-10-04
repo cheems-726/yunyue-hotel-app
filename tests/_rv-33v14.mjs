@@ -26,9 +26,16 @@ try {
   writeFileSync(LM, raw)   // ★ 还原写 raw 原字节
   console.log('  已还原 · 再跑门禁确认绿…')
   const r2 = 跑门禁()
-  const 绿 = !( (r2.stdout||'')+(r2.stderr||'') ).includes('M2 豁免边界触发')   // 还原判据=M2 信号消失（其他红=指纹族环境噪声 · 不属本靶）
+  const out2 = (r2.stdout || '') + (r2.stderr || '')
+  // ★ V15批1-T1：还原判据恢复【强判据】= 整门禁 exit 0（指纹已由决策端同步两绿 · 噪声不再）。
+  //   兜底（若届时仍有本靶之外的红）：被测套件 fail 回基线 + 门禁结论字段回绿 —— 两者择一须成立，
+  //   并附输出证据（卡 §1批1 ☆）。判定顺序：强判据优先，不满足再验兜底。
+  const 强绿 = r2.status === 0
+  const location = JSON.parse((() => { try { return readFileSync(join(APP, 'tests', '_last-gate.json'), 'utf8') } catch (e) { return '{}' } })()).perSuite?.['location-matrix（选址矩阵）']
+  const 兜底绿 = location && location.fail === 25
+  const 绿 = 强绿 || (兜底绿 && out2.includes('✅ 代码子树干净'))
   if (!(红 && 绿)) 全过 = false
-  console.log(`     ${红 && 绿 ? '✓' : '✗'} M2 靶：塞入后门禁红=${红}（exit ${r1.status}）· 还原后绿=${绿}（exit ${r2.status}）`)
+  console.log(`     ${红 && 绿 ? '✓' : '✗'} M2 靶：塞入后门禁红=${红}（exit ${r1.status}）· 还原后强绿(exit 0)=${强绿} / 兜底绿(location fail回25 + 子树干净)=${兜底绿 && out2.includes('✅ 代码子树干净')}（exit ${r2.status}）`)
 } finally { writeFileSync(LM, raw) }
 
 console.log(`\n判定：${全过 ? '✓ M2 硬验收通过（基线外新增失败 ⇒ 门禁必红 · 豁免有边界）' : '❌ M2 验收失败'}`)
