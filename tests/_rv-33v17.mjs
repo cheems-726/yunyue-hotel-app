@@ -47,7 +47,7 @@ try {
   //   不能用 if(false) 包裹：会多出一个不闭合的花括号 ⇒ docs-sync 直接 SyntaxError 崩溃，
   //   "崩溃"也会让 T2 不出现 ⇒ 假证据。判据必须是【绿着跑过且无 T2】= 没有断言时坏 JSON 不可见。
   const 锚头 = 原始DS.indexOf('// ★ V17批1-T2 真防回归')
-  const 锚尾 = 原始DS.indexOf('// 统一尾行格式，便于 run-all 汇总统计')
+  const 锚尾 = 原始DS.indexOf('// 新鲜度：src/ vs 关键文档')   // T2 块的下界（块已前移到 FACTS 循环之后）
   if (锚头 < 0 || 锚尾 < 0 || 锚尾 <= 锚头) {
     console.log('     ✗ 靶③ 锚点未命中（断言块不在预期位置）'); 全过 = false
   } else {

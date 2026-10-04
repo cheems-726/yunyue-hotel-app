@@ -25,7 +25,9 @@ const fast通过 = gate.fast ? gate.fast.通过 : '?'
 const 原始失败 = gate.原始失败 != null ? gate.原始失败 : '?'
 
 const 指纹新 = `收尾指纹：HEAD ${head} · 未推 **${未推}**`
-const 数字新 = `全量 **${full通过} 通过 / 0 失败（其中 ${原始失败} 为已知红原始失败）** · 快检 **${fast通过}/0（其中 ${gate.原始失败 != null ? Math.max(0, 原始失败 - (full通过 ? (gate.full.原始失败 ?? 0) : 0)) : '?'} 为已知红原始失败）**`
+const full原始失败 = (gate.full && gate.full.原始失败 != null) ? gate.full.原始失败 : 原始失败
+const fast原始失败 = (gate.fast && gate.fast.原始失败 != null) ? gate.fast.原始失败 : '?'
+const 数字新 = `全量 **${full通过} 通过 / 0 失败（其中 ${full原始失败} 为已知红原始失败）** · 快检 **${fast通过}/0（其中 ${fast原始失败} 为已知红原始失败）**`
 
 // ★ D147 补：数值目标（非"收尾指纹"文件，但同样会被门禁数字判据比对）
 const 数字目标 = [
@@ -117,6 +119,21 @@ if (!CHECK) {
     if (s !== 前卡) { writeFileSync(交接卡, s, 'utf8'); console.log(`  ✓ 交接卡 数字行 + ⑥ 段 HEAD/未推已刷（full ${full通过} · fast ${fast通过} · HEAD ${head} · 未推 ${未推}）`) }
     else console.log('  - 交接卡 数字行 + ⑥ 段 已一致')
   } catch (e) { console.error('  ✗ 交接卡', e.message) }
+
+  // 4. 入口文档 0-从这里开始.md（★ V17批2 补：docs-staleness --gate 判「状态段全量数字 === 门禁记录」，
+  //    但本脚本此前没刷它 ⇒ full 数字每前进一次它就红一次 —— 与 AGENTS/过审包同类，机械刷新）
+  //    ★ 行内「其中 N」用分档原始失败（V17批2 起 run-all 分档入记录）· 会漂的明细数（25/46 一类）改指记录
+  const 入口 = join(ROOT, '0-从这里开始.md')
+  try {
+    let s = readFileSync(入口, 'utf8')
+    const 前 = s
+    s = s.replace(/(【门禁】全量 \*\*)\d+( 通过 \/ 0 失败（其中 )\d+( 为已知红原始失败）\*\*)/, `$1${full通过}$2${full原始失败}$3`)
+    s = s.replace(/(· 快检 )\d+(\/0（其中 )\d+( 已知红原始失败）)/, `$1${fast通过}$2${fast原始失败}$3`)
+    s = s.replace(/(记录 @`)[0-9a-f]{7,8}(`)/, `$1${head}$2`)
+    s = s.replace(/⏳（\d+\/\d+=\d+\.?\d*%）/, '⏳（fail/pass 明细以 _last-gate.json 已知红明细为准）')
+    if (s !== 前) { writeFileSync(入口, s, 'utf8'); console.log(`  ✓ 0-从这里开始 数字行已刷（full ${full通过}/${full原始失败} · fast ${fast通过}/${fast原始失败}）`) }
+    else console.log('  - 0-从这里开始 数字行已一致')
+  } catch (e) { console.error('  ✗ 0-从这里开始', e.message) }
 }
 
 if (CHECK && 不一致 > 0) process.exit(1)

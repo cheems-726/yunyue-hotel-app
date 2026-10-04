@@ -373,6 +373,9 @@ if (!failed || 仅本套件失败) {
         codeTree: codeTree || null,  // ★ §18.0：影响门禁的子树摘要（docs-sync 比的就是它）
         dirty,                       // ★ true = 【codeTree 子树】有未提交改动 ⇒ 数字无法对到某个提交
         fullDirty,                   // 仅供参考：整仓是否脏（含文档）
+        // ★ V17批2：原始失败【分档入记录】—— 顶层键被每轮覆盖、分不出 fast/full 各自的原始失败，
+        //   下游（sync-fingerprint）只能写死或瞎猜「其中 N」⇒ 两档各存自己的，机械消费。
+        原始失败: totalFail,
       },
       // ★ V15批2-T2 + V16批1-T2真修：旧键 = 已知红明细 的【机械投影】（先算明细·再投影 · 非直接 knownReds
       //   —— knownReds 含同名重复因 SUITES 两表各一条 vlr ⇒ 直接投影带重复）。

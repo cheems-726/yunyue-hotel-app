@@ -387,6 +387,23 @@ for (const f of FACTS) {
   else problems.push({ type: 'fact', name: f.name, actual, expect, docSays: f.docSays, docs: f.docs })
 }
 
+// ★ V17批1-T2 真防回归：已知红 与 已知红明细 逐字一致且无重复（D144 ②：不许"声称有防回归"却不写断言）
+//   ★ 必须在【输出段之前】判定并 push【对象】——打印循环按 p.name/p.actual/p.docSays/p.docs 取字段；
+//     WIP 版 push 裸字符串且放在打印之后 ⇒ 红是红了、消息永远打不出来（RV 抓到：exit=1 但输出无 T2 字样 = 证据不可读）
+try {
+  const gateRaw2 = fs.readFileSync(path.join(APP, 'tests', '_last-gate.json'), 'utf8')
+  const gate = JSON.parse(gateRaw2)
+  const 已知红 = gate['已知红'] || []
+  const 明细names = (gate['已知红明细'] || []).map(x => x.name)
+  const a = JSON.stringify(已知红) === JSON.stringify(明细names)
+  const b = new Set(已知红).size === 已知红.length
+  if (a && b) oks.push('已知红 === 已知红明细.map(name) 且无重复（V17批1-T2）')
+  else problems.push({ type: 'fact', name: '已知红 === 已知红明细.map(name) 且无重复（V17批1-T2）',
+    actual: `一致=${a} · 无重复=${b}（已知红 ${已知红.length} 条 vs 明细 ${明细names.length} 条）`,
+    docSays: 'tests/_last-gate.json 的 已知红 与 已知红明细 逐字一致且无重复',
+    docs: ['tests/_last-gate.json（跑一次 run-all 即机械刷新）'] })
+} catch (e) { /* _last-gate.json 不存在（首次跑）⇒ 不判 */ }
+
 // 新鲜度：src/ vs 关键文档
 const srcFiles = walk(path.join(APP, 'src'), ['.js', '.jsx', '.mjs'])
 const docFiles = monitoredDocs()
@@ -427,21 +444,6 @@ if (problems.length === 0 && !stale) {
   console.log('  ⇒ 更新上述文档后重跑本脚本，直到全绿')
 }
   console.log('')
-}
-
-// ★ V17批1-T2 真防回归：已知红 与 已知红明细 逐字一致且无重复（D144 ②：不许"声称有防回归"却不写断言）
-{
-  try {
-    const gateRaw = fs.readFileSync(path.join(APP, 'tests', '_last-gate.json'), 'utf8')
-    const gate = JSON.parse(gateRaw)
-    const 已知红 = gate['已知红'] || []
-    const 明细names = (gate['已知红明细'] || []).map(x => x.name)
-    const a = JSON.stringify(已知红) === JSON.stringify(明细names)
-    const b = new Set(已知红).size === 已知红.length
-    // R17-1：oks.push 必须在判定【之后】的成功分支里 —— 原先无条件 push ⇒ 失败时通过数虚增 1
-    if (a && b) oks.push('已知红 === 已知红明细.map(name) 且无重复（V17批1-T2）')
-    else problems.push('已知红与已知红明细不一致或有重复（T2 防回归触发）—— 运行 run-all 刷新 _last-gate.json 即可修复')
-  } catch (e) { /* _last-gate.json 不存在（首次跑）⇒ 不判 */ }
 }
 
 // 统一尾行格式，便于 run-all 汇总统计
