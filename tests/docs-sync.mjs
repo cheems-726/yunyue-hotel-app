@@ -438,8 +438,9 @@ if (problems.length === 0 && !stale) {
     const 明细names = (gate['已知红明细'] || []).map(x => x.name)
     const a = JSON.stringify(已知红) === JSON.stringify(明细names)
     const b = new Set(已知红).size === 已知红.length
-    oks.push('已知红 === 已知红明细.map(name) 且无重复（V17批1-T2）')
-    if (!a || !b) problems.push('已知红与已知红明细不一致或有重复（T2 防回归触发）—— 运行 run-all 刷新 _last-gate.json 即可修复')
+    // R17-1：oks.push 必须在判定【之后】的成功分支里 —— 原先无条件 push ⇒ 失败时通过数虚增 1
+    if (a && b) oks.push('已知红 === 已知红明细.map(name) 且无重复（V17批1-T2）')
+    else problems.push('已知红与已知红明细不一致或有重复（T2 防回归触发）—— 运行 run-all 刷新 _last-gate.json 即可修复')
   } catch (e) { /* _last-gate.json 不存在（首次跑）⇒ 不判 */ }
 }
 
