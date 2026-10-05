@@ -233,17 +233,9 @@ export default function SiteSelection({ onConfirm }) {
               <div className="attr-row" key={k}>
                 <div className="attr-label">
                   {attrLabels[k]}
- {/* §27.3-②b（D74/D75）：未接线维显式标注； §28.1-① 返修（D76）：
-                      「波动」**确实**进入结算（settlement.js:319-320 volatility → marketWave → demandStrength
-                      → 出租率 → 营收），已从本名单**移除** —— 此前误标系守门假阳性所致（该守门原版只用
-                      一组"撞 0.98 出租率上限"的配置做扰动 ⇒ 数量级类维度全部看不出变化）。
-                      现仅剩【房价 / 人力】两维未接线；守门已改多配置 + 阳性对照自校准（不再会这样骗人）。 */}
-                  {未接线维.includes(k) && (
-                    <span title="该维目前不进入结算公式：引擎按品牌与决策定价、部门成本按标准比例。"
-                      style={{ marginLeft: 4, fontSize: 12, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-border)', border: '1px solid var(--warn-border)', borderRadius: 4, padding: '0 3px' }}>
-                      暂不影响结算
-                    </span>
-                  )}
+ {/* ★ 六维接线终态（V21批3 核对 2026-10-05）：客流/竞争/房价/人力/波动【全部参与结算】——
+    房价→价格竞争力(settlement.js:307)·人力→好评率与人力档成本(:359/:707)·波动→市场波动幅度(:388)。
+    旧「暂不影响结算」标注块已删（未接线维列表早已清空 ⇒ 该块为永不渲染的死代码 · 注释"仅剩两维"亦过期）。 */}
                 </div>
                 <div className="attr-bar-bg">
                   <div className={`attr-bar ${barCls(val)}`} style={{ width: `${val * 20}%` }}></div>
