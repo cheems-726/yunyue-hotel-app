@@ -256,7 +256,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)', borderRadius: 3, transition: 'width 0.5s' }}></div>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-          处理率占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
+          差评控制占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
  {todayResolved > 0 && <b style={{ color: 'var(--good)' }}> · 今天已处理 {todayResolved} 条 </b>}
         </div>
         {/* 发酵预警：欠2条以上差评会触发危机事件（与引擎 minPending:2 对应） */}

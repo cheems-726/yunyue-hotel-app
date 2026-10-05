@@ -422,7 +422,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         {pendingReviewCount > 0 && (
           <button className="btn btn-ghost" style={{ width: '100%', marginTop: 8, color: 'var(--bad)', borderColor: 'var(--bad-border)' }}
             onClick={() => onGoTab('reputation')}>
-            去口碑页处理 {pendingReviewCount} 条差评（处理率占分 15%）→
+            去口碑页处理 {pendingReviewCount} 条差评（差评控制占分 15%）→
           </button>
         )}
         {report && report.events && report.events.length > 0 && (
@@ -1272,7 +1272,7 @@ function OperationRecords({ history, onBack }) {
 // ===== 玩法说明页（学生自助答疑） =====
 function HelpPage({ onBack }) {
   const sections = [
-    { icon: 'campaign', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 六个等级。' },
+    { icon: 'campaign', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 五个等级。' },
     { icon: 'date.week', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
     { icon: 'status.crisis', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
     { icon: 'achv.title', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
@@ -1308,7 +1308,7 @@ function HelpPage({ onBack }) {
     { q: '差评回复有字数限制吗？', a: '没有硬性限制，想写多长都可以。但记住：客人看的是诚意和方案，不是字数——堆砌漂亮话但没有具体措施，还不如几句实在话。回复框右下角有快捷话术可以参考，也可以自由发挥。' },
     { q: '怎么提高综合评分？', a: '四维权重从高到低逐个抓：①利润40%——控成本、合理定价；②口碑25%——差评及时处理、定期深清洁；③出租率20%——调价找平衡点（55%-75%是健康区）；④差评处理15%——回复或整改都算处理。优先做权重高的短板，提分效率最高。' },
     { q: '往期的决策和复盘去哪看？', a: '两个入口：「我的」页 → 经营操作记录（逐周决策+系统评语+批注时间线）；经营页底部「查看往期决策复盘」可按周次快跳。都是只读回放，不怕误改。' },
-    { q: '差评处理率是怎么算的？', a: '处理率 = 已解决 ÷ (待回复 + 已解决 + 忽略)。注意两点：点了「不处理」的差评也算没处理；只有回复或整改到位才算「已解决」。处理率占最终评分 15% 权重。' },
+    { q: '差评处理率是怎么算的？', a: '处理率 = 已解决 ÷ (待回复 + 已解决 + 忽略)。注意两点：点了「不处理」的差评也算没处理；只有回复或整改到位才算「已解决」。差评控制占最终评分 15% 权重（少产生差评 + 及时处理都算）。' },
   ]
   return (
     <div className="content">
@@ -1331,7 +1331,7 @@ function HelpPage({ onBack }) {
           <div><b>资金在哪看：</b>经营页顶部「资金状况」卡。开局系统给你一笔<b>运营启动资金</b>（约 {SCALE.IC_NEW / 10000} 万），每周结算后自动增减。<b>它是经营周转用的钱，不等于"开一家酒店的总投资"</b>——筹建投入见「报价单」。</div>
           <div><b>每周扣什么：</b>租金（按选址租金档，30–50 元/间·天）+ 部门成本（人力 / 客房 / 能耗 / 维修等，约合营收 45%）+ 营销投放（OTA 佣金：直营投放抽 11%，平台合作模式全营收抽 15%）+ 超售赔偿 + 事件罚款（消防 1500 元、设备维修 800 元等）。</div>
           <div><b>两条预警线：</b>低于 <b style={{ color: 'var(--warn)' }}>约 {SCALE.变黄线 / 10000} 万</b> 变黄「资金偏低」；低于 <b style={{ color: 'var(--bad)' }}>约 {SCALE.变红线 / 10000} 万</b> 变红「破产预警」。</div>
-          <div><b>破产后果：</b>资金断裂（扣到负）触发破产，<b>期末成绩直接扣分</b>——宁少赚别乱花。</div>
+          <div><b>破产后果：</b>资金断裂（扣到负）触发破产危机事件并持续失血——期末四维不额外扣分，但利润与口碑已被拖低。宁少赚别乱花。</div>
           <div><b>控成本三板斧：</b>①排班按出租率浮动（旺季满编、淡季精简）②营销看投产比，别为投放而投放 ③差评及时处理，欠多了发酵成危机损失更大。</div>
         </div>
       </div>
@@ -1356,7 +1356,7 @@ function HelpPage({ onBack }) {
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>综合 ≥ {ti.min}</span>
           </div>
         ))}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>综合分 = 出租率×35% + 好评率×35% + 品质分×30%（品质分由品牌档次决定）</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>综合分 = 出租率×35% + 好评率×35% + 品质×30%（品质来自属性池：初始 60，随决策与事件升降，每周按品牌档次自然衰减）</div>
       </div>
 
       <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)' }}>
