@@ -290,6 +290,8 @@ const s = (site && typeof site.attrs === 'object' && site.attrs)
   let priceCompetitive = 1.0
   if (pricing === '跟降 10%') { price = basePrice * 0.9; priceCompetitive = 1.2 }
   else if (pricing === '降价 20% 抢客') { price = basePrice * 0.8; priceCompetitive = 1.3 }
+  else if (pricing === '提价 20%') { price = basePrice * 1.2; priceCompetitive = 0.55 }
+  else if (pricing === '提价 50%') { price = basePrice * 1.5; priceCompetitive = 0.15 }
   else if (pricing === '不跟降') { priceCompetitive = 0.8 }
 
   // ★ §33-V4-A8（2026-10-01）：选址【房价】维接线 —— 最后一处"界面标了却不生效"。
@@ -305,6 +307,12 @@ const s = (site && typeof site.attrs === 'object' && site.attrs)
   //     (c) 与 fPriceTol（品质→房价容忍度）：那是【你的客群对价格的容忍】，本维是【市场环境的价格水平】——
   //         一个看你、一个看市场，不重复。★ 数字已按"档3 中性"设计 ⇒ 旧档缺省（|| 3）⇒ ×1.0 ⇒ 逐字节不变。
   const 房价环境 = 1 + ((Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) - 3) * 0.03
+  // V46 · 3.2-5 极端定价「直接零单」：有效价 ÷ 区域消费力代理 ≥ 2 ⇒ 客流断崖 ×0.10（需求 3.2-5 原话）。
+  //   区域消费力代理 = 房价档 × 3 + 200（与品牌房价带同基准）· 阈值 2.0 = 提价 50% + 中上品牌即触发。
+  //   只对【提价】决策生效（降档不触发）· 断崖是乘法（与 V35 断崖正交叠乘）。
+  const _有效价 = price
+  const _消费力 = ((Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) * 3 + 200)
+  if (pricing.startsWith('提价') && _有效价 / _消费力 >= 2) priceCompetitive *= 0.10
   priceCompetitive *= 房价环境
 
   // [2.45] 开店模式引擎差异化（OTA平台合作 vs 直营）
