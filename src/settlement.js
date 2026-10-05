@@ -22,7 +22,7 @@ import { shouldHotReview, hotCrisisWeeks, hotCrisisActive, hotCrisisPenalties, a
 // ★ §32-U3 世界层（三件 · 全确定性：按教学周查表 / 由本周已有信号派生 ⇒ 同周全班同结果 · 不消耗随机位置）
 import { 天气, 天气客流系数, 天气文案 } from './weather.mjs'
 import { 季节, 季节因子, 季节文案 } from './season.mjs'
-import { 平台评分, 渠道流量系数, 违规判定, 违规后果 } from './otaRating.mjs'
+import { 平台评分, 渠道流量系数, 流量循环因子, 违规判定, 违规后果 } from './otaRating.mjs'
 
 // 🔴 A-1（2026-09-27）：租金曲线【唯一表达式】—— 引擎与展示层（认领页报价单）共用这一处。
 //   为什么要单源：W3-2 的报价单原来自带一份 `35 + 档×10`，A-1 改曲线时它就【静默漂移】了
@@ -321,7 +321,13 @@ if (bizMode === 'ota') {
   const revenueMgmt = decisions['revenue-mgmt']
   if (revenueMgmt === '连住优惠') { priceCompetitive *= 1.06 }
   else if (revenueMgmt === '尾房闪购') { price *= 0.93; priceCompetitive *= 1.12 }
-  else if (revenueMgmt === '组合套餐') { price *= 1.08 }
+  else if (revenueMgmt === '组合套餐') {
+    price *= 1.08
+    // V35 · 3.2-5 极端定价惩罚（需求 3.2-5 原话「定价高于区域消费水平，直接零单」）：
+    //   低消费区（房价档 ≤2 = 区域消费力代理）执意「组合套餐提客单价」⇒ 客流断崖 ×0.45。
+    //   依据：六维房价档定义即区域消费水平（需求 1.2-2）· 幅度=-55% 与「降20%⇒+30%」对称极 · 教学点=错配必死。
+    if ((Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) <= 2) priceCompetitive *= 0.45
+  }
 
   // 2.6 协议客户（让利签约：稳定商务客流，房价略降）
   if (decisions.corporate === '让利签约') { price *= 0.95; priceCompetitive *= 1.08 }
@@ -402,10 +408,14 @@ if (bizMode === 'ota') {
   //   本函数不新增随机、不新增状态 ⇒ 同周全班同输入同结果。
   const 平台 = 平台评分({ goodRate, negativeCount: liveNegCount, reviewCount: (liveNegCount + livePosCount), pendingNegatives })
   const 渠道系数 = 渠道流量系数(平台.评分, bizMode)     // ★ direct ⇒ 恒 1（口径不串）
+  // V35 · OTA 流量权重动态循环：平台流量池随淡旺季收缩/扩张（旺季投放涨 · 淡季补贴拉量）——
+  //   OTA 依赖组比直营更敏感 ⇒ 因子 = 1 + (季节系数-1)×0.5（season 同源 · 平台平滑一半）· 夹 [0.90,1.15]。
+  //   direct 恒 1（不受平台循环 · 口径不串）· 与评分维乘法正交（不双扣 · 同 §28.1 口径）。
+  const 流量循环 = 流量循环因子(季节系数, bizMode)   // V35：纯函数单源（otaRating.mjs · direct 恒 1）
   // OTA 违规（渠道侧 · 只对 ota 模式生效）：①差评长期不回复 ②超售导致到店无房 ⇒ 降权（此处）+ 罚款（下方计入 eventFine）+ 事件留痕
   const ota违规s = bizMode === 'ota' ? 违规判定({ pendingNegatives, overbook: decisions.overbook || 0 }) : []
   const ota后果 = 违规后果(ota违规s)
-  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * 渠道系数 * ota后果.降权 * 注入客流系数 * 注入ota系数 * 注入v8客流系数
+  const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * (渠道系数 * 流量循环) * ota后果.降权 * 注入客流系数 * 注入ota系数 * 注入v8客流系数
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
   const baseOccupancy = 0.6

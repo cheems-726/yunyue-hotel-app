@@ -9,7 +9,7 @@
 import { settle } from '../src/settlement.js'
 import { 天气, 天气客流系数, 天气文案, WEATHER_TABLE_CYCLE } from '../src/weather.mjs'
 import { 季节, 季节因子, 季节文案, SEASON_TABLE } from '../src/season.mjs'
-import { 平台评分, 渠道流量系数, 违规判定, 违规后果, OTA_RATING_CONFIG, OTA_RULES } from '../src/otaRating.mjs'
+import { 平台评分, 渠道流量系数, 流量循环因子, 违规判定, 违规后果, OTA_RATING_CONFIG, OTA_RULES } from '../src/otaRating.mjs'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -86,7 +86,7 @@ console.log('\n[3] 引擎接线：因果由"比值恒等式"证明（不是看�
   // OTA 渠道系数：同周同输入，ota vs direct（比值里既有既存的 1.2/0.85，也有新的渠道系数）
   const 直 = 跑(4), 平 = 跑(4, { bizMode: 'ota' })
   const 渠道比 = (平.demandStrength / 平.marketWave) / (直.demandStrength / 直.marketWave)
-  const 期望比 = (1.2 / 0.85) * 渠道流量系数(平.world.ota.评分, 'ota')
+  const 期望比 = (1.2 / 0.85) * 渠道流量系数(平.world.ota.评分, 'ota') * 流量循环因子(季节因子(平.week), 'ota')
   ok(Math.abs(渠道比 - 期望比) < 0.03, `★ OTA 渠道系数精确生效：ota÷direct === (1.2/0.85)×渠道系数（期望 ${期望比.toFixed(4)} · 实测 ${渠道比.toFixed(4)}）`)
   ok(直.world.ota.适用 === false && 直.world.ota.渠道系数 === 1, '直营：world.ota 标 适用=false 且系数 1（界面据此显示"不受影响"）')
 }
@@ -117,7 +117,7 @@ console.log('\n[5] 公平性与确定性（红线）')
 console.log('\n[6] 接线结构（防"悄悄删")+ Edge 组装登记')
 {
   const st = 剥注释(rd('src/settlement.js'))
-  ok(/\* 天气系数/.test(st) && /\* 季节系数/.test(st) && /\* 渠道系数/.test(st) && /\* ota后果\.降权/.test(st), 'settlement 需求链里四个世界层乘数都在（删任一 ⇒ 本行红）')
+  ok(/\* 天气系数/.test(st) && /\* 季节系数/.test(st) && /\* [(]渠道系数 \* 流量循环[)]/.test(st) && /\* ota后果\.降权/.test(st), 'settlement 需求链里四个世界层乘数都在（删任一 ⇒ 本行红）')
   ok(/world: \{/.test(st) && /违规罚款: ota后果\.罚款/.test(st), '结果里挂了 world（界面唯一数据源）')
   const be = rd('scripts/build-edge-function.mjs')
   ok(/weather\.mjs/.test(be) && /season\.mjs/.test(be) && /otaRating\.mjs/.test(be), '★ 三个新模块已登记 Edge 组装清单（漏登 = 部署后 404 · 已踩 5 次）')
