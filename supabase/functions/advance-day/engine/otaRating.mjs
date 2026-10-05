@@ -65,6 +65,15 @@ export function 渠道流量系数(评分, bizMode = 'direct') {
   return Math.round(夹(系数, OTA_RATING_CONFIG.trafficMin, OTA_RATING_CONFIG.trafficMax) * 1000) / 1000
 }
 
+// V35 · OTA 流量权重动态循环（平台流量池随淡旺季收缩/扩张 · season 同源 · 平台平滑 0.5）
+//   仅 ota 模式消费（direct 不受平台影响 · 口径不串）· 夹 [0.90, 1.15]（平台不放大极端）。
+//   依据：真实 OTA 运营（旺季投放涨 · 淡季补贴拉量）为行业通识 · 教学点=OTA 依赖组对平台流量池敏感。
+export function 流量循环因子(季节系数, bizMode = 'direct') {
+  if (bizMode !== 'ota') return 1
+  const s = Number(季节系数)
+  if (!Number.isFinite(s)) return 1
+  return Math.round(Math.min(1.15, Math.max(0.90, 1 + (s - 1) * 0.5)) * 1000) / 1000
+}
 // 违规判定（本周）—— 返回违规列表（空数组 = 无违规 ⇒ 结果里不挂键，保水位线）
 export function 违规判定({ pendingNegatives = 0, overbook = 0 } = {}) {
   const 待处理 = Math.max(0, Number(pendingNegatives) || 0)
