@@ -102,6 +102,29 @@ ok(命中黑名单.length === 0, '★ 反向断言：讲义零黑名单功能名
   ok(违规.length === 0, '★ 不碰评分：讲义/上手页零评分细则与等级标准（成绩归老师）', 违规.join(' · '))
 }
 
+
+// ── ⑤ V20批1：教学点对照表 v2（18 项决策 × 4 要素）──────────
+{
+  const f2 = path.join(材料, '教学点对照表-v2-18项决策.md')
+  ok(existsSync(f2), '⑤ 教学点对照表 v2 存在')
+  if (existsSync(f2)) {
+    const t2 = readFileSync(f2, 'utf8')
+    const rows = t2.split(/\r?\n/).filter(l => /^\| \d+ \|/.test(l))   // V20批1：逐格行（| N | 开头）
+    ok(rows.length === 18, `⑤ v2 表逐格行数 === 18（实读 ${rows.length}）`)
+    const 缺要素 = rows.filter(r => { const cells = r.split('|').map(c => c.trim()).filter(c => c !== ''); return cells.length !== 6 || cells.slice(2).some(c => !c) })
+    ok(缺要素.length === 0, '⑤ 每行四要素非空（逻辑/锚点/问法/位置）', 缺要素.slice(0, 2).join(' | '))
+    const 坏锚 = []
+    for (const r of rows) {
+      for (const m of r.matchAll(/【机制:([^】]+)】/g)) { if (!查src(m[1]).length) 坏锚.push(m[1]) }
+    }
+    ok(坏锚.length === 0, '⑤ v2 表每个机制锚点都在 src 实读命中', [...new Set(坏锚)].map(k => `【机制:${k}】`).join(' · '))
+    // 18 个决策名与 decisions.js 一致（逐名出现在对应行）
+    const decSrc = readFileSync(path.join(APP, 'src', 'decisions.js'), 'utf8')
+    const names = [...decSrc.matchAll(/name: '([^']+)'/g)].map(m => m[1])
+    const 缺名 = names.filter(n => !rows.some(r => r.includes(`| ${n}（`) || r.includes(` ${n}（`)))
+    ok(缺名.length === 0, `⑤ v2 表覆盖 decisions.js 全部 ${names.length} 个决策名`, 缺名.join(' · '))
+  }
+}
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('验收口径：教辅材料与代码同源——「声明了没发生」在教辅层也守门（§33-V7②）')
 process.exit(fail ? 1 : 0)
