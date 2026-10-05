@@ -90,6 +90,7 @@ const SUITES = [
   // §14.3 G3 二步：加盟两费进资金流（零变化、守恒、单源）
   { name: 'franchiseFees（加盟两费·§14.3）', file: 'tests/franchiseFees.test.mjs' },
   { name: 'handover（R7 强制移交·V2）', file: 'tests/handover.test.mjs' },
+  { name: 'sixDimWiring（六维接线核验·V38）', file: 'tests/sixDimWiring.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
