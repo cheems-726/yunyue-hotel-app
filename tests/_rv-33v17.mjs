@@ -38,6 +38,21 @@ try {
   console.log(`     还原后：exit=${r2.status} · T2断言绿=${绿2}`)
   if (!(红1 && 绿2)) 全过 = false
 
+  // ── 靶② 失配柱：已知红 与 明细 删一条失配 ⇒ 必红（断言两个条件都要打到：一致 + 无重复）──
+  {
+    const raw2 = readFileSync(GATE, "utf8")
+    try {
+      const g2 = JSON.parse(raw2)
+      g2['已知红明细'] = (g2['已知红明细'] || []).slice(1)
+      writeFileSync(GATE, JSON.stringify(g2, null, 2))
+      const r2 = 跑sync()
+      const out2 = (r2.stdout || '') + (r2.stderr || '')
+      const 红2 = r2.status !== 0 && out2.includes('T2')
+      console.log(`     靶② 失配（明细删一条）：exit=${r2.status} · T2红=${红2}`)
+      if (!红2) 全过 = false
+    } finally { writeFileSync(GATE, raw2) }
+  }
+
   // ── ③ 再篡改 + 删断言 ⇒ 不红（证明断言真的在抓）──
   const gate2 = JSON.parse(readFileSync(GATE, 'utf8'))
   gate2['已知红'] = [...(gate2['已知红'] || []), (gate2['已知红'] || ['x'])[0]]
