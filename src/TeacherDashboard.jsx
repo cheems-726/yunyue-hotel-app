@@ -10,6 +10,7 @@ import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTea
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
+import { 扫描错误操作, parseBrandBase } from './errorOps.mjs' // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
@@ -253,6 +254,25 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
             <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 4 }}>
               旧档/未登录的操作会标"未记录"（系统不编人名）；"净利影响"按决策记录当时点估算，仅供参考。
             </div>
+          </div>
+        )
+      })()}
+      {/* V39（模块六-5）【错误操作高亮】：乱定价/乱招人/乱选址 三类行为维标记（与亏损周的结果维互补）。
+          规则单源 = src/errorOps.mjs（判据+依据随行）· 与「亏损周」同用 --bad 配色（批4 风格统一）。 */}
+      {(() => {
+        const 房价档 = s.location?.attrs?.房价
+        const flags = 扫描错误操作(hist, { 房价档, brandBasePrice: parseBrandBase(s.brand?.price) })
+        if (!flags.length) return null
+        return (
+          <div style={{ marginBottom: 10, padding: '8px 10px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bad)', marginBottom: 4 }}>错误操作标记（{flags.length} 条 · 规则判据 · 非主观评判）</div>
+            {flags.map((f, i) => (
+              <div key={i} style={{ fontSize: 11, padding: '3px 0', lineHeight: 1.7 }} title={f.依据}>
+                <span style={{ fontWeight: 700, color: 'var(--bad)' }}>第{f.week}周 · {f.类别}</span>
+                {' · '}{f.标签}
+                <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: 1 }}>依据：{f.依据}</div>
+              </div>
+            ))}
           </div>
         )
       })()}
