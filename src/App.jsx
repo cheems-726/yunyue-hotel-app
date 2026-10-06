@@ -1228,7 +1228,7 @@ function OperationRecords({ history, onBack, operatorLogs = [], userUid = null }
       {userUid && (
         <div className="card" style={{ padding: 14, marginBottom: 10, borderLeft: '3px solid var(--primary)' }}>
           <div className="card-title" style={{ marginBottom: 6 }}>我的贡献（操作留痕 · 按人）</div>
-          <div style={{ fontSize: 13, lineHeight: 1.9 }}>
+          <div style={{ fontSize: 12, lineHeight: 1.9 }}>
             操作 <b>{mineCount}</b> 条{mineWeeks.length > 0 && <> · 覆盖第 {mineWeeks.join('、')} 周</>}
             {mineProfit !== 0 && <span style={{ color: mineProfit > 0 ? 'var(--good)' : 'var(--bad)' }}> · 留痕净利影响合计 {mineProfit > 0 ? '+' : ''}{mineProfit.toLocaleString()} 元</span>}
           </div>

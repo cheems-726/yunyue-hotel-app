@@ -262,6 +262,16 @@ export default function SiteSelection({ onConfirm }) {
                 <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
               </div>
             )}
+            {LOCATION_PROFILE[d.name]?.businessDensity && (() => {
+              const bd = LOCATION_PROFILE[d.name].businessDensity
+              const parts = [bd.stock, bd.vacancy && `空置率 ${bd.vacancy}`, bd.rent, bd.desc].filter(Boolean)
+              return (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-sub)', background: 'var(--fill)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
+                  🏢 商业密度：{parts.join(' · ')}
+                  <span title={`来源：${bd.src}（可信度 ${bd.conf}）`} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-muted)' }}>ⓘ</span>
+                </div>
+              )
+            })()}
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--warn)' }}>
  推荐档次：{(() => {
                 const flow = d.attrs['客流'] || 3
