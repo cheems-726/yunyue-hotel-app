@@ -1758,6 +1758,16 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
+// V61：离线演示常驻角标（全域壳层共用 · 演示登录 cloud=false 才渲染 · pointerEvents=none 不挡操作）
+function DemoPill({ user }) {
+  if (user?.cloud !== false) return null
+  return (
+    <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', right: 10, zIndex: 260, pointerEvents: 'none', background: 'var(--fill)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 999, opacity: 0.95, whiteSpace: 'nowrap' }} title="离线演示：不连服务器，数据只保存在本机，不写真实班次、不计入成绩——正式上课请用学号登录">
+      演示模式 · 数据只存本机 · 非真实经营
+    </div>
+  )
+}
+
 export default function App() {
   const saved = loadState()
   const [user, setUser] = useState(saved.user || null) // null = 未登录
@@ -2475,6 +2485,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         {restoring ? (
           <div className="content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <div style={{ fontSize: 44 }}><Icon name="prop.hotel" size={44} /></div>
@@ -2495,6 +2506,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <TeacherDashboard user={user} onLogout={handleLogout}  onGoDecision={(id) => { setOpenPage(null); setTab("business"); const d = decisions.find(x => x.id === id); if (d) setCurrentDecision(d) }} />
       </div>
     )
@@ -2508,6 +2520,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <Welcome user={user} onStart={() => setWelcomed(true)} />
       </div>
     )
@@ -2521,6 +2534,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <SiteSelection onConfirm={handleSiteConfirm} />
       </div>
     )
@@ -2534,6 +2548,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <BrandSelection location={location} onConfirm={handleBrandConfirm} />
       </div>
     )
@@ -2547,6 +2562,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <Claim brand={brand} location={location} onComplete={handleClaimComplete} />
       </div>
     )
@@ -2560,6 +2576,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <Establishment brand={brand} property={property} onComplete={handleEstablished} />
       </div>
     )
@@ -2574,6 +2591,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
       </div>
     )
@@ -2587,6 +2605,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <WeeklyReport result={report} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} />
       </div>
     )
@@ -2600,6 +2619,7 @@ export default function App() {
           <span className="time">{time || '09:41'}</span>
           <span className="icons" />
         </div>
+        <DemoPill user={user} />
         <DecisionPanel
           key={currentDecision.id}
           decision={currentDecision}
@@ -2712,6 +2732,8 @@ export default function App() {
           网络异常，进度已保存在本机
         </div>
       )}
+      {/* V61：离线演示常驻角标改为全域 DemoPill（含预开店各壳 · 见各分支 statusbar 后） */}
+      <DemoPill user={user} />
       {/* 轻提示栈（顶部滑入） */}
       <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 300, width: 'max-content', maxWidth: '88%' }}>
         {toasts.map(t => (
