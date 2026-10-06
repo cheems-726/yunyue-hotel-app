@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'
+import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
@@ -143,6 +144,11 @@ export default function SiteSelection({ onConfirm }) {
       {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}
       <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
         <div className="card-title" style={{ marginBottom: 10 }}>地图选点（按真实方位）</div>
+        {/* V52 · 真实行政边界地图（增强 · 不替代芯片视图）*/}
+        <GeoMap city={currentCity} districts={districts[currentCity] || []} selected={selected} onSelect={(name) => {
+          const d = (districts[currentCity] || []).find(x => x.name === name)
+          if (d) handleDistrictClick(d)
+        }} dark={document.documentElement.style.colorScheme !== undefined} />
         {['成都', '德阳', '绵阳', '承德', '重庆'].map(city => (
           <div key={city} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700, marginBottom: 4 }}>{city}</div>
