@@ -7,10 +7,15 @@ import { decisions as DEC_CATALOG } from './decisions.js'
 import { 建议职务文案 } from './roleBonus.mjs' // §32-U4-R4：职务加成提示（单源文案）
 
 // 差评数据（含处理状态）
-const initialReviews = [
-  { id: 1, avatar: 'guest', bg: 'blue', name: '王先生 · 商务出差', date: '入住3天 · 昨天22:14', stars: 2, text: '「隔音太差了，隔壁半夜看电视听得一清二楚，完全没睡好。」', status: 'pending' },
-  { id: 2, avatar: 'guest', bg: 'green', name: '李女士 · 家庭出游', date: '入住2天 · 昨天18:30', stars: 1, text: '「前台办理入住等了半小时，体验很差。」', status: 'pending' },
-  { id: 3, avatar: 'guest', bg: 'blue', name: '张先生 · 旅行', date: '前天', stars: 5, text: '「位置很好，离地铁近，房间干净，下次还来。」', status: 'good' },
+// ★ V55（用户"人都还没住进去，差评怎么就出来了"）：初始评价必须为空 —— 0 入住 ⇒ 0 评价（settlement.js:38 口径同源）。
+//   原 3 条预置评价（王先生/李女士/张先生）= 演示种子，只允许【离线演示模式】显式注入并带"演示"名（App.jsx 离线登录时注入）。
+const initialReviews = []
+
+// 演示种子（仅离线演示模式注入 · 名字带"演示"）
+export const DEMO_REVIEWS = [
+  { id: 1, avatar: 'guest', bg: 'blue', name: '演示客人 · 商务出差', date: '入住3天 · 昨天22:14', stars: 2, text: '「隔音太差了，隔壁半夜看电视听得一清二楚，完全没睡好。」', status: 'pending' },
+  { id: 2, avatar: 'guest', bg: 'green', name: '演示客人 · 家庭出游', date: '入住2天 · 昨天18:30', stars: 1, text: '「前台办理入住等了半小时，体验很差。」', status: 'pending' },
+  { id: 3, avatar: 'guest', bg: 'blue', name: '演示客人 · 旅行', date: '前天', stars: 5, text: '「位置很好，离地铁近，房间干净，下次还来。」', status: 'good' },
 ]
 
 const REVIEW_KEY = 'hotel-sim-reviews'

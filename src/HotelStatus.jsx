@@ -168,6 +168,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     function tryLiveReview(isCheckout, clockTag, room) {
       try {   // 实时评价是锦上添花：任何异常都不许打断经营流水
         if (document.hidden) return
+        if (!(occupiedRooms > 0)) return   // ★ V55-b：0 入住 ⇒ 0 实时评价（幻影退房链根治 · 卡内 b）
  const dayNo = teachingDayKey() // §26.5（P0d）：教学日口径（原 floor(gameMin/1440) = 游戏日，与教学日界线不一致）
         if (dayNo !== rvDayNo) { rvDayNo = dayNo; rvDayCount = 0 }   // 跨游戏日 → 当日计数归零
         const list = readRvList()
@@ -300,15 +301,15 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--warn-border)' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--good-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--good)' : 'var(--text-muted)' }}>{今日流水 ? '+' + 今日流水.入账.toLocaleString() : '—'}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--good)' : 'var(--text-muted)' }}>{今日流水 ? '+' + 今日流水.入账.toLocaleString() : '0'}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日入账</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--bad-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--bad)' : 'var(--text-muted)' }}>{今日流水 ? '-' + 今日流水.支出.toLocaleString() : '—'}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 今日流水 ? 'var(--bad)' : 'var(--text-muted)' }}>{今日流水 ? '-' + 今日流水.支出.toLocaleString() : '0'}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日支出</div>
         </div>
         <div onClick={() => setDetailOpen(o => !o)} style={{ background: 'var(--primary-bg)', borderRadius: 8, padding: '6px 0', textAlign: 'center', cursor: 'pointer' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: !今日流水 ? 'var(--text-muted)' : (今日流水.入账 - 今日流水.支出 >= 0 ? 'var(--primary)' : 'var(--bad)') }}>{!今日流水 ? '—' : ((今日流水.入账 - 今日流水.支出 >= 0 ? '+' : '') + (今日流水.入账 - 今日流水.支出).toLocaleString())}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: !今日流水 ? 'var(--text-muted)' : (今日流水.入账 - 今日流水.支出 >= 0 ? 'var(--primary)' : 'var(--bad)') }}>{!今日流水 ? '0' : ((今日流水.入账 - 今日流水.支出 >= 0 ? '+' : '') + (今日流水.入账 - 今日流水.支出).toLocaleString())}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>今日净流入</div>
         </div>
       </div>
@@ -335,7 +336,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
         {日快照
           ? `今日流水取自引擎日快照（本周第 ${(Number.isInteger(dayIndex) ? dayIndex : 0) + 1}/7 天）· 本周累计 入账 +${本周累计.入账.toLocaleString()} / 支出 -${本周累计.支出.toLocaleString()} · 第 7 天 === 周报周值`
-          : '今日流水待引擎日快照就绪后显示（预览未成功 · 不显示估算值）'}
+          : '未开业 / 待结算：今日流水为 0（结算日快照就绪后逐日显示 · 不显示估算值）'}
       </div>
     </div>
   )

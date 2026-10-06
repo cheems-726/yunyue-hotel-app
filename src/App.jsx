@@ -44,6 +44,7 @@ import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
 // ★ §32-U8-补 §2④：AI 领班 —— 授权式代管（一期=记录与复盘；数值执行二期）。
 //   注意：settle（引擎）不引用本模块（一期边界有守门断言）—— 记录在 App 层生成后挂到 result。
 import { 生效授权, 领班决策, 代管率 } from './aiSupervisor.mjs'
+import { DEMO_REVIEWS } from './Reputation.jsx'   // V55 · 演示种子（仅离线注入）
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 function LoginPage({ onLogin }) {
@@ -143,7 +144,11 @@ function LoginPage({ onLogin }) {
 
   // ===== 离线演示模式 =====
   function handleDemoLogin() {
-    onLogin({ role, id: role === 'student' ? '20240101' : 'T001', name: role === 'student' ? '陈小明' : '王老师', cloud: false })
+    onLogin({ role, id: role === 'student' ? '20240101' : 'T001', name: role === 'student' ? '陈小明（演示）' : '王老师（演示）', cloud: false })
+    if (role === 'student') {
+      // ★ V55：离线演示显式注入演示种子评价（带"演示"名 · 与真实初始空口径分离）
+      try { localStorage.setItem('hotel-sim-reviews', JSON.stringify(DEMO_REVIEWS)) } catch (e) {}
+    }
   }
 
   if (step === 'choose') {
@@ -166,7 +171,7 @@ function LoginPage({ onLogin }) {
       <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 700 }}>离线演示模式</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>不连服务器，数据只存在本机（{role === 'student' ? '学生 陈小明' : '教师 王老师'}）</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>不连服务器，数据只存在本机 · 【演示数据 · 非真实经营】（{role === 'student' ? '演示学生 陈小明' : '演示教师 王老师'}）</div>
         </div>
         <button className="btn-confirm" onClick={handleDemoLogin}>进入演示 →</button>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
@@ -2064,10 +2069,12 @@ export default function App() {
     setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
   }
+  const [logoutArmed, setLogoutArmed] = useState(false) // V25：两段式退出（替代阻塞式 confirm）
   async function handleLogout() {
     if (user?.cloud) {
-      const go = window.confirm('确定退出登录吗？\n进度已存云端，换设备登录不丢失。')
-      if (!go) return
+
+      // ★ V25 卡点修复：原生 confirm 阻塞一切交互 ⇒ 两段式（第一次点=进入确认态 3 秒，再点=退出）
+      if (!logoutArmed) { setLogoutArmed(true); setTimeout(() => setLogoutArmed(false), 3000); return }
       try { await supabase.auth.signOut() } catch (e) {}
     }
     setUser(null)

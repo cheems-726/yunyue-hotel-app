@@ -1037,6 +1037,13 @@ export default function TeacherDashboard({ user, onLogout }) {
           </div>
         )}
           {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${groups.length} 组已开档` : '云端不可用，显示演示数据'}
+          {!cloudOk && (
+            <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 9999, background: 'var(--warn-bg)', color: 'var(--warn)',
+              border: '1px solid var(--warn-border)', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700,
+              pointerEvents: 'none' }}>
+              演示数据（未连云端 · 非真实经营）
+            </div>
+          )}
         </div>
       </div>
 
