@@ -4,6 +4,7 @@ import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
 // §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
 import { 投资测算, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
+import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
 // 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
 const 投资项清单 = [
@@ -253,11 +254,22 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
           <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>证照办理顺序（点击查看每张证照的要点，排错会延误开业）：</div>
           {licenses.map((l, i) => {
             const key = 'lic-' + i
+            const inf = 证照信息[l.name] || {}
+            const 详情行 = inf.机关 ? [
+              { label: '办理地点 · 线上', value: inf.办事地点?.线上 || '', dir: '' },
+              { label: '办理地点 · 线下', value: inf.办事地点?.线下 || '', dir: '' },
+              { label: '材料清单', value: (inf.材料 || []).join('；'), dir: '' },
+              { label: '流程步骤', value: (inf.步骤 || []).join(' → '), dir: '' },
+              { label: '时限', value: inf.时限 || '', dir: '' },
+              { label: '费用', value: inf.费用 || '', dir: '' },
+              { label: '线上入口', value: inf.线上入口 || '', dir: '' },
+              { label: '依据', value: inf.依据 || '', dir: '' },
+            ] : []
             return (
               <div key={l.name} onClick={() => onPick(key, {
-                title: `证照：${l.name}`,
-                changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: i === 0 ? '无主体一切免谈' : i === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }],
-                note: i === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : i === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`,
+                title: `证照：${l.name}（成都/德阳 · 本地办事信息）`,
+                changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: i === 0 ? '无主体一切免谈' : i === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }, ...详情行],
+                note: (i === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : i === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`) + `\n— ${来源行}\n${通用免责}`,
               })} style={{ ...clickable(key), borderRadius: 10, marginBottom: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1 }}>
