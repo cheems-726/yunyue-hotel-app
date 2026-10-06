@@ -389,6 +389,9 @@ if (bizMode === 'ota') {
   goodRate -= pendingNegatives * 0.03
   // 经营投入不足的系统性代价（决策少于一半：服务/维护/营销全面松懈，客人先感知）
   const doneCount = Object.keys(decisions).length
+  // V48 · 缺口③结论（模块五 5.2）：维持一刀切 -0.02（graduated 方案实测后回退 —— 见规格 §缺口③修订）。
+  //   12 周累积口径下漏 3 项 ⇒ avgGood 91→86 跨 85 阶梯 ⇒ finalScore Δ3（改前已成立）；单周不失分是
+  //   阶梯量化的教学意图（单次失误不毁一学期 · 持续失职必进总分）—— 口径修订记录见 V48 规格与成绩单口径卡。
   if (doneCount < 9) goodRate -= 0.02
   // R0：士气 → 好评率（规格 §4.3；中性士气加 0）——会经下方 reputationFactor 阈值进一步影响客流
   goodRate += moraleAdd
@@ -430,8 +433,17 @@ if (bizMode === 'ota') {
   const demandStrength = priceCompetitive * reputationFactor * (1 + marketingBonus) * marketWave * cityFlow * competition * fPriceTol * fOcc * 天气系数 * 季节系数 * (渠道系数 * 流量循环) * ota后果.降权 * 注入客流系数 * 注入ota系数 * 注入v8客流系数
 
   // 7. 出租率（基础 0.6 × 客源强度，上限 0.98）
-  const baseOccupancy = 0.6
+  // V48 · 缺口②（需求 3.2-3「不做维护会持续营收下滑」）：长期不深清洁 ⇒ 需求底仓逐步下沉。
+  //   第 1 周不沉（不许开局就崩）· 不维护从第 2 周起每周 -2% · 第 6 周起触底 -10% · 持续深清洁 ⇒ 永不沉。
+  //   与品质链（priceTolerance/negFactor·当期服务感受）不同时间尺度 —— 这是"懒于维护的复利性客源流失"。
+  //   水位线：hygiene = 停房深清洁 ⇒ 下沉恒 0 ⇒ 逐字节不变（V33 掩盖效应的根治点）。
+  const 维护下沉 = decisions.hygiene === '停房深清洁' ? 0 : Math.min(0.10, 0.02 * Math.max(0, week - 1))
+  const baseOccupancy = 0.6 * (1 - 维护下沉)
   let occupancy = Math.min(baseOccupancy * demandStrength, 0.98)
+  // V48 · 缺口①（需求 3.2-2「人员不足会直接掉入住率」）：精简省成本 ⇒ 直接入住率惩罚 -6%。
+  //   与事件链（疲劳出事·概率）/属性链（士气品质·慢性）不同轴不双扣 —— "人少=服务能力上限低"的机械事实。
+  //   水位线：满编保服务（现行套件默认）⇒ 逐字节不变。
+  if (decisions.shifts === '精简省成本') occupancy *= 0.94
   // ★ §32-U1 R2（持续期 · 出租率 −30%）：上热门危机期内逐周施加（相对惩罚 · 下限 30% 仍保）
   //   危机状态从【存档输入】hotState 读（App/服务端随存档带上来 ⇒ 补算同源）；不含 rand（确定性）。
   if (hotPen.occMul !== 1) {

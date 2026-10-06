@@ -142,7 +142,10 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   const Δ租 = r.rentCost - 旧租周(r, dec)
   // 🔴 §22.2-B2：week1 开业费用 / week12 保证金退还 —— 同为“未被 ×7 的科目”（null-safe）
 const 一次性净额 = (x) => (x && x.oneTimeFees ? x.oneTimeFees.开业费用 - x.oneTimeFees.保证金退还 : 0)
-if (世界中性 && (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) + 一次性净额(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r) - 一次性净额(r))) {
+// 🔴 V48 重基线（2026-10-06）：精简/不停房 自 V48 起有直接行为 ⇒ 含两决策场景与冻结旧引擎【决策层非中性】
+//   （新旧 ds 模型不同 ⇒ 跨引擎逐项/方向断言都不可靠）⇒ 豁免；勤奋型保留全严锚；V48 行为 v48Gaps 专守。
+const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
+if (世界中性 && !V48非中性 && (drifted.length || r.totalCost - o.totalCost !== r.deptCost + Δ租 + 两费(r) + 一次性净额(r) || r.profit !== o.profit - r.deptCost - Δ租 - 两费(r) - 一次性净额(r))) {
         zeroBad++; console.error(`   ✗ ${name} w${w}：漂移 ${drifted.join(',')} | Δcost ${r.totalCost - o.totalCost} vs dept ${r.deptCost}`)
       }
       pg = r.finalGoodRate; cap = r.capital

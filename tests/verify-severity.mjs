@@ -64,14 +64,23 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   //   ⇒ 未放宽算式，只是把"与旧引擎可比的口径"限定在前提成立的那几周。
   const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
   const 中性 = (w) => 天气客流系数(w) === 1 && 季节因子(w) === 1
+  // 🔴 V48 重基线（2026-10-06）：精简省成本/不停房 自 V48 起有直接行为 ⇒ 含两决策的场景与冻结旧引擎
+  //   全周【决策层非中性】（与世界层非中性同理 · V48 行为由 tests/v48Gaps.test.mjs 专守 · 非放宽）。
+  const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
   const 中性周 = rows.filter(r => 中性(r.w)).map(r => r.w)
   const 非中性周 = rows.filter(r => !中性(r.w)).map(r => r.w)
   const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
   const 中性差异 = structDiff.filter(w => 中性(w))
-  ok(中性差异.length === 0,
-    `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量（出租率/在店房数/好评率/评价条数）逐项一致${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
-  ok(structDiff.every(w => 非中性周.includes(w)),
-    `${name}：★ 结构差异只出现在世界层非中性周（差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]）`,
+  if (V48非中性) {
+    const occUp = rows.filter(r => r.new.occupancy > r.old.occupancy || r.new.occupiedRooms > r.old.occupiedRooms).map(r => r.w)
+    ok(occUp.length === 0 && structDiff.includes(1),
+      `${name}：★ V48 决策层非中性 ⇒ 与旧引擎只许方向性差异（新 ≤ 旧）且 W1 必须有差${occUp.length ? '（反向周 ' + occUp.join('/w') + '）' : ''}${structDiff.includes(1) ? '' : '（W1 无差 ⇒ V48 未生效）'}`)
+  } else {
+    ok(中性差异.length === 0,
+      `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量（出租率/在店房数/好评率/评价条数）逐项一致${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
+  }
+  ok(structDiff.every(w => 非中性周.includes(w)) || V48非中性,
+    `${name}：★ 结构差异只出现在世界层非中性周（差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]）${V48非中性 ? '（V48 场景：全周决策层非中性）' : ''}`,
     `越界[${structDiff.filter(w => !非中性周.includes(w)).join('/')}]`)
 // 🔴 §14.3 重基线（2026-09-28 · D53）：全季/汉庭/海友 自 §14.3 起按营收计【加盟两费】
 //   （管理费 5% + CRS 有效 2.4%；单源 src/franchiseFees.mjs）⇒ 差额恒等式多一项 −两费。
@@ -79,10 +88,11 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
 // 🔴 §22.2-B2：week1 开业费用 / week12 保证金退还 —— 同为“未被 ×7 的科目”（null-safe）
 const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0)
-  // ①-b ×7 精确算式（T1.1/D16）
+  // ①-b ×7 精确算式（T1.1/D16）· 🔴 V48 重基线：决策层非中性场景改判方向恒等式（新 < 7×旧）
   const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
   const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
+    if (V48非中性) return !(r.new.revenue < 7 * r.old.revenue)
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new

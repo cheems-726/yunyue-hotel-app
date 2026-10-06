@@ -93,6 +93,7 @@ const SUITES = [
   { name: 'sixDimWiring（六维接线核验·V38）', file: 'tests/sixDimWiring.test.mjs' },
   { name: 'v35Cycle（OTA流量循环+断崖·V35）', file: 'tests/v35Cycle.test.mjs' },
   { name: 'priceLever（提价杠杆+直接零单·V46）', file: 'tests/priceLever.test.mjs' },
+  { name: 'v48Gaps（三缺口守门·V48）', file: 'tests/v48Gaps.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

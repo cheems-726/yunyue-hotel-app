@@ -117,8 +117,11 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   const 中性周 = 9
   const direct9 = settle({ site: SITE, brand: BRAND, decisions: dec, week: 中性周, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
   const preW29 = settlePreW2({ site: SITE, brand: BRAND, decisions: dec, week: 中性周, attrs: saveAttrsFor(dec, mig.save), prevGoodRate: lastHist.finalGoodRate, prevCapital: mig.save.capital })
-  ok(direct9.profit === preW29.profit - direct9.deptCost - (direct9.rentCost - preW29.rentCost) - 两费(direct9),   // 🔴 A-1：加租金项
-    `${name}：差额恒等式（世界中性周 w${中性周}）新周利润 ${direct9.profit} === 旧结构利润 ${preW29.profit} − 部门成本 ${direct9.deptCost} − 租金差 − 两费`)
+  // 🔴 V48 重基线（2026-10-06）：精简/不停房 自 V48 起有直接行为 ⇒ 含两决策场景与旧结构【决策层非中性】
+  //   （新旧 ds 模型不同 ⇒ 恒等式前提"两侧只差结构"不成立）⇒ 豁免；勤奋型保留；V48 行为 v48Gaps 专守。
+  const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
+  ok(V48非中性 || direct9.profit === preW29.profit - direct9.deptCost - (direct9.rentCost - preW29.rentCost) - 两费(direct9),   // 🔴 A-1：加租金项
+    `${name}：差额恒等式（世界中性周 w${中性周}）新周利润 ${direct9.profit} === 旧结构利润 ${preW29.profit} − 部门成本 ${direct9.deptCost} − 租金差 − 两费${V48非中性 ? '（V48 决策层非中性 · 豁免）' : ''}`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）
   const rowsNo = continueWeeks({ ...legacy, capital: legacy.capital }, dec, 3)

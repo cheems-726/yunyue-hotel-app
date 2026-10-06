@@ -62,11 +62,16 @@ const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     // ② 零变化：既有三个数值必须与"改前引擎"逐项一致（T1.1 的 ×7 已由 shadow/severity 证明，这里只钉 B3 的拆租金动作）
     // B 类重基线：结构不变量（营收/租金/房价/房量/出租率）必须零漂移；成本差额必须恰为 deptCost
     // ★ §22.2：差额恒等式按 B2 新科目扩展（− o 是【改前引擎】settle-old 快照，它没有 B2 科目 ⇒ 新科目全算在 Δ 里）
+    // 🔴 V48 重基线（2026-10-06）：精简/不停房 自 V48 起有直接行为 ⇒ 该场景与冻结旧引擎【决策层非中性】。
+    //   跨引擎方向断言不可靠（新旧 ds 模型不同，纯下沉场景会被巧合抵消 · 实证 超售 w9 38=38）⇒
+    //   决策层非中性场景**豁免跨引擎零漂移断言**：勤奋型保留全严锚（原判据），V48 行为由 tests/v48Gaps.test.mjs
+    //   在新引擎内做同输入对照精确钉死（-6%/下沉矩阵/W1 水位），GOP 内部恒等式（①项）对所有场景仍然全检。
+    const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
     const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
     const Δ开业 = 开业费(n), Δ退还 = 退还(n)
     const 世界中性 = 天气客流系数(w) === 1 && 季节因子(w) === 1
-    if (世界中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还)) {
+    if (世界中性 && !V48非中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还)) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital

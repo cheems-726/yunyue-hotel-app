@@ -73,15 +73,25 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
   const STRUCT = ['occupancy', 'occupiedRooms', 'goodRate', 'reviewCount']
   // ★ §32-U3：世界层中性周（天气 ×1 且 季节 ×1）—— 这两周才能与"不知道世界层的旧引擎"逐项对比
   const 中性 = (w) => 天气客流系数(w) === 1 && 季节因子(w) === 1
+  // 🔴 V48 重基线（2026-10-06）：精简省成本/不停房 自 V48 起有直接行为（入住率 -6%/底仓逐周下沉）
+  //   ⇒ 含这两决策的场景与冻结旧引擎**全周不可比**（决策层非中性 · 与世界层非中性同理，非放宽——
+  //   V48 行为由 tests/v48Gaps.test.mjs 专守）。勤奋型（不含两决策）保持原判据 = 干净锚。
+  const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
   const 中性周 = rows.filter(r => 中性(r.w)).map(r => r.w)
   const 非中性周 = rows.filter(r => !中性(r.w)).map(r => r.w)
   const structDiff = rows.filter(r => STRUCT.some(k => r.old[k] !== r.new[k])).map(r => r.w)
   const 中性差异 = structDiff.filter(w => 中性(w))
-  ok(中性差异.length === 0,
-    `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量逐项一致 —— 随机流与经营结构未被污染【原判据保留在这一组】${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
-  const 集合同 = structDiff.every(w => 非中性周.includes(w))
+  if (V48非中性) {
+    const occUp = rows.filter(r => r.new.occupancy > r.old.occupancy || r.new.occupiedRooms > r.old.occupiedRooms).map(r => r.w)
+    ok(occUp.length === 0 && structDiff.includes(1),
+      `${name}：★ V48 决策层非中性（精简/不停房）⇒ 与旧引擎只许【方向性差异】（新 ≤ 旧 · 客源只减不增）且 W1 必须有差（防 V48 退化）${occUp.length ? '（反向周 ' + occUp.join('/w') + '）' : ''}${structDiff.includes(1) ? '' : '（W1 无差 ⇒ V48 未生效）'}`)
+  } else {
+    ok(中性差异.length === 0,
+      `${name}：★ 世界层中性周（w${中性周.join('/w')}）结构不变量逐项一致 —— 随机流与经营结构未被污染【原判据保留在这一组】${中性差异.length ? '（不符周 ' + 中性差异.join('/w') + '）' : ''}`)
+  }
+  const 集合同 = structDiff.every(w => 非中性周.includes(w)) || V48非中性
   ok(集合同,
-    `${name}：★ 差异只许出现在世界层非中性周（子集判据 · 全 12 周覆盖）：差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]`,
+    `${name}：★ 差异只许出现在世界层非中性周（子集判据 · 全 12 周覆盖）：差异[${structDiff.join('/') || '空'}] ⊆ 非中性[${非中性周.join('/')}]${V48非中性 ? '（V48 场景：全周决策层非中性）' : ''}`,
     `越界周[${structDiff.filter(w => !非中性周.includes(w)).join('/')}]`)
   //   ★ 为什么不做"两个方向都判"（差异集合 === 非中性集合）：实测 省钱型 w11 系数 = 雨0.90×旺季1.10 = **0.99**，
   //     1% 的需求差会被【出租率取整 + 30%/98% 上下限】吸收 ⇒ "必须有差异"是不可靠的断言（假红）。
@@ -100,9 +110,12 @@ for (const [name, dec] of Object.entries(STRATEGIES)) {
 const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
 const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0)
   // (乙) ×7 精确算式：收入恒 7 倍；利润差额 = 6 × 【未被 ×7 的科目】
+  //   🔴 V48 重基线：决策层非中性场景（精简/不停房）新引擎营收 ≠ 7×旧（V48 客流损失非线性）⇒
+  //   改判方向恒等式（新 < 7×旧 · V48 只减客源）；勤奋型保持精确算式。
   const OTHER_KEYS = ['营销推广', 'OTA佣金', '超售赔偿', '事件罚款']
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
   const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
+    if (V48非中性) return !(r.new.revenue < 7 * r.old.revenue)
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new

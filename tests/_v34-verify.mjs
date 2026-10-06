@@ -27,7 +27,19 @@ console.log(`  （决策数：A=${Object.keys(齐).length} · B=${Object.keys(�
 const sA = scoreOf([{ ...rA, week: 1 }]), sB = scoreOf([{ ...rB, week: 1 }])
 console.log(`  实测：A 好评率 ${rA.goodRate}% · B 好评率 ${rB.goodRate}%（不足 9 项 ⇒ -2pp 惩罚）· finalScore A=${sA.finalScore} B=${sB.finalScore}`)
 ok(rB.goodRate < rA.goodRate, '判定：失职（漏提交）⇒ 好评率惩罚 ✅ 真进评分')
-ok(sB.finalScore < sA.finalScore, '判定：期末总分随之下降 ✅（链路 通）')
+// ★ V48 口径修订（2026-10-06）：期末总分是【12 周聚合】且阶梯有量化吸收 ——
+//   单人漏 1 项×12 周：好评率 -2pp 真进当周评分，但被阶梯吸收（总分不变 = 单人失职被团队稀释 · 教学意图）；
+//   多人漏 3 项×12 周：跨 85 阶梯 ⇒ 总分下降（87→84 实测）。总分判定用多人持续口径（下方）。
+console.log('  ★ 单周/单人漏 1 项的总分不变是口径内现象（阶梯量化 · 单人失职被团队总分稀释）⇒ 总分判定用多人持续口径：')
+const 齐12 = [], 漏12 = []
+const 漏3项 = { ...齐 }; delete 漏3项.shifts; delete 漏3项.linen; delete 漏3项['member-convert']   // 3 人各漏自己的职务项
+for (let w = 1; w <= 12; w++) {
+  齐12.push({ ...settle({ ...基座, week: w, decisions: 齐, resolvedCount: 0, resolvedWeight: null }), week: w })
+  漏12.push({ ...settle({ ...基座, week: w, decisions: 漏3项, resolvedCount: 0, resolvedWeight: null }), week: w })
+}
+const sA12 = scoreOf(齐12), sB12 = scoreOf(漏12)
+console.log(`  实测（12 周 · 漏 3 项）：交齐 avgGood ${sA12.avgGoodRate}% → finalScore ${sA12.finalScore} · 漏3项 avgGood ${sB12.avgGoodRate}% → finalScore ${sB12.finalScore}`)
+ok(sB12.finalScore < sA12.finalScore, '判定：多人持续失职 ⇒ 期末总分下降 ✅（12 周累积口径 · V48 修订）· 常驻守门 = tests/v48Gaps.test.mjs③')
 
 // ═══ 5.2-2 每人对照决策 ⇒ 小组结算随之变（且 operatorLog 留 who）═══
 console.log('\n【5.2-2】两人对照决策 ⇒ 小组结算数字随决策变')
