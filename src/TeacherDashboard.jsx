@@ -557,7 +557,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
         </div>
         {通道就绪 === false && (
           <div style={{ fontSize: 11, color: 'var(--bad)', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 8, padding: '6px 10px', marginBottom: 8 }}>
-            注入通道未就绪（需执行 `supabase-migration-u8-class-events.sql`）—— 迁移未应用前无法写入/读取注入。
+            注入通道未就绪（只读态）：需由老师在 Supabase 控制台 SQL Editor 粘贴执行 `supabase-migration-u8-class-events.sql`（约 1 分钟，执行后本面板自动就绪）。迁移未应用前无法写入/读取注入。
           </div>
         )}
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>① 选事件（内置 {注入事件库.length} 条 · 按类别筛 / 可搜 · 与既有随机事件有去重口径）</div>
@@ -1017,7 +1017,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           { k: 'teaching', icon: 'teach.point', t: '教学参考' },
           { k: 'me', icon: 'nav.me', t: '我的' },
         ].map(x => (
-          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => setView(x.k === 'inject' && 大屏 ? 'overview' : x.k)}>
+          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => setView(x.k)}>
             <Icon name={x.icon} size={16} />{x.t}
           </a>
         ))}
@@ -1574,7 +1574,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       )}
 
  {/* §32-U8-补 §2①：老师事件注入面板 */}
-      {view === 'inject' && !大屏 && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
+      {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} />}
 
  {/* §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
       {view === 'supervisor' && <SupervisorPanel rawStates={rawStates} profiles={profiles} />}
@@ -1691,7 +1691,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       </div>
     </div>
        </div>
-    {大屏 && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} /></aside>}
+    {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} /></aside>}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     <div className="tabbar">
