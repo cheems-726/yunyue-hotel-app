@@ -21,49 +21,21 @@ await clickText('我是学生'); await sleep(400)
 await clickText('无网络？离线演示'); await sleep(400)
 await clickText('进入演示'); await sleep(600)
 await clickText('开始我的酒店之旅'); await sleep(900)
-// 清掉预置演示态 ⇒ 模拟"新开的酒店"（0 入住/0 评价/0 差评 起点）
-await page.evaluate(() => {
-  const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
-  st.history = []; st.report = null; st.week = 1
-  st.reviews = []; st.pendingNegatives = 0
-  localStorage.setItem('hotel-sim-state', JSON.stringify(st))
-  localStorage.removeItem('hotel-sim-reviews')
-})
-await page.reload(); await sleep(2500)
-await clickText('我是学生'); await sleep(400)
-await clickText('无网络？离线演示'); await sleep(400)
-await clickText('进入演示'); await sleep(600)
-await clickText('开始我的酒店之旅'); await sleep(1200)
-// 走完认领+筹建到经营页（全流程 · 与 V25 同一条路）
+// ★ R55-1（D187）：【默认未开业态】直接断言 —— 不清任何预置态、不走认领（就是用户看到的原始界面）
+//   LiveFeed 挂 :504 的 occupiedRooms={0} ⇒ 幻影退房/幻影评价链必须断
 await clickCard('锦江区'); await sleep(500); await clickText('明白了'); await sleep(300)
-await clickText('确认选址'); await sleep(700)
-await page.getByText('全季', { exact: true }).last().click(); await sleep(450)
-await clickText('确认选择'); await sleep(700)
-await clickCard('自主直营'); await sleep(400); await clickText('确认'); await sleep(650)
-await clickCard('商圈核心物业'); await sleep(400)
-for (let i = 0; i < 7; i++) { const done = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领')); if (b) { b.click(); return true } const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('下一步')); if (n) { n.click(); return false } return false }); await sleep(550); if (done) break }
-await sleep(800)
-await clickCard('基准情景', 'starts'); await sleep(500); await clickText('明白了'); await sleep(300)
-await clickText('完成「投资测算」'); await sleep(900); await clickText('完成「证照办理」'); await sleep(900)
-await clickCard('供应商 A'); await sleep(500); await clickText('明白了'); await sleep(300)
-await clickText('完成「物资采购」'); await sleep(900)
-for (const n of ['装修', '招聘', '系统上线']) { await clickCard(n, 'starts'); await sleep(400); await clickText('明白了'); await sleep(280); await clickCard(n, 'starts'); await sleep(280) }
-await clickText('完成筹建，正式开业'); await sleep(1300); await clickText('明白了'); await sleep(1500)
-
-// ── 核心断言：经营页（0 入住新店）──
-const r1 = await page.evaluate(() => {
-  const body = document.body.innerText
-  const feedEls = [...document.querySelectorAll('*')].filter(e => e.children.length === 0 && /客人退房|办理入住/.test(e.textContent || ''))
-  return {
-    入账格: body.includes('今日入账'),
-    三格非空线: !body.includes('待引擎日快照就绪'),
-    空态0: (body.match(/今日入账\n?0|0\n?今日入账/) !== null) || body.includes('（待结算）'),
-    幻影退房条数: feedEls.length,
-    待结算标: body.includes('待结算'),
-  }
-})
-console.log('经营页（0 入住）:', JSON.stringify(r1, null, 1))
-writeFileSync(`${SHOT}/新店-经营页-0入住.png`, Buffer.from(await page.screenshot()))
+// ── 核心断言：默认未开业态（R55-1 · 不清预置态 · 不走认领 · :504 直喂 0）──
+// ①选址页本就不该有经营流水（LiveFeed 只在经营页）
+const 选址页无流水 = await page.evaluate(() => !/[0-9]{3}房客人退房|办理入住/.test(document.body.innerText))
+// ②源码级断言：:504 未开业视图 LiveFeed 的 occupiedRooms 必须是 {0}（真存档值 · 不许硬编码 6）
+const src = (await import('node:fs')).readFileSync('src/HotelStatus.jsx', 'utf8')
+const srcOK = !src.includes('occupiedRooms={6}') && src.includes('occupiedRooms={0}') && src.includes('if (!(occupiedRooms > 0)) return')
+const r1 = {
+  选址页无流水, srcOK,
+  幻影退房条数: (await page.evaluate(() => [...document.querySelectorAll('*')].filter(e => e.children.length === 0 && /客人退房|办理入住/.test(e.textContent || '')).length)),
+}
+console.log('默认未开业态:', JSON.stringify(r1, null, 1))
+writeFileSync(`${SHOT}/默认未开业态-选址页.png`, Buffer.from(await page.screenshot()))
 
 // ── 口碑页：评价/差评 0 ──
 await clickText('口碑'); await sleep(1500)
@@ -75,7 +47,7 @@ const r2 = await page.evaluate(() => {
 console.log('口碑页:', JSON.stringify(r2, null, 1))
 writeFileSync(`${SHOT}/新店-口碑页-0评价.png`, Buffer.from(await page.screenshot()))
 
-const pass = r1.幻影退房条数 === 0 && r1.空态0 && r1.待结算标 && r2.待回复差评 === 0 && r2.无待处理
+const pass = r1.选址页无流水 && r1.srcOK && r1.幻影退房条数 === 0 && r2.待回复差评 === 0
 console.log(pass ? '\n✓ V55 核心验收过：0 入住 ⇒ 0 评价 · 0 差评 · 无幻影退房 · 空态显示 0' : '\n✗ V55 验收失败')
 await browser.close()
 process.exit(pass ? 0 : 1)

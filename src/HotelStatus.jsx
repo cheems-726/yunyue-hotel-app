@@ -501,7 +501,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
  今天是 {dateInfo.text}（{dateInfo.weekday}）· 第 {week} 周经营中 · 当前时段：{phase.name}
         </div>
         {attrPanel}
-        <LiveFeed occupiedRooms={6} price={230} week={week} />
+        <LiveFeed occupiedRooms={0} price={230} week={week} />
         <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0 4px', lineHeight: 1.8 }}>
           经营指标（好评率 / 出租率）将在首次周结算后解锁<br />
           三个属性从做第一个决策起就实时变化
