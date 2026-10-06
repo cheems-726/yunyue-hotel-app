@@ -336,7 +336,7 @@ export default function SiteSelection({ onConfirm }) {
             onConfirm({ city: currentCity, district: d.name, attrs: d.attrs })
           }}
         >
-          {selected ? `确认选址 ${selected}，进入筹建 →` : '请选择一个区县'}
+          {selected ? `确认选址 ${selected}，进入选品牌 →` : '请选择一个区县'}
         </button>
       </div>
 

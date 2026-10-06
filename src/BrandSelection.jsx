@@ -186,7 +186,8 @@ export default function BrandSelection({ location, onConfirm }) {
         ))}
       </div>
 
-      <div style={{ padding: '8px 20px 24px' }}>
+      {/* V51批2：吸底悬浮确认条（选中即常驻可见 · 不随内容滚动消失）*/}
+      <div style={{ position: 'sticky', bottom: 0, padding: '8px 20px 24px', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         <button
           className="btn-confirm"
           disabled={!selected}
