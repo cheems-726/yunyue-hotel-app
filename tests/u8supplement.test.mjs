@@ -65,7 +65,13 @@ console.log('\n[2] §2① 教师端注入面板：真调单源 + 周粒度说明
   ok(/disabled=\{忙 \|\| !全部合法 \|\| !通道就绪\}/.test(TD), '注入按钮在校验不通过时禁用（公平红线机器化）')
   // ★ 死代码判据（RV-3 实测补上）：面板必须真的挂在【视图 + 入口】上 —— 只查 import/内部实现的话，
   //   "把渲染整块摘掉"照样绿（面板变死代码却无人报警 = 本项目老病的同族）。
-  ok(/\{view === 'inject' && !大屏 && <InjectionPanel/.test(TD) && /className="t-side"><InjectionPanel/.test(TD), '★ 注入面板真的挂在视图上（小屏 view=inject 渲染 + 大屏 t-side 右栏常驻 —— 不是死代码 · V10b 三栏）')
+  // ★ V50 重基线（2026-10-06 · 用户『事件注入打不开』修复）：大屏不再禁止主区渲染，t-side 改为「非激活时」常驻；
+  //   静默重定向已删（tab 就是 tab）。断言改为新不变量：①tab 无静默改写 ②主区渲染无 !大屏 门槛 ③t-side 仅在未激活时挂 ④激活时侧栏让位防双份。
+  ok(/setView\(x\.k\)/.test(TD) && !/setView\(x\.k === 'inject' && 大屏/.test(TD)
+     && /\{view === 'inject' && <InjectionPanel/.test(TD)
+     && /view !== 'inject' && <aside className="t-side"><InjectionPanel/.test(TD)
+     && !/\{view === 'inject' && !大屏 && <InjectionPanel/.test(TD),
+    '★ 注入面板真的挂在视图上（V50 新不变量：tab 无静默改写 · 主区无门槛渲染 · t-side 未激活时常驻/激活时让位 —— 不是死代码）')
   ok(/\{view === 'supervisor' && <SupervisorPanel/.test(TD), '★ 领班授权页真的挂在视图上（view=supervisor 渲染 —— 不是死代码）')
   ok(/v: 'inject', icon: 'note.caliber'/.test(TD) && /v: 'supervisor', icon: 'role.manager'/.test(TD), '「我的」功能入口含注入/领班两条（老师找得到 · icon 键化 V10b）')
   // 行为：非法注入被拦
