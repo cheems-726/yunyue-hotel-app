@@ -96,6 +96,7 @@ const SUITES = [
   { name: 'v48Gaps（三缺口守门·V48）', file: 'tests/v48Gaps.test.mjs' },
   { name: 'v44LayFlat（躺平必亏守门·V44）', file: 'tests/v44LayFlat.test.mjs' },
   { name: 'errorOps（错误操作高亮守门·V39）', file: 'tests/errorOps.test.mjs' },
+  { name: 'v54Flow（前后逻辑闭环界面守门·V54批2）', file: 'tests/v54Flow.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

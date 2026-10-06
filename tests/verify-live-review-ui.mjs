@@ -112,7 +112,7 @@ try {
     const done = await page.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
       if (b) { b.click(); return true }
-      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('下一步'))
+      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
       if (n) { n.click(); return false }
       return false
     })

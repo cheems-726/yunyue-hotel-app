@@ -338,6 +338,8 @@ export default function SiteSelection({ onConfirm }) {
         >
           {selected ? `确认选址 ${selected}，进入选品牌 →` : '请选择一个区县'}
         </button>
+        {/* V54批2 缺口3：不可逆预告（S1 选定后无反悔入口属设计 · 界面须提前说明） */}
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>选址确认后本学期不可更改（不设反悔入口——真实加盟选址同样不可逆，确认前想清楚）</div>
       </div>
 
       {feedback && <ResultFeedback result={feedback} onClose={() => setFeedback(null)} />}

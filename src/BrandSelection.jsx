@@ -201,6 +201,8 @@ export default function BrandSelection({ location, onConfirm }) {
         >
           {selected ? `确认选择 ${selected}，去认领酒店 →` : '请选择一个品牌'}
         </button>
+        {/* V54批2 缺口3：不可逆预告（S2 品牌选定后无反悔入口属设计 · 界面须提前说明） */}
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>品牌确认后本学期不可更改（加盟费/价带/房量门槛按此品牌核算，认领后不设换牌入口）</div>
       </div>
 
       {feedback && <ResultFeedback result={feedback} onClose={() => setFeedback(null)} />}

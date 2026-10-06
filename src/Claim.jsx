@@ -320,7 +320,7 @@ export default function Claim({ brand, location, onComplete }) {
       {/* 底部按钮 */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
         {step > 0 && (
-          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步</button>
+          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步<span style={{ fontSize: 12, opacity: 0.75 }}>（已选内容可回改）</span></button>
         )}
         <button
           className="btn-confirm"

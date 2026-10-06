@@ -39,8 +39,21 @@ export default function Establishment({ brand, property, onComplete }) {
   // 真正的选择（会随开业写入存档）：invest=投资情景 / supplier=采购渠道 / opening=开业任务优先级顺序
   // §16.2-B5：+ investTiers = 投资项档位（装修/软装/IT/布草/开办费 各 低中高）
   const [choices, setChoices] = useState({ invest: null, supplier: null, opening: [], investTiers: {} })
+  // V54批2 缺口2：证照排序可交互（↑↓ 真实可调 · 排错给延误警告与改法 · 顺序合理才放行下一步）
+  // 初始顺序 = 真实顺序（含"营业执照第一、消防先于特种证"两条前后置 · 学生可打乱试验再排回）
+  const [licOrder, setLicOrder] = useState([0, 1, 2, 3, 4, 5])
   // 投资测算（纯计算；老师给数只改 establishmentInvest.mjs 的配置）
   const 测算 = 投资测算({ brand, 选择: choices.investTiers })
+
+  function moveLic(pos, dir) {
+    setLicOrder(o => {
+      const j = pos + dir
+      if (j < 0 || j >= o.length) return o
+      const n = [...o]; [n[pos], n[j]] = [n[j], n[pos]]
+      return n
+    })
+  }
+  const licOrderCorrect = licOrder[0] === 0 && licOrder.indexOf(2) < licOrder.indexOf(3)
 
   function pick(key, result) {
     setPicked(p => ({ ...p, [key]: true }))
@@ -60,6 +73,7 @@ export default function Establishment({ brand, property, onComplete }) {
   }
   function stepSatisfied() {
     if (currentStep === 0) return !!choices.invest
+    if (currentStep === 1) return licOrderCorrect // V54批2 缺口2：证照前后置排对才放行（不满足=不能点+说明原因）
     if (currentStep === 2) return !!choices.supplier
     if (currentStep === 3) return choices.opening.length === 3
     return true
@@ -128,17 +142,17 @@ export default function Establishment({ brand, property, onComplete }) {
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
         <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 12 }}>{step.desc}</div>
-        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} chooseTier={chooseTier} />
+        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
       </div>
 
       {/* 底部按钮 */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
         {currentStep > 0 && (
-          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步</button>
+          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步<span style={{ fontSize: 12, opacity: 0.75 }}>（已选内容可回改）</span></button>
         )}
         {currentStep < steps.length - 1 ? (
           <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={() => { markDone(); next() }}>
-            {stepSatisfied() ? `完成「${step.title}」，下一步 →` : step.title === '投资测算' ? '请先选择一个投资情景' : step.title === '物资采购' ? '请先选择采购渠道' : '请先完成本步'}
+            {stepSatisfied() ? `完成「${step.title}」，下一步 →` : step.title === '投资测算' ? '请先选择一个投资情景' : step.title === '证照办理' ? '证照前后置未排对（见上方延误警告）' : step.title === '物资采购' ? '请先选择采购渠道' : '请先完成本步'}
           </button>
         ) : (
           <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={markDone}>
@@ -182,7 +196,7 @@ export default function Establishment({ brand, property, onComplete }) {
   )
 }
 
-function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, chooseTier }) {
+function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, chooseTier, licOrder, moveLic }) {
   const clickable = key => ({
     cursor: 'pointer',
     border: picked[key] ? '1px solid var(--primary)' : '1px solid transparent',
@@ -252,9 +266,11 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
       return (
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>证照办理顺序（点击查看每张证照的要点，排错会延误开业）：</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>试着把六张证照按实际办理顺序排一排（↑↓ 调整顺序 · 排错会影响开业时间）：</div>
-          {licenses.map((l, i) => {
-            const key = 'lic-' + i
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>试着把六张证照按实际办理顺序排一排（↑↓ 调整顺序 · 排错会触发延误警告，排对才能进入下一步）：</div>
+          {/* V54批2 缺口2：排序交互落地（licOrder 为显示顺序 · 存 licenses 下标 · 点击行仍可看详情） */}
+          {licOrder.map((li, i) => {
+            const l = licenses[li]
+            const key = 'lic-' + li
             const inf = 证照信息[l.name] || {}
             const 详情行 = inf.机关 ? [
               { label: '办理地点 · 线上', value: inf.办事地点?.线上 || '', dir: '' },
@@ -269,18 +285,32 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
             return (
               <div key={l.name} onClick={() => onPick(key, {
                 title: `证照：${l.name}（成都/德阳 · 本地办事信息）`,
-                changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: i === 0 ? '无主体一切免谈' : i === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }, ...详情行],
-                note: (i === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : i === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`) + `\n— ${来源行}\n${通用免责}`,
+                changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: li === 0 ? '无主体一切免谈' : li === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }, ...详情行],
+                note: (li === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : li === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`) + `\n— ${来源行}\n${通用免责}`,
               })} style={{ ...clickable(key), borderRadius: 10, marginBottom: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 600 }}>{l.name}{picked[key] && <span style={{ fontSize: 12, color: 'var(--warn)', marginLeft: 6 }}>已查看</span>}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.dept} · {l.note}</div>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  <button aria-label={`把${l.name}上移`} disabled={i === 0} onClick={() => moveLic(i, -1)} style={{ width: 30, height: 24, borderRadius: 6, border: '1px solid var(--border)', background: i === 0 ? 'var(--fill)' : 'var(--bg)', color: i === 0 ? 'var(--text-muted)' : 'var(--text-sub)', fontSize: 12, cursor: i === 0 ? 'default' : 'pointer', lineHeight: 1 }}>↑</button>
+                  <button aria-label={`把${l.name}下移`} disabled={i === licOrder.length - 1} onClick={() => moveLic(i, 1)} style={{ width: 30, height: 24, borderRadius: 6, border: '1px solid var(--border)', background: i === licOrder.length - 1 ? 'var(--fill)' : 'var(--bg)', color: i === licOrder.length - 1 ? 'var(--text-muted)' : 'var(--text-sub)', fontSize: 12, cursor: i === licOrder.length - 1 ? 'default' : 'pointer', lineHeight: 1 }}>↓</button>
+                </div>
               </div>
             )
           })}
-          <div style={{ fontSize: 12, color: 'var(--bad)', lineHeight: 1.6, marginTop: 8 }}>
+          {/* 排序判定（V54批2）：排对=绿；排错=红延误警告（为什么+怎么改）· 与下一步放行同一判据 */}
+          {(licOrder[0] === 0 && licOrder.indexOf(2) < licOrder.indexOf(3)) ? (
+            <div style={{ fontSize: 12, color: 'var(--good)', background: 'var(--good-bg)', borderRadius: 8, padding: '8px 12px', marginTop: 8, lineHeight: 1.6 }}>
+              ✓ 顺序合理：营业执照先行（有主体才能办其他证）、消防先于特种证（消防验收合格公安分局才发证）。筹建期其余证照并联推进，开业不延误。
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--bad)', background: 'var(--bad-bg)', borderRadius: 8, padding: '8px 12px', marginTop: 8, lineHeight: 1.6 }}>
+              延误警告：{licOrder[0] !== 0 ? '营业执照不在第 1 位——没有主体资格，刻章、消防、特种证全都办不了，整个筹建卡死。用 ↑ 把它移回第 1 位。' : '消防检查合格证排在特种行业经营许可证之后——消防不验收合格，公安分局不会发特种证，特种证会被退回重排。调换这两张证的先后。'}（排对后才能进入下一步）
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6, marginTop: 8 }}>
             前后置关系：营业执照是全部证照的前置；消防检查合格证是特种行业许可证的前置。顺序排错 → 触发"延误警告"，开业推迟，损失经营收入。
           </div>
         </div>
