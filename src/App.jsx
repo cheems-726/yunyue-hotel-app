@@ -1199,8 +1199,13 @@ function fmtDecision(v) {
   if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}:${val}`).join('、')
   return String(v)
 }
-function OperationRecords({ history, onBack }) {
+function OperationRecords({ history, onBack, operatorLogs = [], userUid = null }) {
   const weeks = history.slice().reverse()
+  // ★ V59（5.2-1 露出面②）：学生端「我的贡献」—— 只看自己的操作留痕（operatorLog 单源 · 不新增口径）
+  const mine = (Array.isArray(operatorLogs) ? operatorLogs : []).filter(r => userUid && (r.operatorId === userUid))
+  const mineCount = mine.length
+  const mineWeeks = [...new Set(mine.map(r => r.week).filter(Boolean))].sort((a, b) => a - b)
+  const mineProfit = mine.reduce((s2, r) => s2 + (Number.isFinite(r.profitImpact) ? r.profitImpact : 0), 0)
   // 折叠：默认只展开最近一周，点标题切换
   const [openWeek, setOpenWeek] = useState(weeks.length ? weeks[0].week : null)
   return (
@@ -1219,6 +1224,17 @@ function OperationRecords({ history, onBack }) {
       )}
 
       {/* 周次快捷选择：点任意周直达该周决策快照 */}
+      {/* V59（5.2-1 露出面②）：我的贡献 —— 只显示本人的操作留痕聚合（组内必要信息 · 不涉他人隐私） */}
+      {userUid && (
+        <div className="card" style={{ padding: 14, marginBottom: 10, borderLeft: '3px solid var(--primary)' }}>
+          <div className="card-title" style={{ marginBottom: 6 }}>我的贡献（操作留痕 · 按人）</div>
+          <div style={{ fontSize: 13, lineHeight: 1.9 }}>
+            操作 <b>{mineCount}</b> 条{mineWeeks.length > 0 && <> · 覆盖第 {mineWeeks.join('、')} 周</>}
+            {mineProfit !== 0 && <span style={{ color: mineProfit > 0 ? 'var(--good)' : 'var(--bad)' }}> · 留痕净利影响合计 {mineProfit > 0 ? '+' : ''}{mineProfit.toLocaleString()} 元</span>}
+          </div>
+          {mineCount === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>还没有以你的名义提交的决策记录（决策由谁提交，组长在分工时确认）</div>}
+        </div>
+      )}
       {weeks.length > 0 && (
         <div className="city-row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
           {history.map(h => (
@@ -2629,7 +2645,7 @@ export default function App() {
             setOperatorLogs(prev => {
               const rec = 记录一条({
                 decisionId: id, answer,
-                operatorId: user?.uid || null, operatorName: user?.name || null,
+                operatorId: user?.uid || user?.id || null, operatorName: user?.name || null,   // ★ V59：离线/演示登录只有 id 字段 ⇒ 留痕兜底
                 week, classDay: (typeof 权威日 === 'number' || typeof 权威日 === 'object') ? (权威日?.valueOf?.() ?? null) : (权威日 ?? null),
                 profitImpact: null,
               })
@@ -2666,7 +2682,7 @@ export default function App() {
       : openPage.key === 'members'
         ? <GroupMembersPage user={user} onBack={close} onGoDecision={(id) => { setOpenPage(null); setTab('business'); setCurrentDecision(decisions.find(d => d.id === id) || null) }} />
         : openPage.key === 'records'
-          ? <OperationRecords history={history} onBack={close} />
+          ? <OperationRecords history={history} onBack={close} operatorLogs={operatorLogs} userUid={user?.uid || user?.id} />
           : openPage.key === 'help'
             ? <HelpPage onBack={close} />
             : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
