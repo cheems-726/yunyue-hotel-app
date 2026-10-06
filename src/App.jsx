@@ -309,7 +309,7 @@ function InjectedEventsCard({ 事件s, week }) {
               <div style={{ marginTop: 8 }}>
                 {选项.map(o => (
                   <div key={o.label} onClick={() => 选(e.来源事件, o.label)}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#fff', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid var(--fill)' }}>
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--card)', borderRadius: 8, marginBottom: 5, cursor: 'pointer', border: '1px solid var(--fill)' }}>
                     <span style={{ fontSize: 16, fontWeight: 600 }}>{o.label}</span>
                     {o.effect && <span style={{ fontSize: 12, color: 'var(--warn)' }}>{o.effect}</span>}
                   </div>
@@ -604,14 +604,14 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                   <div className="task-card" key={d.id} onClick={() => onDecision(d)}
                     style={{ position: 'relative', ...(!isDone && decisions.filter(x => doneDecisions[x.id] === undefined)[0]?.id === d.id ? { border: '2px solid var(--primary)', animation: 'pulseBorder 1.5s ease-in-out infinite' } : {}) }}
                     title={isDone ? `当前答案：${fmtDecision(doneDecisions[d.id])}（点击修改）` : undefined}>
-                    <div className="task-card-icon-wrap" style={{ position: 'relative', flexShrink: 0 }}>
+                    <div className="task-card-icon-wrap" style={{ position: 'relative',  flexShrink: 0 }}>
                       <div className={`task-icon ${bgMap[mod]}`}><Icon name={d.icon} size={22} /></div>
                       {(!isDone && KEY_DECISIONS.includes(d.id) || (d.id === 'reputation' && pendingReviewCount > 0)) && (
                         <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: 'var(--bad)', border: '2px solid #fff' }} />
                       )}
                     </div>
                     <div className="task-body" onClick={e => { e.stopPropagation(); setExpandedDesc(x => ({ ...x, [d.id]: !x[d.id] })) }}>
-                      <div className="name">
+                      <div className="name" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 0 }}>
                         <span style={{ fontSize: 12, color: 'var(--border-strong)', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
                         {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 12, color: 'var(--bad)', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
                         {(() => { const k = cadenceOf(d.id); if (!k) return null; const c = CAD_LANG[k]
@@ -633,18 +633,18 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                       {!isDone && lastChoice != null && (
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '1px 0 2px' }}>上周：{String(fmtDecision(lastChoice)).slice(0, 18)}{String(fmtDecision(lastChoice)).length > 18 ? '…' : ''}</div>
                       )}
-                    </div>
-                    {!isDone && d.owner && d.owner !== user?.groupRole && (
-                      <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 8, bottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
-                        <button title="记录移交：本项交由责任职务处理（留痕 operatorLog · 不改数值）"
-                          onClick={() => onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                          style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
-                        <button title="代提交：责任人当周未操作该项时，由我代为提交（留痕区分 代提交人/责任人 · 不改数值）"
-                          onClick={() => onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                          style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: '#fff', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
+                      {!isDone && d.owner && d.owner !== user?.groupRole && (
+                      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '3px 0 2px' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
+                      <button title="记录移交：本项交由责任职务处理（留痕 operatorLog · 不改数值）"
+                      onClick={() => onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString() })}
+                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
+                      <button title="代提交：责任人当周未操作该项时，由我代为提交（留痕区分 代提交人/责任人 · 不改数值）"
+                      onClick={() => onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString() })}
+                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
                       </div>
-                    )}
+                      )}
+                    </div>
                     <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
                   </div>
                   )
@@ -949,7 +949,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       {/* 真实姓名修改弹窗（B2/B3：state 与弹窗都在本组件，与入口 ✏️ 同处） */}
       {renameOpen && (
         <div onClick={() => setRenameOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: 20, padding: 22, width: '100%' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>修改真实姓名</div>
             <input
               value={renameVal}
@@ -1471,7 +1471,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                 style={{
                   flex: '1 1 30%', minWidth: 90, padding: '10px 8px', borderRadius: 10,
                   border: myRole === r.role ? '2px solid var(--primary)' : '1px solid var(--border)',
-                  background: myRole === r.role ? 'var(--warn-bg)' : '#fff',
+                  background: myRole === r.role ? 'var(--warn-bg)' : 'var(--card)',
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
                 }}>
                 <div style={{ fontSize: 20, display: 'flex' }}><Icon name={r.icon} size={20} /></div>

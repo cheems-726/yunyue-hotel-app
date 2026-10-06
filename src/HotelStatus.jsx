@@ -561,7 +561,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
       {/* 今日入住情况 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
         {roomsCell.map(s => (
-          <div key={s.l} onClick={s.click ? () => setPreOpen(o => !o) : undefined} style={{ background: '#fff', borderRadius: 10, padding: '8px 10px', cursor: s.click ? 'pointer' : 'default' }}>
+          <div key={s.l} onClick={s.click ? () => setPreOpen(o => !o) : undefined} style={{ background: 'var(--card)', borderRadius: 10, padding: '8px 10px', cursor: s.click ? 'pointer' : 'default' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: s.c }}>{s.v}{s.live && <span style={{ fontSize: 12, color: 'var(--good)', marginLeft: 4 }}>● 实时</span>}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.l} · {s.click && preOpen ? '点击收起' : s.sub}{s.click && !preOpen ? '（点击看构成）' : ''}</div>
           </div>
@@ -599,7 +599,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
       {/* 经营指标（真实统计值，非派生）：好评率 / 出租率 */}
       <div style={{ display: 'flex', gap: 8, marginTop: 2, marginBottom: 4 }}>
         {bizRows.map(b => (
-          <div key={b.label} style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
+          <div key={b.label} style={{ flex: 1, background: 'var(--card)', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{b.display}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}><Icon name={b.icon} size={12} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {b.label}</div>
           </div>
@@ -611,7 +611,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>房型结构（共 {rooms} 间）</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           {types.map((tp, idx) => (
-            <div key={tp.name} style={{ background: '#fff', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+            <div key={tp.name} style={{ background: 'var(--card)', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{tp.name}</div>
               <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700 }}>{tp.price}元/晚</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tp.total} 间 · 在店 {occByType[idx]}</div>

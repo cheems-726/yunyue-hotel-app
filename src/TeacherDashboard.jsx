@@ -292,7 +292,7 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
         const entries = Object.entries(dec)
         const netW = netOf(h)   // W2-3：净利润权威字段（netProfit；旧档回退 profit）
         return (
-          <div key={h.week} style={{ marginBottom: 10, background: '#fff', borderRadius: 8, padding: 8 }}>
+          <div key={h.week} style={{ marginBottom: 10, background: 'var(--card)', borderRadius: 8, padding: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
               第{h.week}周 <span style={{ fontWeight: 400, color: 'var(--text-sub)' }}>出租率 {h.occupancy}% · 净利润 {netW === null ? '—' : `${netW >= 0 ? '+' : ''}${netW}元`}{Number.isFinite(h.gop) ? ` · GOP ${h.gop}元` : ''} · 差评 {h.negativeCount}条 · 好评率 {h.finalGoodRate}%</span>
             </div>

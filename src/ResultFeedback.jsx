@@ -23,7 +23,7 @@ export default function ResultFeedback({ result, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: 20, padding: 24, width: '100%',
+          background: 'var(--card)', borderRadius: 20, padding: 24, width: '100%',
           animation: 'pageIn 0.2s ease-out', maxHeight: '80vh', overflowY: 'auto',
           position: 'relative',
         }}

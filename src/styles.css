@@ -8,6 +8,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
 
 :root {
+  color-scheme: light dark;   /* V49：声明双主题 ⇒ 原生控件跟随明暗，不再"页面暗、控件白" */
   /* 品牌（DS 蓝）· 暖琥珀已降级为 warn 语义色 */
   --primary: #3964fe;
   --primary-bg: #edf1ff;
@@ -52,15 +53,15 @@
     --primary-bg: #141a2e;
     --primary-border: #2a3660;
 
-    --text: #f5f5f7;
+    --text: #e7e8ea;            /* V49：纯白字降一档 */
     --text-sub: #adb2b8;
     --text-muted: #6b7076;
 
-    --bg: #000000;
-    --card: #141414;
-    --border: #262626;
-    --border-strong: #3a3a3c;
-    --fill: #1c1c1e;
+    --bg: #101114;              /* V49：纯黑→近黑（用户：白和黑太突出） */
+    --card: #191a1d;            /* V49：与 bg 拉开一档 */
+    --border: #2c2d31;
+    --border-strong: #45474c;
+    --fill: #222327;
 
     --good: #4ade80;  --good-bg: #0e1a14;  --good-border: #1e3a2b;
     --warn: #e0a33c;  --warn-bg: #1d1810;  --warn-border: #3d3218;
@@ -73,6 +74,18 @@
     --chart-4: #60a5fa; --chart-5: #34d399; --chart-6: #fb923c; --chart-7: #a78bfa; --chart-fallback: #94a3b8;
   }
 }
+
+/* ═══ V49 · 全局表单规则（一次性收口：input/select/textarea 不再走浏览器默认白底）═══
+   病灶 = "白底+浅色占位"双不可读；收口后新页面天然继承，暗色由令牌翻转。 */
+input, select, textarea {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-family: inherit;
+}
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+button { font-family: inherit; }
 
 /* P1：禁用横向 overscroll —— Android/Edge 的边缘横滑"后退"手势靠这个压制 */
 html, body, #root { height: 100%; width: 100%; overscroll-behavior-x: none; }
@@ -236,6 +249,10 @@ body {
 .task-icon.red { background: var(--bad-bg); color: var(--bad); }
 .task-body { flex: 1; min-width: 0; }
 .task-body .name { font-size: 15px; font-weight: 600; }
+/* V49 批5：name 行内的序号/档位 chip/职责 chip 不许被 flex 压缩成竖排（一字一列）
+   也不许与下方「移交/代提交」块重叠 —— 禁收缩 + 不换行 + 行间留隙 */
+.task-body .name > span { flex-shrink: 0; white-space: nowrap; }
+.task-body .name { row-gap: 3px; }
 .task-body .desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task-badge { font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 9999px; flex-shrink: 0; }
 .badge-urgent { background: var(--bad-bg); color: var(--bad); }

@@ -222,7 +222,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
         const goodColor = goodRatePct == null ? 'var(--text-muted)' : goodRatePct >= 80 ? 'var(--good)' : goodRatePct >= 60 ? 'var(--primary)' : 'var(--bad)'
         const handleColor = handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'
         const box = (label, val, color) => (
-          <div style={{ flex: 1, background: '#fff', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
+          <div style={{ flex: 1, background: 'var(--card)', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color }}>{val}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</div>
           </div>
@@ -508,7 +508,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           onClick={() => setReplying(null)}
           style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 24px'}}
         >
-          <div onClick={e => e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:22,width:'100%',maxHeight:'82vh',overflowY:'auto',animation:'pageIn 0.2s ease-out'}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'var(--card)',borderRadius:20,padding:22,width:'100%',maxHeight:'82vh',overflowY:'auto',animation:'pageIn 0.2s ease-out'}}>
             <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>{replying.isGood ? '回复好评' : '回复差评'}</div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'8px 12px',background:'var(--bg)',borderRadius:8,marginBottom:10}}>
               {replying.review.text}
