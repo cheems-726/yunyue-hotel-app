@@ -252,7 +252,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
       return (
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 10 }}>证照办理顺序（点击查看每张证照的要点，排错会延误开业）：</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>试着把六张证照按实际办理顺序排一排（↑↓ 调整顺序 · 排错会影响开业时间）：</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>试着把六张证照按实际办理顺序排一排（↑↓ 调整顺序 · 排错会影响开业时间）：</div>
           {licenses.map((l, i) => {
             const key = 'lic-' + i
             const inf = 证照信息[l.name] || {}
