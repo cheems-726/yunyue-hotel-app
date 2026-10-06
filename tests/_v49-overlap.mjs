@@ -48,7 +48,7 @@ for (let i = 0; i < 7; i++) {
   const done = await page.evaluate(() => {
     const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
     if (b) { b.click(); return true }
-    const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('下一步'))
+    const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
     if (n) { n.click(); return false }
     return false
   })
@@ -64,6 +64,13 @@ for (const n of ['装修', '招聘', '系统上线']) { await clickCard(n, 'star
 await clickText('完成筹建，正式开业'); await sleepP(1300); await closeOverlay()
 const bodyText = await page.evaluate(() => document.body.innerText)
 console.log('▶ 已进经营页：', bodyText.includes('资金状况') ? '✓' : '✗ ' + bodyText.slice(0, 120).replace(/\n/g, ' '))
+// R51-1 起点硬失败：没到经营页 ⇒ 不许测量（错页测出的 0/0 是假绿），立刻红并提示病位
+if (!bodyText.includes('资金状况')) {
+  await shot('暗色-未进经营页-病灶存证').catch(() => {})
+  console.error('✗ 起点硬失败：未进经营页（落在认领/筹建段）⇒ 按测量无效处理，不产出 0/0 假绿。检查认领推进按钮 finder 是否又与新文案失配。')
+  await browser.close()
+  process.exit(1)
+}
 
 // ── 批5 核心测量：每张决策卡内 两两矩形重叠 + 文字溢出 ──
 const report = await page.evaluate(() => {
