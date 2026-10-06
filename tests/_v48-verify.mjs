@@ -1,7 +1,23 @@
 // V48 · 批3 前后对照实测（同一 12 周序列 · 解冻纪律②）+ 批4 断言数据底座
-// 改前引擎 = git show HEAD:src/settlement.js > src/_settle-before-v48.mjs（对照后删除 · 可随时按此命令复现）
+// ★ R48-1（D174）修复：改前基线不再依赖手放的快照文件 —— 本脚本运行时自己
+//   `git show c04f636:src/settlement.js` 取 V48 改前引擎（写入 src/ 临时文件后动态 import，用完即删）。
+//   基线提交号写死在此（c04f636 = V48 三缺口落地的父提交 · 零校准态）。
+import { execSync } from 'node:child_process'
+import { writeFileSync, rmSync } from 'node:fs'
+import { pathToFileURL, fileURLToPath } from 'node:url'
+import { join, dirname } from 'node:path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const BASE_COMMIT = 'c04f636'
+const TMP = join(__dirname, '..', 'src', '_settle-before-v48-auto.mjs')
+if (!execSync(`git show ${BASE_COMMIT}:src/settlement.js`, { cwd: join(__dirname, '..'), encoding: 'utf8', maxBuffer: 1024 * 1024 * 8 })) {
+  console.error('基线取不到 ⇒ 退出'); process.exit(1)
+}
+writeFileSync(TMP, execSync(`git show ${BASE_COMMIT}:src/settlement.js`, { cwd: join(__dirname, '..'), encoding: 'utf8', maxBuffer: 1024 * 1024 * 8 }))
+const { settle: before } = await import(pathToFileURL(TMP).href)
+try { rmSync(TMP, { force: true }) } catch { /* Windows 可能占用 · 留待下次覆盖 */ }
+
 import { settle as after } from '../src/settlement.js'
-import { settle as before } from '../src/_settle-before-v48.mjs'
 import { scoreOf } from '../src/metricDefs.mjs'
 
 const 基座 = (week, over = {}) => ({
