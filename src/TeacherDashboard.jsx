@@ -1037,6 +1037,12 @@ export default function TeacherDashboard({ user, onLogout }) {
           </div>
         )}
           {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${groups.length} 组已开档` : '云端不可用，显示演示数据'}
+          {/* V63：全班时间不推进的原因说明（绑定真实通道 classDay（class_day_now RPC · 0=不可用）· 已同步不显示） */}
+          {cloudOk && !(classDay > 0) && (
+            <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 8, background: 'var(--bg)', border: '1px dashed var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.6 }}>
+              教学日程同步未就绪（服务端 class_day_now 不可用 ⇒ 开学日未设定，或服务端自动推进未部署）⇒ 全班经营时间暂不推进属正常，不是系统卡死 · 下一步：在班级设置里设定开学日，或完成服务端自动推进部署
+            </div>
+          )}
           {!cloudOk && (
             <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 9999, background: 'var(--warn-bg)', color: 'var(--warn)',
               border: '1px solid var(--warn-border)', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700,

@@ -231,8 +231,9 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         apply({ checkin: s.checkin + 1, guests: s.guests + 2 })
         pushFeed(`[${clockTag}] ${room}房办理入住（14:00 后）· ${g}客人`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
-      } else if (roll < EVENT_PROB.misc && h >= 8 && h < 22) {
+      } else if (occupiedRooms > 0 && roll < EVENT_PROB.misc && h >= 8 && h < 22) {
         // ★ §26.3（P0b）：事件文案保留（教学趣味），但**金额一律为 0** —— 文案不许再自造金额
+        // ★ V62 批②：0 入住 ⇒ 杂项动态也静默（未开业店不该有"为客人退还押金"类幻影 · 线上 99000001 实证）
         const evs = [
           { t: `${room}房空调维修，更换零件` },
           { t: `客房部补充易耗品（洗漱用品/瓶装水）` },
@@ -244,7 +245,8 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         const ev = evs[Math.floor(Math.random() * evs.length)]
         pushFeed(`[${clockTag}] ${ev.t}`, 0)
         tryLiveReview(false, clockTag, room)   // 其他时段 ×1/5：住店期间随手写
-      } else if ((h >= 23 || h < 6) && roll < EVENT_PROB.night) {
+      } else if (occupiedRooms > 0 && (h >= 23 || h < 6) && roll < EVENT_PROB.night) {
+        // ★ V62 批②：0 入住 ⇒ 深夜动态也静默（"夜班前台接待深夜到店客人"= 给未开业店编造到店 · 2026-10-07 05:50 线上实捕）
         const evs = [
           { t: `夜班保安巡场完毕，楼层安静` },
           { t: `夜班前台接待 1 位深夜到店客人` },

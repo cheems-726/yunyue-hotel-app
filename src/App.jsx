@@ -477,6 +477,12 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
               到第 7 天<b>自动出周报</b>（不用点结算）· 已决策 {Object.keys(doneDecisions).length}/18
             </div>
+            {/* V63：时间不推进的原因说明（绑定真实通道 daySource · 服务端已同步时不显示） */}
+            {daySource === 'local' && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)', color: 'var(--warn)', fontSize: 12 }}>
+                教学日程目前由本机推算（服务端同步未就绪：老师未设定开学日，或服务端自动推进未开启）⇒ 日子暂时不前进属正常，不是卡死 · 有疑问联系老师
+              </div>
+            )}
           </div>
         )}
         {history.length > 0 && (
