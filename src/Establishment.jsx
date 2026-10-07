@@ -4,6 +4,7 @@ import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
 // §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
 import { 投资测算, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
+import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
 // 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
@@ -104,6 +105,7 @@ export default function Establishment({ brand, property, onComplete }) {
         <span className="step-tag">第四步 · 筹建</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>门店筹建</h1>
         <div className="sub">{brand?.name}品牌 · {property?.name} · 完成筹建后开业</div>
+        <GuideTip k="setup">筹建共 4 步，现在是第 {currentStep + 1} 步：按每步内的提示完成要求（选定一项/把证照顺序排对）才能点「下一步」；不确定就点卡片看详情。</GuideTip>
       </div>
 
       {/* 进度条 */}

@@ -8,7 +8,8 @@ import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs, fetchClassState, setClassInjections, setClassSupervisorAuth } from './supabaseClient.js'
 import { restoreFromCloud } from './stateMigration.mjs'
-import { progressLag } from './serverTick.mjs'   // W1-5（T3.7）：服务端 classDay vs 该组进度
+import { progressLag } from './serverTick.mjs'
+import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标记   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { 扫描错误操作, parseBrandBase } from './errorOps.mjs' // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
@@ -1050,6 +1051,13 @@ export default function TeacherDashboard({ user, onLogout }) {
               演示数据（未连云端 · 非真实经营）
             </div>
           )}
+          {/* V66 · 重置本机引导（老师帮学生清掉"已关闭引导"标记 · 只影响本机浏览器） */}
+          <div style={{ marginTop: 6 }}>
+            <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}
+              onClick={() => { guideResetAll(); alert('已重置本机引导：学生在此浏览器重新进入选址/决策/认领/筹建页，会重新看到新手提示') }}>
+              重置演示引导（本机）
+            </button>
+          </div>
         </div>
       </div>
 

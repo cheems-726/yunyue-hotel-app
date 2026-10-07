@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
+import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
@@ -107,6 +108,7 @@ export default function Claim({ brand, location, onComplete }) {
         <span className="step-tag">第三步 · 认领酒店</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>认领一家酒店</h1>
         <div className="sub">{brand.name}品牌 · {location?.district} · 走完加盟流程正式认领</div>
+        <GuideTip k="claim">现在是第 {step + 1}/6 步：看完本步内容点「我已阅读，确认无误 →」进入下一步；点错的可以点「上一步」回改；六步全走完才能进入筹建。</GuideTip>
       </div>
 
       {/* 进度条 */}

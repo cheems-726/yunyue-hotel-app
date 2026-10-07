@@ -1,0 +1,48 @@
+// V66 · 浏览器验收：引导提示四态（可见/可关/不再出现/重置恢复）+ 非挡屏
+import { chromium } from 'playwright-core'
+const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+const BASE = 'http://localhost:4176/'
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const browser = await chromium.launch({ executablePath: EDGE, headless: true })
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+const page = await ctx.newPage()
+const clickText = t => page.evaluate(t2 => { const b = [...document.querySelectorAll('button, span, div')].reverse().find(x => x.textContent.trim() === t2 || x.textContent.includes(t2)); if (b) { b.click(); return true } return false }, t)
+const clickCard = (t, mode = 'includes') => page.evaluate(({ t, mode }) => { const ms = [...document.querySelectorAll('.district-card, div')].filter(x => mode === 'starts' ? x.textContent.startsWith(t) : x.textContent.includes(t)); if (!ms.length) return false; const inner = ms.reverse().find(x => !ms.some(y => y !== x && x.contains(y))); inner.click(); return true }, { t, mode })
+const body = () => page.evaluate(() => document.body.innerText)
+const r = {}
+await page.goto(BASE); await sleep(2500)
+await clickText('我是学生'); await sleep(400); await clickText('无网络？离线演示'); await sleep(400); await clickText('进入演示'); await sleep(700); await clickText('开始我的酒店之旅'); await sleep(1300)
+let b = await body()
+r['① 选址引导可见'] = b.includes('第一次来这里') && b.includes('比较两三个再点下方「确认选址」')
+await page.evaluate(() => { const x = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '') === '关闭本条引导'); x && x.click() }); await sleep(400)
+await page.reload(); await sleep(2500)
+r['② 关闭后刷新不回弹'] = !(await body()).includes('第一次来这里')
+await clickCard('锦江区'); await sleep(500); await clickText('明白了'); await sleep(300)
+await clickText('确认选址'); await sleep(700)
+await page.getByText('全季', { exact: true }).last().click(); await sleep(450)
+await clickText('确认选择'); await sleep(700)
+await clickCard('自主直营'); await sleep(400); await clickText('确认'); await sleep(650)
+await clickCard('商圈核心物业'); await sleep(400)
+for (let i = 0; i < 10; i++) { const done = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领')); if (b) { b.click(); return true } const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent)); if (n) { n.click(); return false } return false }); await sleep(600); if (done) break }
+await sleep(800)
+await clickCard('基准情景', 'starts'); await sleep(500); await clickText('明白了'); await sleep(300)
+await clickText('完成「投资测算」'); await sleep(900)
+await clickText('完成「证照办理」'); await sleep(900)
+await clickCard('供应商 A'); await sleep(500); await clickText('明白了'); await sleep(300)
+await clickText('完成「物资采购」'); await sleep(900)
+for (const n of ['装修', '招聘', '系统上线']) { await clickCard(n, 'starts'); await sleep(400); await clickText('明白了'); await sleep(280); await clickCard(n, 'starts'); await sleep(280) }
+await clickText('完成筹建，正式开业'); await sleep(1300); await clickText('明白了'); await sleep(1200)
+b = await body()
+console.log('[走线后]', (b.includes('本周经营中') || b.includes('资金状况')) ? '已到经营页' : b.slice(0, 100).replace(/\n/g, '|'))
+await page.evaluate(() => { const b = [...document.querySelectorAll('button, span, div')].reverse().find(x => (x.textContent || '').trim() === '我的'); b && b.click() }); await sleep(1200)
+b = await body()
+r['④a 重置入口可见'] = b.includes('我要重看引导')
+await clickText('我要重看引导'); await sleep(400)
+r['④b 重置有反馈'] = (await body()).includes('已重置：回到选址/决策/认领/筹建页')
+const keys = await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('hotel-guide-')))
+r['④c 重置后标记已清'] = keys.length === 0
+console.log(JSON.stringify(r, null, 1))
+await browser.close()
+const bad = Object.entries(r).filter(([, v]) => v !== true).map(([k]) => k)
+console.log(bad.length ? '✗ 失败: ' + bad.join('·') : '✓ V66 浏览器验收全过')
+process.exit(bad.length ? 1 : 0)

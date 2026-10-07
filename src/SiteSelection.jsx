@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'
+import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
@@ -139,6 +140,7 @@ export default function SiteSelection({ onConfirm }) {
         <span className="step-tag">第一步 · 选址</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店所在地</h1>
         <div className="sub">每个区县都有代价，选对位置决定酒店生死</div>
+        <GuideTip k="site">第一次来这里：先点开感兴趣的区县，看它的数据卡（客流/租金等六维与客群画像），比较两三个再点下方「确认选址」——确认后本学期不可更改。</GuideTip>
       </div>
 
       {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}

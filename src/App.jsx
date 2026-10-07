@@ -37,6 +37,7 @@ import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：�
 import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
+import GuideTip, { guideResetAll } from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · 可重置）
 import { teachingDayNo } from './teachingClock.mjs'
 import { APP_VERSION } from './version.js'
 // ★ §32-U8-补 §2②：老师注入事件的「30 秒应对」选项 —— 单源（界面不解析字符串、不自拼选项）
@@ -506,6 +507,8 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         )
       })()}
 
+      {/* V66 · 首次使用引导（一次性可关 · 文案与引擎同源：未决策按"维持现状"生效 = settlement.js 决策复盘段） */}
+      <GuideTip k="decide">第一次做决策：先点上方「每日关键」筛选（调价/排班/口碑 三项直接影响本周结果），再点带职务徽章的本职项；<b>没做完的会按"维持现状"生效</b>（周报会提醒你哪几项没做），不用慌着全做完。</GuideTip>
       {/* 决策筛选 */}
       <div className="city-row" style={{ marginTop: 2 }}>
         {[['all', '全部'], ['undone', '待决策'], ['done', '已决策'], ['key', '每日关键']].map(([k, label]) => (
@@ -895,6 +898,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
   // 原实现弹窗在 Business、入口在 Profile → 两边都 ReferenceError（真机表现"点了没反应"）
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameVal, setRenameVal] = useState(user?.name || '')
+  const [guideMsg, setGuideMsg] = useState('')   // V66 · 重看引导的即时反馈
   const menus = [
     { icon: 'log.ops', bg: 'blue', name: '经营操作记录', key: 'records' },
     { icon: 'achv.title', bg: 'green', name: '积分与评分明细', key: 'scores' },
@@ -986,6 +990,15 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           </div>
           <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{orgDesc}</div>
         </div>
+      </div>
+
+      {/* V66 · 重看引导入口（清本机引导关闭标记 · 各页提示会重新出现） */}
+      <div className="card" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
+          引导提示被关掉了想再看？点右边按钮，各页面的新手提示会重新出现。
+        </div>
+        <button className="btn btn-ghost" style={{ padding: '8px 14px', flexShrink: 0 }} onClick={() => { guideResetAll(); setGuideMsg('已重置：回到选址/决策/认领/筹建页就能重看提示') }}>我要重看引导</button>
+        {guideMsg && <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 6 }}>{guideMsg}</div>}
       </div>
 
       <div className="card" style={{background:'var(--warn-bg)',borderColor:'var(--warn-border)',padding:14}}>
