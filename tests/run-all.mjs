@@ -101,6 +101,7 @@ const SUITES = [
   { name: 'v63DayExplain（时间不推进说明守门·V63）', file: 'tests/v63DayExplain.test.mjs' },
   { name: 'v62ZeroDyn（未开业零动态守门·V62）', file: 'tests/v62ZeroDyn.test.mjs' },
   { name: 'v66Guide（首次使用引导守门·V66）', file: 'tests/v66Guide.test.mjs' },
+  { name: 'v67EmptyState（周报成绩空态守门·V67）', file: 'tests/v67EmptyState.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },

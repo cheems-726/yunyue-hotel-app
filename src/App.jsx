@@ -848,6 +848,8 @@ function Report({ report, week, history }) {
         <div className="card">
           <div style={{ fontSize: 16, color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
             暂无经营数据<br />完成第一次结算后查看报表
+            {/* V67：期末成绩时点说明（学期结构 12 周为真实口径 · 结算后本行不消失但整块只在无数据时渲染） */}
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>周报在第 7 个游戏日自动产出；12 周经营结束后将生成期末成绩（老师端可见全班）。</div>
           </div>
         </div>
       )}

@@ -44,6 +44,9 @@ function summarize(gs, profile, classDay = 0) {
   //   此前教师端/学生端各写一份【相同阶梯】，且"上周分数"还漏了处理率分支（本周有、上周无 ⇒ 假跳变）。
   //   scoreOf 与学生端 FinalResult 完全同源；prevScore 用同一套规则算"去掉最后一周"的分数。
   const S = scoreOf(history)
+  // ★ V67：无结算周（history 空）⇒ score/scorePrev 置 null —— scoreOf([]) 会返回 0 分，
+  //   未通电时全班显示"0 分"会被误读成"学生做得差"；真相是"还没结算"。渲染层对 null 显示「未结算」。
+  const 无结算 = !Array.isArray(history) || history.length === 0
   const totalProfit = S.totalProfit
   const avgOcc = S.avgOccupancy
   const avgGood = S.avgGoodRate
@@ -85,7 +88,7 @@ function summarize(gs, profile, classDay = 0) {
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
     gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete,
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
-    score, scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
+    score: 无结算 ? null : score, scorePrev: 无结算 ? null : scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,
     lag,   // W1-5：{ lagDays, lagWeeks, level, label, sinceLabel } 或 null
     updated: gs.updated_at,
@@ -872,7 +875,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       //   现在用真实 state：优先服务端 classDay；取不到则按教学周推算并标记为近似。
       const effClassDay = classDay || (classWeek ? classWeek * 7 : 0)
       const list = states.map(gs => summarize(gs, pMap[gs.user_id], effClassDay))
-      list.sort((a, b) => b.score - a.score || b.historyCount - a.historyCount)
+      list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || b.historyCount - a.historyCount)
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
       setRawStates(states)
@@ -951,7 +954,7 @@ export default function TeacherDashboard({ user, onLogout }) {
       const dutyStr = dutyIds.size ? `${doneCnt}/${dutyIds.size}` : ''
       lines.push([
         p.class_name || '', g.name, esc(g.hotel), g.city, g.week || 1,
-        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), esc(dutyStr), g.occ, g.revenue, g.profit, Number.isFinite(g.gop) ? g.gop : '', g.rating, g.score,
+        g.finished ? '已结业' : '经营中', esc(g.title || ''), esc(nodes.join('→')), esc(st ? st.tag : ''), esc(dutyStr), g.occ, g.revenue, g.profit, Number.isFinite(g.gop) ? g.gop : '', g.rating, g.score ?? '',
       ].join(','))
     }
     lines.push('')
@@ -979,7 +982,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   }
 
   // 按分数排序
-  const ranked = [...(groups || [])].sort((a, b) => b.score - a.score)
+  const ranked = [...(groups || [])].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
   // 班级筛选（多班教学时只看某个班）
   const classList = Array.from(new Set(Object.values(classByUid).filter(Boolean)))
   const visibleGroups = filterClass
@@ -1041,7 +1044,7 @@ export default function TeacherDashboard({ user, onLogout }) {
           {/* V63：全班时间不推进的原因说明（绑定真实通道 classDay（class_day_now RPC · 0=不可用）· 已同步不显示） */}
           {cloudOk && !(classDay > 0) && (
             <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 8, background: 'var(--bg)', border: '1px dashed var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.6 }}>
-              教学日程同步未就绪（服务端 class_day_now 不可用 ⇒ 开学日未设定，或服务端自动推进未部署）⇒ 全班经营时间暂不推进属正常，不是系统卡死 · 下一步：在班级设置里设定开学日，或完成服务端自动推进部署
+              教学日程同步未就绪（服务端 class_day_now 不可用 ⇒ 开学日未设定，或服务端自动推进未部署）⇒ 全班经营时间暂不推进属正常，不是系统卡死 · 周报/成绩什么时候有：第 7 个游戏日自动出第一份周报，此后每周一份；12 周经营结束后出期末成绩——综合评分显示「未结算」= 这组还没到第一次结算，不代表学生做得差 · 下一步：在班级设置里设定开学日，或完成服务端自动推进部署；想现在就看周报演示，可让一组用离线演示推进到第 7 天
             </div>
           )}
           {!cloudOk && (
@@ -1491,7 +1494,7 @@ export default function TeacherDashboard({ user, onLogout }) {
                   })()}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: scoreBar(g.score) }}>{g.score}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: g.score == null ? 'var(--text-muted)' : scoreBar(g.score) }} title={g.score == null ? '该组还没有结算周：第 7 个游戏日自动出第一份周报，之后才有四维评分' : undefined}>{g.score == null ? '未结算' : g.score}</div>
  {/* §32-U2：排名行也能直接出经营报告（课堂上点排名即可讲评） */}
                   <button
                     title="一键图文经营报告（只读汇总 · 可打印/另存 PDF）"
