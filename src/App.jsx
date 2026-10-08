@@ -229,24 +229,6 @@ function LoginPage({ onLogin }) {
   )
 }
 
-// ===== 占位页 =====
-function PlaceholderPage({ title, icon, onBack }) {
-  return (
-    <div className="content" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="header">
-        <div className="row1">
-          <span className="hotel-name" style={{ cursor: 'pointer' }} onClick={onBack}>‹ 返回</span>
-        </div>
-      </div>
-      <div className="placeholder-page" style={{ flex: 1 }}>
-        <div className="placeholder-icon"><Icon name={icon} size={38} /></div>
-        <div className="placeholder-title">{title}</div>
-        <div className="placeholder-desc">该功能正在建设中，敬请期待</div>
-      </div>
-    </div>
-  )
-}
-
 // ===== 经营页（首页） =====
 const KEY_DECISIONS = ['pricing', 'shifts', 'reputation'] // 每日关键：调价/排班/口碑
 // ★ §32-U8-补：两个本地设置的唯一读取点（单一来源 = localStorage：界面写、结算读；不在 React state 里存副本）
@@ -1725,7 +1707,7 @@ function ScoreDetail({ history, onBack }) {
   )
 }
 
-// ===== App 框架（登录 + 选址 + 底部导航 + 真实时间 + 占位页路由） =====
+// ===== App 框架（登录 + 选址 + 底部导航 + 真实时间 + 二级页路由） =====   // ★ V74：不可达兜底已删（四个二级页 key 全有真页 · 原兜底组件与样式五件套一并移除）
 const STORAGE_KEY = 'hotel-sim-state'
 const STORAGE_BAK_KEY = 'hotel-sim-state.bak-v1'   // 口径迁移前的原始存档（只写一次，永不覆盖）
 
@@ -2724,9 +2706,7 @@ export default function App() {
         ? <GroupMembersPage user={user} onBack={close} onGoDecision={(id) => { setOpenPage(null); setTab('business'); setCurrentDecision(decisions.find(d => d.id === id) || null) }} />
         : openPage.key === 'records'
           ? <OperationRecords history={history} onBack={close} operatorLogs={operatorLogs} userUid={user?.uid || user?.id} />
-          : openPage.key === 'help'
-            ? <HelpPage onBack={close} />
-            : <PlaceholderPage title={openPage.title} icon={openPage.icon} onBack={close} />
+          : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
       business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,

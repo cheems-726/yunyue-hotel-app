@@ -362,7 +362,5 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
           </div>
         </div>
       )
-    default:
-      return <div>建设中</div>
   }
 }
