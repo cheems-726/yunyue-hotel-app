@@ -228,8 +228,8 @@ export default function BrandSelection({ location, onConfirm }) {
                   ['单房造价', x => x.b.cost],
                   ['门市价带', x => x.b.price],
                   ['房量门槛', x => x.b.standard],
-                  ['适配区位', x => { const a = 适配区位(x.b.level, x.b.price); return a ? a.名单.length + ' 个' : '—' }],
-                  ['主力客群', x => { const a = 适配区位(x.b.level, x.b.price); return a ? a.主客群.replace(/（.*?）/, '') : '—' }],
+                  ['适配区位', x => { const a = 适配区位(x.level, x.b.price); return a ? a.名单.length + ' 个' : '—' }],
+                  ['主力客群', x => { const a = 适配区位(x.level, x.b.price); return a ? a.主客群.replace(/（.*?）/, '') : '—' }],
                 ].map(([标, 取]) => (
                   <tr key={标}>
                     <td style={{ padding: '4px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{标}</td>
