@@ -258,12 +258,21 @@ export default function SiteSelection({ onConfirm }) {
             <div className="cost-box warn">
               <div className="cost-title">代价</div>{d.warn}
             </div>
-            {personaLine(currentCity, d.name) && (
-              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
-                客群画像：{personaLine(currentCity, d.name)}
-                <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
-              </div>
-            )}
+            {/* ★ V73：客群画像缺失不再静默消失（原 personaLine null ⇒ 整行不见，学生看不出缺）⇒ 显式待补 */}
+            {(() => {
+              const pl = personaLine(currentCity, d.name)
+              if (pl) return (
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
+                  客群画像：{pl}
+                  <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
+                </div>
+              )
+              return (
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
+                  客群画像：待补（本区位未采客群结构 —— 不编造；结算按三路均分兜底）
+                </div>
+              )
+            })()}
             {LOCATION_PROFILE[d.name]?.businessDensity && (() => {
               const bd = LOCATION_PROFILE[d.name].businessDensity
               const parts = [bd.stock, bd.vacancy && `空置率 ${bd.vacancy}`, bd.rent, bd.desc].filter(Boolean)
@@ -276,12 +285,13 @@ export default function SiteSelection({ onConfirm }) {
             })()}
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--warn)' }}>
  推荐档次：{(() => {
+                // ★ V73：文案口径与等级限制（BrandSelection maxTier / src/tierLimit.mjs）对齐 ——
+                //   限制只看客流档（≤2⇒仅经济 · 3⇒经济～中端 · ≥4⇒全档），租金只作提示不再改变"能开什么"
                 const flow = d.attrs['客流'] || 3
                 const rent = d.attrs['租金'] || 3
-                if (flow >= 4 && rent >= 3) return '中端型及以上'
-                if (flow >= 3 && rent <= 2) return '经济型～中端型'
-                if (flow <= 2 && rent <= 2) return '仅经济型（高端必亏）'
-                return '经济型～中端型'
+                if (flow <= 2) return '仅经济型（中端及以上受等级限制锁档）'
+                if (flow === 3) return '经济型～中端型（中高端及以上受等级限制锁档）'
+                return rent >= 4 ? '全档次开放（租金压力高，开高档先算回本）' : '全档次开放（留意波动档与淡季空置）'
               })()}
             </div>
 

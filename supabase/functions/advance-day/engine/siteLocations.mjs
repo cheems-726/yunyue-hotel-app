@@ -592,6 +592,14 @@ export const CUSTOMER_PERSONAS = {
   '中江县':   { business: 15, tourist: 10, family: 75, dominant: 'family', note: '县域本地客为主' },
   '广汉市':   { business: 20, tourist: 55, family: 25, dominant: 'tourist', note: '三星堆景区驱动' },
   '五洲广场商圈': { business: 45, tourist: 20, family: 35, dominant: 'business', note: '政商混合型商圈' },
+  // ★ V73（2026-10-08）：绵阳 4 区画像补齐（轮前 22/26 ⇒ 26/26）。
+  //   口径 = 人工分级（与上方 22 条同口径 · 选址页已声明"非统计数据"），占比按同类区位锚定 + 辖区事实推断；
+  //   辖区事实（机场/高铁/景区有无）取自已入库 LOCATION_PROFILE.traffic（带统计来源）。
+  //   🔴 官方客群占比统计：区县级无口径（三件见 4-审计与报告/区位内容覆盖表-v1.md §四）。
+  '涪城区':   { business: 45, tourist: 20, family: 35, dominant: 'business', note: '绵阳主城+机场高铁枢纽，商务客为主（同类锚：旌阳 50/15/35）' },
+  '游仙区':   { business: 30, tourist: 20, family: 50, dominant: 'family', note: '科研单位公务客为特色、本地居住为基本盘（同类锚：金牛 35/20/45）' },
+  '江油市':   { business: 20, tourist: 55, family: 25, dominant: 'tourist', note: '李白故里+方特景区驱动（同类锚：广汉 20/55/25）' },
+  '三台县':   { business: 15, tourist: 10, family: 75, dominant: 'family', note: '人口大县本地客为主，无高铁无机场过境少（同类锚：中江 15/10/75）' },
   '双桥区':   { business: 15, tourist: 65, family: 20, dominant: 'tourist', note: '避暑山庄景区，游客绝对主力' },
   '双滦区':   { business: 25, tourist: 30, family: 45, dominant: 'family', note: '本地居住区' },
   '承德县':   { business: 20, tourist: 20, family: 60, dominant: 'family', note: '县域本地客' },

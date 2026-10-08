@@ -8,7 +8,7 @@
 //   两个教学机制（竞品压力 / 客群匹配）在真机上从未生效。
 //   ⇒ 本套件把①数据纪律 ②覆盖与"未采不编造" ③district 传递链 三件事钉成常驻门禁。
 import { readFileSync, readdirSync } from 'node:fs'
-import { districts, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED } from '../src/siteLocations.mjs'
+import { districts, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, CUSTOMER_PERSONAS } from '../src/siteLocations.mjs'
 import { settle } from '../src/settlement.js'
 import { ATTR_INIT } from '../src/attrs.js'
 
@@ -65,6 +65,39 @@ console.log('\n[2] 覆盖与"未采不编造"')
   const 静默 = 待补.filter(n => !LOCATION_PROFILE[n].touNote)
   ok(静默.length === 0, `游客数待补的区位都带"原因注"（touNote）—— 不静默 null`, 静默.join(','))
   console.log(`     待补项（预期存在，非失败）：${待补.length} 个区位无年接待游客 ⇒ ${待补.join('、')}`)
+}
+
+// ── [2b] ★ V73（2026-10-08）：客群画像 26/26 全覆盖 + 数据纪律 + UI 诚实空态 ──
+//   轮前 22/26（绵阳 4 区缺）⇒ 引擎落均衡兜底 + 选址卡「客群画像」整行静默消失（审计 P0-2）。
+console.log('\n[2b] 客群画像覆盖与纪律（V73 补齐 · 防回归）')
+{
+  const 画像缺 = 全部区位.filter(n => !CUSTOMER_PERSONAS[n])
+  ok(画像缺.length === 0, `客群画像覆盖全部 ${全部区位.length} 区位（V73 轮前 22/26 · 绵阳 4 区缺）`, 画像缺.join(','))
+  const 孤儿 = Object.keys(CUSTOMER_PERSONAS).filter(n => !全部区位.includes(n))
+  ok(孤儿.length === 0, '客群画像无孤儿键（画像有、区位表无 ⇒ 键名打错就红）', 孤儿.join(','))
+  const DOMS = new Set(['business', 'tourist', 'family'])
+  const bad = { 占比和不100: [], dominant非法: [], 缺note: [], 越界: [] }
+  for (const [n, p] of Object.entries(CUSTOMER_PERSONAS)) {
+    const 和 = (Number(p.business) || 0) + (Number(p.tourist) || 0) + (Number(p.family) || 0)
+    if (Math.round(和) !== 100) bad['占比和不100'].push(`${n}=${和}`)
+    if (!DOMS.has(p.dominant)) bad.dominant非法.push(n)
+    if (!p.note) bad.缺note.push(n)
+    for (const k of ['business', 'tourist', 'family']) if (!(Number(p[k]) >= 0 && Number(p[k]) <= 100)) bad.越界.push(`${n}.${k}`)
+  }
+  for (const [k, v] of Object.entries(bad)) ok(v.length === 0, `画像纪律：无「${k}」`, v.slice(0, 3).join(','))
+  // UI 诚实空态：画像查不到时选址卡必须显式"待补"，不许静默消失（V73 前 personaLine null ⇒ 整行不见）
+  const ss = src('SiteSelection.jsx')
+  ok(/客群画像：待补/.test(ss), 'UI 诚实空态：客群画像缺失 ⇒ 显式「待补」行（不许静默消失）')
+  // 机制生效（V73 主目的）：轮前走均衡兜底的绵阳 4 区，现在真的产出主力客群反馈（不只"数据在表里"）
+  {
+    const { settle } = await import('../src/settlement.js')
+    const D = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿' }
+    const base = { brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }, decisions: D, week: 1, attrs: { ...ATTR_INIT } }
+    const 涪 = settle({ site: { 客流: 3, 房价: 3, 租金: 3, 竞争: 2, 人力: 2, 波动: 2, district: '涪城区' }, ...base })
+    ok((涪.personaFeedback || []).length > 0 && !涪.personaFeedback.some(t => t.includes('均衡')),
+      `机制生效：涪城区（V73 轮前=均衡兜底）现产出主力客群反馈 ${(涪.personaFeedback || []).length} 条`, JSON.stringify(涪.personaFeedback))
+  }
+  // 引擎兜底仍在（未来新增区位未采画像时行为可预期）：[3] 的「无 district」用例已覆盖均衡兜底路径
 }
 
 // ── [3] ★ district 传递链（本次死功能的回归守卫）────────────────
