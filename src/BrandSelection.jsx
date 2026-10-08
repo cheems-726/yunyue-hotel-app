@@ -2,62 +2,69 @@ import { useState } from 'react'
 import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
+import { FRANCHISE_MODEL } from './franchiseModel.mjs'   // ★ V76：条款单源（保证金/管理费/物业门槛只此一份，界面不许抄数字）
+import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'   // ★ V76：适配区位由竞品 OTA 实测 + 客群画像推得
+import { brandGroups } from './brands.mjs'   // ★ V76：品牌数据单源（纯数据模块 · 测试可直接 import）
 
-// 华住全部品牌（按档次分组，含加盟费/造价/房价带）
-const brandGroups = [
-  {
-    level: '经济型 · 国民',
-    brands: [
-      { name: '汉庭', icon: 'prop.hotel', fee: '2800元/间(≥18万)', cost: '6.77万/间', price: '180-280元', standard: '客房70间起', desc: '华住旗舰经济型，干净便捷性价比高，全球单一品牌客房数第二。' },
-      // 🔴 §16.2-B1（2026-09-28）：你好/桔子/桔子水晶 = **半接入**（造价/门槛有官方现行 API，费率查不到）
-      //   ⇒ 原先手写的"约2000元/间 / 5-6万间"这类**无来源数字**一律撤下，改显式「费率待补」+ 官方造价原文。
-      //   （边界① 不许编造数据；依据 5-参考资料/加盟数值层-…-参数表.md §一 覆盖矩阵）
-      { name: '你好', icon: 'prop.hotel', fee: '费率待补', cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
-      { name: '海友', icon: 'prop.hotel', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
-      { name: '宜必思', icon: 'prop.hotel', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
-    ]
-  },
-  {
-    level: '中档',
-    brands: [
-      { name: '全季', icon: 'prop.hotel', fee: '约4000元/间', cost: '8-10万/间', price: '280-400元', standard: '客房80间起', desc: '华住主力中档，东方人文、极简设计、好而不贵。' },
-      { name: '桔子', icon: 'prop.hotel', fee: '费率待补', cost: '10.8万/间·官方现行', price: '260-380元', standard: '客房80间起', desc: '中档精品，时尚设计，年轻客群。' },
-      { name: '星程', icon: 'prop.hotel', fee: '约3500元/间', cost: '7-9万/间', price: '240-350元', standard: '客房70间起', desc: '中档连锁，商务休闲兼顾。' },
-      { name: '漫心', icon: 'prop.hotel', fee: '约4000元/间', cost: '8-10万/间', price: '300-420元', standard: '客房70间起', desc: '中档精品，人文艺术风格。' },
-    ]
-  },
-  {
-    level: '精选 · 中高档',
-    brands: [
-      { name: '桔子水晶', icon: 'prop.hotel', fee: '费率待补', cost: '15.43万/间·官方现行', price: '400-600元', standard: '客房80间起', desc: '桔子升级版，更高品质设计。' },
-      { name: '全季大观', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '400-550元', standard: '客房80间起', desc: '全季升级版，更高端中档。' },
-      { name: '城际', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
-      { name: '美居', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
-      { name: '美仑', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },
-    ]
-  },
-  {
-    level: '高档',
-    brands: [
-      { name: '禧玥', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '华住高端，东方雅致生活。' },
-      { name: '花间堂', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房50间起', desc: '度假型高端，人文度假。' },
-      { name: '施柏阁', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
-      { name: '诺富特', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
-    ]
-  },
-  {
-    level: '奢华',
-    brands: [
-      { name: '宋品', icon: 'prop.hotel', fee: '洽谈', cost: '30万+/间', price: '1000-2000元', standard: '客房50间起', desc: '华住奢华，东方奢华。' },
-      { name: '施柏阁大观', icon: 'prop.hotel', fee: '洽谈', cost: '30万+/间', price: '1200-2500元', standard: '客房50间起', desc: '施柏阁顶级，极致奢华。' },
-    ]
-  },
-]
+
+
+// ── ★ V76（2026-10-08）：品牌内容补全 · 三个只读 helper（不写死任何数字）──────────
+// ① 品牌条款：保证金/管理费/物业门槛 —— 只从 FRANCHISE_MODEL 现值取（单源）；
+//    没有来源的品牌如实「待补」（🔴 不编：公开面只有覆盖矩阵里那几家有源）。
+const LEVEL_竞品 = { '经济型 · 国民': ['budget'], '中档': ['mid'], '精选 · 中高档': ['upscale'], '高档': ['upscale', 'luxury'], '奢华': ['luxury'] }
+function 品牌条款(name) {
+  const m = FRANCHISE_MODEL[name]
+  if (!m) return null
+  const 金额 = (x) => x >= 10000 ? (x / 10000) + ' 万' : x + ' 元'
+  const 面积 = m.物业门槛 && (m.物业门槛.建筑面积下限 || m.物业门槛.建筑面积区间)
+  const 房量 = m.物业门槛 && (m.物业门槛.最少房量 || m.物业门槛.房量区间)
+  return {
+    保证金: m.保证金 ? 金额(m.保证金.值) + '（置信度 ' + m.保证金.置信度 + '）' : null,
+    管理费: m.管理费 && m.管理费.费率 ? '月营收 × ' + (m.管理费.费率.值 * 100) + '%（置信度 ' + m.管理费.费率.置信度 + '）' : null,
+    物业面积: 面积 ? (面积.值 && typeof 面积.值 === 'number' ? '≥' + 面积.值 + '㎡' : 面积.值 && typeof 面积.值 === 'object' ? 面积.值[0] + '-' + 面积.值[1] + '㎡' : null) : null,
+    房量门槛: 房量 ? (房量.值 && typeof 房量.值 === 'number' ? '≥' + 房量.值 + ' 间' : 房量.值 && typeof 房量.值 === 'object' ? 房量.值[0] + '-' + 房量.值[1] + ' 间' : null) : null,
+  }
+}
+// ② 适配区位：品牌价带（±容忍）× 同档竞品 OTA 实测（2026-09-27 · 121 家）⇒ 哪些区位有同档对标；
+//    客群 = 适配区位的客群画像聚合（人工分级口径，界面 ⓘ 已声明非统计）。
+function 适配区位(level, priceStr) {
+  const m = /(\d+)-(\d+)/.exec(priceStr || '')
+  const 档s = LEVEL_竞品[level] || []
+  if (!m || !档s.length) return null
+  const lo = Number(m[1]) * 0.8, hi = Number(m[2]) * 1.3
+  const 名单 = []
+  const 客群和 = { business: 0, tourist: 0, family: 0 }
+  for (const [区, list] of Object.entries(COMPETITORS)) {
+    const 命中 = (list || []).some(c => {
+      if (!档s.includes(c.level)) return false
+      const p = c.priceBasis === 'from' ? c.basePrice : (c.priceAvg || c.basePrice)
+      return p >= lo && p <= hi
+    })
+    if (命中) {
+      名单.push(区)
+      const per = CUSTOMER_PERSONAS[区]
+      if (per) { 客群和.business += per.business; 客群和.tourist += per.tourist; 客群和.family += per.family }
+    }
+  }
+  const 总 = 客群和.business + 客群和.tourist + 客群和.family || 1
+  const 主 = [['商务', 客群和.business], ['游客', 客群和.tourist], ['家庭', 客群和.family]].sort((a, b) => b[1] - a[1])[0]
+  return { 名单, 主客群: 主[0] + '客为主（约 ' + Math.round(主[1] / 总 * 100) + '% · 按适配区位客群画像聚合）' }
+}
+const V76_来源行 = '条款=加盟数值层 FRANCHISE_MODEL（官方 API/旧版官方/转载 · 逐条带置信度）；适配区位=选址竞品 OTA 实测（2026-09-27 · 121 家）与客群画像（人工分级）推得'
 
 export default function BrandSelection({ location, onConfirm }) {
   const [selected, setSelected] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [confirmBrand, setConfirmBrand] = useState(null) // 含 level 的完整品牌对象
+  const [对比组, set对比组] = useState([])   // ★ V76：并排对比（最多 3 个 · {name, level}）
+
+  function toggle对比(name, level) {
+    set对比组(prev => {
+      if (prev.some(x => x.name === name)) return prev.filter(x => x.name !== name)
+      if (prev.length >= 3) return prev   // 满 3 个：忽略（提示在按钮 title 上）
+      return [...prev, { name, level }]
+    })
+  }
 
   // 区域限开等级：客流≤2 → 仅经济型(1)；3 → 经济～中端(2)；≥4 → 全档次(5)
   const flow = location?.attrs?.客流 ?? 3
@@ -67,16 +74,26 @@ export default function BrandSelection({ location, onConfirm }) {
   //   现在三层强制：① 卡片 disabled ② 点击直接 return（双保险）③ 引擎侧 settle 校验（见 settlement.js）。
 
   // 每个品牌选择后的结果反馈
+  // ★ V76：七字段齐亮（加盟费/保证金/管理费/档次/适配区位/客群/标准要求）—— 无源字段如实「待补」
   function brandResult(b) {
     const isHigh = b.cost.includes('20万') || b.cost.includes('30万')
     const isEco = b.level.includes('经济')
+    const 条款 = 品牌条款(b.name)
+    const 适 = 适配区位(b.level, b.price)
+    const 标准 = [b.standard, 条款 && 条款.物业面积].filter(Boolean)
     return {
       title: `选择「${b.name}」的结果`,
       changes: [
+        { label: '档次', value: b.level, dir: '' },
         { label: '投资门槛', value: b.cost, dir: isHigh ? 'down' : (isEco ? 'up' : '') },
         { label: '房价带', value: b.price, dir: '' },
         { label: '加盟费', value: b.fee, dir: '' },
-        { label: '客群定位', value: b.level, dir: '' },
+        { label: '保证金', value: 条款 && 条款.保证金 ? 条款.保证金 : '待补（无公开来源 · 不编造）', dir: '' },
+        { label: '管理费', value: 条款 && 条款.管理费 ? 条款.管理费 : '待补（无公开来源 · 不编造）', dir: '' },
+        { label: '标准要求', value: 标准.join(' · ') || b.standard, dir: '' },
+        { label: '适配区位', value: 适 && 适.名单.length ? `${适.名单.length} 个：${适.名单.slice(0, 4).join('、')}${适.名单.length > 4 ? ' 等' : ''}` : '26 区位实测竞品中无同档同价带对标（此组合当前市场空档 · 谨慎）', dir: '' },
+        { label: '主力客群', value: 适 ? 适.主客群 : '待补（无适配区位可聚合）', dir: '' },
+        { label: '数据来源', value: V76_来源行, dir: '' },
       ],
       note: `${b.desc} 选${b.name}意味着：${isHigh ? '高投入高回报，但资金压力大、回收期长' : isEco ? '低门槛易起步，但房价天花板低、利润薄' : '投入与回报相对均衡'}。后续认领的物业必须符合「${b.standard}」的标准。`,
     }
@@ -180,6 +197,12 @@ export default function BrandSelection({ location, onConfirm }) {
                   <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>门市价 {b.price}</span>
                   <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>房量 {b.standard}</span>
                 </div>
+                {/* ★ V76：加入/移出并排对比（最多 3 个 · 与选中确认互不干扰） */}
+                <button
+                  title={`对比：${b.name}（最多 3 个）`}
+                  onClick={e => { e.stopPropagation(); toggle对比(b.name, g.level) }}
+                  style={{ marginTop: 8, fontSize: 12, padding: '3px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', border: 对比组.some(x => x.name === b.name) ? '1px solid var(--primary)' : '1px solid var(--border)', background: 对比组.some(x => x.name === b.name) ? 'var(--primary-bg)' : 'var(--bg)', color: 对比组.some(x => x.name === b.name) ? 'var(--info)' : 'var(--text-sub)' }}
+                >{对比组.some(x => x.name === b.name) ? '✓ 已加入对比' : '＋ 加入对比'}</button>
               </div>
               )})}
           </div>
@@ -188,6 +211,41 @@ export default function BrandSelection({ location, onConfirm }) {
 
       {/* V51批2：吸底悬浮确认条（选中即常驻可见 · 不随内容滚动消失）*/}
       <div style={{ position: 'sticky', bottom: 0, padding: '8px 20px 24px', background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
+        {/* ★ V76：并排对比表（≥2 个品牌时出现 · 学生能直接看差异） */}
+        {对比组.length >= 2 && (
+          <div className="card" style={{ marginBottom: 10, padding: 12, overflowX: 'auto' }}>
+            <div className="card-title">品牌对比（并排看差异 · 最多 3 个）</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr>{['', ...对比组.map(x => x.name)].map((h, i) => <th key={i} style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {[
+                  ['档次', x => x.level],
+                  ['加盟费', x => x.b.fee],
+                  ['保证金', x => { const t = 品牌条款(x.b.name); return (t && t.保证金) || '待补' }],
+                  ['管理费', x => { const t = 品牌条款(x.b.name); return (t && t.管理费) || '待补' }],
+                  ['单房造价', x => x.b.cost],
+                  ['门市价带', x => x.b.price],
+                  ['房量门槛', x => x.b.standard],
+                  ['适配区位', x => { const a = 适配区位(x.b.level, x.b.price); return a ? a.名单.length + ' 个' : '—' }],
+                  ['主力客群', x => { const a = 适配区位(x.b.level, x.b.price); return a ? a.主客群.replace(/（.*?）/, '') : '—' }],
+                ].map(([标, 取]) => (
+                  <tr key={标}>
+                    <td style={{ padding: '4px 8px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{标}</td>
+                    {对比组.map(x => {
+                      const grp = brandGroups.find(g2 => g2.level === x.level)
+                      const b = grp && grp.brands.find(b2 => b2.name === x.name)
+                      return <td key={x.name} style={{ padding: '4px 8px', borderBottom: '1px solid var(--fill)', verticalAlign: 'top' }}>{b ? 取({ b, level: x.level }) : '—'}</td>
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{V76_来源行}</div>
+            <button onClick={() => set对比组([])} style={{ marginTop: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-sub)', borderRadius: 6, padding: '3px 10px' }}>清空对比</button>
+          </div>
+        )}
         <button
           className="btn-confirm"
           disabled={!selected}
