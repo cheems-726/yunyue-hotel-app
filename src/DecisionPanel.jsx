@@ -176,6 +176,17 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             {decision.tip || '这个决策会带来什么后果？权衡利弊后再选择。'}
           </div>
         </div>
+        {/* ★ V77：影响指标图 + 常见误区（每项决策点开即见 · 数字口径=引擎现值，与「引擎依据」同源印证） */}
+        {(decision.影响 || decision.误区) && (
+          <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 10, marginBottom: 16, fontSize: 12, lineHeight: 1.7 }}>
+            {decision.影响 && (
+              <div><b style={{ color: 'var(--info)' }}>会影响哪些指标：</b><span style={{ color: 'var(--text-sub)' }}>{decision.影响}</span></div>
+            )}
+            {decision.误区 && (
+              <div style={{ marginTop: 4 }}><b style={{ color: 'var(--bad)' }}>常见误区：</b><span style={{ color: 'var(--text-sub)' }}>{decision.误区}</span></div>
+            )}
+          </div>
+        )}
 
         {/* 选项类 */}
         {decision.type === 'option' && (

@@ -15,7 +15,9 @@ export const OWNER_LABELS = {
 export const decisions = [
   // ===== 模块二 · 部门运营（7项） =====
   {
-    id: 'pricing', owner: 'ops', module: '部门运营', name: '动态调价', icon: 'money.spend',
+    id: 'pricing',
+    影响: '出租率（价格竞争力链）· 单间利润 · RevPAR 总账 · 游客占比高的区还牵动口碑（低价拉低客源质量）',
+    误区: '「降价=亏、涨价=赚」都不对——出租率与单间利润是跷跷板，总账看 RevPAR=房价×出租率', owner: 'ops', module: '部门运营', name: '动态调价', icon: 'money.spend',
     tip: '竞店降价时，盲目跟降会压缩利润，不跟会流失客流。关键是算清「房价×出租率」的最优平衡点，而不是单纯比谁便宜。',
     依据: 'settlement.js 价格竞争力链：调价联动房价档环境乘数；「降价20%抢客」另触发游客路「低质量客」负反馈；「提价50%」触直接零单（提价杠杆 priceLever 守门）',
     type: 'option',
@@ -34,7 +36,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'shifts', owner: 'hr', module: '部门运营', name: '前台排班', icon: 'prop.room',
+    id: 'shifts',
+    影响: '出租率（精简 ×0.94）· 单间变动成本（−12/+18 元）· 差评数（满载慢响应事件）· 商务/家庭客好评',
+    误区: '旺季省人力钱最亏——满房时服务崩得最快，差评损失远超省下的人力成本', owner: 'hr', module: '部门运营', name: '前台排班', icon: 'prop.room',
     tip: '满编保服务但人力成本高，精简省成本但响应慢。旺季该保服务，淡季可适当精简——根据出租率动态调整。',
     依据: 'settlement.js：精简省成本 → 出租率 ×0.94 + 满载慢响应风险事件；满编 → 单间变动成本 +18 元 + 商务/家庭客群好评',
     type: 'option',
@@ -47,7 +51,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'overbook', owner: 'manager', module: '部门运营', name: '超额预订', icon: 'log.ops',
+    id: 'overbook',
+    影响: '满房率 · 赔偿支出（到店无房按次赔）· 口碑 · OTA 模式下的违规判定',
+    误区: '超售越多越赚？no-show 是概率事件——超售量应贴合历史 no-show 率，贪多必赔', owner: 'manager', module: '部门运营', name: '超额预订', icon: 'log.ops',
     tip: '超售能提高满房率，但到店无房要赔偿且伤口碑。超售量应匹配历史 no-show 率，贪多必失。',
     依据: 'settlement.js 超售链：超售 → 满房率↑，到店无房按次赔偿；OTA 模式下超售次数另接违规判定（R3 止损可由 AI 领班代管）',
     type: 'slider',
@@ -56,7 +62,9 @@ export const decisions = [
     result: (v) => v === 0 ? '不超售，满房率低但零风险' : `超售${v}间，满房率↑，但${v*8}%概率到店无房需赔偿`,
   },
   {
-    id: 'member-convert', owner: 'lobby', module: '部门运营', name: '会员转化', icon: 'member',
+    id: 'member-convert',
+    影响: '好评率（强调品质 +0.02）· 营销加成（强调优惠 +0.05）· 会员复购事件',
+    误区: '转化率是虚荣指标——图优惠转化来的会员不回购，忠诚度才值钱', owner: 'lobby', module: '部门运营', name: '会员转化', icon: 'member',
     tip: '转化会员不能只看转化率，忠诚度更重要。强调品质转化的客人，比只图优惠的客人更有长期价值。',
     依据: 'settlement.js：强调品质 → 好评率 +0.02 + 会员复购事件；强调优惠 → 营销加成 +0.05；好评语料 praise_member 与该决策联动',
     type: 'option',
@@ -71,7 +79,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'quality-check', owner: 'lobby', module: '部门运营', name: '客房质检', icon: 'search',
+    id: 'quality-check',
+    影响: '品质分（前 5 项整改）· 长期好评率 · 质检留痕（decisionRisk「已提交质检」）',
+    误区: '平均用力改 10 项不如集中改 5 项硬伤——预算只够 5 项，客人直接感知的（隔音/卫生）排前', owner: 'lobby', module: '部门运营', name: '客房质检', icon: 'search',
     tip: '整改优先级应该按「影响客人体验的程度」排序，隔音、卫生这类硬伤优先，灯光、电视这类软项靠后。',
     依据: 'settlement.js：质检前 5 项进入整改（品质分加成）；decisionRisk 记「已提交质检」——排序决定预算内改哪 5 项',
     type: 'sort',
@@ -79,7 +89,9 @@ export const decisions = [
     items: ['隔音', '卫生', '床品', '卫生间', '空调', '热水', '灯光', '电视', '网络', '窗帘'],
   },
   {
-    id: 'linen', owner: 'lobby', module: '部门运营', name: '布草管理', icon: 'ops.cleaning',
+    id: 'linen',
+    影响: '单间变动成本（自洗 52 / 外包 66 元）· 家庭客口碑（外包「品质不稳」负反馈）',
+    误区: '外包「省事」有隐性账：每间贵 14 元 × 出租率 × 7 天——旺季满房时差价最大', owner: 'lobby', module: '部门运营', name: '布草管理', icon: 'ops.cleaning',
     tip: '自洗长期成本低但前期投入大，外包省事但单件贵。出租率稳定时自洗划算，波动大时外包灵活。',
     依据: 'settlement.js：自洗 52 元/间 · 外包 66 元/间（单间变动成本）；外包另触发家庭客路「品质不稳」负反馈',
     type: 'option',
@@ -92,7 +104,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'hygiene', owner: 'lobby', module: '部门运营', name: '卫生计划', icon: 'ops.cleaning',
+    id: 'hygiene',
+    影响: '好评率（三路客群）· 维护下沉（不停房逐周累计至 10%）· 卫生松弛/消防检查事件风险 · 停房损失',
+    误区: '卫生只是成本不是投资？差评一发酵，挽回口碑的钱远超一次深清洁', owner: 'lobby', module: '部门运营', name: '卫生计划', icon: 'ops.cleaning',
     tip: '旺季停房深清洁会损失收入，但卫生是口碑底线。长期看，口碑带来的复购价值可能超过短期收入损失。',
     依据: 'settlement.js：不停房 → 维护下沉逐周累计（至 10%）+ 卫生松弛/消防检查事件风险；停房深清洁 → 三路客群好评加成',
     type: 'option',
@@ -107,7 +121,9 @@ export const decisions = [
 
   // ===== 模块三 · 会员推广（5项） =====
   {
-    id: 'ota', owner: 'ops', module: '会员推广', name: 'OTA优化', icon: 'event.ota',
+    id: 'ota',
+    影响: '营销加成（+0.08）· 佣金成本（收入 11%）· 金徽标事件（好评分水岭触发）',
+    误区: 'OTA 流量不是白来的——佣金吃掉利润，好评分不达标连徽标都拿不到', owner: 'ops', module: '会员推广', name: 'OTA优化', icon: 'event.ota',
     tip: 'OTA 流量大但佣金高（8-15%）。直订渠道利润高但流量小。平衡各平台投入，别过度依赖单一 OTA。',
     依据: 'settlement.js：OTA 优化 → 按收入 11% 佣金换营销加成 +0.08；好评率达标再触 OTA 金徽标事件（OTA 流量循环见 v35Cycle 守门）',
     type: 'budget',
@@ -117,7 +133,9 @@ export const decisions = [
     result: '流量分配影响各平台客源和佣金成本',
   },
   {
-    id: 'campaign', owner: 'ops', module: '会员推广', name: '活动策划', icon: 'campaign',
+    id: 'campaign',
+    影响: '营销成本（5000 元×系数）· 营销加成（+0.15 · 全场最大单笔营销杠杆）',
+    误区: '钱花出去 ≠ 客人进来——渠道要对着目标客群选，「员工激励」也是活动的一部分', owner: 'ops', module: '会员推广', name: '活动策划', icon: 'campaign',
     tip: '活动策划要算投入产出比。线上广告拉新客，门店物料做转化，员工激励提升服务，会员礼包促复购——按目标分配。',
     依据: 'settlement.js：活动 → 营销成本 5000 元×系数 + 营销加成 +0.15（全场最大的单笔营销杠杆）',
     type: 'budget',
@@ -127,7 +145,9 @@ export const decisions = [
     result: '不同渠道拉动不同客源',
   },
   {
-    id: 'corporate', owner: 'ops', module: '会员推广', name: '协议客户', icon: 'corporate',
+    id: 'corporate',
+    影响: '房价（让利 ×0.95）· 价格竞争力（×1.08）· 商务客源稳定性',
+    误区: '让利=亏？5% 折扣换的是确定性的入住——空房才是最大的浪费', owner: 'ops', module: '会员推广', name: '协议客户', icon: 'corporate',
     tip: '协议客户折扣大但带来稳定商务客流，是出租率的压舱石。适当让利换长期稳定，通常值得。',
     依据: 'settlement.js：让利签约 → 房价 ×0.95 + 价格竞争力 ×1.08（协议客直接抬出租率权重）',
     type: 'option',
@@ -140,7 +160,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'reputation', owner: 'lobby', module: '会员推广', name: '口碑管理', icon: 'nav.review',
+    id: 'reputation',
+    影响: '好评率（道歉+赔偿 +0.02 / 模板回复 −0.03）· 差评负面影响（道歉/解释减半）· 赔偿成本',
+    误区: '差评删不掉只能对冲——模板回复省下 3 分钟，赔上的是 3% 好评率', owner: 'lobby', module: '会员推广', name: '口碑管理', icon: 'nav.review',
     tip: '差评回复的三要素：态度诚恳、专业解释、给出解决措施。模板回复显得敷衍，真诚的个性化回复才能挽回客人。',
     依据: 'settlement.js：道歉+赔偿 → 好评率 +0.02；模板回复 → −0.03；道歉/解释 → 差评负面影响减半（周报口径）',
     type: 'option',
@@ -155,7 +177,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'member-threshold', owner: 'ops', module: '会员推广', name: '会员门槛', icon: 'achv.badge',
+    id: 'member-threshold',
+    影响: '会员升级率 · 会员折扣成本 · 会员体系长期价值',
+    误区: '门槛越低会员越多越好？升级太容易=会员不值钱，权益成本还照付', owner: 'ops', module: '会员推广', name: '会员门槛', icon: 'achv.badge',
     tip: '会员门槛太低会员价值低，太高升级率低。找「升级率×会员价值」的平衡点，3-5晚通常是最优区间。',
     依据: 'settlement.js：门槛决定会员升级率与会员折扣成本（区间 3-10 晚 · serverTick 代管通道已注册）',
     type: 'slider',
@@ -166,7 +190,9 @@ export const decisions = [
 
   // ===== 模块四 · 门店经营（6项） =====
   {
-    id: 'report-diagnosis', owner: 'finance', module: '门店经营', name: '月度报表诊断', icon: 'nav.report',
+    id: 'report-diagnosis',
+    影响: '好评率（解决口碑 +0.015）· 租金/行政/维护成本（解决成本 ×0.95）· 收入侧结构',
+    误区: '只看利润额不看结构——RevPAR 高而利润低=成本有问题，先分清「赚得少」还是「花得多」', owner: 'finance', module: '门店经营', name: '月度报表诊断', icon: 'nav.report',
     tip: '诊断优先解决「影响利润」和「影响口碑」的问题。RevPAR 高但利润低说明成本有问题，先查人力。',
     依据: 'settlement.js：解决口碑相关 → 好评率 +0.015；解决成本相关 → 租金/行政/维护 ×0.95；利润相关走收入侧',
     type: 'option',
@@ -181,7 +207,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'revenue-mgmt', owner: 'finance', module: '门店经营', name: '收益管理', icon: 'money.profit',
+    id: 'revenue-mgmt',
+    影响: '客单价 · 出租结构 · ADR 与 RevPAR 的平衡',
+    误区: '闪购清了尾房很开心？均价被拉低——RevPAR 是「价×量」的总账', owner: 'finance', module: '门店经营', name: '收益管理', icon: 'money.profit',
     tip: '出租率65%时，连住优惠能提连住率，尾房闪购能清尾房但拉低均价，组合套餐提客单价——按目标选择。',
     依据: 'settlement.js：三种策略接入收入结构（影响客单价与出租结构的组合）',
     type: 'option',
@@ -196,7 +224,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'hr-optimize', owner: 'hr', module: '门店经营', name: '人力优化', icon: 'role.hr',
+    id: 'hr-optimize',
+    影响: '固定人力成本（裁员 ×0.92）· 好评率（裁员 −0.02 / 培训 +0.02）· 前台慢差评加码',
+    误区: '裁员立竿见影？省的是钱、丢的是服务——差评反弹会把省下的吃回去', owner: 'hr', module: '门店经营', name: '人力优化', icon: 'role.hr',
     tip: '裁员立即降本但服务可能下滑，培训提升人效但短期不降本。长远看，培训比裁员更可持续。',
     依据: 'settlement.js：裁员 → 固定人力 ×0.92 + 好评率 −0.02 + 前台慢差评加码；全员培训 → 好评率 +0.02 + 好评语料加分',
     type: 'option',
@@ -209,7 +239,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'energy', owner: 'finance', module: '门店经营', name: '能耗管控', icon: 'event.cost.utility',
+    id: 'energy',
+    影响: '能耗成本 · 商务客好评（22-24℃）· 家庭客好评（22-25℃）· R6 能耗回归（AI 领班可代管）',
+    误区: '越冷越省电？客人投诉冷才是真成本——在舒适区间内优化才叫管控', owner: 'finance', module: '门店经营', name: '能耗管控', icon: 'event.cost.utility',
     tip: '节能与舒适要平衡。温度设太低省电但客人投诉冷，设太高舒适但能耗高。20-24℃通常是节能与舒适的最优区间。',
     依据: 'settlement.js：室温 22-24℃ 商务客满意、22-25℃ 家庭客满意（客群加权）；能耗成本随设定温度浮动；极端值触 R6 能耗回归（AI 领班可代管）',
     type: 'slider',
@@ -218,7 +250,9 @@ export const decisions = [
     result: (v) => v <= 21 ? '节能但客人可能投诉冷' : v >= 25 ? '舒适但能耗成本高' : '节能与舒适平衡',
   },
   {
-    id: 'renovation', owner: 'finance', module: '门店经营', name: '改造投资', icon: 'ops.repair',
+    id: 'renovation',
+    影响: '房价（×1.08）· 每周摊销（2000 元）· 品质与口碑长线',
+    误区: '改造一定值？回收期=投入÷每周增量——学期只剩 3 周就别投了', owner: 'finance', module: '门店经营', name: '改造投资', icon: 'ops.repair',
     tip: '150万改造提升品质和房价，但回收期长。评估改造后房价能否提升足够多来覆盖投入，再决定。',
     依据: 'settlement.js：投150万 → 房价 ×1.08 + 每周改造摊销 2000 元；不投无直接惩罚（设施老化在教学周期外）',
     type: 'option',
@@ -231,7 +265,9 @@ export const decisions = [
     ],
   },
   {
-    id: 'emergency', owner: 'manager', module: '门店经营', name: '应急预案', icon: 'status.critical',
+    id: 'emergency',
+    影响: '客人安全 · 差评发酵链 · 口碑与「差评上热门」',
+    误区: '先算钱再处理？人身安全没有权衡空间——30 秒机制演示的就是「反应窗口」', owner: 'manager', module: '门店经营', name: '应急预案', icon: 'status.critical',
     tip: '客人摔倒等突发事件，第一时间送医+诚恳道歉是基本原则。推卸责任会激化矛盾，引发差评发酵。',
     依据: 'settlement.js：应急预案为实时档 30 秒决策；「推卸责任」走差评发酵链（口碑/上热门联动）',
     type: 'timer',

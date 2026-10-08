@@ -29,6 +29,10 @@ console.log('▶ V75 决策详情全覆盖（四段式 + 引擎依据）')
   // 依据必须指向真实模块（不许"待补"占位混进来）
   const 占位 = decisions.filter(d => /待补|TODO|占位/.test(d.依据 || ''))
   ok(占位.length === 0, '依据无「待补/TODO/占位」占位句（不编不糊）', 占位.map(d => d.id).join(','))
+  // ★ V77：影响指标图 + 常见误区（面板级 · 18/18）
+  const 缺V77 = decisions.filter(d => !(typeof d.影响 === 'string' && d.影响.length >= 10) || !(typeof d.误区 === 'string' && d.误区.length >= 8))
+  ok(缺V77.length === 0, '18 项决策全有「影响指标图 + 常见误区」（V77 · 影响词 ≥10 字/误区句 ≥8 字）', 缺V77.map(d => d.id).join(','))
+  ok(decisions.filter(d => /会影响哪些指标|常见误区/.test(d.影响 + d.误区)).length === 0, '影响/误区是内容不是标签（不许把界面标签抄进数据）')
 }
 
 // ── [2] 渲染接线（源码断言 · 剥注释后判）──
@@ -39,6 +43,7 @@ console.log('▶ V75 决策详情全覆盖（四段式 + 引擎依据）')
   ok(/适用场景（怎么办）/.test(dp), '反馈面板渲染「适用场景（怎么办）」行')
   ok(/教学点/.test(dp), '反馈面板渲染「教学点」行')
   ok(/引擎依据/.test(dp), '反馈面板渲染「引擎依据」行')
+  ok(/会影响哪些指标/.test(dp) && /常见误区/.test(dp), '决策面板渲染「影响指标图 + 常见误区」块（V77）')
   const 依据行 = (dp.match(/decision\.依据/g) || []).length
   ok(依据行 >= 4, `引擎依据渲染点 ≥4（选项反馈 1 + slider/budget/sort 各 1）`, String(依据行))
 }

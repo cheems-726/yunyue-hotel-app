@@ -142,6 +142,7 @@ await page.evaluate(() => {
 })
 await sleep(700)
 ok('② 决策：动态调价面板打开（含决策前想一想）', (await text(page)).includes('动态调价') && (await text(page)).includes('决策前想一想'))
+ok('② 决策（V77）：面板含「会影响哪些指标 + 常见误区」', (await text(page)).includes('会影响哪些指标') && (await text(page)).includes('常见误区'))
 await clickCard(page, '不跟降'); await sleep(600)
 {
   const t = await text(page)
