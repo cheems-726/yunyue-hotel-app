@@ -404,7 +404,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
             else if (d <= -0.05) forecasts.push({ icon: 'money.spend', text: `市场热度在回落（${prev.demandStrength}→${cur}），别因单周冷清过度砍成本，精简排班易招差评` })
           }
           const rival = (result.events || []).some(e => e.name === '竞店开业')
-          if (rival) forecasts.push({ icon: 'event.competitor', text: '竞店分流通常持续 1-2 周，此刻降价前先算「房价×出租率」是不是真划算' })
+          if (rival) forecasts.push({ icon: 'event.competitor', text: '竞店分流是当周冲击（引擎单周生效：本周出租率已被压）——别为还没发生的下周提前降价，降价前先算「房价×出租率」是不是真划算' })
           if ((result.negativeCount || 0) > 0) forecasts.push({ icon: 'status.crisis', text: `本周新增 ${result.negativeCount} 条差评，欠着不处理会触发"差评发酵"（口碑额外受损），优先去口碑页处理` })
           // 🔴 P3-1：阈值口径同步（原写 < 100000 ⇒ 资金预警几乎永不触发，违反 D20 原则一）
           // 🔴 W2 收尾修正：原硬编码 1004000（= T1.1 时代 IC 502万 × 0.2）已随 W2-2 的 IC=149万 失效

@@ -107,6 +107,7 @@ const SUITES = [
   { name: 'v78Event（事件库六项与引擎一致守门·V78）', file: 'tests/v78Event.test.mjs' },
   { name: 'v79Persona（客群攻略守门·V79）', file: 'tests/v79Persona.test.mjs' },
   { name: 'v80Tasks（12 周任务书守门·V80）', file: 'tests/v80Tasks.test.mjs' },
+  { name: 'v81Effects（事件数值生效行为证据·V81）', file: 'tests/v81Effects.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
