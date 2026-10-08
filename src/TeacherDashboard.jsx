@@ -24,6 +24,7 @@ import { groupKeyOf } from './supabaseClient.js'
 //   改 React.lazy（Vite 自动切独立 chunk）；挂载点包 Suspense fallback（全屏覆盖层，加载提示即可）。
 import { lazy, Suspense } from 'react'
 const TeacherReport = lazy(() => import('./TeacherReport.jsx')) // §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
+import SemesterTasks from './SemesterTasks.jsx' // §33-V80：12 周任务书（打印版 · 全班发）
 
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
 
@@ -827,6 +828,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [rawStates, setRawStates] = useState([]) // 原始云端存档（导出周报用）
   const [expandedUid, setExpandedUid] = useState(null) // 总览页展开查看明细的组
  const [reportUid, setReportUid] = useState(null) // §32-U2：正在看经营报告的组（null = 关）
+const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书（打印版）覆盖层
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
   const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
@@ -1055,10 +1057,15 @@ export default function TeacherDashboard({ user, onLogout }) {
             </div>
           )}
           {/* V66 · 重置本机引导（老师帮学生清掉"已关闭引导"标记 · 只影响本机浏览器） */}
-          <div style={{ marginTop: 6 }}>
+          <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}
               onClick={() => { guideResetAll(); alert('已重置本机引导：学生在此浏览器重新进入选址/决策/认领/筹建页，会重新看到新手提示') }}>
               重置演示引导（本机）
+            </button>
+            {/* §33-V80：12 周任务书（打印版 · 课堂发全班） */}
+            <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}
+              onClick={() => setTasksOpen(true)}>
+              12 周任务书（打印版）
             </button>
           </div>
         </div>
@@ -1745,6 +1752,8 @@ export default function TeacherDashboard({ user, onLogout }) {
         </Suspense>
       )
     })()}
+    {/* §33-V80：12 周任务书（全屏覆盖层 · 只读 · 可打印） */}
+    {tasksOpen && <SemesterTasks onClose={() => setTasksOpen(false)} />}
     </>
   )
 }

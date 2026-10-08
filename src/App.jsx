@@ -38,8 +38,9 @@ import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import GuideTip, { guideResetAll } from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · 可重置）
+import SemesterTasks from './SemesterTasks.jsx'   // §33-V80 · 12 周任务书（学生/教师共用 · 只读 · 可打印）
 import { teachingDayNo } from './teachingClock.mjs'
-import { APP_VERSION } from './version.js'
+import { APP_VERSION, APP_VERSION_CODE } from './version.js'
 // ★ §32-U8-补 §2②：老师注入事件的「30 秒应对」选项 —— 单源（界面不解析字符串、不自拼选项）
 import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
 // ★ §32-U8-补 §2④：AI 领班 —— 授权式代管（一期=记录与复盘；数值执行二期）。
@@ -1295,6 +1296,7 @@ function OperationRecords({ history, onBack, operatorLogs = [], userUid = null }
 
 // ===== 玩法说明页（学生自助答疑） =====
 function HelpPage({ onBack }) {
+  const [tasksOpen, setTasksOpen] = useState(false)   // §33-V80 · 12 周任务书覆盖层
   const sections = [
     { icon: 'campaign', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 五个等级。' },
     { icon: 'date.week', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
@@ -1342,6 +1344,12 @@ function HelpPage({ onBack }) {
         </div>
         <div className="sub">遇到问题先看这里</div>
       </div>
+      {/* §33-V80 · 12 周任务书入口（每周做什么/学什么/交什么 · 可打印） */}
+      <div className="card" style={{ background: 'var(--primary-bg)', borderColor: 'var(--primary-border)', cursor: 'pointer' }} onClick={() => setTasksOpen(true)}>
+        <div className="card-title"><Icon name="date.week" size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 12 周任务书</div>
+        <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>每周做什么 / 学什么 / 交什么 / 常见错误——从开局立打法到收官复盘，12 周一步步走。点开查看全部（老师可打印发全班）。</div>
+      </div>
+      {tasksOpen && <SemesterTasks onClose={() => setTasksOpen(false)} />}
       {sections.map(s => (
         <div className="card" key={s.title}>
           <div className="card-title"><Icon name={s.icon} size={15} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> {s.title}</div>
