@@ -57,10 +57,18 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
   }
 
   // 选项/倒计时：点选项立即反馈
+  // ★ V75：点开即四段式 —— 是什么(desc+你的选择) · 为什么(预期影响) · 怎么办(适用场景) · 教学点；末行附引擎依据（机制名，防行号漂移）
   function pickOption(label, resultText) {
     setSelected(label)
+    const o = (decision.options || []).find(x => x.label === label) || {}
     showResult(
-      [{ label: '你的选择', value: label, dir: '' }, { label: '预期影响', value: resultText, dir: '' }],
+      [
+        { label: '你的选择', value: label, dir: '' },
+        { label: '预期影响', value: resultText, dir: '' },
+        ...(o.适用 ? [{ label: '适用场景（怎么办）', value: o.适用, dir: '' }] : []),
+        ...(o.教学点 ? [{ label: '教学点', value: o.教学点, dir: '' }] : []),
+        ...(decision.依据 ? [{ label: '引擎依据', value: decision.依据, dir: '' }] : []),
+      ],
       '这是预期结果。结算后系统会结合全班情况和市场随机性算出实际结果。'
     )
   }
@@ -212,6 +220,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
             <div style={{ marginTop: 12, padding: 12, background: 'var(--warn-bg)', borderRadius: 10, fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}>
               {sliderResult()}
             </div>
+            {decision.依据 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>引擎依据：{decision.依据}</div>}
           </div>
         )}
 
@@ -244,6 +253,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               已分配：{budgetTotal} / {decision.total}{budgetTotal > decision.total ? '（超出预算！）' : ''}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
+            {decision.依据 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>引擎依据：{decision.依据}</div>}
           </div>
         )}
 
@@ -261,6 +271,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>按优先级排序，前 5 项优先整改（预算有限）</div>
+            {decision.依据 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>引擎依据：{decision.依据}</div>}
           </div>
         )}
 

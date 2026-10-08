@@ -102,6 +102,7 @@ const SUITES = [
   { name: 'v62ZeroDyn（未开业零动态守门·V62）', file: 'tests/v62ZeroDyn.test.mjs' },
   { name: 'v66Guide（首次使用引导守门·V66）', file: 'tests/v66Guide.test.mjs' },
   { name: 'v67EmptyState（周报成绩空态守门·V67）', file: 'tests/v67EmptyState.test.mjs' },
+  { name: 'v75Detail（决策四段式详情守门·V75）', file: 'tests/v75Detail.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
@@ -176,6 +177,7 @@ const SUITES = [
       since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
+  { name: 'v75-verify（点开必有内容抽查·V75）', file: 'tests/_v75-verify.mjs', browser: true },
   { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true, knownRed: {
       reason: '★ 【V12 批10 发现 · 跨周末脚手架缺陷】周六非教学日 ⇒ 游戏日不推进 ⇒ A 段 0 产出（2026-10-04 稳定复现）。'
         + '二分排除本批代码（src@5dad7dc 同样 8 红 · 周五 10-03 同套件 37/0）。'
