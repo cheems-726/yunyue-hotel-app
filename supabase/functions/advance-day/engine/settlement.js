@@ -1099,7 +1099,15 @@ for (let i = 0; i < reviewCount; i++) {
       }
     }
     if (Object.keys(注入v8属性).length > 0) {
-      attrsAfter = applyAttrsDelta(attrsAfter, 注入v8属性)
+      // ★ V81（2026-10-08）：applyAttrsDelta 只认英文键（quality/reputation/morale · attrs.js KEYS 单源）——
+      //   原样把中文键 {士气:-10} 递进去 ⇒ Number(delta['morale'])=NaN ⇒ 静默 no-op（效力卡照发、数值不动
+      //   = v81Effects 行为探针实测抓到的"注入了没反应"）。引擎键（中文）→ 属性键（英文）在此唯一映射。
+      const 注入v8属性英文 = {}
+      for (const [键, 值] of Object.entries(注入v8属性)) {
+        const en = { 品质: 'quality', 声誉: 'reputation', 士气: 'morale' }[键]
+        if (en) 注入v8属性英文[en] = 值
+      }
+      attrsAfter = applyAttrsDelta(attrsAfter, 注入v8属性英文)
       const 属性名 = { quality: '品质', reputation: '声誉', morale: '士气' }
       const 明细 = Object.entries(注入v8属性).map(([k, v]) => `${属性名[k] || k} ${v > 0 ? '+' : ''}${v}`).join(' / ')
       addEvent({ type: 注入v8属性.morale < 0 || 注入v8属性.quality < 0 || 注入v8属性.reputation < 0 ? 'bad' : 'good', icon: '⚡', name: '突发事件效力结算', text: `老师注入事件的属性效力：${明细}`, impact: 明细, tip: '事件效力受控在量级带内 —— 影响可测但不一击定生死' })
