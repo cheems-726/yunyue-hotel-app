@@ -114,7 +114,7 @@ console.log('\n[2b] §16.2-B1 半接入四品牌：造价/门槛有来源 · 费
   ok(JSON.stringify(r桔) === JSON.stringify(r无), '零变化：桔子 与"不存在品牌"结算输出【逐字节相同】⇒ 确实未计费')
   ok(r桔.franchiseFees === undefined, '结算结果里没有 franchiseFees 字段（未接入的既有语义不变）')
   // ④ 界面：费率栏必须显式"待补"（不许再出现手写的"约N元/间"）
-  const ui = src('BrandSelection.jsx')
+  const ui = src('brands.mjs')   // ★ V76：brandGroups 已抽为纯数据模块（断言同步：文件搬家）
   const 待补卡片 = 半接入品牌.filter(n => ui.includes(`name: '${n}'`))
   ok(待补卡片.length >= 3, `界面可选列表里有 ${待补卡片.length} 个半接入品牌（CitiGO 未进列表，理由见 franchiseModel）`)
   const 无待补标注 = 待补卡片.filter(n => {
@@ -127,7 +127,7 @@ console.log('\n[2b] §16.2-B1 半接入四品牌：造价/门槛有来源 · 费
 // ── ②c 覆盖度：界面品牌列表 要么有单源条目、要么显式登记为"无官方来源" ────────
 console.log('\n[2c] 覆盖度：界面品牌 × franchiseModel（表在但没盖全 = BL 族）')
 {
-  const ui = src('BrandSelection.jsx')
+  const ui = src('brands.mjs')   // ★ V76：brandGroups 已抽为纯数据模块（断言同步：文件搬家）
   const ui品牌 = [...ui.matchAll(/\{\s*name: '([^']+)',\s*icon:/g)].map(m => m[1])
   ok(ui品牌.length >= 18, `抓到界面品牌 ${ui品牌.length} 个`)
   const 有单源 = ui品牌.filter(n => !!FRANCHISE_MODEL[n])

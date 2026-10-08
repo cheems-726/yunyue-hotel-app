@@ -32,6 +32,7 @@ const WHITELIST = [
   // allow = 允许保留的【命中文本】模式（不是整文件放行 —— 这样同文件将来出现新残留仍会被抓）
   { rule: 'R4', file: 'src/BrandSelection.jsx', allow: /万[+]?[\/]间|元[\/]间|b\.cost\.includes/, why: '品牌单房造价/加盟费（N万[+]/间、约N元/间）属参考资料口径，不是资金量级。★ 本项按【结构】放行（每间造价 + cost 档位判定）—— 同文件若再现"启动资金约50万/502万"之类仍会被抓。（2026-09-27 W2 收尾：启动资金文案已改为 SCALE.IC_NEW 推导，不再需要白名单）' },
   { rule: 'R4', file: 'src/franchiseModel.mjs', allow: /./, why: '加盟参考资料原值（18万/7.18万/5.6万/10万/3.5-4万/2.5万/6.51万）与差异表文案 —— 该文件整体是参考资料层，不是资金量级；且它不被任何业务代码 import（已断言）' },
+  { rule: 'R4', file: 'src/brands.mjs', allow: /万[+]?[/]间|元[/]间/, why: '★ V76（2026-10-08）从 BrandSelection.jsx 抽出的品牌数据模块 —— 原白名单同款：品牌单房造价/加盟费（N万/间、N元/间）属参考资料口径，不是资金量级；同文件再现启动资金类字面量仍会被抓' },
   // ★ §32-U4c-R6：`'投150万改造'` 是【决策选项 label 原文】（与 decisions.js / attrs.js 里同一串），
   //   属决策文案，不是资金量级声明 —— 结构性放行**只认这一串**（其它 N万 文案照样被抓）。
   { rule: 'R4', file: 'src/decisionRisk.mjs', allow: /投150万改造/, why: '决策选项 label 原文（同 decisions.js），非资金量级' },

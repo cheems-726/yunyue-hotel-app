@@ -100,7 +100,7 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   //     ① 数据只被【单源计费模块】消费（不散落）② 费率改动走《学生感知变化清单》③ settlement.js 不直接引用本数据层
   // 🔴 §16.2-B5（2026-09-28）：新增 establishmentInvest.mjs —— 筹建页投资项**锚定官方单房造价**（B5 的"不编造"设计），
   //   同属交互层；它**不被 settlement 引用**，由 tests/establishmentInvest.test.mjs 的"不越界层"独立守门。
-  const INTERACTION_LAYER = ['propertyQuote.mjs', 'onePageLedger.mjs', 'franchiseFees.mjs', 'establishmentInvest.mjs']
+  const INTERACTION_LAYER = ['propertyQuote.mjs', 'onePageLedger.mjs', 'franchiseFees.mjs', 'establishmentInvest.mjs', 'BrandSelection.jsx']   // ★ V76：品牌面板展示条款（只渲染 FRANCHISE_MODEL 现值·不算钱——单源断言在 v76Brand 钉着）
   const illegal = users.filter(u => !INTERACTION_LAYER.includes(u))
   ok(illegal.length === 0, `franchiseModel 只被交互层引用（白名单 ${INTERACTION_LAYER.join(',')}）${illegal.length ? ' → 越界：' + illegal.join(',') : ''}`)
   const engineFiles = ['settlement.js', 'serverTick.mjs', 'deptCosts.mjs', 'metricDefs.mjs']
