@@ -587,7 +587,7 @@ function InjectionPanel({ rawStates, profiles, user }) {
           ))}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-sub)', background: 'var(--bg)', borderRadius: 8, padding: '6px 9px', marginBottom: 10, lineHeight: 1.6 }}>
-          <Icon name={当前事件.icon || 'note.caliber'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> <b>{当前事件.name}</b> · 教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
+          <Icon name={当前事件.icon || 'note.caliber'} size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> <b>{当前事件.name}</b> · {当前事件.类别} · 触发方式：{当前事件.触发方式 || '手动注入'} · 持续：{当前事件.持续周 || 1} 周（注入周单周生效）<br />描述：{当前事件.描述 || '—'}<br />影响：{当前事件.影响}<br />教学点：{当前事件.教学点}<br />学生应对：{当前事件.学生应对} · 去重：{当前事件.与随机事件去重}
         </div>
  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>② 选时间（ §33-V8 支持按日程：整周 或 指定第 D 天起）</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>

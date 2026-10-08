@@ -104,6 +104,7 @@ const SUITES = [
   { name: 'v67EmptyState（周报成绩空态守门·V67）', file: 'tests/v67EmptyState.test.mjs' },
   { name: 'v75Detail（决策四段式详情守门·V75）', file: 'tests/v75Detail.test.mjs' },
   { name: 'v76Brand（品牌七字段与对比守门·V76）', file: 'tests/v76Brand.test.mjs' },
+  { name: 'v78Event（事件库六项与引擎一致守门·V78）', file: 'tests/v78Event.test.mjs' },
   { name: 'verify-gop（GOP 口径 + 拆租金零变化）', file: 'tests/verify-gop.mjs' },
   { name: 'teachingClock（教学日历时钟·T2.3）', file: 'tests/teachingClock.test.mjs' },
   { name: 'missingWeeks（缺周展示·T2.4）', file: 'tests/missingWeeks.test.mjs' },
