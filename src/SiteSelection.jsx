@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
-import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED } from './siteLocations.mjs'
+import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略 } from './siteLocations.mjs'
 import RadarChart from './RadarChart.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
@@ -195,6 +195,24 @@ export default function SiteSelection({ onConfirm }) {
         ))}
       </div>
 
+      {/* ★ V79：客群攻略速查（常驻 · 三类客群在意什么/价格敏感度/淡旺季/怎么接 —— 决策提示只引用引擎客群路真决策值） */}
+      <div className="card" style={{ margin: '0 20px 14px', padding: 14 }}>
+        <div className="card-title">客群攻略速查（他们在意什么 · 怎么接）</div>
+        <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+          {['business', 'tourist', 'family'].map(k => {
+            const g = 客群攻略[k]
+            return (
+              <div key={k} style={{ padding: '6px 0', borderBottom: '1px solid var(--fill)' }}>
+                <b style={{ color: 'var(--info)' }}>{g.名}</b>：在意 {g.在意}。价格敏感度 {g.价格敏感度}；淡旺季：{g.淡旺季}。
+                <div style={{ color: 'var(--text-sub)', marginTop: 2 }}>怎么接：{g.决策提示}</div>
+              </div>
+            )
+          })}
+          <div style={{ padding: '6px 0 0', color: 'var(--text-muted)' }}>会议客：{客群攻略.meeting.在意}。{客群攻略.meeting.决策提示}（评价语料中单列 · 结算归商务客路）</div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>ⓘ 攻略为教学推导（客群结构 × 波动维）；客群占比为人工分级非统计（见各区位画像行 ⓘ）</div>
+      </div>
+
       {/* 选中区县的六维画像雷达图 */}
       {selected && (() => {
         const d = districts[currentCity].find(x => x.name === selected)
@@ -261,12 +279,22 @@ export default function SiteSelection({ onConfirm }) {
             {/* ★ V73：客群画像缺失不再静默消失（原 personaLine null ⇒ 整行不见，学生看不出缺）⇒ 显式待补 */}
             {(() => {
               const pl = personaLine(currentCity, d.name)
-              if (pl) return (
+              if (pl) {
+                // ★ V79：价格敏感度 + 淡旺季偏好（推导自已入库的客群结构 × 波动维 —— 同类锚口径，非新造数据）
+                const per = CUSTOMER_PERSONAS[d.name]
+                const 攻 = 客群攻略[per && per.dominant]
+                const 波 = d.attrs['波动'] || 3
+                const 淡旺季 = 波 >= 4 ? `淡旺季分化大（波动 ${波}/5：旺季爆满·淡季空置）` : 波 === 3 ? '季节波动中等（波动 3/5）' : `全年客流平稳（波动 ${波}/5）`
+                return (
                 <div style={{ marginTop: 6, fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
                   客群画像：{pl}
                   <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
+                  <div style={{ color: 'var(--text-sub)', marginTop: 2 }}>
+                    价格敏感度：{攻 ? 攻.价格敏感度 : '待补'} ｜ 淡旺季：{淡旺季}
+                  </div>
                 </div>
-              )
+                )
+              }
               return (
                 <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
                   客群画像：待补（本区位未采客群结构 —— 不编造；结算按三路均分兜底）
