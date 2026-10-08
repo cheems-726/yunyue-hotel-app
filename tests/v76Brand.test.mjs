@@ -17,7 +17,7 @@ const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } 
 console.log('▶ V76 品牌内容补全')
 {
   const 全部 = brandGroups.flatMap(g => g.brands.map(b => ({ ...b, level: g.level })))
-  ok(全部.length >= 19, `品牌数 ${全部.length}（≥19 · 华住五档全梯度）`)
+  ok(全部.length >= 23, `品牌数 ${全部.length}（≥23 · V87 官方 API 枚举后华住系酒店品牌全量）`)
   const 缺 = []
   for (const b of 全部) {
     if (!b.name || !b.level) 缺.push(`${b.name}:档次`)
@@ -29,7 +29,7 @@ console.log('▶ V76 品牌内容补全')
   }
   ok(缺.length === 0, '19 品牌全有 档次/加盟费/造价/价带/房量/简介（fee 允许「费率待补」）', 缺.slice(0, 3).join(','))
   const 待补数 = 全部.filter(b => String(b.fee).includes('待补')).length
-  ok(待补数 >= 1 && 待补数 <= 5, `加盟费「费率待补」诚实标记保持（现 ${待补数} 个 · §16.2-B1 口径）`)
+  ok(待补数 >= 1 && 待补数 <= 8, `加盟费「费率待补」诚实标记保持（现 ${待补数} 个 · §16.2-B1+V87 口径：官方 API 无费用字段的品牌一律待补）`)
 }
 
 {

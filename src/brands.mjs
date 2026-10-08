@@ -11,6 +11,8 @@ export const brandGroups = [
       { name: '你好', icon: 'prop.hotel', fee: '费率待补', cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
       { name: '海友', icon: 'prop.hotel', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
       { name: '宜必思', icon: 'prop.hotel', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
+      // ★ V87（2026-10-08）：官方 API 全量枚举新增（渠道① 官方原页 · franchise-cmsapi.huazhu.com/brand/brand/17）
+      { name: '怡莱', icon: 'prop.hotel', fee: '3000元/间(≥10万)·旧版官方', cost: '造价待补（官方现行 API 无此字段）', price: '待补', standard: '待补（以官网登记为准）', desc: '华住 2019 年升级的中小微经济型单体酒店管理品牌（官方 API brand/17）。' },
     ]
   },
   {
@@ -30,6 +32,8 @@ export const brandGroups = [
       { name: '城际', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
       { name: '美居', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
       { name: '美仑', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },
+      // ★ V87：官方 API 枚举新增（brand/27 · 门槛/限一二线为官方 API 现行；费率官方无 ⇒ 待补）
+      { name: 'CitiGO 欢阁', icon: 'prop.hotel', fee: '费率待补', cost: '14万/间·官方现行', price: '待补', standard: '客房60间起·≥2500㎡·限一二线', desc: '华住唯一以年轻人为主要客群的生活方式酒店（官方 API brand/27）。' },
     ]
   },
   {
@@ -39,6 +43,9 @@ export const brandGroups = [
       { name: '花间堂', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房50间起', desc: '度假型高端，人文度假。' },
       { name: '施柏阁', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
       { name: '诺富特', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
+      // ★ V87：官方 API 枚举新增（brand/12 · brand/30 · 单房造价为官方 API pricing 原文 · 费率官方无 ⇒ 待补）
+      { name: '美仑美奂', icon: 'prop.hotel', fee: '费率待补', cost: '25万~30万/间·轻改1万起·官方现行', price: '待补', standard: '待补（以官网登记为准）', desc: '华住国际高端精选酒店品牌，源自德意志酒店集团（官方 API brand/12）。' },
+      { name: '美仑国际', icon: 'prop.hotel', fee: '费率待补', cost: '20万~22万/间(含公区)·轻改1万起·官方现行', price: '待补', standard: '待补（以官网登记为准）', desc: '华住高端全服务酒店品牌，一站式会宴服务（官方 API brand/30）。' },
     ]
   },
   {
