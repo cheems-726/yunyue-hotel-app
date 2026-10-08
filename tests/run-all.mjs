@@ -185,6 +185,7 @@ const SUITES = [
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'v75-verify（点开必有内容抽查·V75）', file: 'tests/_v75-verify.mjs', browser: true },
   { name: 'v76-verify（品牌面板与对比抽查·V76）', file: 'tests/_v76-verify.mjs', browser: true },
+  { name: 'v84-verify（竞品逐家可见性抽查·V84）', file: 'tests/_v84-verify.mjs', browser: true },
   { name: 'v80-verify（12 周任务书学生/教师两端走查·V80）', file: 'tests/_v80-verify.mjs', browser: true },
   { name: 'verify-live-review-ui（浏览器端到端）', file: 'tests/verify-live-review-ui.mjs', browser: true, knownRed: {
       reason: '★ 【V12 批10 发现 · 跨周末脚手架缺陷】周六非教学日 ⇒ 游戏日不推进 ⇒ A 段 0 产出（2026-10-04 稳定复现）。'

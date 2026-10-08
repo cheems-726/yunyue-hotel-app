@@ -108,6 +108,7 @@ export default function SiteSelection({ onConfirm }) {
   const [currentCity, setCurrentCity] = useState('成都')
   const [selected, setSelected] = useState(null) // 区县 name
   const [feedback, setFeedback] = useState(null)
+  const [展开竞品, set展开竞品] = useState(null)   // ★ V84：逐家竞品清单展开态（区名）
 
   function barCls(val) {
     if (val >= 4) return 'bar-high'
@@ -338,6 +339,20 @@ export default function SiteSelection({ onConfirm }) {
                     {c.list.slice(0, 3).map(x => `${x.name}（${LEVEL_LABEL[x.level] || x.level} ¥${x.basePrice}${x.priceBasis === 'avg' ? '均' : '起'}）`).join(' · ')}
                     {c.list.length > 3 ? ` 等 ${c.list.length} 家` : ''}
                   </div>
+                  {/* ★ V84：逐家可见（展开 = 全部家数逐家列出 · 渲染条数=数据家数由 v84Compete 断言） */}
+                  <button
+                    onClick={e => { e.stopPropagation(); set展开竞品(展开竞品 === d.name ? null : d.name) }}
+                    style={{ marginTop: 4, fontSize: 12, padding: '2px 8px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', border: '1px solid var(--border)', background: 'var(--primary-bg)', color: 'var(--info)' }}
+                  >{展开竞品 === d.name ? '收起逐家清单' : `展开全部 ${c.list.length} 家（逐家名称/档次/价格）`}</button>
+                  {展开竞品 === d.name && (
+                    <div style={{ marginTop: 4, borderTop: '1px dashed var(--border)', paddingTop: 4 }}>
+                      {c.list.map((x, i) => (
+                        <div key={x.name} data-v84-compete="1" style={{ padding: '2px 0', color: 'var(--text-sub)' }}>
+                          {i + 1}. {x.name}（{LEVEL_LABEL[x.level] || x.level}）· ¥{x.basePrice}{x.priceBasis === 'avg' ? '均' : '起'} · 客房 {x.rooms} 间 · {x.opened} 年开业
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>来源：{c.来源}</div>
                 </div>
               )
