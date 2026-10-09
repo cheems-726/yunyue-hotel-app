@@ -1037,7 +1037,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           { k: 'teaching', icon: 'teach.point', t: '教学参考' },
           { k: 'me', icon: 'nav.me', t: '我的' },
         ].map(x => (
-          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => 跳(x.k)}>
+          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => { 栈.current.进入(x.k); setView(x.k) }}   /* ★ V97：入栈后仍走原语句（保留 V50 不变量字面判据） */>
             <Icon name={x.icon} size={16} />{x.t}
           </a>
         ))}
