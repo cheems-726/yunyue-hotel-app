@@ -139,8 +139,15 @@ console.log('\n[3] district 传递链：前端传 ⇒ 引擎归一化（两端�
   //   ④ 同类数据通路排查（BL-7/8/9 通则：用扫描而非回忆）：
   //      人流/经济画像（LOCATION_PROFILE）是【展示层】数据 —— 引擎不得消费它（否则会出现"看着有、实际没进计算"或反之）
   const 引擎源码 = src('settlement.js') + src('dayEngine.js') + src('serverTick.mjs')
-  ok(!/LOCATION_PROFILE/.test(引擎源码),
-    '扫描：引擎路径（settlement/dayEngine/serverTick）【不引用】LOCATION_PROFILE ⇒ 人流/经济明确是展示层（不是"声明了但没用"）')
+  // ★ V91（2026-10-09 · 卡『区域消费水平结构化』· 需求 1.2-2 补完）—— 本条扫描**改为按【字段】判定**（不再按整对象）：
+  //   起因：V91 要求把 `人均可支配` 接进引擎（区域消费力）⇒ 原断言『引擎不引用 LOCATION_PROFILE』与新需求冲突。
+  //   处置（保留原意 + 加严）：① 引擎**必须**引用 LOCATION_PROFILE（防『声明了但没用』）
+  //     ② 引擎**只放行 V91 结构位**（人均可支配/社零）；展示层派生字段（pop/gdp/tou/traffic/businessDensity）**仍不得**进引擎。
+  ok(/LOCATION_PROFILE/.test(引擎源码),
+    'V91：引擎路径【已】引用 LOCATION_PROFILE（人均可支配接入区域消费力 · 不是"声明了但没用"）')
+  ok(!/LOCATION_PROFILE[^\n]{0,120}\.(pop|gdp|tou|traffic|businessDensity)/.test(引擎源码),
+    'V91：展示层派生字段（pop/gdp/tou/traffic/businessDensity）仍【不得】进引擎（只放行 V91 结构位）')
+  ok(/人均可支配/.test(引擎源码), 'V91：引擎确实读『人均可支配』（消费力公式单源 · 对接 siteLocations 结构位）')
   ok(/LOCATION_PROFILE/.test(src('SiteSelection.jsx')), '人流/经济画像确被选址页消费（展示层用处明确）')
 
   const 锦 = r1.personaFeedback || []

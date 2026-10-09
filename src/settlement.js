@@ -1,4 +1,4 @@
-import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'
+import { COMPETITORS, CUSTOMER_PERSONAS, LOCATION_PROFILE } from './siteLocations.mjs'
 import { applyEventToAttrs, applyWeeklyDecay, normalizeAttrs, applyAttrsDelta } from './attrs.js'
 // ★ §32-U4c-R6 决策风险化（代价单源在 decisionRisk.mjs）：不作为惩罚 + 延迟后果
 import { 不作为属性扣减, 本周延迟惩罚, 属性清单 } from './decisionRisk.mjs'
@@ -314,7 +314,15 @@ const s = (site && typeof site.attrs === 'object' && site.attrs)
   //   ★ 触发周【保底散客同样不来】：30% 保底与事件加成会掩盖断崖（实测 43%·营收几乎不减）⇒
   //     事件结算后钳上限 3%（零单周爆单也爆不起来）—— 否则 3.2-5 永远不可见（V33 结论的根因）。
   const _有效价 = price
-  const _消费力 = 150 + (Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) * 30
+  //   ★ V91（2026-10-09 · 对照表 1.2-2 补完）：区域消费力**优先用结构化实测值**，无值**回落本代理公式**（代理不删）。
+  //     · 结构化位 = `LOCATION_PROFILE[区县].人均可支配 = { 值(元/年), 年, 来源 }`（single source · siteLocations.mjs 导出）
+  //     · 折算口径：**消费力(元/晚) = 人均可支配年收入 ÷ 250**，并夹在 **[180, 400]** —— 与代理同量级（档1=180 · 档5=300），
+  //       保证『有效价 ÷ 消费力 ≥ 2』的教学阈值不变形；系数 250 的来历：档4 代理 270 ≈ 年收入 6.75 万的 1/250（成都核心区量级）。
+  //     · **无值（null/缺区/测试用匿名 site）⇒ 逐字节回落代理** ⇒ 既有输出与断言零变化（守门 tests/v91Consumption.test.mjs）。
+  const _可支配年 = Number(LOCATION_PROFILE?.[s.district || '']?.人均可支配?.值)
+  const _消费力 = (Number.isFinite(_可支配年) && _可支配年 > 0)
+    ? Math.min(400, Math.max(180, Math.round(_可支配年 / 250)))
+    : 150 + (Number.isFinite(Number(s.房价)) ? Number(s.房价) : 3) * 30
   const _零单触发 = pricing.startsWith('提价') && _有效价 / _消费力 >= 2
   if (_零单触发) priceCompetitive *= 0.10
   priceCompetitive *= 房价环境
