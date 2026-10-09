@@ -377,6 +377,23 @@ export default function SiteSelection({ onConfirm }) {
                 </div>
               )
             })()}
+            {/* ★ V94 消费水平（数据源=siteLocations 的 社零/人均可支配 结构位 · 文案由 区位消费行() 单源生成）*/}
+            {(() => {
+              const c = 区位消费行(d.name)
+              if (!c.有值) return (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '6px 8px' }}>
+                  💰 消费水平：{c.待补文本}
+                </div>
+              )
+              return (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '6px 8px' }}>
+                  💰 {c.收入文本 || ''}{c.收入文本 && c.社零文本 ? ' · ' : ''}{c.社零文本 || ''}
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>
+                    来源：{c.来源串} · 取数 {c.取数} · 置信度 {c.置信度 === 'high' ? '高' : c.置信度 === 'mid' ? '中' : '低'}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         ))}
       </div>

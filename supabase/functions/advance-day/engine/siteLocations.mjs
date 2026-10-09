@@ -666,3 +666,28 @@ export function 结构化覆盖(){
   const 有来源 = 键.filter(k => (有值(LOCATION_PROFILE[k].社零) && !!LOCATION_PROFILE[k].社零.来源) || (有值(LOCATION_PROFILE[k].人均可支配) && !!LOCATION_PROFILE[k].人均可支配.来源))
   return { 总区位: 键.length, 社零有值: 社零.length, 可支配有值: 可支配.length, 有来源: 有来源.length, 键, 社零, 可支配 }
 }
+// ★ V94：区位消费水平「界面露出」单源出口（JSX 不许另写文案/口径/来源）
+//   ① `格式化消费水平(profile片段)` = **纯函数**（可喂假数据 ⇒ 供断言做反向自检）
+//   ② `区位消费行(名)` = 薄封装（只读 LOCATION_PROFILE）
+//   口径词从**来源串**里取（数据层已写明全体/城镇/农村/全市居民）——界面不再自己判断。
+const 消费口径词 = (s) => { const m = String(s || '').match(/(全体居民|城镇居民|农村居民|全市居民|常住居民)/); return m ? m[1] : '' }
+const 消费千分 = (n) => Number(n).toLocaleString('zh-CN')
+export function 格式化消费水平(p = {}) {
+  const 取 = (o) => (o && Number.isFinite(Number(o.值)) ? o : null)
+  const 社 = 取(p.社零), 收 = 取(p.人均可支配)
+  if (!社 && !收) return {
+    有值: false, 收入文本: '', 社零文本: '', 口径: '', 来源串: '', 取数: '', 置信度: '', 来源缺失: false,
+    待补文本: '待补（无公开来源 —— 不编造；结算按代理公式兜底）',
+  }
+  const 收口径 = 收 ? (消费口径词(收.来源) || '') : ''
+  const 收文本 = 收 ? `居民人均可支配 ${消费千分(收.值)} 元/年（${收.年}${收口径 ? ' · ' + 收口径 : ''}）` : ''
+  const 社文本 = 社 ? `社会消费品零售总额 ${消费千分(社.值)} 亿元/年（${社.年}）` : ''
+  const 主 = 收 || 社
+  const 来源缺失 = !(主 && 主.来源)
+  return {
+    有值: true, 收入文本: 收文本, 社零文本: 社文本, 口径: 收口径,
+    来源串: 主 ? String(主.来源 || '') : '', 取数: 主 ? String(主.取数 || '') : '', 置信度: 主 ? String(主.置信度 || '') : '',
+    来源缺失, 待补文本: '',
+  }
+}
+export function 区位消费行(名) { return 格式化消费水平(LOCATION_PROFILE[名] || {}) }
