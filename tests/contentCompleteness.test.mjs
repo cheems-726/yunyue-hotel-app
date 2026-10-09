@@ -8,6 +8,8 @@
 // ── 可证伪（卡②）───────────────────────────────────────────────
 //   判定器 = 纯函数 核行()，本文件内置【反向自检】：喂一行缺字段的假数据 ⇒ 判定器必须报红，
 //   且红信息含字段名——证明判定器不是恒真（RV 常驻代码，不靠一次性手删）。
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { districts, COMPETITORS, CUSTOMER_PERSONAS, LOCATION_PROFILE, 客群攻略 } from '../src/siteLocations.mjs'
 import { 注入事件库 } from '../src/teacherEvents.mjs'
 import { decisions } from '../src/decisions.js'
@@ -139,6 +141,26 @@ let 总缺 = []
 
 // ── 总账 ──
 ok(总缺.length === 0, `★ 七表总账零缺失（若有 ⇒ 上方逐条指名道姓）`, 总缺.slice(0, 6).join(','))
+
+// ── ★ V92（2026-10-09）：区位淡旺季覆盖表守门（文档面 · 表在 + 26 行 + 计数自洽）─────
+//   口径：**单类数字不写死**（🟢/🟡/🔴 随实际，只要求『三类相加 === 26』与『🟢 只增不减』）
+//   ⇒ 谁删行/漏行/把状态改乱，本条红；谁把实测改回空（🟢 减少），本条也红。
+{
+  const P = join(dirname(dirname(fileURLToPath(import.meta.url))), '..', '4-审计与报告', '区位淡旺季-26区覆盖表-v1.md')
+  let txt = ''
+  try { txt = readFileSync(P, 'utf8') } catch {}
+  ok(txt.length > 0, 'V92：区位淡旺季覆盖表存在（4-审计与报告/区位淡旺季-26区覆盖表-v1.md）')
+  if (txt) {
+    const 行 = txt.split('\n').filter(l => l.startsWith('|') && /[🟢🟡🔴]/.test(l))
+    const 绿 = 行.filter(l => l.includes('🟢')).length
+    const 黄 = 行.filter(l => l.includes('🟡')).length
+    const 红 = 行.filter(l => l.includes('🔴')).length
+    ok(行.length === 26, `V92：覆盖表逐区 26 行（实得 ${行.length}）`)
+    ok(绿 + 黄 + 红 === 26, `V92：三类计数自洽（🟢${绿} + 🟡${黄} + 🔴${红} = ${绿 + 黄 + 红}）· 单类不写死`)
+    ok(绿 >= 8, `V92：已实测（🟢）不少于 8 区（实得 ${绿} · 只许增不许减）`)
+    ok(/mz\.gov\.cn|绵竹/.test(txt) && /1238\.05/.test(txt), 'V92：绵竹市官方核补在册（4A3/3A3/2A1 · 全年接待 1238.05 万人次）')
+  }
+}
 
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('验收口径：删任何一张表的任何字段 ⇒ 本套件红且红信息=「行.字段」；判定器带反向自检（不恒真）')
