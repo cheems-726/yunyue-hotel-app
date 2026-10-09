@@ -117,15 +117,31 @@ console.log('\n[2b] §16.2-B1 半接入四品牌：造价/门槛有来源 · 费
   const r无 = settle({ site: 区县, brand: { name: '不存在的品牌', ...base }, decisions: dec, week: 1, attrs: { quality: 60, reputation: 70, morale: 65 } })
   ok(JSON.stringify(r桔) === JSON.stringify(r无), '零变化：桔子 与"不存在品牌"结算输出【逐字节相同】⇒ 确实未计费')
   ok(r桔.franchiseFees === undefined, '结算结果里没有 franchiseFees 字段（未接入的既有语义不变）')
-  // ④ 界面：费率栏必须显式"待补"（不许再出现手写的"约N元/间"）
+  // ④ 界面：加盟费栏「有源即显示 · 无源仍待补」
+  //    ★ D235（2026-10-09 · 决策端裁定）**口径变更**（非放宽）：
+  //    原 §16.2-B1 语义 = 半接入品牌加盟费栏【一律】待补；裁定后 = §16.2-B1 只反对「**无来源数字**」，
+  //    有源（franchiseModel 有加盟费三件套）即可显示真值；**无源仍必须待补**；
+  //    **管理费/CRS 仍一律待补** ⇒ 两层不混：**展示有数 ≠ 引擎计费**（承接 D234 层次口径）
   const ui = src('brands.mjs')   // ★ V76：brandGroups 已抽为纯数据模块（断言同步：文件搬家）
   const 待补卡片 = 半接入品牌.filter(n => ui.includes(`name: '${n}'`))
   ok(待补卡片.length >= 3, `界面可选列表里有 ${待补卡片.length} 个半接入品牌（CitiGO 未进列表，理由见 franchiseModel）`)
-  const 无待补标注 = 待补卡片.filter(n => {
-    const m = new RegExp(`name: '${n}'[^}]*?fee: '([^']*)'`).exec(ui)
-    return !m || !/待补/.test(m[1])
-  })
-  ok(无待补标注.length === 0, '半接入品牌的「加盟费/费率」栏一律显示"待补"（撤掉原先的无来源数字）', 无待补标注.join(','))
+  const 取值 = (n) => { const m = new RegExp(`name: '${n}'[^}]*?fee: '([^']*)'`).exec(ui); return m ? m[1] : null }
+  // ④a 无源 ⇒ 仍必须待补
+  const 无源品牌 = 待补卡片.filter(n => !(FRANCHISE_MODEL[n] && FRANCHISE_MODEL[n].加盟费))
+  const 漏待补 = 无源品牌.filter(n => { const v = 取值(n); return v === null || !/待补/.test(v) })
+  ok(漏待补.length === 0, `无源品牌的「加盟费/费率」栏仍显示"待补"（D235：无源 ⇒ 待补 · 共 ${无源品牌.length} 家）`, 漏待补.join(','))
+  // ④b 有源 ⇒ 必须显示真值（不得再一律写「费率待补」）
+  const 有源品牌 = 待补卡片.filter(n => !!(FRANCHISE_MODEL[n] && FRANCHISE_MODEL[n].加盟费))
+  ok(有源品牌.length >= 1, `有源品牌可显示真值（D235：${有源品牌.join('、') || '（无）'}）`)
+  const 漏显示 = 有源品牌.filter(n => { const v = 取值(n); return v === null || /费率待补/.test(v) })
+  ok(漏显示.length === 0, '有源品牌的「加盟费」栏显示真值（不再写死"费率待补"· D235）', 漏显示.join(','))
+  // ⑤ ★ D235 新增 3 条：把「展示层」与「引擎计费层」钉死（防下次混层）
+  ok(!桔模.管理费 && !桔模.CRS, 'D235①：桔子 管理费/CRS **仍未入库**（负向 · 公开面确无来源 ⇒ 保持待补）')
+  ok(!已接入品牌.includes('桔子'), `D235②：桔子**不在** franchiseFees.已接入品牌（现为 ${已接入品牌.join('、')}）⇒ 引擎不按费率计费（展示有数 ≠ 引擎计费）`)
+  const 桔加盟 = 桔模.加盟费 && 桔模.加盟费.单价
+  ok(!!桔加盟 && 桔加盟.值 === 3000 && 桔加盟.置信度 === '中' && !!桔加盟.来源 && !!桔加盟.取数日期,
+    'D235③：桔子加盟费 = 3000 元/间 · 置信度=中 · 来源与取数日期非空（可追溯）',
+    桔加盟 ? `${桔加盟.值} · ${桔加盟.置信度} · ${String(桔加盟.来源).slice(0, 44)}` : '缺字段')
 }
 
 // ── ②c 覆盖度：界面品牌列表 要么有单源条目、要么显式登记为"无官方来源" ────────
