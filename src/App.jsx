@@ -1014,7 +1014,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         <div style={{ flex: 1, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
           引导提示被关掉了想再看？点右边按钮，各页面的新手提示会重新出现。
         </div>
-        <button className="btn btn-ghost" style={{ padding: '8px 14px', flexShrink: 0 }} onClick={() => { guideResetAll(); setGuideMsg('已重置：回到选址/决策/认领/筹建页就能重看提示') }}>我要重看引导</button>
+        <button className="btn btn-ghost" style={{ padding: '8px 14px', flexShrink: 0 }} onClick={() => { if (!window.confirm('确定重置新手引导吗？\n\n影响：各页面的新手提示会重新出现（不影响成绩与存档）。')) return; guideResetAll(); setGuideMsg('已重置：回到选址/决策/认领/筹建页就能重看提示') }}>我要重看引导</button>
         {guideMsg && <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 6 }}>{guideMsg}</div>}
       </div>
 
