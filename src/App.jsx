@@ -199,6 +199,7 @@ function LoginPage({ onLogin }) {
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>{role === 'student' ? '学号' : '工号'}</div>
         <input
+          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交 */
           value={account}
           onChange={e => setAccount(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
@@ -210,6 +211,7 @@ function LoginPage({ onLogin }) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>密码</div>
         <input
+          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交 */
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
