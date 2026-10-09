@@ -103,10 +103,23 @@ page.on('pageerror', e => { const m = e.message || ''; if (!m.includes('plugin i
 //   **显式标「离线 · 本地推算」**（A 段有专门断言），而不是静默退化 ⇒ 此处**只放行 404 这一类**，
 //   其它控制台报错仍判失败。★ 部署 P1 之后应把这条放行**收掉**（那时不该再出现 404）。
 const 允许_未部署RPC的404 = /Failed to load resource: the server responded with a status of 404/
+// ★★ D253（2026-10-09 · 决策端裁定）：**瞬时网络错误 vs 真 console error** —— 允许窄口径白名单，但三条齐：
+//   ① 窄口径：只放行『连接被重置』这一条【精确串】（不许 net:: 前缀/通配；其余任何 error 仍一律失败）
+//   ② 不为静默：运行结束【打印被放行的条数】（可见 ≠ 静音）
+//   ③ 反向上限：单次运行内被放行 > 10 条 ⇒ **仍判失败**（防真故障/真资源缺失借白名单藏起来）
+//   证据（V96 取证）：该套件单跑 0 失败；门禁内 3 次 0/7/0，7 条红全是同一句 ERR_CONNECTION_RESET ⇒ 环境瞬时，非代码回归。
+const 允许_瞬时连接重置 = /^Failed to load resource: net::ERR_CONNECTION_RESET$/
+const 瞬时放行上限 = 10
+let 瞬时放行数 = 0
 page.on('console', m => {
   const txt = String(m.text())
   if (m.type() !== 'error' || txt.includes('plugin is not implemented')) return
   if (允许_未部署RPC的404.test(txt)) return
+  if (允许_瞬时连接重置.test(txt)) {
+    瞬时放行数++
+    if (瞬时放行数 > 瞬时放行上限) ok('瞬时连接重置 ' + 瞬时放行数 + ' 条 > 上限 ' + 瞬时放行上限 + ' ⇒ 判失败（防白名单掩盖真故障）', false)
+    return
+  }
   ok('控制台报错: ' + txt.slice(0, 90), false)
 })
 
@@ -432,6 +445,7 @@ try {
 } catch (e) {
   ok('脚本异常: ' + (e && e.message), false)
 } finally {
+console.log('▶ D253 瞬时连接重置被放行：' + 瞬时放行数 + ' 条（上限 ' + 瞬时放行上限 + '；超过即判失败）')
   console.log(`\n========== 结果: ${results.filter(r => r.pass).length} 通过 / ${results.filter(r => !r.pass).length} 失败 ==========`)
   try { await browser.close() } catch (e) {}
   try {
