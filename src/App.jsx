@@ -21,6 +21,8 @@ import { decisions, OWNER_LABELS } from './decisions.js'
 import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
+import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
+import { onePageLedger } from './onePageLedger.mjs'
 import { TITLES } from './hotelTitle.js'
 import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, qualityOf } from './attrs.js'
 // 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
@@ -755,7 +757,7 @@ function KpiDelta({ cur, prev, goodUp = true, unit = '' }) {
     </span>
   )
 }
-function Report({ report, week, history }) {
+function Report({ report, week, history, brand, property, location }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
   if (report) {
@@ -856,6 +858,34 @@ function Report({ report, week, history }) {
           <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
         )}
       </div>
+        {/* ★ V95（2026-10-09 用户点名）：开业后「投资回报」——纯展示 · 单源 */}
+        <div className='card'>
+          <div className='card-title'>投资回报（开业后）</div>
+          {(() => {
+            const ledger = property ? onePageLedger({ brand, property, districtAttrs: location?.attrs }) : null
+            const r = 投资回报({ ledger, history })
+            const 行 = (k, v, note) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, padding: '4px 0' }}>
+                <span style={{ color: 'var(--text-sub)' }}>{k}</span>
+                <span style={{ fontWeight: 600 }}>{v}{note ? <span style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-muted)', marginLeft: 6 }}>{note}</span> : null}</span>
+              </div>
+            )
+            const 周数文案 = r.周数 ? '共 ' + r.周数 + ' 周' : ''
+            return (
+              <>
+                {行('投资总额（估算）', r.总投资 == null ? r.状态 : 万元回报(r.总投资), r.总投资 == null ? '' : '报价单估算 · 不进资金流')}
+                {行('已回收（累计利润）', r.累计利润 == null ? '待补（尚无结算）' : 万元回报(r.累计利润), 周数文案)}
+                {行('回收进度', 百分比(r.进度), r.进度 == null ? '' : '累计利润 ÷ 投资总额')}
+                {行('ROI', 百分比(r.roi), r.roi == null ? '' : '累计利润 ÷ 投资总额（可为负）')}
+                {行('回本周期（外推）', r.外推回本年 == null ? '待补（缺来源数据）' : '约 ' + r.外推回本年.toFixed(1) + ' 年', '按基准单周年化 · 非实际发生')}
+                {行('状态', r.状态)}
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+                  口径：投资总额取自「一页钱账」（报价单估算）· 累计利润与上方盈亏平衡图同源（同一份周报历史）· 回本判定同款（累计由负转正）· 缺来源一律显示「待补（缺来源数据）」，不参与计算、不编造。
+                </div>
+              </>
+            )
+          })()}
+        </div>
 
       <div className="card">
         <div className="card-title">历史周报</div>
@@ -2718,7 +2748,7 @@ export default function App() {
   } else {
     const pages = {
       business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
-      report: <Report report={report} week={week} history={history} />,
+      report: <Report report={report} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
     }

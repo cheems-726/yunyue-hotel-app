@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
-import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略 } from './siteLocations.mjs'
+import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略, 区位消费行, 格式化消费水平 } from './siteLocations.mjs'   // ★ 修：V94 用了 区位消费行() 但漏 import（运行时 ReferenceError ⇒ 选址页崩）
 import RadarChart from './RadarChart.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）

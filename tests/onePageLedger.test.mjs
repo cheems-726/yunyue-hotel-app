@@ -123,7 +123,8 @@ console.log('\n[4] 零影响层：纯计算 + 结算路径不受影响 + UI 静�
   ok(!/onePageLedger/.test(strip(src('settlement.js'))), 'settlement.js 不引用 onePageLedger（静态证明）')
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const importers = files.filter(f => f !== 'onePageLedger.mjs' && /onePageLedger/.test(strip(src(f))))
-  ok(importers.length === 1 && importers[0] === 'Claim.jsx', '唯一引用方 = Claim.jsx（认领页）', importers.join(','))
+// ★ D248（2026-10-09 · 决策端裁定）：V95 把【一页钱账的总投资】用到报表页「投资回报」面板 ⇒ 引用方白名单由 {Claim.jsx}
+  ok(importers.length === 2 && importers.includes('Claim.jsx') && importers.includes('App.jsx'), '引用方 = Claim.jsx（认领页）+ App.jsx（报表页·V95 投资回报面板 · D248 裁定）', importers.join(','))
   const a = onePageLedger({ brand: 汉庭, property: 物业, districtAttrs: 区县 })
   const b = onePageLedger({ brand: 汉庭, property: 物业, districtAttrs: 区县 })
   ok(JSON.stringify(a) === JSON.stringify(b), '纯函数：同输入两次结果逐字节相同')
