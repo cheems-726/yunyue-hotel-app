@@ -99,6 +99,23 @@ for (const { f, 表名 } of 甲3表) {
   ok(裸黄.length === 0, `甲3 ${表名}：🟡 行写明口径短板`, 裸黄.slice(0, 2).join(' | '))
 }
 
+// ★ V91（2026-10-09）区域消费水平结构化 —— 结构位存在 / 覆盖率随实际 / 可核性（三件套红线）
+{
+  const { LOCATION_PROFILE, 结构化覆盖 } = await import('../src/siteLocations.mjs')
+  const 键 = Object.keys(LOCATION_PROFILE)
+  const 有字段 = 键.filter(k => '社零' in LOCATION_PROFILE[k] && '人均可支配' in LOCATION_PROFILE[k])
+  ok(有字段.length === 键.length,
+    `V91① 结构位存在：${有字段.length}/${键.length} 区位都有『社零/人均可支配』`, `缺 ${键.length - 有字段.length}`)
+  const c = 结构化覆盖()
+  ok(c.总区位 === 键.length && c.社零有值 <= c.总区位 && c.可支配有值 <= c.总区位,
+    `V91② 有值区位数【随实际·不写死】（社零 ${c.社零有值}/${c.总区位} · 人均可支配 ${c.可支配有值}/${c.总区位}）`)
+  const 有值无源 = 键.filter(k => ['社零', '人均可支配'].some(f => {
+    const v = LOCATION_PROFILE[k][f]; return v && Number.isFinite(Number(v.值)) && !v.来源
+  }))
+  ok(有值无源.length === 0, 'V91③ 可核性：凡有值必有『来源』（三件套红线 · 采不到留 null 回落代理）', 有值无源.slice(0, 3).join(','))
+  ok(键.length === 26, `V91④ 区位数不被本批改动（${键.length}）`)
+}
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 console.log('RV（_rv-33v12.mjs）：删竞品 source / 改区位数 / 字号回退 ⇒ 必红')
 process.exit(fail ? 1 : 0)
