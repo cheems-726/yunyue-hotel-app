@@ -77,5 +77,10 @@ try {
   LOCATION_PROFILE[区].人均可支配 = 原值   // 还原（防污染同进程后续断言）
 }
 
+  // ⑦ ★ 口径必标（V91 批3 教训：子串误判 ⇒ 来源串必须写明口径词，否则后人无法判断）
+  const 键2 = Object.keys(LOCATION_PROFILE)
+  const 缺口径 = 键2.filter(k => { const v = LOCATION_PROFILE[k].人均可支配; return v && Number.isFinite(Number(v.值)) && !/(全体|城镇|农村|全市)居民/.test(String(v.来源)) })
+  ok(缺口径.length === 0, '⑦ 口径必标：凡『人均可支配』有值，来源串必须写明口径（全体/城镇/农村/全市居民）', 缺口径.join(','))
+
 console.log(`\n结果: ${pass} 通过 / ${fail} 失败`)
 if (fail) process.exit(1)
