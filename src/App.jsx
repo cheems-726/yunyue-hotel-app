@@ -6,6 +6,8 @@ import BrandSelection from './BrandSelection.jsx'
 import Claim from './Claim.jsx'
 import Establishment from './Establishment.jsx'
 import DecisionPanel from './DecisionPanel.jsx'
+// ★ V97：统一导航栈（决策历史 → 「回到上一个决策」）
+import { 创建导航栈 } from './navStack.mjs'
 
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
@@ -1820,6 +1822,17 @@ export default function App() {
   const [tab, setTab] = useState('business')
   const [openPage, setOpenPage] = useState(null) // { title, icon }
   const [currentDecision, setCurrentDecision] = useState(null) // 当前决策
+  // ★ V97（用户点名「回到上一个决策」）：决策历史栈 —— 复用统一导航栈（纯逻辑 · src/navStack.mjs）
+  //   ★ 折中（保留既有约定 App.jsx:1823-1828『手势不消费决策面板』）：**只有按钮** 回上一个决策；手势/返回键仍静默。
+  const 决策导航 = React.useRef(null); if (!决策导航.current) 决策导航.current = 创建导航栈('business')
+  const 开决策 = (d) => { if (d && d.id) 决策导航.current.进入('decision:' + d.id); setCurrentDecision(d) }
+  const 回决策 = () => {
+    if (!决策导航.current.可以返回()) { setCurrentDecision(null); return false }
+    const id = String(决策导航.current.返回()).replace('decision:', '')
+    const d = decisions.find(x => x.id === id)
+    setCurrentDecision(d || null)
+    return !!d
+  }
   // 手机侧滑返回 / 安卓返回键的统一处理（**纯网页方案，iOS Safari 与安卓浏览器都走这条**）
   // 规则（用户 2026-09-22 定·选项2）：
   //   · 子页(openPage) → 关闭它
@@ -2667,7 +2680,7 @@ export default function App() {
           initial={doneDecisions[currentDecision.id]}
           lastReport={history.length ? history[history.length - 1] : null}
           history={history}
-          onBack={() => setCurrentDecision(null)}
+          onBack={回决策}   // ★ V97：有上一个决策 ⇒ 回去；没有才退出面板
           onDone={(id, answer) => {
             // 属性池：先撤销旧答案的增量（学生改答案时不重复累加），再应用新答案
             const prevAnswer = doneDecisions[id]
@@ -2747,7 +2760,7 @@ export default function App() {
           : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={setCurrentDecision} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={report} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={report} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={report} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,
