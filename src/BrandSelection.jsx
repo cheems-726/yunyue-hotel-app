@@ -21,6 +21,7 @@ function 品牌条款(name) {
   return {
     保证金: m.保证金 ? 金额(m.保证金.值) + '（置信度 ' + m.保证金.置信度 + '）' : null,
     管理费: m.管理费 && m.管理费.费率 ? '月营收 × ' + (m.管理费.费率.值 * 100) + '%（置信度 ' + m.管理费.费率.置信度 + '）' : null,
+    筹备费: m.筹备费 ? 金额(m.筹备费.值) + '（置信度 ' + m.筹备费.置信度 + '）' : null,
     物业面积: 面积 ? (面积.值 && typeof 面积.值 === 'number' ? '≥' + 面积.值 + '㎡' : 面积.值 && typeof 面积.值 === 'object' ? 面积.值[0] + '-' + 面积.值[1] + '㎡' : null) : null,
     房量门槛: 房量 ? (房量.值 && typeof 房量.值 === 'number' ? '≥' + 房量.值 + ' 间' : 房量.值 && typeof 房量.值 === 'object' ? 房量.值[0] + '-' + 房量.值[1] + ' 间' : null) : null,
   }
@@ -89,6 +90,7 @@ export default function BrandSelection({ location, onConfirm }) {
         { label: '房价带', value: b.price, dir: '' },
         { label: '加盟费', value: b.fee, dir: '' },
         { label: '保证金', value: 条款 && 条款.保证金 ? 条款.保证金 : '待补（无公开来源 · 不编造）', dir: '' },
+        { label: '筹备费', value: 条款 && 条款.筹备费 ? 条款.筹备费 : '待补（无公开来源 · 不编造）', dir: '' },
         { label: '管理费', value: 条款 && 条款.管理费 ? 条款.管理费 : '待补（无公开来源 · 不编造）', dir: '' },
         { label: '标准要求', value: 标准.join(' · ') || b.standard, dir: '' },
         { label: '适配区位', value: 适 && 适.名单.length ? `${适.名单.length} 个：${适.名单.slice(0, 4).join('、')}${适.名单.length > 4 ? ' 等' : ''}` : '26 区位实测竞品中无同档同价带对标（此组合当前市场空档 · 谨慎）', dir: '' },
