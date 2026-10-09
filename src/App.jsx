@@ -2710,7 +2710,7 @@ export default function App() {
                 decisionId: id,
                 answer,
                 feedback: fb,
-              }).catch(() => {})   // 双保险：函数内部已 catch，这里再兜一层
+              }).catch(() => { toast('决策已存本机，但云端流水上传失败（网络问题）—— 请检查网络后重试，不影响本周结算') })   // ★ V98-⑤：原为静默空 catch（用户看不到失败）
             }
             setDoneDecisions({ ...doneDecisions, [id]: answer })
             // ★ §22.3-C3：操作者记录落存档（每条含 操作者/职位/决策/时间）——
