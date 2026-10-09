@@ -225,7 +225,13 @@ if (!NO_BUILD) {
   rows.push({ name: 'npm run build', state: '✓', pass: '-', fail: '-', secs: b.secs })
 }
 
+// ★ D250（2026-10-09 · 决策端）：**同名套件只跑一次** —— SUITES 里 verify-live-review-ui 同时存在
+//   【fast 条目】与【browser:true 条目】，全量模式下**两遍并发** ⇒ 互相踩踏（实测同一次运行里同时出现 37/7 与 37/5
+//   ⇒ M2 判「新增失败」红，而单独跑该套件 exit=0/0）。⇒ 按 file 去重执行（保留首个定义 · 报告行也只出一份）。
+const 已跑文件 = new Set()
 for (const s of SUITES) {
+  if (s.file && 已跑文件.has(s.file)) continue
+  if (s.file) 已跑文件.add(s.file)
   if (s.npm) {
     if (FAST) { rows.push({ name: s.name, state: '⏭ 跳过（--fast）', pass: '-', fail: '-', secs: '-' }); skipped++; continue }
     // D39：已知红（平衡性待决）—— 跑、报告、写明理由，但不计入失败数（断言本身未改动）
