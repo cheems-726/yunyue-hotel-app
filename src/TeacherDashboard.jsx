@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+// ★ V97：统一导航栈（返回=弹栈 · 教师端接 popstate）
+import { 创建导航栈, 造返回处理器 } from './navStack.mjs'
 import Icon from './Icon.jsx'
 import { decisions, OWNER_LABELS } from './decisions.js'
 import { saveGameStateNow } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）
@@ -807,6 +809,18 @@ function SupervisorPanel({ rawStates, profiles }) {
 
 export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('live')
+  // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
+  //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
+  const 栈 = useRef(null); if (!栈.current) 栈.current = 创建导航栈('live')
+  const 跳 = (v) => { if (!v || v === view) return; 栈.current.进入(v); setView(v) }
+  const 回 = () => { if (!栈.current.可以返回()) return false; setView(栈.current.返回()); return true }
+  useEffect(() => {
+    const 处理 = 造返回处理器(栈.current, v => setView(v))
+    const onPop = () => { if (处理()) history.pushState({ 教师端: true }, '') }
+    history.pushState({ 教师端: true }, '')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   // ★ V10b：>1024 三栏后台（照稿 _mockup-v10b-老师端）—— 顶栏 + 左导航 168 + 主区 + 注入右栏 250
   const [大屏, set大屏] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1025px)').matches)
   useEffect(() => {
@@ -1023,7 +1037,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           { k: 'teaching', icon: 'teach.point', t: '教学参考' },
           { k: 'me', icon: 'nav.me', t: '我的' },
         ].map(x => (
-          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => setView(x.k)}>
+          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => 跳(x.k)}>
             <Icon name={x.icon} size={16} />{x.t}
           </a>
         ))}
@@ -1075,7 +1089,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       {/* 视图标题（分组/教学/总览/注入/领班 从"我的"进入时显示返回） */}
       {(view === 'groups' || view === 'teaching' || view === 'overview' || view === 'inject' || view === 'supervisor') && (
         <div style={{ padding: '0 20px 8px' }}>
-          <button className="btn btn-ghost" style={{ width: '100%', padding: '10px 0' }} onClick={() => setView('me')}>‹ 返回我的</button>
+          <button className="btn btn-ghost" style={{ width: '100%', padding: '10px 0' }} onClick={() => 回()} disabled={!栈.current.可以返回()}>‹ 返回</button>
         </div>
       )}
 
@@ -1683,7 +1697,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                     { l: '全班平均分', v: avgScore, to: 'ranking' },
                     { l: '最近动向', v: latest && latest.updated ? new Date(latest.updated).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', to: 'live' },
                   ].map(s => (
-                    <div key={s.l} onClick={() => setView(s.to)} style={{ flex: 1, background: 'var(--warn-bg)', borderRadius: 8, padding: '7px 0', textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s' }}
+                    <div key={s.l} onClick={() => 跳(s.to)} style={{ flex: 1, background: 'var(--warn-bg)', borderRadius: 8, padding: '7px 0', textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--warn-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'var(--warn-bg)'}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--warn)' }}>{s.v}</div>
@@ -1703,7 +1717,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               { v: 'groups', icon: 'nav.group', label: '分组管理', desc: '分组 / 班级 / 学号' },
               { v: 'teaching', icon: 'teach.point', label: '教学参考', desc: '四维评分规则 / 事件图鉴' },
             ].map(x => (
-              <div key={x.v} onClick={() => setView(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid var(--fill)', cursor: 'pointer' }}>
+              <div key={x.v} onClick={() => 跳(x.v)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 4px', borderBottom: '1px solid var(--fill)', cursor: 'pointer' }}>
                 <span style={{ fontSize: 18, display: 'flex' }}><Icon name={x.icon} size={18} /></span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{x.label}</div>
@@ -1725,13 +1739,18 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} /></aside>}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
+    {/* ★ V97 用户要求：导航栏上方左右各一个 —— 左「‹ 返回」（弹栈回上一处）· 右「上一页 ›」（同 popstate 语义） */}
+    <div style={{ display: 'flex', gap: 8, padding: '0 12px 6px' }}>
+      <button className="btn btn-ghost" style={{ flex: 1, padding: '8px 0' }} disabled={!栈.current.可以返回()} onClick={() => 回()}>‹ 返回</button>
+      <button className="btn btn-ghost" style={{ flex: 1, padding: '8px 0' }} disabled={!栈.current.可以返回()} onClick={() => 回()}>上一页 ›</button>
+    </div>
     <div className="tabbar">
       {[
         { key: 'live', icon: 'nav.live', label: '实时决策' },
         { key: 'ranking', icon: 'nav.rank', label: '排名' },
         { key: 'me', icon: 'nav.me', label: '我的' },
       ].map(v => (
-        <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => setView(v.key)}>
+        <button key={v.key} className={`tab ${view === v.key ? 'active' : ''}`} onClick={() => 跳(v.key)}>
           <div className="tab-icon"><Icon name={v.icon} size={20} /></div>
           <div className="tab-label">{v.label}</div>
         </button>
