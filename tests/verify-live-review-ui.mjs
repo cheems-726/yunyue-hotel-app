@@ -17,8 +17,18 @@ import { existsSync } from 'node:fs'
 import { CAUSE_SOURCE } from '../src/guests.js'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const PORT = 4176
-const BASE = `http://localhost:${PORT}/`
+let PORT = 4176   // ★ V96：占用则自动取空闲端口（见下方隔离块）
+let BASE = ''   // ★ V96：启动前探空闲端口后赋值
+// ★ V96（2026-10-09 · 门禁确定性）：**基准日 = 最近一个教学日（周一~周五）**
+//   旧行为锚『今天 10:00』⇒ 周六/周日跑游戏日不推进 ⇒ A 段 0 产出（knownRed 的周六红）。
+//   现在：周六 ⇒ 回退周五；周日 ⇒ 回退周五；工作日 ⇒ 今天；冻结时刻仍 10:00（退房高峰 · checkout=1）。
+const 基准日 = (() => {
+  const d = new Date(); const w = d.getDay()          // 0=周日 6=周六
+  if (w === 6) d.setDate(d.getDate() - 1)
+  else if (w === 0) d.setDate(d.getDate() - 2)
+  d.setHours(10, 0, 0, 0)
+  return d
+})()
 const results = []
 let browser, server, lastText = ''
 function ok(name, cond) {
@@ -27,6 +37,9 @@ function ok(name, cond) {
   if (!cond) console.log('    [页面] ' + String(lastText).slice(0, 160).replace(/\n/g, ' | '))
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms))
+// ★ V96 自证：锚定逻辑本身可证伪（把上面公式改错 ⇒ 本条红）· 本文件 ok() 签名是 (name, cond)
+ok('★ V96 时间锚定：基准日 = 教学日（周一~周五）', [1, 2, 3, 4, 5].includes(基准日.getDay()))
+console.log(`▶ 基准日 = ${基准日.getFullYear()}-${String(基准日.getMonth() + 1).padStart(2, '0')}-${String(基准日.getDate()).padStart(2, '0')} 10:00（getDay=${基准日.getDay()}）`)
 async function text(page) { lastText = await page.evaluate(() => document.body.innerText); return lastText }
 async function clickText(page, t) {
   return page.evaluate(t2 => {
@@ -68,13 +81,18 @@ const reviews = (page) => page.evaluate(() => { try { return JSON.parse(localSto
 
 if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
 
-// ★ 复用优先：端口已在监听 ⇒ 直接用常驻服务（**不 spawn、不清杀** —— 避免起停抖动/窗口闪烁）
-复用常驻 = await fetch(BASE).then(r => r.ok).catch(() => false)
-if (!复用常驻) {
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
-} else {
-  console.log('▶ 检测到 ' + PORT + ' 已有常驻预览服务 ⇒ 直接复用（不起新进程）')
+// ★ V96（隔离 · 2026-10-09）：**不再复用任何既有预览**
+//   旧行为「端口已在监听 ⇒ 复用常驻、不 spawn 也不清杀」⇒ 上一次异常退出（或门禁被 kill）留下的
+//   detached preview 会被复用 ⇒ 同一次门禁里的结果与单跑不同（实测 37/1 · 37/7 抖动）。
+//   现在：探 4176..4205 第一个空闲端口 ⇒ **自己起 · 收尾自己杀**（taskkill /T /F 清整棵树）。
+{
+  const 占 = async (p) => fetch(`http://localhost:${p}/`).then(() => true).catch(() => false)
+  for (let p = 4176; p <= 4205; p++) { if (!(await 占(p))) { PORT = p; break } }
+  BASE = `http://localhost:${PORT}/`
 }
+复用常驻 = false
+server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+console.log('▶ 本次自起预览：端口 ' + PORT + '（★ V96 不复用既有服务）')
 for (let i = 0; i < 30; i++) { try { const r = await fetch(BASE); if (r.ok) break } catch (e) {} await sleep(300) }
 browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
@@ -143,15 +161,15 @@ try {
   }).catch(() => 1)
   // ★ §26.5（P0d）：面板时间改真实时钟 ⇒ 存档键与日计数键统一走【教学日】（本地 08:00 换日），
   //   不再用 UTC 的 toISOString 或 floor(gameMin/1440)（那是"游戏日"）。
-  const 教学日键 = (() => { const d = new Date(Date.now() - 8 * 3600 * 1000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+  const 教学日键 = (() => { const d = new Date(基准日.getTime() - 8 * 3600 * 1000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const liveKey = `hotel-live-${教学日键}-w${week}`
   const weekKey = `hotel-review-week-w${week}`
   // ★ §26.5（P0d）：面板时间已改【真实时钟】⇒ 套件不能再靠"×30 游戏钟快进"来复现时段场景
   //   （那正是被删掉的假象）。改为**设定页面时钟**：页面里的"现在"取 `__test_mock_hour`（默认 10:00
   //   = 退房高峰 · checkout=1 ⇒ 评价主要来源；且 10:00 ≥ 08:00 ⇒ 教学日 = 今天，与套件算的 教学日键 一致）。
   //   需要换时段（如 C 段要下午）⇒ 测试侧先写 localStorage 再 reload（initScript 每次加载都会重跑）。
-  await page.addInitScript(() => {
-    const 目标 = new Date()
+  await page.addInitScript((基准ms) => {
+    const 目标 = new Date(基准ms)
     目标.setHours(10, 0, 0, 0)                 // 冻结到本地 10:00（退房高峰 · checkout=1）
     const 偏移 = 目标.getTime() - Date.now()
     const RealDate = Date
@@ -161,7 +179,7 @@ try {
     }
     globalThis.Date = MockDate
     Math.random = () => 0.01   // 每次 tick 都触发事件（否则 4% 命中率等不起）
-  })
+  }, 基准日.getTime())   // ★ V96：基准日由 Node 侧传入页面
   const seed = async (gameMin, dayCount) => {
     await page.evaluate(({ liveKey, gameMin, dayCount, 教学日键 }) => {
       localStorage.setItem(liveKey, JSON.stringify({
