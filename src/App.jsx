@@ -928,6 +928,9 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
 
   // ===== 本地备份：导出 / 导入 =====
   const [backupMsg, setBackupMsg] = useState('')
+  // ★ V98-④ 提交中防重复（导出是同步长任务 · 双击会重复下载/卡顿）
+  const 导忙 = React.useRef(false)
+  const [导出中, set导出中] = React.useState(false)
   function exportBackup() {
     try {
       const data = {
@@ -1189,7 +1192,7 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
           进度已自动存云端+本机。导出备份文件可防误删账号/清浏览器数据，双保险。
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" onClick={exportBackup}>导出备份</button>
+          <button className="btn btn-primary" onClick={async () => { if (导忙.current) return; 导忙.current = true; set导出中(true); try { await exportBackup() } finally { 导忙.current = false; set导出中(false) } }} disabled={导出中}>{导出中 ? '导出中…' : '导出备份'}</button>
           <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
             导入恢复
             <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => e.target.files[0] && importBackup(e.target.files[0])} />
