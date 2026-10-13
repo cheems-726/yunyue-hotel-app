@@ -42,11 +42,17 @@ create trigger on_auth_user_created after insert on auth.users
 create table if not exists public.game_states (
   user_id uuid primary key references auth.users(id) on delete cascade,
   group_name text,
+  group_key text,          -- ★ V102/D262（2026-10-13）：补齐 group_key，应用与归档函数全按它读写组档
   state jsonb not null default '{}'::jsonb,
   week int not null default 1,
   finished boolean not null default false,
   updated_at timestamptz not null default now()
 );
+-- ★ V102/D262（2026-10-13）：已存在的库也要补齐 group_key（create table if not exists 不会加列）
+alter table public.game_states add column if not exists group_key text;
+-- 一组一档：同组共用一行 ⇒ group_key 非空时唯一（部分索引，允许未分组为 NULL）
+create unique index if not exists game_states_group_key_uniq on public.game_states(group_key) where group_key is not null;
+
 alter table public.game_states enable row level security;
 -- 学生只能读写自己的
 create policy "game_states_self" on public.game_states for all
@@ -54,6 +60,10 @@ create policy "game_states_self" on public.game_states for all
 -- 教师可读全部（排名/总览）
 create policy "game_states_teacher_read" on public.game_states for select
   using (public.is_teacher(auth.uid()));
+-- ★ V102/D262（2026-10-13）：class_name 原在下方 v0.31 段才 add column，
+--   而下面的 game_states_group_read 策略立即引用它 ⇒ 一遍执行必挂并中断后续建表。此处前移。
+alter table public.profiles add column if not exists class_name text;
+
 -- 组内互看（只读）：同班级+同组号的学生可读彼此存档
 create policy "game_states_group_read" on public.game_states for select using (
   auth.uid() = user_id
@@ -69,7 +79,7 @@ create policy "game_states_group_read" on public.game_states for select using (
 );
 
 -- v0.31 增量：班级管理（教师可设置学生组号/班级）
-alter table public.profiles add column if not exists class_name text;
+-- ★ D262：class_name 的 add column 已前移到 group_read 策略之前（见上），此处不再重复
 -- 教师可更新学生档案（分组/班级管理）
 create policy "profiles_teacher_update" on public.profiles for update
   using (public.is_teacher(auth.uid()));
