@@ -6,7 +6,7 @@ import { existsSync, writeFileSync } from 'node:fs'
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4173
-const BASE = `http://localhost:${PORT}/`
+const BASE = process.env.BASE || `http://localhost:${PORT}/`
 const ID = process.env.STU_ID || '20240101'
 const PW = process.env.STU_PW || 'test123456'
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -41,7 +41,9 @@ async function nextStep(page) {
 try {
   if (!existsSync(EDGE)) throw new Error('Edge 不存在: ' + EDGE)
   const up = await fetch(BASE).then(r => r.ok).catch(() => false)
-  if (!up) {
+  if (process.env.BASE) {
+    log('▶ 外部 BASE=' + BASE + ' 可达=' + up)
+  } else if (!up) {
     server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
     for (let i = 0; i < 40; i++) { try { if ((await fetch(BASE)).ok) break } catch (e) {} await sleep(300) }
     log('▶ 已启动 preview')

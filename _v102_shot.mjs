@@ -2,7 +2,7 @@
 import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const BASE = 'http://localhost:4173/'
+const BASE = process.env.BASE || 'http://localhost:4173/'
 const OUT = 'D:/教学app/4-审计与报告/V102-联调取证'
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 mkdirSync(OUT, { recursive: true })

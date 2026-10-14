@@ -6,6 +6,7 @@ create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   role text not null default 'student',
   display_name text,
+  student_no text,          -- ★ V104/D276（2026-10-14）：补齐 student_no。线上云库有此列、仓库 5 份 SQL 全无 ⇒ 列漂移
   group_no int,
   created_at timestamptz not null default now()
 );
@@ -115,3 +116,7 @@ create policy "teacher_notes_student_read" on public.teacher_notes for select
   using (auth.uid() = student_uid);
 
 alter table public.profiles add column if not exists role_in_group text;
+-- ★ V104/D276（2026-10-14）：student_no 与 group_key 同属「列漂移」——只在线上云库存在，仓库 SQL 从未定义。
+--   教师端 supabaseClient.js:fetchAllProfiles() 点名 select student_no，缺列即 42703 ⇒ 教师端整片降级为演示数据。
+--   类型**实测线上云库**（PostgREST 探针：非数值型、400 字符不报长度错）⇒ text，与 class_name 同型。
+alter table public.profiles add column if not exists student_no text;
