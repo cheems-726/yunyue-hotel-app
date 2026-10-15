@@ -6,6 +6,7 @@
 //   ② 决策类：经营页「动态调价」点「不跟降」→ 反馈面板含 适用场景/教学点/引擎依据（V75 四段式）
 // ★ 走查原语（hasOverlay/closeOverlay/clickCard/clickStep/认领推进）整体照抄 ui-smoke（R51-1 同族教训：finder 逐字对齐现行文案）
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
@@ -73,6 +74,7 @@ await clickText(page, '开始我的酒店之旅'); await sleep(800)
 
 // ① 选址类
 await clickCard(page, '锦江区'); await sleep(500)
+  await 过两道闸门(page)
 ok('① 选址：点锦江区出反馈浮层', await hasOverlay(page))
 ok('① 选址：反馈含「优势：」正文（不空面板）', (await text(page)).includes('优势：'))
 await closeOverlay(page)

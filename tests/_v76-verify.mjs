@@ -4,6 +4,7 @@
 //   ② 「＋加入对比」汉庭+海友 → 并排对比表出现（两列 + 清空对比按钮）
 // 走查原语照抄 ui-smoke（R51-1 同族教训）
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
@@ -68,6 +69,7 @@ await clickText(page, '开始我的酒店之旅'); await sleep(800)
 // 选址（任选即可进品牌页）—— 用锦江区走标准链
 await clickCard(page, '锦江区'); await sleep(500)
 if (await hasOverlay(page)) await closeOverlay(page)
+  await 过两道闸门(page)
 await clickText(page, '确认选址'); await sleep(700)
 
 // ① 品牌卡点开 → 七字段

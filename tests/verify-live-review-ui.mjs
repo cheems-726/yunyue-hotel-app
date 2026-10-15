@@ -11,6 +11,7 @@
 //    再配合高位属性（p 大）与高入住（crowd=1），让"命中时刻"可预期。
 
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -133,7 +134,8 @@ try {
   await clickText(page, '进入演示'); await sleep(700)
   await clickText(page, '开始我的酒店之旅'); await sleep(800)
   await clickCard(page, '锦江区'); await sleep(500); await closeOverlay(page)
-  await clickText(page, '确认选址'); await sleep(700)
+    await 过两道闸门(page)
+await clickText(page, '确认选址'); await sleep(700)
   await clickCard(page, '汉庭'); await sleep(450)
   await clickText(page, '确认选择'); await sleep(700)
   await clickCard(page, 'OTA平台合作'); await sleep(400)
