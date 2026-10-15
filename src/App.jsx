@@ -1907,6 +1907,9 @@ export default function App() {
   //   取**同一周**的那条权威记录（不是最后一条—— 服务端可能已推进到更后面的周）：
   const 权威周 = report ? (history.find(h => h && h.week === report.week) || null) : null
   const reportView = (report && 权威周) ? { ...report, ...权威周 } : report
+  // ★ V109-T1/T2：选址的预言与承诺书（随存档持久化 · 承诺书不可编辑）
+  const [选址承诺书, set选址承诺书] = useState(saved.选址承诺书 || null)
+  const [选址预言, set选址预言] = useState(saved.选址预言 || null)
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
   const [toasts, setToasts] = useState([]) // 轻提示栈
@@ -2512,6 +2515,9 @@ export default function App() {
   }
   function handleSiteConfirm(result) {
     setLocation(result)
+    // ★ V109-T1/T2：选址的「预言 + 承诺书」随存档一并持久化（不可编辑 · 供 T3 复盘与教师端一屏查看）
+    if (result.承诺书) set选址承诺书(result.承诺书)
+    if (result.预言) set选址预言(result.预言)
     setBrand(null)
     setProperty(null)
     setEstablished(false)
@@ -2603,7 +2609,15 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <SiteSelection onConfirm={handleSiteConfirm} />
+        <SiteSelection onConfirm={handleSiteConfirm}
+          onLog={({ id, answer, feedback }) => saveDecisionLog({
+            userId: user.uid,
+            groupKey: groupKeyOf(user.className, user.groupNo),
+            week,
+            decisionId: id,
+            answer,
+            feedback,
+          }).catch(() => { toast('选址预言/承诺书已存本机，但云端流水上传失败（网络问题）') })} />
       </div>
     )
   }

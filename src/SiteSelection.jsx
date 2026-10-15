@@ -104,11 +104,55 @@ const cityGeo = {
 }
 const geoTagCls = { 核心: 'tag-core', 商务: 'tag-ind', 文旅: 'tag-tour', 工业: 'tag-ind', 空港: 'tag-ind', 旅游: 'tag-tour', 潜力: 'tag-county', 城区: 'tag-ind', 科研: 'tag-ind', 县域: 'tag-county' }
 
-export default function SiteSelection({ onConfirm }) {
+export default function SiteSelection({ onConfirm, onLog }) {
   const [currentCity, setCurrentCity] = useState('成都')
   const [selected, setSelected] = useState(null) // 区县 name
   const [feedback, setFeedback] = useState(null)
   const [展开竞品, set展开竞品] = useState(null)   // ★ V84：逐家竞品清单展开态（区名）
+  // ★ V109-T1/T2/T4：选址「先押注 → 再揭示 → 写理由」三处插桩（纯前端 + 一条落库）
+  const [预言s, set预言s] = useState({})        // { 区名: { 竞品档, 租金档, 置信度, 证据 } }
+  const [预言弹, set预言弹] = useState(null)     // 待预言的区名（不填 ⇒ 数据卡不解锁 · 可证伪 RV）
+  const [草稿, set草稿] = useState({ 竞品档: '', 租金档: '', 置信度: '' })
+  const [承诺书, set承诺书] = useState(null)     // { 假设, 为何不是, 打脸维, 反对意见, 验尸, 时间 } —— 提交后**不可编辑**
+  const [承诺弹, set承诺弹] = useState(false)
+  const [承诺草稿, set承诺草稿] = useState({ 假设: '', 为何不是: '', 打脸维: '', 反对意见: '', 验尸: '' })
+
+  // —— 真值（用于 T1 的「你的预言 vs 真值」与命中计分）——
+  const 全部区 = Object.values(districts).flat()
+  function 真值(name) {
+    const d = 全部区.find(x => x.name === name)
+    const 竞品数 = (COMPETITORS[name] || []).length
+    const 排序 = 全部区.map(x => (COMPETITORS[x.name] || []).length).sort((a, b) => b - a)
+    const rank = 排序.indexOf(竞品数)
+    const 档 = rank < 排序.length / 3 ? '前1/3' : (rank < (排序.length * 2) / 3 ? '中1/3' : '后1/3')
+    const r = d ? d.attrs.租金 : 0
+    return { 竞品档: 档, 租金档: r >= 4 ? '高' : (r >= 3 ? '中' : '低'), 竞品数 }
+  }
+  /** T1 计分：命中率 × 置信度校准（过度自信扣分、低估也扣分）——**必须进成绩**（否则是过场） */
+  function 预言分(p, name) {
+    const t = 真值(name)
+    const 命中 = [p.竞品档 === t.竞品档, p.租金档 === t.租金档].filter(Boolean).length / 2
+    const 置信 = Number(p.置信度) / 100
+    // 校准：命中率与置信度的差越小越好；差 = |命中率-置信|，扣分 = 差（过度自信与低估同罚）
+    const 校准扣 = Math.abs(命中 - 置信)
+    return { 命中率: Math.round(命中 * 100), 置信度: Number(p.置信度), 校准扣: Math.round(校准扣 * 100), 得分: Math.round((命中 - 校准扣 * 0.5) * 100) }
+  }
+  /** T2 过程分：4 项 × 0–2 · **公开评分表** · 只看"学生说了什么"（结构化信号，不看数值高低） */
+  const 六维 = ['客流', '房价', '租金', '竞争', '人力', '波动']
+  function 过程分(c) {
+    const 全文 = `${c.假设} ${c.为何不是} ${c.打脸维} ${c.验尸}`
+    const 维数 = 六维.filter(v => 全文.includes(v)).length
+    const 两区点名 = 全部区.filter(x => c.为何不是.includes(x.name)).length
+    const 打脸 = /打脸|风险|最怕|短板|不足|低估/.test(c.打脸维) && c.打脸维.trim().length >= 6
+    const 可验证 = /(出租率|均价|RevPAR|入住|客流|营收|万|%|\d)/.test(c.假设)
+    const 四项 = [
+      { 名: '引用了几维真实数据', 分: 维数 >= 2 ? 2 : (维数 === 1 ? 1 : 0), 据: `命中维度 ${维数} 个` },
+      { 名: '写了「为什么不是另外两个区」', 分: 两区点名 >= 2 ? 2 : (两区点名 === 1 ? 1 : 0), 据: `点名区县 ${两区点名} 个` },
+      { 名: '给了反向证据（最易被打脸的一维）', 分: 打脸 ? 2 : (c.打脸维.trim() ? 1 : 0), 据: c.打脸维.trim() ? '已写' : '未写' },
+      { 名: '写出可验证假设（含可测指标）', 分: 可验证 ? 2 : (c.假设.trim().length >= 10 ? 1 : 0), 据: 可验证 ? '含可测指标' : '未见指标' },
+    ]
+    return { 四项, 过程分: 四项.reduce((s, x) => s + x.分, 0), 满分: 8 }
+  }
 
   function barCls(val) {
     if (val >= 4) return 'bar-high'
@@ -130,9 +174,33 @@ export default function SiteSelection({ onConfirm }) {
     }
   }
 
+  // ★ V109-T1：**先押注 → 再揭示**。没做预言 ⇒ 数据卡**解锁不了**（可证伪 RV）
   function handleDistrictClick(d) {
+    if (!预言s[d.name]) { set预言弹(d.name); set草稿({ 竞品档: '', 租金档: '', 置信度: '' }); return }
     setSelected(d.name)
     setFeedback(siteResult(d))
+  }
+
+  function 提交预言() {
+    if (!草稿.竞品档 || !草稿.租金档 || !草稿.置信度) return    // 三项必填
+    const name = 预言弹
+    const p = { ...草稿, 证据: 真值(name), 时间: new Date().toISOString() }
+    set预言s(s => ({ ...s, [name]: p }))
+    const d = 全部区.find(x => x.name === name)
+    if (d) { setSelected(name); setFeedback(siteResult(d)) }      // 提交后**才解锁**
+    onLog && onLog({ id: 'location-prediction', answer: `${name}｜竞品${p.竞品档}｜租金${p.租金档}｜把握${p.置信度}%`, feedback: `预言已记（计分：命中率×置信度校准）` })
+    set预言弹(null)
+  }
+
+  function 提交承诺书() {
+    const c = 承诺草稿
+    if (!c.假设.trim() || !c.为何不是.trim() || !c.打脸维.trim()) return   // 前三项必填（第④项填"无"亦可）
+    const 书 = { ...c, 反对意见: c.反对意见.trim() || '无', 时间: new Date().toISOString() }
+    set承诺书(书)
+    const d = 全部区.find(x => x.name === selected)
+    const ps = 过程分(书)
+    onLog && onLog({ id: 'location-commitment', answer: `${selected}｜${书.假设}`, feedback: `承诺书已签（过程分 ${ps.过程分}/${ps.满分} · 不可编辑）` })
+    set承诺弹(false)
   }
 
   return (
@@ -398,21 +466,109 @@ export default function SiteSelection({ onConfirm }) {
         ))}
       </div>
 
+      {/* ★ V109-T2：承诺书（不可逆 + 结构化理由）—— **不写承诺书 ⇒「确认选址」点不动**（可证伪 RV） */}
+      {selected && (() => {
+        const 真 = 真值(selected); const p = 预言s[selected]; const ps = 承诺书 ? 过程分(承诺书) : null
+        return (
+          <div className="card" style={{ margin: '0 20px 6px', padding: 14 }}>
+            <div className="card-title">选址承诺书（签署后不可编辑 · 确认后本学期不可改）</div>
+            {p && (() => { const sc = 预言分(p, selected); return (
+              <div style={{ fontSize: 12, background: 'var(--bg)', borderRadius: 6, padding: '6px 8px', marginBottom: 8 }}>
+                <b>你的预言 vs 真值</b>：竞品密度 你押「{p.竞品档}」/ 真值「{真.竞品档}」{p.竞品档 === 真.竞品档 ? ' ✓' : ' ✗'} · 租金 你押「{p.租金档}」/ 真值「{真.租金档}」{p.租金档 === 真.租金档 ? ' ✓' : ' ✗'}
+                <div style={{ color: 'var(--text-sub)', marginTop: 2 }}>预言分 **{sc.得分}**（命中率 {sc.命中率}% · 置信度 {sc.置信度}% · 校准扣 {sc.校准扣} —— 过度自信与低估同罚）</div>
+              </div>
+            ) })()}
+            {!承诺书 ? (
+              <button className="btn" style={{ width: '100%', padding: '10px 0' }} disabled={!p}
+                onClick={() => { set承诺草稿({ 假设: '', 为何不是: '', 打脸维: '', 反对意见: '', 验尸: '' }); set承诺弹(true) }}>
+                {p ? '写承诺书（4 项必填）→' : '先完成「选址前预言」才能写承诺书'}
+              </button>
+            ) : (
+              <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+                <div>① 客群假设：{承诺书.假设}</div>
+                <div>② 为什么不是另外两个区：{承诺书.为何不是}</div>
+                <div>③ 最易被打脸的一维：{承诺书.打脸维}</div>
+                <div>④ 未被采纳的反对意见：{承诺书.反对意见}</div>
+                <div>⑤ 事前验尸：{承诺书.验尸 || '（未填）'}</div>
+                <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>签署 {new Date(承诺书.时间).toLocaleString()} · **不可编辑**</div>
+                <div style={{ marginTop: 6, fontWeight: 700 }}>过程分 {ps.过程分}/{ps.满分}（公开评分表 · **与结果分是两条独立曲线，不求和不加权**）</div>
+                {ps.四项.map(x => <div key={x.名} style={{ color: 'var(--text-sub)' }}>· {x.名}：{x.分}/2（{x.据}）</div>)}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {/* 底部确认按钮（固定在内容底部） */}
       <div style={{ padding: '8px 20px 24px' }}>
         <button
           className="btn-confirm"
-          disabled={!selected}
+          disabled={!selected || !承诺书}
           onClick={() => {
             const d = districts[currentCity].find(x => x.name === selected)
-            onConfirm({ city: currentCity, district: d.name, attrs: d.attrs })
+            onConfirm({ city: currentCity, district: d.name, attrs: d.attrs, 承诺书, 预言: 预言s[selected] })
           }}
         >
-          {selected ? `确认选址 ${selected}，进入选品牌 →` : '请选择一个区县'}
+          {!selected ? '请选择一个区县' : (!承诺书 ? '写完承诺书后才能确认选址' : `确认选址 ${selected}，进入选品牌 →`)}
         </button>
         {/* V54批2 缺口3：不可逆预告（S1 选定后无反悔入口属设计 · 界面须提前说明） */}
         <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>选址确认后本学期不可更改（不设反悔入口——真实加盟选址同样不可逆，确认前想清楚）</div>
       </div>
+
+      {/* ★ V109-T1：选址前「预言」弹窗 —— **不填 ⇒ 数据卡解锁不了**（反例 RV） */}
+      {预言弹 && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+          <div className="card" style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
+            <div className="card-title">🔮 选址前预言 · {预言弹}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', margin: '6px 0 12px' }}>**先押注，再看数据** —— 提交三项预言后才解锁该区的六维数据卡。</div>
+            {[['该区竞品密度在 24 区里排第几', '竞品档', ['前1/3', '中1/3', '后1/3']],
+              ['该区租金档次', '租金档', ['高', '中', '低']],
+              ['你对自己判断的把握', '置信度', ['50', '70', '90']]].map(([label, key, opts]) => (
+              <div key={key} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, marginBottom: 5 }}>{label}</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {opts.map(o => (
+                    <button key={o} className={`btn ${草稿[key] === o ? '' : 'btn-ghost'}`} style={{ flex: 1, padding: '9px 0', fontSize: 13 }}
+                      onClick={() => set草稿(s => ({ ...s, [key]: o }))}>{o}{key === '置信度' ? '%' : ''}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button className="btn-confirm" style={{ width: '100%' }} disabled={!草稿.竞品档 || !草稿.租金档 || !草稿.置信度} onClick={提交预言}>提交预言并解锁数据卡 →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ★ V109-T2/T4：承诺书弹窗（4 项必填 + 事前验尸） */}
+      {承诺弹 && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16, overflowY: 'auto' }}>
+          <div className="card" style={{ width: 'min(94vw, 460px)', padding: 16, background: 'var(--card)', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div className="card-title">✍️ 选址承诺书 · {selected}（签署后不可编辑）</div>
+            {[['① 我们赌哪条客群假设（≤50 字，写清可测指标）', '假设', 50],
+              ['② 为什么**不是**另外两个备选区（须点名那两个区）', '为何不是', 120],
+              ['③ 我们最容易被哪一维数据打脸（选一维 + 一句话）', '打脸维', 80],
+              ['④ 本组未被采纳的反对意见（没有就填「无」）', '反对意见', 80]].map(([label, key, max]) => (
+              <div key={key} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 13, marginBottom: 4 }}>{label}</div>
+                <textarea value={承诺草稿[key]} maxLength={max} rows={2}
+                  onChange={e => set承诺草稿(s => ({ ...s, [key]: e.target.value }))}
+                  style={{ width: '100%', fontSize: 13, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
+              </div>
+            ))}
+            {承诺草稿.反对意见.trim() === '无' && (
+              <div style={{ fontSize: 12, color: 'var(--warn)', marginBottom: 8 }}>⚠ 填「无」：请先自问 —— **本组是否存在群体思维**？（最少指导式教学会让高职学生空转，老师会在 2 分钟内点破）</div>
+            )}
+            <div style={{ fontSize: 13, marginBottom: 4 }}>⑤ 事前验尸（**必填**）：假设 12 周后这个区**已经失败**，写 3 条最可能死因</div>
+            <textarea value={承诺草稿.验尸} rows={3} onChange={e => set承诺草稿(s => ({ ...s, 验尸: e.target.value }))}
+              style={{ width: '100%', fontSize: 13, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 10px' }}>过程分只看这四项结构化信号（引用维度数 / 点名两个备选区 / 反向证据 / 可验证假设）；事前验尸只作**参与度信号**，不单独决定成绩（关键词可比对 ⇒ 可作弊）。</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => set承诺弹(false)}>取消</button>
+              <button className="btn-confirm" style={{ flex: 2 }} disabled={!承诺草稿.假设.trim() || !承诺草稿.为何不是.trim() || !承诺草稿.打脸维.trim() || !承诺草稿.验尸.trim()} onClick={提交承诺书}>签署承诺书（不可编辑）</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {feedback && <ResultFeedback result={feedback} onClose={() => setFeedback(null)} />}
     </div>
