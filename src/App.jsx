@@ -1895,9 +1895,16 @@ export default function App() {
   // 属性变化飘字（规格 §8）：App 权威下发增量，供经营页属性条飘「品质 +5」
   // 说明：决策面板是全屏替换分支，确认时经营页会卸载→重挂载，组件内做 diff 拿不到增量
   const [attrFlash, setAttrFlash] = useState(null)
-  const [report, setReport] = useState(saved.report || null) // 周报结果
+  const [reportRaw, setReport] = useState(saved.report || null) // 客户端自算的周报（★ V107-E1：降级为"预览/兜底"，不再是权威）
   const [week, setWeek] = useState(saved.week || 1) // 当前经营周
-  const [history, setHistory] = useState(saved.history || []) // 历史周报
+  const [history, setHistory] = useState(saved.history || []) // 历史周报（= **服务端权威结算**，由 host tick 写入）
+  // ★ V107-E1（唯一真相源）：**服务端权威结算（history 末条）优先** ——
+  //   实测证据（D298）：同一档同一周存在两份结果（客户端 state.report 116.9万 vs 服务端 history[0] 81.6万），
+  //   而本组件原来一律 `report ? report.x : history[last].x` ⇒ **学生屏显示的是客户端自算值，不是权威值**。
+  //   两端字段集一致（capital/occupancy/revenue/gop/netProfit/profit/negativeCount/finalGoodRate/events…）
+  //   ⇒ 直接以权威值 spread 覆盖；**仅在尚无权威值**（服务端未结算）时才回落到客户端预览。
+  const 权威结算 = history.length ? history[history.length - 1] : null
+  const report = 权威结算 ? { ...(reportRaw || {}), ...权威结算 } : reportRaw
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
   const [toasts, setToasts] = useState([]) // 轻提示栈

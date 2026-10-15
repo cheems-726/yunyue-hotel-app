@@ -68,6 +68,26 @@ async function writeTickLog({ tick_key, class_day, group_key, result, ok }) {
   }
 }
 
+/** ★ V107-E3：结算前**不可变**快照（insert-only、**无 conflict target** ⇒ 同日重跑只追加、绝不覆盖）。
+ *  为什么必须写在 writeGroupState **之前**：tick 会改写 capital/attrs/history —— 事后再存就只剩"结算后"的值，
+ *  等于没有回滚点（D295 实测反驳了"archive_daily 可回溯"：它是 on conflict do update ⇒ 同日覆盖）。 */
+async function writePreSettleSnapshot({ tick_key, group }) {
+  const s = group.state || {}
+  const r = await fetch(REST + '/pre_settle_snapshots', {
+    method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      tick_key,
+      group_key: group.group_key || null,
+      user_id: group.user_id || null,
+      week: group.week ?? null,
+      capital_before: s.capital ?? null,
+      history_len_before: Array.isArray(s.history) ? s.history.length : 0,
+      state_before: s,
+    }),
+  })
+  if (!r.ok) throw new Error('写 pre_settle_snapshots 失败：' + r.status + ' ' + (await r.text()))
+}
+
 async function main() {
   const cls = await readClassState()
   const classDay = classDayNow(cls)
@@ -85,7 +105,10 @@ async function main() {
       await writeTickLog({ tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false })
       continue
     }
-    if (!DRY && r.advanced && r.save) await writeGroupState(g, r.save)
+    if (!DRY && r.advanced && r.save) {
+      await writePreSettleSnapshot({ tick_key: tickKey(classDay, gk), group: g })   // ★ V107-E3：先落不可变快照，再改档
+      await writeGroupState(g, r.save)
+    }
     await writeTickLog({ tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, engineVersion: TICK_VERSION }, ok: true })
   }
   console.log(JSON.stringify({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, dry: DRY, engineVersion: TICK_VERSION, detail: out }))
