@@ -43,7 +43,11 @@ export default function GeoMap({ city, districts, selected, onSelect, dark }) {
           if (x < minX) minX = x; if (x > maxX) maxX = x
           if (y < minY) minY = y; if (y > maxY) maxY = y
         }
-        rings.push({ name: f.properties.name, pts, centroid: f.properties.centroid })
+        // ★ V106-B2（2026-10-15）：一个区可能是 MultiPolygon 多块（飞地）⇒ 之前**每块各画一次名字**
+        //   且各块共用同一个 centroid ⇒ 同一位置叠画两次（视觉重影 + React key 重复）。
+        //   修法：只让该名字的**第一块**承担标注（firstOfName），path 仍逐块绘制（边界真实）。
+        const firstOfName = !rings.some(r => r.name === f.properties.name)
+        rings.push({ name: f.properties.name, pts, centroid: f.properties.centroid, firstOfName })
       }
     }
     const W = 760
@@ -81,7 +85,7 @@ export default function GeoMap({ city, districts, selected, onSelect, dark }) {
           const isSel = 区位s.includes(selected)
           const relevant = 区位s.length > 0
           return (
-            <path key={s.name} d={s.d}
+            <path key={'s' + s.d} d={s.d}
               fill={isSel ? 'var(--primary)' : relevant ? 'var(--primary-bg)' : 'var(--fill)'}
               stroke={isSel ? 'var(--primary)' : 'var(--border-strong)'}
               strokeWidth={isSel ? 2 : 1}
@@ -90,7 +94,7 @@ export default function GeoMap({ city, districts, selected, onSelect, dark }) {
             />
           )
         })}
-        {paths.shapes.map(s => s.center && (
+        {paths.shapes.map(s => s.center && s.firstOfName && (
           <text key={'t' + s.name} x={s.center[0]} y={s.center[1]} textAnchor="middle"
             fontSize={11} fill={区划到区位[s.name]?.includes(selected) ? '#fff' : 'var(--text-sub)'}
             style={{ pointerEvents: 'none', fontWeight: 区划到区位[s.name]?.includes(selected) ? 700 : 400 }}>

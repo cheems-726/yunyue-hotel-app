@@ -82,7 +82,7 @@ function LoginPage({ onLogin }) {
     setError('')
     try {
       const email = emailFor(account)
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password: String(password).trim() })   // ★ V106-D2④：trim 首尾空格（手机输入常见尾随空格 ⇒ 曾致『账号或密码错误』）
       if (authErr) {
         if (authErr.message.includes('Invalid login')) {
           setError('账号或密码错误。还没注册过？点「注册并登录」')
@@ -103,12 +103,12 @@ function LoginPage({ onLogin }) {
     if (!account || !password) { setError('请输入账号和密码'); return }
     const vErr = validateAccount(account)
     if (vErr) { setError(vErr); return }
-    if (password.length < 6) { setError('密码至少 6 位'); return }
+    if (String(password).trim().length < 6) { setError('密码至少 6 位'); return }
     setBusy(true)
     setError('')
     try {
       const email = emailFor(account)
-      const { data, error: authErr } = await supabase.auth.signUp({ email, password })
+      const { data, error: authErr } = await supabase.auth.signUp({ email, password: String(password).trim() })   // ★ V106-D2④
       if (authErr) { setError('注册失败：' + authErr.message); return }
       if (!data.session) { setError('注册成功但未返回会话，请再点登录'); return }
       await completeLogin(data.user, account)
