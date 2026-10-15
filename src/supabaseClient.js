@@ -315,8 +315,20 @@ export async function setGroupRole(uid, role) {
 
 // 学生确认一项决策时写入一行（feedback = 属性真实变化文案，如「品质 +5（60→65）」）
 // answer 支持字符串或结构化答案（数组/对象会被序列化成可读文本）
+// ★ R109-2：离线（无登录会话）时**不发请求**。
+//   匿名插入会被 RLS 拒（实测 401 · code 42501 "new row violates row-level security policy
+//   for table decision_log"）⇒ 既在控制台留下 401（浏览器套件把它当失败），
+//   又让上层只能谎报"网络问题"。返回结构化结果，由调用方**如实**提示。
+async function 有会话() {
+  try {
+    const { data } = await supabase.auth.getSession()
+    return !!(data && data.session && data.session.access_token)
+  } catch (e) { return false }
+}
+
 export async function saveDecisionLog({ userId, groupKey = null, week = 1, decisionId, answer, feedback }) {
   try {
+    if (!(await 有会话())) return { ok: false, 离线: true }
     const ans = typeof answer === 'string'
       ? answer
       : Array.isArray(answer)
@@ -332,9 +344,9 @@ export async function saveDecisionLog({ userId, groupKey = null, week = 1, decis
       answer: ans,
       feedback: feedback || '—', // 不允许空反馈（无属性变化时由调用方传决策描述）
     })
-    return !error
+    return error ? { ok: false, 原因: error.message } : { ok: true }
   } catch (e) {
-    return false
+    return { ok: false, 原因: String((e && e.message) || e) }
   }
 }
 

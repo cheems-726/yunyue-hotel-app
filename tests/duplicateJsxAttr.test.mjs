@@ -44,5 +44,8 @@ for (const s of 段) {
 console.log('══ R109-1 防复发：登录页回车守卫（!busy）+ 重复属性 ══')
 console.log(`  扫描 ${行.length} 行 · ${段.length} 个 <input> 元素`)
 for (const b of bad.slice(0, 5)) console.log('  ✗ ' + b)
+const 检查数 = 2   // ① !busy 守卫 ② 无重复属性
+const 通过 = Math.max(0, 检查数 - bad.length)
 console.log(bad.length === 0 ? 'PASS —— 每个 handleLogin 的 onKeyDown 都带 !busy，且无重复属性' : `FAIL —— ${bad.length} 处`)
+console.log(`结果: ${通过} 通过 / ${bad.length} 失败`)
 process.exit(bad.length === 0 ? 0 : 1)
