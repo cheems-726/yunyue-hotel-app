@@ -30,7 +30,7 @@ async function login(page, who, role) {
 const browser = await chromium.launch({ executablePath: EDGE, headless: true })
 
 // ── 教师端（桌面视口）：挂看板不刷新 ──
-const tctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+const tctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true })
 const tp = await tctx.newPage(); watch(tp, 'T')
 const t0 = Date.now()
 await login(tp, T, 'teacher')
@@ -43,7 +43,7 @@ const before = cnt(await tp.evaluate(() => document.body.innerText))
 log(`教师端就绪（${tTeaLogin}ms）· 降级=${/云端不可用/.test(ttxt)} · 「${S.id}」出现 ${before} 次`)
 
 // ── 学生端（**手机视口**，模拟手机）──
-const sctx = await browser.newContext({ ...devices['Pixel 7'] })
+const sctx = await browser.newContext({ ...devices['Pixel 7'], ignoreHTTPSErrors: true })
 const sp = await sctx.newPage(); watch(sp, 'S')
 const t1 = Date.now()
 await login(sp, S, 'student')
