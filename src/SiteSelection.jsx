@@ -375,7 +375,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
               const parts = [bd.stock, bd.vacancy && `空置率 ${bd.vacancy}`, bd.rent, bd.desc].filter(Boolean)
               return (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-sub)', background: 'var(--fill)', borderRadius: 6, padding: '4px 8px', lineHeight: 1.5 }}>
-                  🏢 商业密度：{parts.join(' · ')}
+                  商业密度：{parts.join(' · ')}
                   <span title={`来源：${bd.src}（可信度 ${bd.conf}）`} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-muted)' }}>ⓘ</span>
                 </div>
               )
@@ -519,16 +519,16 @@ export default function SiteSelection({ onConfirm, onLog }) {
       {预言弹 && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
           <div className="card" style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
-            <div className="card-title">🔮 选址前预言 · {预言弹}</div>
+            <div className="card-title">选址前预言 · {预言弹}</div>
             <div style={{ fontSize: 12, color: 'var(--text-sub)', margin: '6px 0 12px' }}>**先押注，再看数据** —— 提交三项预言后才解锁该区的六维数据卡。</div>
             {[['该区竞品密度在 24 区里排第几', '竞品档', ['前1/3', '中1/3', '后1/3']],
               ['该区租金档次', '租金档', ['高', '中', '低']],
               ['你对自己判断的把握', '置信度', ['50', '70', '90']]].map(([label, key, opts]) => (
               <div key={key} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 13, marginBottom: 5 }}>{label}</div>
+                <div style={{ fontSize: 12, marginBottom: 5 }}>{label}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {opts.map(o => (
-                    <button key={o} className={`btn ${草稿[key] === o ? '' : 'btn-ghost'}`} style={{ flex: 1, padding: '9px 0', fontSize: 13 }}
+                    <button key={o} className={`btn ${草稿[key] === o ? '' : 'btn-ghost'}`} style={{ flex: 1, padding: '9px 0', fontSize: 12 }}
                       onClick={() => set草稿(s => ({ ...s, [key]: o }))}>{o}{key === '置信度' ? '%' : ''}</button>
                   ))}
                 </div>
@@ -543,24 +543,24 @@ export default function SiteSelection({ onConfirm, onLog }) {
       {承诺弹 && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16, overflowY: 'auto' }}>
           <div className="card" style={{ width: 'min(94vw, 460px)', padding: 16, background: 'var(--card)', maxHeight: '88vh', overflowY: 'auto' }}>
-            <div className="card-title">✍️ 选址承诺书 · {selected}（签署后不可编辑）</div>
+            <div className="card-title">选址承诺书 · {selected}（签署后不可编辑）</div>
             {[['① 我们赌哪条客群假设（≤50 字，写清可测指标）', '假设', 50],
               ['② 为什么**不是**另外两个备选区（须点名那两个区）', '为何不是', 120],
               ['③ 我们最容易被哪一维数据打脸（选一维 + 一句话）', '打脸维', 80],
               ['④ 本组未被采纳的反对意见（没有就填「无」）', '反对意见', 80]].map(([label, key, max]) => (
               <div key={key} style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 13, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>{label}</div>
                 <textarea value={承诺草稿[key]} maxLength={max} rows={2}
                   onChange={e => set承诺草稿(s => ({ ...s, [key]: e.target.value }))}
-                  style={{ width: '100%', fontSize: 13, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
+                  style={{ width: '100%', fontSize: 12, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
               </div>
             ))}
             {承诺草稿.反对意见.trim() === '无' && (
               <div style={{ fontSize: 12, color: 'var(--warn)', marginBottom: 8 }}>⚠ 填「无」：请先自问 —— **本组是否存在群体思维**？（最少指导式教学会让高职学生空转，老师会在 2 分钟内点破）</div>
             )}
-            <div style={{ fontSize: 13, marginBottom: 4 }}>⑤ 事前验尸（**必填**）：假设 12 周后这个区**已经失败**，写 3 条最可能死因</div>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>⑤ 事前验尸（**必填**）：假设 12 周后这个区**已经失败**，写 3 条最可能死因</div>
             <textarea value={承诺草稿.验尸} rows={3} onChange={e => set承诺草稿(s => ({ ...s, 验尸: e.target.value }))}
-              style={{ width: '100%', fontSize: 13, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
+              style={{ width: '100%', fontSize: 12, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', resize: 'vertical' }} />
             <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 10px' }}>过程分只看这四项结构化信号（引用维度数 / 点名两个备选区 / 反向证据 / 可验证假设）；事前验尸只作**参与度信号**，不单独决定成绩（关键词可比对 ⇒ 可作弊）。</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => set承诺弹(false)}>取消</button>
