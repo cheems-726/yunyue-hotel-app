@@ -2,6 +2,7 @@
 // 运行：先 npm run build，再 node tests/ui-smoke.mjs（脚本自动起 preview 服务器）
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -189,6 +190,8 @@ try {
   ok('选址页渲染（5城芯片）', (await text(page)).includes('地图选点') && (await page.evaluate(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('承德')))))
   await clickCard(page, '锦江区')
   await sleep(500)
+  // ★ V109：选址现在有「预言 + 承诺书」两道闸门 ⇒ 先过闸门，数据卡才会解锁（浮层/雷达图随之出现）
+  await 过两道闸门(page)
   ok('选址反馈浮层', await hasOverlay(page))
   await closeOverlay(page)
   ok('六维雷达图渲染', await page.evaluate(() => [...document.querySelectorAll('svg')].some(s => s.textContent.includes('客流') && s.textContent.includes('波动'))))

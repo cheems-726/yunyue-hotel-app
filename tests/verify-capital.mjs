@@ -2,6 +2,7 @@
 // 运行：npm run build && node tests/verify-capital.mjs
 // 只走离线演示路径（不登录云端、不写生产数据）
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -74,6 +75,7 @@ try {
   await clickText(page, '进入演示'); await sleep(700)
   await clickText(page, '开始我的酒店之旅'); await sleep(800)
   await clickCard(page, '锦江区'); await sleep(500); await closeOverlay(page)
+  await 过两道闸门(page)
   await clickText(page, '确认选址'); await sleep(700)
   await clickCard(page, '汉庭'); await sleep(450)
   await clickText(page, '确认选择'); await sleep(700)

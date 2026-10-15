@@ -4,6 +4,7 @@
 //   ② 教师：独立 context → 老师演示 → 教师后台 → 「12 周任务书（打印版）」同覆盖层
 // 走查原语照抄 ui-smoke/_v76-verify（R51-1 同族教训）
 import { chromium } from 'playwright-core'
+import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
@@ -87,6 +88,7 @@ browser = await chromium.launch({ executablePath: EDGE, headless: true })
   await clickText(page, '开始我的酒店之旅'); await sleep(800)
   await clickCard(page, '锦江区'); await sleep(500)
   if (await hasOverlay(page)) await closeOverlay(page)
+  await 过两道闸门(page)
   await clickText(page, '确认选址'); await sleep(700)
   await clickCard(page, '汉庭'); await sleep(450)
   await clickText(page, '确认选择'); await sleep(700)
