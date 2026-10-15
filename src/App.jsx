@@ -199,10 +199,9 @@ function LoginPage({ onLogin }) {
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>{role === 'student' ? '学号' : '工号'}</div>
         <input
-          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交 */
+          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交（!busy 守卫 · R109-1：删掉原先重复的第二行 —— JSX 重复属性只有最后一个生效，会把 !busy 静默丢掉）*/
           value={account}
           onChange={e => setAccount(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleLogin()}
           placeholder={role === 'student' ? '如 20240101' : '如 T001'}
           style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, outline: 'none', fontFamily: 'inherit' }}
         />
@@ -211,11 +210,10 @@ function LoginPage({ onLogin }) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>密码</div>
         <input
-          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交 */
+          onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交（!busy 守卫 · R109-1 同上）*/
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleLogin()}
           placeholder="至少 6 位"
           style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, outline: 'none', fontFamily: 'inherit' }}
         />
