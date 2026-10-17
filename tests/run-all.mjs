@@ -67,6 +67,7 @@ const SUITES = [
   { name: 'diagnoseGroups（诊断组合·V113-2.6）', file: 'tests/diagnoseGroups.test.mjs' },
   { name: 'hotelName（酒店名规则·V114-P1）', file: 'tests/hotelName.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
+  { name: 'weekReset（重置后 N 天=⌊N/7⌋条·R113-1/R113-2）', file: 'tests/weekReset.test.mjs' },
   { name: 'attribution（归因题·V113-2.5）', file: 'tests/attribution.test.mjs' },
   { name: 'historyMetrics（history 存量字段·V113-2.3）', file: 'tests/historyMetrics.test.mjs' },
   // Wave 4 · D-1：对象字面量重复键扫描（'静默吞掉'家族守门）
