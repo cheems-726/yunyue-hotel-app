@@ -136,3 +136,30 @@ export function 投资测算({ brand, 选择 } = {}) {
 
 // 界面上要显示的一句话（口径 + 来源，避免各页面自己拼）
 export const 待老师确认文案 = '档位为【教学默认值 · 待老师确认】；装修档锚定品牌官方单房造价，其余四项为占装修的教学比例'
+
+/**
+ * ★ V113-0.2：**每档价目明细**（判据：装修/软装/IT/布草/开办费 五类 × 低中高 全部有金额；缺来源 ⇒ null + 待补）
+ *   口径（写死在返回值里，防止调用方各拼一套）：
+ *   · 装修 = 房量 × 单房造价 × 装修系数[档]        （基数有官方来源）
+ *   · 其余四项 = **"装修=中"的装修额** × 比例[档]   （基数固定为"中"档，避免随用户当前选择漂移 —— 价目表必须可横向比）
+ *   · 单房造价缺 ⇒ 全部 null ⇒ 界面显示"待补"，不编
+ */
+export function 档位价目({ brand } = {}) {
+  const 房量 = parseRooms(brand?.standard)
+  const t = brand?.name ? FRANCHISE_MODEL[brand.name] : null
+  const 单房造价 = t?.单房造价?.新建?.值 ?? null
+  const cfg = 运行时.当前
+  const 装修 = 档位名.map(d => ({ 档: d, 金额: 单房造价 ? Math.round(房量 * 单房造价 * cfg.装修系数[d]) : null }))
+  const 基数 = 单房造价 ? Math.round(房量 * 单房造价 * cfg.装修系数.中) : null
+  const 附加 = cfg.附加项.map(it => ({
+    key: it.key,
+    档位: 档位名.map(d => ({ 档: d, 金额: 基数 != null ? Math.round(基数 * it.比例[d]) : null })),
+    比例: it.比例,
+  }))
+  return {
+    房量, 单房造价, 装修, 附加,
+    基数说明: '软装/IT/布草/开办费 以「装修=中」的装修额为基数横向比价',
+    齐全: 装修.every(x => x.金额 != null) && 附加.every(a => a.档位.every(x => x.金额 != null)),
+    待补: 单房造价 ? [] : [`${brand?.name || '该品牌'} 的单房造价（无来源 ⇒ 各档金额都无法算）`],
+  }
+}

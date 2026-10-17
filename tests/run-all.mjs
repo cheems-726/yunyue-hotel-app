@@ -58,6 +58,7 @@ const SUITES = [
   { name: 'duplicateJsxAttr（JSX 重复属性·R109-1）', file: 'tests/duplicateJsxAttr.test.mjs' },
   { name: 'offlineWriteGuard（离线云写入不发请求·R109-2）', file: 'tests/offlineWriteGuard.test.mjs' },
   { name: 'propertyFacts（候选物业事实表·V113-0.1）', file: 'tests/propertyFacts.test.mjs' },
+  { name: 'investTiers（投资档位价目·V113-0.2）', file: 'tests/investTiers.test.mjs' },
   // Wave 4 · D-1：对象字面量重复键扫描（'静默吞掉'家族守门）
   { name: 'noDuplicateKeys（重复键守门·D-1）', file: 'tests/noDuplicateKeys.test.mjs' },
   // Wave 3 · W3-1/W3-5：一页钱账（口径 (b) 本店实测）+ 回本周期（外推）

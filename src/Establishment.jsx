@@ -3,7 +3,7 @@ import Icon from './Icon.jsx'
 import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
 // §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
-import { 投资测算, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
+import { 投资测算, 档位价目, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
@@ -45,6 +45,7 @@ export default function Establishment({ brand, property, onComplete }) {
   const [licOrder, setLicOrder] = useState([0, 1, 2, 3, 4, 5])
   // 投资测算（纯计算；老师给数只改 establishmentInvest.mjs 的配置）
   const 测算 = 投资测算({ brand, 选择: choices.investTiers })
+  const 档位价目表 = 档位价目({ brand })   // ★ V113-0.2：五类 × 低中高 价目（缺来源⇒待补）
 
   function moveLic(pos, dir) {
     setLicOrder(o => {
@@ -144,7 +145,7 @@ export default function Establishment({ brand, property, onComplete }) {
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
         <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 12 }}>{step.desc}</div>
-        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
+        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} 档位价目表={档位价目表} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
       </div>
 
       {/* 底部按钮 */}
@@ -198,7 +199,7 @@ export default function Establishment({ brand, property, onComplete }) {
   )
 }
 
-function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, chooseTier, licOrder, moveLic }) {
+function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, 档位价目表, chooseTier, licOrder, moveLic }) {
   const clickable = key => ({
     cursor: 'pointer',
     border: picked[key] ? '1px solid var(--primary)' : '1px solid transparent',
@@ -249,6 +250,17 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                   )
                 })}
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {/* ★ V113-0.2：每档价目明细（缺来源 ⇒ 待补 · 不编） */}
+                  {(() => {
+                    const 行 = 档位价目表
+                      ? (it.key === '装修'
+                        ? 档位价目表.装修
+                        : (档位价目表.附加.find(a => a.key === it.key)?.档位 || []))
+                      : []
+                    return 行.length
+                      ? 行.map(x => `${x.档} ${x.金额 == null ? '待补' : (x.金额 / 10000).toFixed(1) + '万'}`).join(' · ')
+                      : '待补'
+                  })()}
                 </span>
               </div>
             ))}

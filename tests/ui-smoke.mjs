@@ -239,6 +239,12 @@ try {
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await closeOverlay(page)
   ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('基准情景'))
+  // ★ V113-0.2：五类投资档位的**价目明细**必须在界面上真的看得到（不是只在数据层存在）
+  {
+    const t = await text(page)
+    const 五类齐 = ['装修', '软装', 'IT', '布草', '开办费'].every(k => t.includes(k))
+    ok('筹建·投资档位价目齐全（五类 × 低中高 金额）', 五类齐 && /低 [\d.]+万 · 中 [\d.]+万 · 高 [\d.]+万/.test(t))
+  }
   // 证照（点步骤导航 📄）
   await clickStep(page, '证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
