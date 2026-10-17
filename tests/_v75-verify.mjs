@@ -86,7 +86,7 @@ await clickCard(page, '汉庭'); await sleep(450)
 await clickText(page, '确认选择'); await sleep(700)
 await clickCard(page, 'OTA平台合作'); await sleep(400)
 await clickText(page, '确认'); await sleep(650)
-await clickCard(page, '社区旁物业'); await sleep(400)
+await clickCard(page, '交通枢纽物业'); await sleep(400)
 for (let i = 0; i < 7; i++) {
   if ((await text(page)).includes('门店筹建')) break
   await page.evaluate(() => {

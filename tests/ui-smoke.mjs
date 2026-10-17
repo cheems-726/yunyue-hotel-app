@@ -206,7 +206,7 @@ try {
   ok('OTA平台合作文案（非加盟）', (await text(page)).includes('OTA平台合作') && !(await text(page)).includes('OTA加盟'))
   await clickCard(page, 'OTA平台合作'); await sleep(400)
   await clickText(page, '确认'); await sleep(650)
-  await clickCard(page, '社区旁物业'); await sleep(400)
+  await clickCard(page, '交通枢纽物业'); await sleep(400)
   // 🔴 W3-2：第 3 步「项目决策」必须出现物业报价单（投资侧可追溯 / 无来源标待补）
   let quoteSeen = false
   for (let i = 0; i < 4 && !quoteSeen; i++) {

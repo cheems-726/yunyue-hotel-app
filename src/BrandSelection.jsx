@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { 品牌可行性 } from './brandFit.mjs'   // ★ V113-1.2：装不下的品牌要能举证
 import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
@@ -199,6 +200,19 @@ export default function BrandSelection({ location, onConfirm }) {
                   <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>门市价 {b.price}</span>
                   <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>房量 {b.standard}</span>
                 </div>
+                {/* ★ V113-1.2：品牌互斥举证（预算装不下 / 成本不完整）—— 只展示，不替你选 */}
+                {(() => {
+                  const 可行 = 品牌可行性({ name: b.name, standard: b.standard })
+                  if (可行.状态 === '可行') return null
+                  const 超 = 可行.状态 === '超预算'
+                  return (
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 超 ? 'var(--bad)' : 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+                      {超
+                        ? `装不下：最低 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）`
+                        : `成本不完整：${可行.原因}`}
+                    </div>
+                  )
+                })()}
                 {/* ★ V76：加入/移出并排对比（最多 3 个 · 与选中确认互不干扰） */}
                 <button
                   title={`对比：${b.name}（最多 3 个）`}

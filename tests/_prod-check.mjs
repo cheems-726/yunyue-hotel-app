@@ -85,7 +85,7 @@ try {
   await clickText(page, '确认选择'); await sleep(800)
   await clickCard(page, 'OTA平台合作'); await sleep(500)
   await clickText(page, '确认'); await sleep(700)
-  await clickCard(page, '社区旁物业'); await sleep(500)
+  await clickCard(page, '交通枢纽物业'); await sleep(500)
   for (let i = 0; i < 7; i++) {
     const done = await page.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))

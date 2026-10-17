@@ -19,7 +19,7 @@ const freshSave = JSON.stringify({
   user: { role: 'student', id: 'demo-new', name: '新同学', cloud: false, groupNo: null, className: null, groupRole: null },
   location: { city: '成都', district: '锦江区', attrs: { 客流: 5, 房价: 5, 租金: 5, 竞争: 5, 人力: 4, 波动: 2 } },
   brand: { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' },
-  property: { name: '社区旁物业', type: '社区型', area: '2600㎡', rooms: '72间', rent: '中等', match: '高' },
+  property: { name: '交通枢纽物业', type: '社区型', area: '2600㎡', rooms: '72间', rent: '中等', match: '高' },
   established: true, estChoices: { invest: '基准情景', supplier: '供应商 B：指定供应商', opening: ['装修', '系统上线', '招聘'] },
   doneDecisions: {}, report: null, week: 1, history: [], finished: false, welcomed: true,
 })
@@ -124,9 +124,9 @@ try {
   await clickText('进入演示'); await sleep(800)
   await clickText('开始我的酒店之旅'); await sleep(900)
   await clickCard('锦江区'); await sleep(400); await clickText('确认选址'); await sleep(700)
-  await clickCard('汉庭'); await sleep(400); await clickText('确认选择'); await sleep(700)  // 经济型物业列表含'社区旁物业'（中档列表没有）
+  await clickCard('汉庭'); await sleep(400); await clickText('确认选择'); await sleep(700)  // 经济型物业列表含'交通枢纽物业'（中档列表没有）
   await clickCard('OTA平台合作'); await sleep(400); await clickText('确认'); await sleep(650)
-  await clickCard('社区旁物业'); await sleep(400)
+  await clickCard('交通枢纽物业'); await sleep(400)
   for (let i = 0; i < 7; i++) {
     const done = await page.evaluate(() => {
       const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))

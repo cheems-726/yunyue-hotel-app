@@ -114,7 +114,7 @@ await shot(page, '节点4-认领-意向申请.png')
 // ★ 与 _v75-verify 逐字对齐的推进序列（模式选择→物业→循环「下一步/确认无误/完成认领」）
 await clickCard(page, 'OTA平台合作'); await sleep(400)
 await clickText(page, '确认'); await sleep(600)
-await clickCard(page, '社区旁物业'); await sleep(400)
+await clickCard(page, '交通枢纽物业'); await sleep(400)
 for (let i = 0; i < 7; i++) {
   if ((await text(page)).includes('门店筹建')) break
   const 点了 = await page.evaluate(() => {
@@ -131,7 +131,7 @@ for (let i = 0; i < 7; i++) {
     await shot(page, '节点4-认领末步-完成认领按钮.png')
   }
   // 项目决策步必须选物业（stepSatisfied 门控）——每轮顺手点（幂等）
-  await clickCard(page, '社区旁物业')
+  await clickCard(page, '交通枢纽物业')
   await sleep(450)
 }
 await 必见(page, ['门店筹建'], '节点4-认领走完')

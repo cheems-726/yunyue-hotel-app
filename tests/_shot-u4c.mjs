@@ -37,7 +37,7 @@ try {
   await clickCard('汉庭'); await sleep(450)
   await clickText('确认选择'); await sleep(700)
   await clickCard('OTA平台合作'); await sleep(400)
-  await clickCard('社区旁物业'); await sleep(600)
+  await clickCard('交通枢纽物业'); await sleep(600)
   // 认领 6 步（★ 按钮文本 = 「完成「xx」，下一步 →」/ 最后一步「完成认领，进入筹建 →」）
   for (let i = 0; i < 14; i++) {
     const 文 = await pg.evaluate(() => document.body.innerText)

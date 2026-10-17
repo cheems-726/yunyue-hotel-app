@@ -6,7 +6,8 @@ import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单�
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
-import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
+import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
+import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -37,6 +38,9 @@ export default function Claim({ brand, location, onComplete }) {
   const 得房率 = Number.isFinite(测算参数.得房率) ? 测算参数.得房率 : 默认.得房率
   const 单房面积 = Number.isFinite(测算参数.单房建筑面积) ? 测算参数.单房建筑面积 : 默认.单房建筑面积
   const 测算房量 = selectedProperty ? estimateRooms({ areaNum: selectedProperty.areaNum, 得房率, 单房建筑面积: 单房面积 }) : null
+  // ★ V113-1.2：房量装不下 ⇒ 认领最后一步点不动（预算装不下在选品牌页就拦掉了）
+  const 房量判定 = 房量装得下(brand, 测算房量)
+  const 房量不达标 = !!房量判定 && 房量判定.装得下 === false
   const current = claimSteps[step]
   const progress = Math.round((step / (claimSteps.length - 1)) * 100)
   // 🔴 W3-2：物业报价单（选中物业后即可算；口径见 src/propertyQuote.mjs 顶部注释）
@@ -355,11 +359,14 @@ export default function Claim({ brand, location, onComplete }) {
         )}
         <button
           className="btn-confirm"
-          style={{ flex: 2 }}
-          disabled={(step === 0 && (!bizMode || !selectedProperty))}
+          style={{ flex: 2, opacity: ((step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标)) ? 0.5 : 1 }}
+          disabled={(step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标)}
           onClick={next}
         >
-          {step === 0 && !bizMode ? '请先选择经营模式' : step === claimSteps.length - 1 ? '完成认领，进入筹建 →' : `我已阅读「${current.title}」，确认无误 →`}
+          {step === 0 && !bizMode ? '请先选择经营模式'
+            : step === claimSteps.length - 1
+              ? (房量不达标 ? `装不下：你测算 ${测算房量} 间 < 品牌要求 —— 换更大物业或降档` : '完成认领，进入筹建 →')
+              : `我已阅读「${current.title}」，确认无误 →`}
         </button>
       </div>
 
