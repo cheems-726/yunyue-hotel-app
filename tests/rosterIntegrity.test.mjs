@@ -50,6 +50,16 @@ ok(!r.违规.some(v => v.k.includes('野行')), '干净态不得有野行')
   ok(有效.every(g => g.group_key && !g.group_key.endsWith('|99')), '过滤结果不得含野行/孤儿行')
 }
 
+// ── R114-1 回归：state 行【缺 group_key】（旧行/列未取）时，必须用 profile 的 班级|组号 兜底
+//    线上实测症状：部署后教师端「0 组已开档」（6 条真实组行被当成野行全部滤掉）
+{
+  const 无键 = Array.from({ length: 6 }, (_, i) => ({ user_id: "u" + (i + 1), state: {} }))
+  const 有效 = 只取有效组({ profiles, gameStates: 无键 })
+  ok(有效.length === 6, "缺 group_key 的 6 条真实组行必须靠 profile 兜底保留（实得 " + 有效.length + "）—— 这就是 0 组已开档的根因")
+  const 混 = [...无键, { user_id: "x2", state: {} }]
+  ok(只取有效组({ profiles, gameStates: 混 }).length === 6, "未分组账号（group_no=null）仍不得进统计")
+}
+
 // ── 组键格式：班级|组号
 ok(组键({ class_name: '酒管2401', group_no: 3 }) === '酒管2401|3', '组键必须 = 班级|组号')
 

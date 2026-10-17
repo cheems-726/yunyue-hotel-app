@@ -47,8 +47,17 @@ export function 校验名册({ profiles = [], gameStates = [] } = {}) {
 
 /** 只保留"组↔账号齐全"的存档行（教师端统计/流水/领班一律用它） */
 export function 只取有效组({ profiles = [], gameStates = [] } = {}) {
+  // ★ R114-1：state 行缺 group_key 时（旧行/列未取）⇒ 用该 user 的 profile 推出 班级|组号 兜底，
+  //   否则教师端会因为它'看起来是野行'而把整班判成 0 组（部署后实测就是这个症状）。
   const 键s = new Set((profiles || []).filter(p => p && p.role === 'student' && p.group_no != null && String(p.group_no) !== '').map(组键))
-  return (gameStates || []).filter(g => g && g.group_key && 键s.has(String(g.group_key)))
+  const byUid = Object.fromEntries((profiles || []).map(p => [p.user_id, p]))
+  return (gameStates || []).filter(g => {
+    if (!g) return false
+    const p = byUid[g.user_id]
+    const 推 = (p && p.role === 'student' && p.group_no != null && String(p.group_no) !== '') ? 组键(p) : null
+    const key = String(g.group_key || 推 || '')
+    return !!key && 键s.has(key)
+  })
 }
 
 /** 决策流水过滤：只留 group_key 非空且能反查到有效组的行 */

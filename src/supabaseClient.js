@@ -159,7 +159,7 @@ export function saveGameStateNow(userId, state, groupKey = null) {
 export async function fetchAllGameStates() {
   const { data, error } = await supabase
     .from('game_states')
-    .select('user_id, group_name, state, week, finished, updated_at')
+    .select('user_id, group_name, group_key, state, week, finished, updated_at')   // ★ R114-1：必须取 group_key（V114 的组↔账号过滤依赖它）
     .order('updated_at', { ascending: false })
   if (error) throw error
   return data || []
