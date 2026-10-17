@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 // V114-P1 判据：酒店名（2–12 字 · 空名挡 · 重名挡 · 三处显示统一口径由 组显示() 提供）
 import { 校验酒店名, 查重, 已有名字, 组显示, 名字最短, 名字最长 } from '../src/hotelName.mjs'
 
@@ -29,6 +30,16 @@ ok(查重('云悦高新店', 已有).重名 === false, '不重名应放行')
 // 三处显示统一口径
 ok(组显示({ groupNo: 3, hotelName: '云悦锦江店', 成员: ['张三', '李四'] }) === '第3组 · 云悦锦江店 · 张三、李四', '组显示格式应为 第N组 · 酒店名 · 成员')
 ok(组显示({ groupNo: 3 }) === '第3组', '缺项不写占位（不编）')
+
+// ── ④ 三处同源（静态）：顶栏 / 周报标题 / 教师端总览都读同一个字段 hotelName
+{
+  const app = readFileSync('src/App.jsx', 'utf8')
+  const wr = readFileSync('src/WeeklyReport.jsx', 'utf8')
+  const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
+  ok(app.includes("hotelName || (property ? property.name"), '学生顶栏：酒店名优先（缺则回退物业名）')
+  ok(wr.includes("hotelName ? hotelName + ' · ' : ''"), '周报标题：同一 hotelName 作前缀')
+  ok(td.includes("hotelName: s.hotelName || ''") && td.includes("' · ' + s.hotelName"), '教师端总览：第N组 · 酒店名（同一字段）')
+}
 
 console.log('══ V114-P1 酒店名 ══')
 console.log(`  规则 ${名字最短}–${名字最长} 字 · 空名/重名/空格都挡 · 格式「第N组 · 酒店名 · 成员」`)

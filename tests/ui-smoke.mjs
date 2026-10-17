@@ -235,6 +235,7 @@ try {
   // ★ V114-P1：命名页（空名 ⇒ 进不了经营）
   ok('命名页（空名不可进入经营）', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先取一个/.test(x.textContent)); return !!b && b.disabled === true }))
       await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
+  // ★ V114-P1④：学生端顶栏 = 刚取的酒店名（三处同源之一）
   ok('认领完成进入筹建', (await text(page)).includes('门店筹建'))
 
   // 5. 筹建：15 个选项逐一点击
@@ -305,6 +306,8 @@ try {
   // 6. 经营页
   const biz = await text(page)
   // 🔴 E2（N-2）：手动「本周结算」已退场 —— 经营页改为显示【本周经营中 · 第 X/7 天 · 自动出周报】
+  // ★ V114-P1④：学生端顶栏 = 酒店名（三处同源之一）
+  ok('顶栏显示酒店名（与周报标题逐字相同）', (await text(page)).includes('云悦测试店'))
   ok('经营页：资金卡+18决策+自动周报状态（无手动结算按钮）',
     biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周经营中') && /第 \d\/7 天/.test(biz) && biz.includes('自动出周报') && !biz.includes('本周结算'))
   // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
@@ -368,6 +371,8 @@ try {
   // ★ V113-1.4：第 1 周对照（反思必填 ⇒ 不填按钮 disabled）
   // ★ V113-2.1：指标观察板（成本条形合计 100%±0.1% · 一次性项单列）
   ok('指标观察板（成本条形合计 100%±0.1%）', await page.evaluate(() => { const bar = document.querySelector('[data-costbar=\"1\"]'); if (!bar) return false; const s = [...bar.children].reduce((a, c) => a + Number(c.getAttribute('data-w')), 0); return Math.abs(s - 1) <= 0.001 }))
+  // ★ V114-P1④：周报标题同样带酒店名（三处同源之二）
+  ok('周报标题带酒店名（与顶栏逐字相同）', (await text(page)).includes('云悦测试店 · 第 1 周经营结果'))
   ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
   ok('第1周反思未填时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先填「我忽略了什么信号」/.test(x.textContent)); return !!b && b.disabled === true }))
   await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
