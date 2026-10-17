@@ -201,7 +201,7 @@ console.log('\n[6] 通道与迁移：class_state 扩展（老师写/全班读）
   ok(/injected_events/.test(SUPA) && /supervisor_auth/.test(SUPA), '通道字段名 injected_events / supervisor_auth')
   // 回退：新列不存在（迁移未应用）⇒ 回退只读 current_week，通道字段空 + 通道就绪 false（不阻塞、不谎报）
   const fcs = SUPA.slice(SUPA.indexOf('export async function fetchClassState'), SUPA.indexOf('export async function setClassInjections'))
-  ok(/select\('current_week'\)/.test(fcs) && /通道就绪: false/.test(fcs), '★ fetchClassState 回退路径（迁移未应用 ⇒ 只读 current_week + 通道就绪=false）')
+  ok(/select\('\*'\)/.test(fcs) && /通道就绪: false/.test(fcs), '★ fetchClassState 回退路径（V115-③ 后统一 select(*)；出错时仍返回 current_week + 通道就绪=false）')
   // 迁移 SQL：幂等 + 两列 + 自检/回滚
   const SQL = rd('supabase-migration-u8-class-events.sql')
   ok(!!SQL && /add column if not exists injected_events jsonb/.test(SQL) && /add column if not exists supervisor_auth jsonb/.test(SQL),
