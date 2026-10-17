@@ -6,6 +6,7 @@
 //   ② 决策类：经营页「动态调价」点「不跟降」→ 反馈面板含 适用场景/教学点/引擎依据（V75 四段式）
 // ★ 走查原语（hasOverlay/closeOverlay/clickCard/clickStep/认领推进）整体照抄 ui-smoke（R51-1 同族教训：finder 逐字对齐现行文案）
 import { chromium } from 'playwright-core'
+import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
@@ -106,6 +107,7 @@ await closeOverlay(page)
 
 // 照抄 ui-smoke 走到经营页
 await clickCard(page, '基准情景', 'starts'); await sleep(400)
+  await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
 if (await hasOverlay(page)) await closeOverlay(page)
 await clickText(page, '下一步'); await sleep(600)
 await clickStep(page, '证照办理')

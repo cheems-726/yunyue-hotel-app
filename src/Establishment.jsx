@@ -4,6 +4,7 @@ import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
 // §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
 import { 投资测算, 档位价目, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
+import { 筹建账, 放弃清单, 预算口径 } from './startupBudget.mjs'   // V113-1.1：筹建预算包（让钱不够成立）
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
@@ -46,6 +47,8 @@ export default function Establishment({ brand, property, onComplete }) {
   // 投资测算（纯计算；老师给数只改 establishmentInvest.mjs 的配置）
   const 测算 = 投资测算({ brand, 选择: choices.investTiers })
   const 档位价目表 = 档位价目({ brand })   // ★ V113-0.2：五类 × 低中高 价目（缺来源⇒待补）
+  const 账 = 筹建账({ brand, 选择: choices.investTiers })          // ★ V113-1.1：预算/占用/剩余/超支
+  const 放弃 = 放弃清单({ brand, 选择: choices.investTiers })      // ★ V113-1.1：你放弃了什么（真实差额）
 
   function moveLic(pos, dir) {
     setLicOrder(o => {
@@ -74,7 +77,7 @@ export default function Establishment({ brand, property, onComplete }) {
     })
   }
   function stepSatisfied() {
-    if (currentStep === 0) return !!choices.invest
+    if (currentStep === 0) return !!choices.invest && 账.可过   // ★ V113-1.1：超预算 ⇒ 点不动
     if (currentStep === 1) return licOrderCorrect // V54批2 缺口2：证照前后置排对才放行（不满足=不能点+说明原因）
     if (currentStep === 2) return !!choices.supplier
     if (currentStep === 3) return choices.opening.length === 3
@@ -145,7 +148,7 @@ export default function Establishment({ brand, property, onComplete }) {
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
         <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 12 }}>{step.desc}</div>
-        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} 档位价目表={档位价目表} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
+        <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} 档位价目表={档位价目表} 账={账} 放弃={放弃} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
       </div>
 
       {/* 底部按钮 */}
@@ -155,7 +158,7 @@ export default function Establishment({ brand, property, onComplete }) {
         )}
         {currentStep < steps.length - 1 ? (
           <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={() => { markDone(); next() }}>
-            {stepSatisfied() ? `完成「${step.title}」，下一步 →` : step.title === '投资测算' ? '请先选择一个投资情景' : step.title === '证照办理' ? '证照前后置未排对（见上方延误警告）' : step.title === '物资采购' ? '请先选择采购渠道' : '请先完成本步'}
+            {stepSatisfied() ? `完成「${step.title}」，下一步 →` : step.title === '投资测算' ? (choices.invest ? `筹建预算超出 ${((账.超支 || 0) / 10000).toFixed(1)} 万 —— 降档后才能继续` : '请先选择一个投资情景') : step.title === '证照办理' ? '证照前后置未排对（见上方延误警告）' : step.title === '物资采购' ? '请先选择采购渠道' : '请先完成本步'}
           </button>
         ) : (
           <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={markDone}>
@@ -199,7 +202,7 @@ export default function Establishment({ brand, property, onComplete }) {
   )
 }
 
-function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, 档位价目表, chooseTier, licOrder, moveLic }) {
+function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSupplier, toggleOpeningTask, 测算, 档位价目表, 账, 放弃, chooseTier, licOrder, moveLic }) {
   const clickable = key => ({
     cursor: 'pointer',
     border: picked[key] ? '1px solid var(--primary)' : '1px solid transparent',
@@ -232,6 +235,30 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
               装修档锚定品牌官方单房造价，其余四项按占装修的教学比例；每档显式标「待老师确认」。
               老师给数 ⇒ 只改 src/establishmentInvest.mjs 的配置，不动代码。 */}
           <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
+            {/* ★ V113-1.1：属性面板（G2）—— 预算/已占用/剩余 实时变化；超支必须降档 */}
+            {(() => {
+              const 万 = (v) => Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补'
+              return (
+                <div style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--card)', border: '1px solid var(--warn-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', fontSize: 12, color: 'var(--text)' }}>
+                    <span>筹建预算 <b>{万(账.预算)}</b></span>
+                    <span>已占用 <b>{万(账.合计)}</b></span>
+                    <span style={{ color: 账.超支 > 0 ? 'var(--bad)' : 'var(--good)' }}>剩余 <b>{万(账.剩余)}</b></span>
+                  </div>
+                  {账.超支 > 0 && (
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--bad)', marginTop: 4 }}>
+                      超出预算 {万(账.超支)} —— 必须降档（或换更低造价的品牌/物业）才能继续
+                    </div>
+                  )}
+                  {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>该品牌缺单房造价/费率 ⇒ 无法核算预算（不编）</div>}
+                  {放弃.length > 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4, lineHeight: 1.7 }}>
+                      你放弃了什么：{放弃.map(x => `${x.项}=${x.当前}（比"低"多花 ${万(x.多花)}）`).join(' · ')}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>
               投资项档位（{待老师确认文案}）
             </div>
@@ -241,7 +268,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                 {['低', '中', '高'].map(d => {
                   const on = (choices.investTiers?.[it.key] || '中') === d
                   return (
-                    <span key={d} onClick={() => chooseTier(it.key, d)} style={{
+                    <span key={d} onClick={() => chooseTier(it.key, d)} data-tier={it.key} data-val={d} style={{
                       fontSize: 12, padding: '2px 8px', borderRadius: 5, cursor: 'pointer',
                       border: on ? '1px solid var(--primary)' : '1px solid var(--border)',
                       background: on ? 'var(--warn-bg)' : 'var(--card)', color: on ? 'var(--warn)' : 'var(--text-sub)',

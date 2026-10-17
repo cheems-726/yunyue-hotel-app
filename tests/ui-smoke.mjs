@@ -239,6 +239,20 @@ try {
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await closeOverlay(page)
   ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('基准情景'))
+  // ★ V113-1.1：预算闸 —— 默认全中档**必须超预算**（钱不够成立），且下一步点不动
+  ok('筹建·预算闸（默认组合超预算 ⇒ 提示超支）', (await text(page)).includes('超出预算'))
+  ok('筹建·预算闸（超支时下一步禁用）', await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')].find(x => /超出.*万/.test(x.textContent) || x.textContent.includes('降档'))
+    return !!b && b.disabled === true
+  }))
+  // 降装修档 → 应在预算内，按钮恢复可点
+  await page.evaluate(() => { const c = document.querySelector('[data-tier="装修"][data-val="低"]'); if (c) c.click() })
+  await sleep(400)
+  ok('筹建·预算闸（装修降档后可继续）', await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('完成「投资测算」'))
+    return !!b && b.disabled === false
+  }))
+  ok('筹建·放弃清单（列出真实差额）', /你放弃了什么：/.test(await text(page)))
   // ★ V113-0.2：五类投资档位的**价目明细**必须在界面上真的看得到（不是只在数据层存在）
   {
     const t = await text(page)

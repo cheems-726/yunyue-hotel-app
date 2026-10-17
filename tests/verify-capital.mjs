@@ -2,6 +2,7 @@
 // 运行：npm run build && node tests/verify-capital.mjs
 // 只走离线演示路径（不登录云端、不写生产数据）
 import { chromium } from 'playwright-core'
+import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
@@ -93,6 +94,7 @@ try {
     await sleep(550); if (done) break
   }
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
+  await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
   await clickStep(page, '证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(page, n, 'starts'); await sleep(450)

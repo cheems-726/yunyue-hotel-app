@@ -101,7 +101,9 @@ console.log('\n[5] 不越界层：纯计算 · 不进结算 · 系数不复制�
   ok(!/establishmentInvest/.test(strip(src('settlement.js'))), 'settlement.js 不引用 establishmentInvest（静态证明：不进结算路径）')
   const files = readdirSync(new URL('../src/', import.meta.url)).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
   const importers = files.filter(f => f !== 'establishmentInvest.mjs' && /establishmentInvest/.test(strip(src(f))))
-  const ALLOWED = ['Establishment.jsx', 'App.jsx']
+  // ★ V113-1.1：startupBudget.mjs 是**交互层**的预算合计（只读 establishmentInvest 的档位金额）⇒ 白名单补它；
+  //   settlement.js 仍不得引用（上一行断言）。
+  const ALLOWED = ['Establishment.jsx', 'App.jsx', 'startupBudget.mjs']
   ok(importers.every(f => ALLOWED.includes(f)), `引用方限于交互层白名单（${importers.join(',')}）`, importers.join(','))
   // 纯函数：同输入同输出 + 不改入参
   const a1 = 投资测算({ brand: 全季 }), a2 = 投资测算({ brand: 全季 })
