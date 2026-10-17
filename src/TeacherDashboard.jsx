@@ -1,3 +1,4 @@
+import TeacherDiagnosis from './TeacherDiagnosis.jsx'   // ★ V113-2.6：诊断组合（不做排名）
 import React, { useState, useEffect, useRef } from 'react'
 // ★ V97：统一导航栈（返回=弹栈 · 教师端接 popstate）
 import { 创建导航栈, 造返回处理器 } from './navStack.mjs'
@@ -1367,6 +1368,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
 
+            <TeacherDiagnosis states={rawStates || []} logs={logs} week={classWeek || null} />
             {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}
             <div className="card t-flow" style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

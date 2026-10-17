@@ -11,6 +11,7 @@ import { 创建导航栈 } from './navStack.mjs'
 
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
+import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
 // ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— FinalResult/Reputation 出现在流程后段，React.lazy 切独立 chunk
 //   ★ 只懒【后段页面】（首屏 Welcome/登录/经营主链不动 —— 拆首屏反而多一次请求）· fallback 用同风格提示。
 import { lazy as lazyPage, Suspense as SuspenseR } from 'react'
@@ -778,6 +779,7 @@ function Report({ report, week, history, brand, property, location }) {
         <div className="sub">{report ? `第 ${report.week} 周结算` : `第 ${week} 周 · 累计`}</div>
       </div>
 
+      <WeekMatrix history={history} />
       {report ? (
         <>
           {/* 真实 KPI（带上周环比箭头） */}
@@ -2692,7 +2694,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} />
+        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} />
       </div>
     )
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Week1Review from './Week1Review.jsx'   // ★ V113-1.4：第 1 周对照（反思必填）
 import MetricBoard from './MetricBoard.jsx'   // ★ V113-2.1：本周 6 指标 + 成本结构
+import AttributionCard from './AttributionCard.jsx'   // ★ V113-2.5：每周归因（不卡关）
 import { 第1周反思完成 } from './choiceReasons.mjs'
 import Icon from './Icon.jsx'
 import { getTitle } from './hotelTitle.js'
@@ -195,7 +196,7 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
   const [反思ok, set反思ok] = useState(() => 第1周反思完成())
   const 需反思 = Number(result && result.week) === 1 && !反思ok
@@ -708,6 +709,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
       </div>
 
       <MetricBoard row={result} />
+      {Number(result && result.week) >= 2 && history.length >= 1 && <AttributionCard week={Number(result.week)} prev={history[history.length - 1]} cur={result} userId={userId} groupKey={groupKey} />}
       {Number(result && result.week) === 1 && <Week1Review result={result} onStatus={set反思ok} />}
       <div style={{ padding: '8px 20px 24px' }}>
         <button className="btn-confirm" style={{ opacity: 需反思 ? 0.5 : 1 }} disabled={需反思} onClick={onClose}>

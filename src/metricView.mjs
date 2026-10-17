@@ -33,7 +33,8 @@ export function 成本结构(row) {
     占比: (!一次性键.includes(名) && 经营成本 > 0) ? 数(w, 名) / 经营成本 : null,
   }))
   const 经营项 = 项.filter(x => !x.一次性 && x.占比 != null)
-  const 合计 = 经营成本 > 0 ? 经营项.reduce((a, x) => a + x.占比, 0) : null
+  // ★ 无任何经营项（旧行/空明细）⇒ null（不返回 0 冒充 100%）
+  const 合计 = (经营成本 > 0 && 经营项.length > 0) ? 经营项.reduce((a, x) => a + x.占比, 0) : null
   return { 经营成本, 项, 合计 }
 }
 
@@ -49,8 +50,11 @@ export function metricView(row) {
   const 售出 = Number(row.occupiedRooms)
   const 可算 = Number.isFinite(revenue) && revenue > 0 && Number.isFinite(rooms) && rooms > 0
 
-  const 部门利润 = 可算 ? revenue - (数(w, '客房变动成本') + 数(w, '客房部固定') + 数(w, '人力固定')) : null
-  const 未分配费用 = 可算 ? 数(w, '公区能耗') + 数(w, '行政管理') + 数(w, '维修保养') + 数(w, '营销推广') + 数(w, 'OTA佣金') : null
+  // ★ 缺字段 ⇒ null（**不许用 0 补**：旧 history 行没有成本明细，补 0 会把 GOP 算成营收 ⇒ 造数）
+  const 有 = (k) => Number.isFinite(Number(w && w[k]))
+  const 分层可算 = 可算 && ['客房变动成本', '客房部固定', '人力固定', '公区能耗', '行政管理', '维修保养', '营销推广', 'OTA佣金'].every(有)
+  const 部门利润 = 分层可算 ? revenue - (数(w, '客房变动成本') + 数(w, '客房部固定') + 数(w, '人力固定')) : null
+  const 未分配费用 = 分层可算 ? 数(w, '公区能耗') + 数(w, '行政管理') + 数(w, '维修保养') + 数(w, '营销推广') + 数(w, 'OTA佣金') : null
   const gop派生 = (部门利润 != null && 未分配费用 != null) ? 部门利润 - 未分配费用 : null
   const gop = Number(row.gop)
   const 一次性 = 数(w, '开业一次性费用') + 数(w, '保证金退还')
@@ -78,4 +82,29 @@ export function metricView(row) {
     一次性,
     总营收: Number.isFinite(revenue) ? revenue : null,
   }
+}
+
+/**
+ * ★ V113-2.4：12 周矩阵的行（只算**能算的**；算不出的给 null ⇒ 界面显示「—·待接数据」，绝不补 0）
+ * @param {Array} history 存档 history（每周一条结算结果；旧行可能只有 13 个字段）
+ * @returns {Array<{week:number, OCC:number|null, ADR:number|null, RevPAR:number|null, 好评率:number|null, GOPPAR:number|null, GOP率:number|null, 有分层:boolean}>}
+ */
+export function 矩阵行(history) {
+  const arr = Array.isArray(history) ? history : []
+  return arr
+    .filter(h => h && Number.isFinite(Number(h.week)))
+    .map(h => {
+      const v = metricView(h)
+      return {
+        week: Number(h.week),
+        OCC: v ? v.OCC : null,
+        ADR: v ? v.ADR : null,
+        RevPAR: v ? v.RevPAR : null,
+        好评率: Number.isFinite(Number(h.finalGoodRate)) ? Number(h.finalGoodRate) / 100 : null,
+        GOPPAR: v ? v.GOPPAR : null,
+        GOP率: v ? v.GOP率 : null,
+        有分层: !!(v && v.分层 && v.分层.GOP != null),
+      }
+    })
+    .sort((a, b) => a.week - b.week)
 }
