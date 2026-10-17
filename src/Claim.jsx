@@ -6,6 +6,7 @@ import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单�
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
+import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -17,35 +18,8 @@ const claimSteps = [
   { key: 'sign', icon: 'status.done', title: '合同签署', desc: '完成产权审核，正式签约' },
 ]
 
-// 候选物业（按品牌标准给出，含商圈类型）
-// 🔴 W3-2：新增 areaNum（与 area 字符串同义的数字，供报价单计算用）——
-//   字符串只作展示；数字字段由 tests/propertyQuote.test.mjs 断言"必须与字符串一致"（防两处漂移）
-const properties = {
-  经济型: [
-    { name: '社区旁物业', type: '社区型', area: '2600㎡', areaNum: 2600, rooms: '72间', rent: '中等', match: '高', note: '可排客房按品牌标准（约50-80间）' },
-    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', areaNum: 3000, rooms: '80间', rent: '低', match: '高', note: '可排客房按品牌标准（约50-80间）' },
-    { name: '商务区物业', type: '商圈型', area: '2800㎡', areaNum: 2800, rooms: '75间', rent: '高', match: '中', note: '可排客房按品牌标准（约50-80间）' },
-  ],
-  中档: [
-    { name: '商圈核心物业', type: '商圈型', area: '3500㎡', areaNum: 3500, rooms: '85间', rent: '高', match: '高' },
-    { name: '商务区物业', type: '商务型', area: '3200㎡', areaNum: 3200, rooms: '80间', rent: '中高', match: '高' },
-    { name: '交通枢纽物业', type: '枢纽型', area: '3000㎡', areaNum: 3000, rooms: '78间', rent: '中', match: '中' },
-  ],
-  中高档: [
-    { name: '商圈黄金物业', type: '商圈型', area: '4000㎡', areaNum: 4000, rooms: '90间', rent: '很高', match: '高' },
-    { name: '高端商务物业', type: '商务型', area: '3800㎡', areaNum: 3800, rooms: '88间', rent: '高', match: '高' },
-  ],
-  高档: [
-    { name: '核心地段物业', type: '商圈型', area: '4500㎡', areaNum: 4500, rooms: '95间', rent: '极高', match: '高' },
-  ],
-}
-
-function getPropertyList(brandLevel) {
-  if (brandLevel.includes('经济') || brandLevel.includes('国民')) return properties['经济型']
-  if (brandLevel.includes('精选') || brandLevel.includes('中高档')) return properties['中高档']
-  if (brandLevel.includes('高档')) return properties['高档']
-  return properties['中档']
-}
+// ★ V113-0.1：候选物业表已移到 `src/propertyCatalog.mjs`（纯数据 · 事实字段 · 无 match/无预设房量），
+//   由门禁直接 import 断言（tests/propertyFacts.test.mjs）。本组件只负责展示与交互。
 
 export default function Claim({ brand, location, onComplete }) {
   const [step, setStep] = useState(0)
@@ -53,12 +27,20 @@ export default function Claim({ brand, location, onComplete }) {
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [claimed, setClaimed] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  // ★ V113-0.1：房量由学生自己测算（两个可调参数 · 只有"经验值"默认，没有标准答案）
+  const [测算参数, set测算参数] = useState({ 得房率: null, 单房建筑面积: null })
 
   const propList = getPropertyList(brand.level)
+  // ★ V113-0.1：测算参数 —— 未手填时取该档"经验值"默认（可调 · 非标准答案）
+  const 档 = getPropertyTier(brand.level)
+  const 默认 = ROOM_ESTIMATE_DEFAULTS[档]
+  const 得房率 = Number.isFinite(测算参数.得房率) ? 测算参数.得房率 : 默认.得房率
+  const 单房面积 = Number.isFinite(测算参数.单房建筑面积) ? 测算参数.单房建筑面积 : 默认.单房建筑面积
+  const 测算房量 = selectedProperty ? estimateRooms({ areaNum: selectedProperty.areaNum, 得房率, 单房建筑面积: 单房面积 }) : null
   const current = claimSteps[step]
   const progress = Math.round((step / (claimSteps.length - 1)) * 100)
   // 🔴 W3-2：物业报价单（选中物业后即可算；口径见 src/propertyQuote.mjs 顶部注释）
-  const quote = selectedProperty ? propertyQuote(brand, selectedProperty, location?.attrs) : null
+  const quote = selectedProperty ? propertyQuote(brand, selectedProperty, location?.attrs, { roomsOverride: 测算房量 }) : null
   // 🔴 W3-1/W3-5：一页钱账 + 回本周期（口径 (b) 本店实测：ADR/OCC 取自引擎确定性单周）
   const ledger = selectedProperty ? onePageLedger({ brand, property: selectedProperty, districtAttrs: location?.attrs }) : null
   const payback = ledger ? paybackText(ledger) : null
@@ -74,14 +56,19 @@ export default function Claim({ brand, location, onComplete }) {
   function propertyResult(p) {
     const rentHigh = p.rent.includes('高') || p.rent.includes('很高') || p.rent.includes('极高')
     return {
-      title: `选择「${p.name}」的结果`,
+      title: `「${p.name}」的事实清单`,
       changes: [
         { label: '商圈类型', value: p.type, dir: '' },
+        { label: '建筑面积', value: p.area, dir: '' },
+        { label: '柱网', value: p.柱网, dir: '' },
+        { label: '电梯', value: p.电梯, dir: '' },
+        { label: '消防', value: p.消防, dir: p.消防.includes('需整改') ? 'down' : 'up' },
+        { label: '产权', value: p.产权, dir: p.产权.includes('抵押') ? 'down' : 'up' },
         { label: '租金水平', value: p.rent, dir: rentHigh ? 'down' : 'up' },
-        { label: '可排房量', value: p.rooms, dir: '' },
-        { label: '与品牌匹配度', value: p.match, dir: p.match === '高' ? 'up' : '' },
+        { label: '你测算的可排房量', value: 测算房量 != null ? `${测算房量} 间` : '待测算（下方调参数）', dir: '' },
       ],
-      note: `选「${p.name}」意味着：${rentHigh ? '租金高、成本压力大，但客流旺、房价能拉高' : '租金低、成本可控，但可能客流有限'}。匹配度${p.match}，${p.match === '高' ? '符合品牌标准，未来经营更顺' : '需谨慎，可能影响品牌一致性'}。`,
+      note: `这里只列事实，不给你结论：${p.area}、柱网 ${p.柱网}、${p.电梯}、消防${p.消防}、产权${p.产权}、租金${p.rent}。`
+        + `可排房量要自己算（面积 × 得房率 ÷ 单房建筑面积），参数在列表下方可调——换参数，结果就变。`,
     }
   }
 
@@ -193,12 +180,54 @@ export default function Claim({ brand, location, onComplete }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 16, fontWeight: 600 }}>{p.name}</span>
-                  <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, background: p.match === '高' ? 'var(--good-bg)' : 'var(--warn-bg)', color: p.match === '高' ? 'var(--good)' : 'var(--warn)' }}>匹配度 {p.match}</span>
+                  <span style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, background: 'var(--fill)', color: 'var(--text-sub)' }}>{p.type}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6 }}>{p.type} · {p.area} · {p.rooms} · 租金{p.rent}</div>
+                {/* ★ V113-0.1：只列事实，不给"匹配度"结论、不预设房量 */}
+                <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6 }}>{p.area} · 柱网 {p.柱网} · {p.电梯}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>消防 {p.消防} · 产权 {p.产权} · 租金 {p.rent}</div>
               </div>
             ))}
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>匹配度越高，未来经营越顺，但租金可能越高——权衡</div>
+            {/* ★ V113-0.1：房量测算器（学生自己算 · 参数可调 · 默认值标"经验值"） */}
+            {selectedProperty && (
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'var(--bg)' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>算一下：这家物业能排多少间客房？</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  可排房量 = 建筑面积 × 得房率 ÷ 单房建筑面积（结果向下取整）。默认值是行业**经验值**（不是标准答案），你可以改。
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                    得房率（%）
+                    <input type="number" min="30" max="90" step="1"
+                      value={Math.round(得房率 * 100)}
+                      onChange={e => set测算参数(s => ({ ...s, 得房率: Number(e.target.value) / 100 }))}
+                      style={{ width: 72, marginLeft: 6, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 16 }} />
+                  </label>
+                  <label style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                    单房建筑面积（㎡）
+                    <input type="number" min="16" max="80" step="1"
+                      value={单房面积}
+                      onChange={e => set测算参数(s => ({ ...s, 单房建筑面积: Number(e.target.value) }))}
+                      style={{ width: 72, marginLeft: 6, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 16 }} />
+                  </label>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                    = {测算房量 != null ? `${测算房量} 间` : '参数不合法'}
+                  </span>
+                </div>
+                {quote && quote.门禁核对 && quote.门禁核对.项.filter(x => x.项.includes('房量')).length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    {quote.门禁核对.项.filter(x => x.项.includes('房量')).map(x => (
+                      <div key={x.项} style={{ fontSize: 12, color: x.过 ? 'var(--good)' : 'var(--bad)', marginTop: 2 }}>
+                        {x.过 ? '达标' : '不达标'} · {x.项}：你算 {x.实} / 品牌要求 {x.要求}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {quote && (quote.门禁核对?.项.length ?? 0) === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>该品牌未接入房量门槛数据 ⇒ 只展示你的测算值，不做好坏判断</div>
+                )}
+              </div>
+            )}
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>面积、柱网、消防与产权状态都是"事实"——没有最好的物业，只有更贵的租金和更难的工程。</div>
           </div>
         )}
 

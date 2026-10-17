@@ -52,9 +52,13 @@ function 门槛行(门槛, 品牌名) {
  * @param {{name:string, standard:string}} brand   品牌（房量取 brand.standard）
  * @param {{name:string, areaNum?:number}} property 物业
  * @param {{租金?:number}} districtAttrs            区县六维属性（租金 1-5 档）
+ * @param {{roomsOverride?:number|null}} [opts]     ★ V113-0.1：学生自算的可排房量。
+ *        传入 ⇒ 报价单与"品牌门槛核对"一律以【学生测算值】为准（教学要的是"你自己算"）；
+ *        不传 ⇒ 与改前**逐字节一致**（房量取 parseRooms(brand.standard)）—— 既有调用方/断言不受影响。
  */
-export function propertyQuote(brand, property, districtAttrs) {
-  const rooms = parseRooms(brand?.standard)
+export function propertyQuote(brand, property, districtAttrs, opts = {}) {
+  const 覆盖 = Number(opts && opts.roomsOverride)
+  const rooms = Number.isFinite(覆盖) && 覆盖 > 0 ? Math.floor(覆盖) : parseRooms(brand?.standard)
   const 租金档 = districtAttrs?.租金
   const 日租 = rentPerRoomDay(租金档)
   const 年租金 = rooms ? rooms * 日租 * 365 : null

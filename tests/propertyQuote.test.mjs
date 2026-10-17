@@ -168,13 +168,21 @@ console.log('\n[2c] 覆盖度：界面品牌 × franchiseModel（表在但没盖
 // ── ③ 一致性层 ────────────────────────────────────────────────────────
 console.log('\n[3] 一致性层：物业数据的两份表示必须一致（防漂移）')
 {
-  const claim = src('Claim.jsx')
+  // ★ V113-0.1：物业表已移到 `src/propertyCatalog.mjs`（纯数据）⇒ 扫那里（断言意图不变：两份表示必须一致）
+  const catalog = src('propertyCatalog.mjs')
+  const claim = src('Claim.jsx')   // 下方 fmtLine 渲染器断言仍要读 Claim（数据已移出，渲染层还在）
   // 从源码里抓 area/areaNum 成对值（按写法扫，不按"想到的位置"探）
-  const pairs = [...claim.matchAll(/area:\s*'(\d+)㎡',\s*areaNum:\s*(\d+)/g)].map(m => ({ area: +m[1], areaNum: +m[2] }))
+  const pairs = [...catalog.matchAll(/area:\s*'(\d+)㎡',\s*areaNum:\s*(\d+)/g)].map(m => ({ area: +m[1], areaNum: +m[2] }))
   ok(pairs.length >= 8, `抓到 ${pairs.length} 组 area/areaNum（覆盖各档次物业）`)
   const bad = pairs.filter(p => p.area !== p.areaNum)
   ok(bad.length === 0, '每组的 areaNum 与 area 字符串一致', bad.map(b => JSON.stringify(b)).join(' '))
-  ok(/rooms:\s*'\d+间'/.test(claim) && !/roomsNum/.test(claim), '房量仍只以字符串展示（真值走 parseRooms，不另设数字字段防两套）')
+  // ★ V113-0.1 断言换义（D162：断言同步 + 解释）：
+  //   旧断言要求"物业卡上仍有 rooms 字符串" —— 那是"答案写在脸上"，与本批"房量要学生自己算"直接冲突。
+  //   新断言：① 物业表**不得**再宣称房量/匹配度（无 `rooms:`、无 `match:`）
+  //          ② 报价单默认房量仍走 parseRooms（真值单源），且**只有**学生测算值能覆盖它
+  ok(!/rooms:\s*'\d+间'/.test(catalog), '物业表不再预设房量（房量由学生测算 · V113-0.1）')
+  ok(!/\bmatch:\s*'/.test(catalog), '物业表不再直给"匹配度"结论（只给事实 · V113-0.1）')
+  ok(/roomsOverride/.test(src('propertyQuote.mjs')), '报价单接受学生测算值覆盖（roomsOverride · 单源不被破坏）')
 
   // ★ §16.2-B1 补充：**fmt 词表 × 渲染器** 必须对得上（"表在但没盖全"同族 ——
   //   新增一个 fmt 却没人渲染 ⇒ 掉进万元分支 ⇒ 渲染成 "NaN 万"，本批真踩过一次）
@@ -198,8 +206,10 @@ console.log('\n[3] 一致性层：物业数据的两份表示必须一致（防�
     '区间类门槛在 propertyQuote 内已转展示字符串（不让渲染层处理数组）', JSON.stringify(区间行.map(l => l.value)))
 
   // ── 界面层（静态）：认领页必须真的渲染报价单（R3 反向验证：删块即红）──
-  ok(/from '\.\/propertyQuote\.mjs'/.test(claim) && /propertyQuote\(brand, selectedProperty, location\?\.attrs\)/.test(claim),
-    'Claim.jsx：引入并调用 propertyQuote（品牌 + 选中物业 + 区县属性）')
+  // ★ V113-0.1 断言同步：调用点新增第 4 参（学生测算的可排房量 roomsOverride）——
+  //   三要素（品牌 + 选中物业 + 区县属性）不变；仍要求**直接从 Claim 调用**（不许中间层绕开）
+  ok(/from '\.\/propertyQuote\.mjs'/.test(claim) && /propertyQuote\(brand,\s*selectedProperty,\s*location\?\.attrs(\s*,\s*\{[^}]*roomsOverride[^}]*\})?\s*\)/.test(claim),
+    'Claim.jsx：引入并调用 propertyQuote（品牌 + 选中物业 + 区县属性 [+ V113 学生测算房量]）')
   ok(/\{step === 3 && quote &&/.test(claim) && /quote\.lines\.map/.test(claim),
     'Claim.jsx：第 3 步「项目决策」渲染报价单（条件渲染 + 逐行输出）')
   ok(/STATUS\.MISSING/.test(claim) && /待补 · 无来源数据/.test(claim), 'Claim.jsx：缺来源字段显示"待补"，不是空白或 0')
