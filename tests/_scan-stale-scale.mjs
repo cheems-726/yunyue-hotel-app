@@ -54,6 +54,7 @@ const WHITELIST = [
   //   ⇒ 按扫描器自己的判据「对应写法已消失 ⇒ 删条目」删除。这类"白名单腐烂"正是 BL-11 族。
   { rule: 'R6', file: 'src/App.jsx', why: '资金卡 (cap/10000).toFixed(1) 显示为"万" —— 纯展示换算，量级已随口径更新' },
   { rule: 'R6', file: 'src/WeeklyReport.jsx', why: '资金/营收显示为"万" —— 纯展示换算（预警线金额亦由 SCALE.变黄线 / 10000 推导，非写死）' },
+  { rule: 'R6', file: 'src/MetricBoard.jsx', why: '金额显示为"万" —— 纯展示换算（与周报同款；数字来自 metricView，不参与任何计算）' },
   { rule: 'R6', file: 'src/TeacherDashboard.jsx', why: '教师端金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/FinalResult.jsx', why: '成绩单金额显示为"万" —— 纯展示换算' },
   { rule: 'R6', file: 'src/HotelStatus.jsx', why: '经营页金额显示为"万" —— 纯展示换算' },
