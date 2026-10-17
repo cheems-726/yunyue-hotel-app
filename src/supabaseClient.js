@@ -17,7 +17,7 @@ export function emailFor(id) {
 export async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, display_name, group_no, class_name')
+    .select('*')
     .eq('user_id', userId)
     .single()
   if (error) return null
@@ -28,7 +28,7 @@ export async function fetchProfile(userId) {
 export async function fetchGroupMembers(className, groupNo) {
   let q = supabase
     .from('profiles')
-    .select('user_id, display_name, group_no, class_name, role_in_group')
+    .select('*')
     .eq('role', 'student')
   if (className) q = q.eq('class_name', className)
   if (groupNo) q = q.eq('group_no', groupNo)
@@ -52,7 +52,7 @@ export async function fetchGroupStates(groupKey, uids = []) {
   if (groupKey) {
     const { data, error } = await supabase
       .from('game_states')
-      .select('state, week, finished, updated_at')
+      .select('*')
       .eq('group_key', groupKey)
       .maybeSingle()
     if (error) throw error
@@ -62,7 +62,7 @@ export async function fetchGroupStates(groupKey, uids = []) {
   if (!uids.length) return []
   const { data, error } = await supabase
     .from('game_states')
-    .select('user_id, state, week, finished, updated_at')
+    .select('*')
     .in('user_id', uids)
   if (error) throw error
   return data || []
@@ -78,14 +78,14 @@ export async function fetchGameState(userId, groupKey = null) {
   if (groupKey) {
     const { data: g } = await supabase
       .from('game_states')
-      .select('state, user_id')
+      .select('*')
       .eq('group_key', groupKey)
       .maybeSingle()
     if (g) return g.state
   }
   const { data, error } = await supabase
     .from('game_states')
-    .select('state')
+    .select('*')
     .eq('user_id', userId)
     .maybeSingle()
   if (error || !data) return null
@@ -103,7 +103,7 @@ export async function saveGameState(userId, state, groupKey = null) {
   }
   if (groupKey) {
     const { data, error } = await supabase.from('game_states')
-      .update(base).eq('group_key', groupKey).select('user_id')
+      .update(base).eq('group_key', groupKey).select('*')
     if (!error && data && data.length) return true
     // 组档还不存在：插入建档（属主 = 首个写入者）
     const { error: insErr } = await supabase.from('game_states')
@@ -159,7 +159,7 @@ export function saveGameStateNow(userId, state, groupKey = null) {
 export async function fetchAllGameStates() {
   const { data, error } = await supabase
     .from('game_states')
-    .select('user_id, group_name, group_key, state, week, finished, updated_at')   // ★ R114-1：必须取 group_key（V114 的组↔账号过滤依赖它）
+    .select('*')   // ★ R114-1：必须取 group_key（V114 的组↔账号过滤依赖它）
     .order('updated_at', { ascending: false })
   if (error) throw error
   return data || []
@@ -169,7 +169,7 @@ export async function fetchAllGameStates() {
 export async function fetchAllProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, role, display_name, group_no, class_name, student_no, role_in_group')
+    .select('*')
   if (error) throw error
   return data || []
 }
@@ -187,7 +187,7 @@ export async function updateProfileByTeacher(userId, fields) {
 export async function fetchClassWeek() {
   const { data, error } = await supabase
     .from('class_state')
-    .select('current_week')
+    .select('*')
     .eq('id', 1)
     .maybeSingle()
   if (error || !data) return 0
@@ -203,7 +203,7 @@ export async function fetchClassWeek() {
 export async function fetchClassState() {
   const { data, error } = await supabase
     .from('class_state')
-    .select('current_week, injected_events, supervisor_auth')
+    .select('*')
     .eq('id', 1)
     .maybeSingle()
   if (!error && data) {
@@ -216,7 +216,7 @@ export async function fetchClassState() {
   }
   const { data: d2 } = await supabase
     .from('class_state')
-    .select('current_week')
+    .select('*')
     .eq('id', 1)
     .maybeSingle()
   return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 通道就绪: false }
@@ -297,7 +297,7 @@ export async function deleteTeacherNote(noteId) {
 
 // 学生读自己的批注
 export async function fetchMyNotes(studentUid) {
-  const { data, error } = await supabase.from('teacher_notes').select('week, note, score, updated_at').eq('student_uid', studentUid)
+  const { data, error } = await supabase.from('teacher_notes').select('*').eq('student_uid', studentUid)
   if (error) throw error
   return data || []
 }
@@ -355,7 +355,7 @@ export async function fetchDecisionLogs(limit = 50) {
   try {
     const { data, error } = await supabase
       .from('decision_log')
-      .select('id, user_id, group_key, week, decision_id, answer, feedback, created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(limit)
     if (error) throw error
