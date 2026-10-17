@@ -362,6 +362,8 @@ try {
   // 🔴 W2-3（W10 正名）：周报必须【同时】显示净利润与 GOP（Wave 2 验收：两指标界面可见）
   ok('周报显示 GOP / 净利润两个指标', rep.includes('净利润') && rep.includes('GOP') && rep.includes('经营毛利'))
   // ★ V113-1.4：第 1 周对照（反思必填 ⇒ 不填按钮 disabled）
+  // ★ V113-2.1：指标观察板（成本条形合计 100%±0.1% · 一次性项单列）
+  ok('指标观察板（成本条形合计 100%±0.1%）', await page.evaluate(() => { const bar = document.querySelector('[data-costbar=\"1\"]'); if (!bar) return false; const s = [...bar.children].reduce((a, c) => a + Number(c.getAttribute('data-w')), 0); return Math.abs(s - 1) <= 0.001 }))
   ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
   ok('第1周反思未填时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先填「我忽略了什么信号」/.test(x.textContent)); return !!b && b.disabled === true }))
   await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填

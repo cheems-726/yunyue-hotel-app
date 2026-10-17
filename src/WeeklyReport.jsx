@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Week1Review from './Week1Review.jsx'   // ★ V113-1.4：第 1 周对照（反思必填）
+import MetricBoard from './MetricBoard.jsx'   // ★ V113-2.1：本周 6 指标 + 成本结构
 import { 第1周反思完成 } from './choiceReasons.mjs'
 import Icon from './Icon.jsx'
 import { getTitle } from './hotelTitle.js'
@@ -706,6 +707,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         </div>
       </div>
 
+      <MetricBoard row={result} />
       {Number(result && result.week) === 1 && <Week1Review result={result} onStatus={set反思ok} />}
       <div style={{ padding: '8px 20px 24px' }}>
         <button className="btn-confirm" style={{ opacity: 需反思 ? 0.5 : 1 }} disabled={需反思} onClick={onClose}>
