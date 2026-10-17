@@ -7,7 +7,8 @@ import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
 import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
-import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
+import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领
+import WhyNot from './WhyNot.jsx'   // ★ V113-1.3：每步一句取舍   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -172,6 +173,8 @@ export default function Claim({ brand, location, onComplete }) {
             ))}
           </div>
         )}
+        {/* ★ V113-1.3：经营模式取舍句（选了才问，不拦流程） */}
+        {step === 0 && bizMode && <WhyNot k="bizMode" 名="经营模式" 提示="为什么选这个经营模式，而不是另一种？" 选项={['自主直营', 'OTA平台合作']} />}
         {step === 0 && bizMode && (
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>符合 {brand.name} 品牌标准的候选物业：</div>
@@ -232,6 +235,8 @@ export default function Claim({ brand, location, onComplete }) {
               </div>
             )}
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>面积、柱网、消防与产权状态都是"事实"——没有最好的物业，只有更贵的租金和更难的工程。</div>
+            {/* ★ V113-1.3：物业取舍句 */}
+            {selectedProperty && <WhyNot k="property" 名="物业" 提示="为什么选这家物业，而不是另外几家？" 选项={propList.filter(x => x.name !== selectedProperty.name).map(x => x.name)} />}
           </div>
         )}
 

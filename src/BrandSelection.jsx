@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { 品牌可行性 } from './brandFit.mjs'   // ★ V113-1.2：装不下的品牌要能举证
+import WhyNot from './WhyNot.jsx'   // ★ V113-1.3：品牌取舍句
 import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
@@ -262,6 +263,8 @@ export default function BrandSelection({ location, onConfirm }) {
             <button onClick={() => set对比组([])} style={{ marginTop: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-sub)', borderRadius: 6, padding: '3px 10px' }}>清空对比</button>
           </div>
         )}
+        {/* ★ V113-1.3：品牌取舍句（选了才问，不拦流程；进《开店宣言》） */}
+        {selected && <WhyNot k="brand" 名="品牌" 提示="为什么选这个品牌，而不是同档的另外两个？" 选项={brandGroups.flatMap(g => g.brands.map(x => x.name)).filter(n => n !== selected)} />}
         <button
           className="btn-confirm"
           disabled={!selected}

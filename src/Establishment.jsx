@@ -5,6 +5,8 @@ import ResultFeedback from './ResultFeedback.jsx'
 // §16.2-B5：投资项档位（可配置默认档位 · 每档标"待老师确认"）
 import { 投资测算, 档位价目, 待老师确认文案, 口径, 附加项 } from './establishmentInvest.mjs'
 import { 筹建账, 放弃清单, 预算口径 } from './startupBudget.mjs'   // V113-1.1：筹建预算包（让钱不够成立）
+import { 读宣言, 写宣言, 缺哪些 } from './choiceReasons.mjs'   // V113-1.3：开店宣言（一次生成 · 不可编辑）
+import WhyNot from './WhyNot.jsx'   // V113-1.3：每步取舍句
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
@@ -151,6 +153,8 @@ export default function Establishment({ brand, property, onComplete }) {
         <StepContent stepKey={step.key} onPick={pick} picked={picked} choices={choices} chooseInvest={chooseInvest} chooseSupplier={chooseSupplier} toggleOpeningTask={toggleOpeningTask} 测算={测算} 档位价目表={档位价目表} 账={账} 放弃={放弃} chooseTier={chooseTier} licOrder={licOrder} moveLic={moveLic} />
       </div>
 
+      {currentStep === steps.length - 1 && <开店宣言面板 />}
+
       {/* 底部按钮 */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
         {currentStep > 0 && (
@@ -251,6 +255,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                     </div>
                   )}
                   {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>该品牌缺单房造价/费率 ⇒ 无法核算预算（不编）</div>}
+                  <WhyNot k="invest" 名="投资档" 提示="为什么这样分配投资档位，而不是把钱花在别的档上？" 选项={['装修优先', '软装优先', '留现金']} />
                   {放弃.length > 0 && (
                     <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4, lineHeight: 1.7 }}>
                       你放弃了什么：{放弃.map(x => `${x.项}=${x.当前}（比"低"多花 ${万(x.多花)}）`).join(' · ')}
@@ -402,4 +407,51 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
         </div>
       )
   }
+}
+
+// ★ V113-1.3：《开店宣言》面板（一次生成 · 带时间戳 · 生成后只读）
+function 开店宣言面板() {
+  const [已存, set已存] = useState(() => 读宣言())
+  const [预算分配, set预算分配] = useState('')
+  const [最大赌注, set最大赌注] = useState('')
+  const [最怕, set最怕] = useState('')
+  const [错误, set错误] = useState('')
+  const 缺 = 已存 ? [] : 缺哪些()
+  if (已存) {
+    return (
+      <div style={{ margin: '8px 20px 0', padding: 12, borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>《开店宣言》（已生成 · 不可编辑）</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>生成时间：{new Date(已存.at).toLocaleString('zh-CN')}</div>
+        <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.8 }}>
+          <div>预算分配：{已存.预算分配}</div>
+          <div>最大赌注：{已存.最大赌注}</div>
+          <div>最怕哪一维打脸：{已存.最怕}</div>
+        </div>
+      </div>
+    )
+  }
+  const 生成 = () => {
+    const r = 写宣言({ 预算分配, 最大赌注, 最怕 })
+    if (r.成功) { set已存(r.宣言); set错误('') } else set错误(r.原因)
+  }
+  return (
+    <div style={{ margin: '8px 20px 0', padding: 12, borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--warn-border)' }}>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>《开店宣言》（生成后不可编辑）</div>
+      <div style={{ fontSize: 12, color: 缺.length ? 'var(--warn)' : 'var(--good)', marginBottom: 6 }}>
+        {缺.length ? '还不能生成：先写完取舍理由 —— ' + 缺.map(x => x.名).join('、') : '四项取舍理由已就绪'}
+      </div>
+      {[
+        ['预算分配', 预算分配, set预算分配, '钱怎么分？例如：装修降一档，其余中档，留 20 万周转'],
+        ['最大赌注', 最大赌注, set最大赌注, '你押的是什么？例如：押商务客，赌周三到周五的高价房'],
+        ['最怕哪一维打脸', 最怕, set最怕, '最怕哪个信号证明你错了？例如：出租率连续两周低于 45%'],
+      ].map(([label, v, set, ph]) => (
+        <input key={label} value={v} onChange={e => set(e.target.value)} placeholder={label + '：' + ph}
+          style={{ width: '100%', marginBottom: 6, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 16, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+      ))}
+      {错误 && <div style={{ fontSize: 12, color: 'var(--bad)', marginBottom: 6 }}>{错误}</div>}
+      <button className="btn btn-ghost" style={{ width: '100%', padding: 10 }} disabled={缺.length > 0} onClick={生成}>
+        {缺.length ? '先写完取舍理由' : '生成《开店宣言》（一次定终身）'}
+      </button>
+    </div>
+  )
 }

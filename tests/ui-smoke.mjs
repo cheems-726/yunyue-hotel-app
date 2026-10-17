@@ -205,6 +205,8 @@ try {
   // 4. 认领（经营模式：OTA平台合作文案）
   ok('OTA平台合作文案（非加盟）', (await text(page)).includes('OTA平台合作') && !(await text(page)).includes('OTA加盟'))
   await clickCard(page, 'OTA平台合作'); await sleep(400)
+  // ★ V113-1.3：每步取舍句（选了才问）
+  ok('取舍句·经营模式（要求写一句）', (await text(page)).includes('写一句：经营模式 的取舍'))
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '交通枢纽物业'); await sleep(400)
   // 🔴 W3-2：第 3 步「项目决策」必须出现物业报价单（投资侧可追溯 / 无来源标待补）
@@ -290,6 +292,8 @@ try {
   await clickText(page, '完成筹建'); await sleep(1200)
   const opening = await text(page)
   if (!opening.includes('正式开业')) console.log('    [开业页实况] ' + opening.slice(0, 170).split('\n').join(' | '))
+  // ★ V113-1.3：《开店宣言》面板（最后一步 · 缺理由时按钮禁用）
+  ok('开店宣言面板（带不可编辑提示）', (await text(page)).includes('《开店宣言》') && (await text(page)).includes('不可编辑'))
   ok('开业反馈弹出（含筹建决策汇总）', opening.includes('正式开业') && opening.includes('开业优先级') && opening.includes('投资情景'))
   await closeOverlay(page)
 

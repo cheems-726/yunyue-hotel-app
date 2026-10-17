@@ -62,6 +62,7 @@ const SUITES = [
   { name: 'industryBench（行业参照系·V113-0.3）', file: 'tests/industryBench.test.mjs' },
   { name: 'startupBudget（筹建预算包·V113-1.1）', file: 'tests/startupBudget.test.mjs' },
   { name: 'brandFit（品牌互斥·V113-1.2）', file: 'tests/brandFit.test.mjs' },
+  { name: 'choiceReasons（取舍句+开店宣言·V113-1.3）', file: 'tests/choiceReasons.test.mjs' },
   // Wave 4 · D-1：对象字面量重复键扫描（'静默吞掉'家族守门）
   { name: 'noDuplicateKeys（重复键守门·D-1）', file: 'tests/noDuplicateKeys.test.mjs' },
   // Wave 3 · W3-1/W3-5：一页钱账（口径 (b) 本店实测）+ 回本周期（外推）
