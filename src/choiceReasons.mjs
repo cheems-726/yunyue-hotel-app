@@ -102,5 +102,27 @@ export function 可读摘要() {
   }
 }
 
+// ── V113-1.4 · 第 1 周反思（'我忽略了什么信号'）────────────────────────
+//   存本机（离线可写）；合格 = 至少 理由最短 字。**这条可以卡**（客户端闸，不进服务端推进链）
+const RKEY = 'hotel-sim-reflect'
+
+export function 读反思(week) {
+  const all = 读(RKEY) || {}
+  return all[String(week)] || null
+}
+
+export function 写反思(week, text) {
+  const all = 读(RKEY) || {}
+  const t = String(text == null ? '' : text).trim()
+  all[String(week)] = { text: t, at: new Date().toISOString(), 合格: 反思合格(t) }
+  写(RKEY, all)
+  return all[String(week)]
+}
+
+export function 反思合格(s) { return String(s == null ? '' : s).trim().length >= 理由最短 }
+
+/** 第 1 周是否已反思（周报「进入下一周」的闸门用） */
+export function 第1周反思完成() { return 反思合格((读反思(1) || {}).text) }
+
 /** 清空（重开一局时用） */
-export function 清空取舍() { 写(KEY, {}); 写(DKEY, null) }
+export function 清空取舍() { 写(KEY, {}); 写(DKEY, null); 写(RKEY, {}) }

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import Week1Review from './Week1Review.jsx'   // ★ V113-1.4：第 1 周对照（反思必填）
+import { 第1周反思完成 } from './choiceReasons.mjs'
 import Icon from './Icon.jsx'
 import { getTitle } from './hotelTitle.js'
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
@@ -193,6 +195,9 @@ function SupervisorCard({ result }) {
 
 // 周报组件：展示结算结果（决策→结果→复盘）
 export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs }) {
+  // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
+  const [反思ok, set反思ok] = useState(() => 第1周反思完成())
+  const 需反思 = Number(result && result.week) === 1 && !反思ok
   const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
   // 🔴 W2-3：牌位值读【净利润】权威字段（netProfit；旧档回退 profit —— 引擎恒等式保证同值）
   const netP = Number.isFinite(result.netProfit) ? result.netProfit : result.profit
@@ -701,9 +706,10 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         </div>
       </div>
 
+      {Number(result && result.week) === 1 && <Week1Review result={result} onStatus={set反思ok} />}
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" onClick={onClose}>
- {result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`}
+        <button className="btn-confirm" style={{ opacity: 需反思 ? 0.5 : 1 }} disabled={需反思} onClick={onClose}>
+ {需反思 ? '先填「我忽略了什么信号」才能进入下一周' : (result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`)}
         </button>
  {/* E2：周报是【自动】产生的 —— 允许"先不处理，回去接着做决策"，
  经营页保留只读回看入口「 查看本周周报」（不允许这里再改任何数值） */}

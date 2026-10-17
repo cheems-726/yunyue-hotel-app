@@ -2004,9 +2004,9 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}) })))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书])
 
   // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
   useEffect(() => {

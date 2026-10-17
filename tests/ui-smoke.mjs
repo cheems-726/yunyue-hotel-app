@@ -2,6 +2,7 @@
 // 运行：先 npm run build，再 node tests/ui-smoke.mjs（脚本自动起 preview 服务器）
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
 import { chromium } from 'playwright-core'
+import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
 import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
@@ -360,6 +361,10 @@ try {
   ok('周报渲染（评级/事件/预测）', rep.includes('周经营结果') && rep.includes('本周经营事件') && rep.includes('下周市场预测'))
   // 🔴 W2-3（W10 正名）：周报必须【同时】显示净利润与 GOP（Wave 2 验收：两指标界面可见）
   ok('周报显示 GOP / 净利润两个指标', rep.includes('净利润') && rep.includes('GOP') && rep.includes('经营毛利'))
+  // ★ V113-1.4：第 1 周对照（反思必填 ⇒ 不填按钮 disabled）
+  ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
+  ok('第1周反思未填时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先填「我忽略了什么信号」/.test(x.textContent)); return !!b && b.disabled === true }))
+  await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
   // 进入第2周：原生 locator 点击（actionability等待，重渲染竞态下最稳）
   let week2 = false
   for (let r = 0; r < 3 && !week2; r++) {

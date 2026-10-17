@@ -2,6 +2,7 @@
 // 运行：npm run build && node tests/verify-capital.mjs
 // 只走离线演示路径（不登录云端、不写生产数据）
 import { chromium } from 'playwright-core'
+import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
@@ -182,6 +183,7 @@ try {
     }
   }
 
+  await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
   // ── ④ 进入下一周 → 资金卡显示累积值（不再是每周重置的 50 万+本周）──
   await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
   { const t = await text(page); console.log('PROBE1 资金状况=' + t.includes('资金状况') + ' 进入第=' + t.includes('进入第') + ' len=' + t.length) }

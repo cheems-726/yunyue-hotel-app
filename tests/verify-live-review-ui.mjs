@@ -11,9 +11,10 @@
 //    再配合高位属性（p 大）与高入住（crowd=1），让"命中时刻"可预期。
 
 import { chromium } from 'playwright-core'
+import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
-let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
+let 复用常驻 = false
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { CAUSE_SOURCE } from '../src/guests.js'
@@ -93,8 +94,11 @@ if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build');
   BASE = `http://localhost:${PORT}/`
 }
 复用常驻 = false
-server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
-console.log('▶ 本次自起预览：端口 ' + PORT + '（★ V96 不复用既有服务）')
+// ★ V113（用户令 2026-10-17）：优先复用常驻 4173 —— 反复起停会弹窗，影响用户打游戏。
+if (await fetch('http://localhost:4173/').then(r => r.ok).catch(() => false)) { PORT = 4173; BASE = 'http://localhost:4173/'; 复用常驻 = true }
+if (!复用常驻) server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+if (复用常驻) console.log('▶ 复用常驻预览：端口 ' + PORT + '（不起新进程 · 收尾不清杀）')
+else console.log('▶ 本次自起预览：端口 ' + PORT + '（★ V96 不复用既有服务）')
 for (let i = 0; i < 30; i++) { try { const r = await fetch(BASE); if (r.ok) break } catch (e) {} await sleep(300) }
 browser = await chromium.launch({ executablePath: EDGE, headless: true })
 const ctx = await browser.newContext({ viewport: { width: 480, height: 900 } })
@@ -377,6 +381,7 @@ await clickText(page, '确认选址'); await sleep(700)
   })
   await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
   // 结算态（report 已存档）会重载后停在周报页 —— 先点「进入第 N 周」回到带导航的壳
+  await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
   await page.evaluate(() => { const b = document.querySelector('.btn-confirm'); if (b && /进入第|最终成绩/.test(b.textContent)) b.click() })
   await sleep(1200)
   // 「关联经营」要能反查到"当时选了什么"：进入下一周会清空 doneDecisions，故此刻补回并二次重载
