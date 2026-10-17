@@ -85,8 +85,11 @@ function summarize(gs, profile, classDay = 0) {
     uid: gs.user_id,
     titleIcon: titleInfo.icon,
     title: titleInfo.title,
+    // ★ V114-P1：教师端统一显示「第N组 · 酒店名」—— 名称对得上，数据才敢当参考
+    hotelName: s.hotelName || '',
+    groupKey: gs.group_key || '',
     name: profile?.group_no
-      ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组`
+      ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组${s.hotelName ? ' · ' + s.hotelName : ''}`
       : (profile?.display_name || gs.user_id.slice(0, 8)),
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
@@ -1397,7 +1400,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                     <div key={lg.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--warn-bg)', fontSize: 11, lineHeight: 1.6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{hh}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>{lg.group_key || '未分组'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>{(() => { const k = String(lg.group_key || ''); const no = k.includes('|') ? k.split('|').pop() : k; const h = (groups || []).find(g => g.groupKey === k)?.hotelName; return (no ? '第' + no + '组' : '未分组') + (h ? ' · ' + h : '') })()}</span>
                         <span style={{ fontWeight: 600 }}>{p.display_name || '—'}</span>
                         {role && <span style={{ fontSize: 9, background: 'var(--primary-bg)', color: 'var(--info)', borderRadius: 4, padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name={role.icon} size={10} /> {role.label}</span>}
                         <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={d.icon} size={12} /> {d.name || lg.decision_id}</span>
