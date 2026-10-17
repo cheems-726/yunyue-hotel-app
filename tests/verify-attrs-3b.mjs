@@ -1,5 +1,6 @@
 // 3-B 验收：属性池接线（旧档兼容 / 决策 +5 / 持久化 / est-supplier 只应用一次）
 // 运行：先 npm run build，再 node tests/verify-attrs-3b.mjs
+import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
@@ -137,6 +138,7 @@ try {
     })
     await sleep(550); if (done) break
   }
+      await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   ok('认领完成进入筹建', (await bodyText()).includes('门店筹建'))
   // 投资 → 基准情景
   await clickCard('基准情景', 'starts'); await sleep(500)

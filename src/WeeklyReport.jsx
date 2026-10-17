@@ -196,7 +196,7 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '' }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
   const [反思ok, set反思ok] = useState(() => 第1周反思完成())
   const 需反思 = Number(result && result.week) === 1 && !反思ok
@@ -232,7 +232,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
     <div className="content">
       <div className="header">
         <span className="step-tag">周结算</span>
-        <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>第 {result.week} 周经营结果</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>{hotelName ? hotelName + ' · ' : ''}第 {result.week} 周经营结果</h1>
  {/* T2.4/E2：缺周展示 —— 老师跳过的周显式列出； 不参与任何平均值分母（只展示，不回写 history） */}
         {missingWeeks(history).length > 0 && (
           <div style={{ margin: '8px 0 0', padding: '8px 10px', background: 'var(--fill)', border: '1px dashed var(--border-strong)', borderRadius: 8, fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.7 }}>

@@ -12,6 +12,8 @@ import { 创建导航栈 } from './navStack.mjs'
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
+import HotelNaming from './HotelNaming.jsx'   // ★ V114-P1：酒店命名页（一次承诺）
+import { 已有名字 } from './hotelName.mjs'
 // ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— FinalResult/Reputation 出现在流程后段，React.lazy 切独立 chunk
 //   ★ 只懒【后段页面】（首屏 Welcome/登录/经营主链不动 —— 拆首屏反而多一次请求）· fallback 用同风格提示。
 import { lazy as lazyPage, Suspense as SuspenseR } from 'react'
@@ -21,7 +23,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
@@ -323,7 +325,7 @@ function InjectedEventsCard({ 事件s, week }) {
   )
 }
 
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '' }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -356,7 +358,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
     <div className="content" ref={contentRef}>
       <div className="header">
         <div className="row1">
-          <span className="hotel-name">{property ? property.name : '云悦酒店'}</span>
+          <span className="hotel-name">{hotelName || (property ? property.name : '云悦酒店')}</span>
           <span className="day-tag"><Icon name="date.week" size={13} /> 第 {week} 周</span>
         </div>
         <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
@@ -373,7 +375,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。
           ★ 本组件（Business）自己**不**算预览 —— 由主组件算好传下来（weekPreview 在主组件作用域）。 */}
       <HotelStatus report={report} brand={brand} property={property} week={week} history={history} attrs={attrs} attrFlash={attrFlash} decisions={doneDecisions}
-        dayFlows={dayFlows} dayIndex={classDayIndex} daySource={daySource} />
+        dayFlows={dayFlows} dayIndex={classDayIndex} daySource={daySource} hotelName={hotelName} />
 
       {/* ★ §32-U8-补 §2②：老师注入事件（本周生效）—— 30 秒应对卡（条件渲染：无注入 ⇒ 不渲染零变化） */}
       {!report && 本周注入.length > 0 && <InjectedEventsCard 事件s={本周注入} week={week} />}
@@ -1909,6 +1911,9 @@ export default function App() {
   const reportView = (report && 权威周) ? { ...report, ...权威周 } : report
   // ★ V109-T1/T2：选址的预言与承诺书（随存档持久化 · 承诺书不可编辑）
   const [选址承诺书, set选址承诺书] = useState(saved.选址承诺书 || null)
+  // ★ V114-P1：酒店名（纯标识 · 不进结算 · 取名后不可改）
+  const [hotelName, setHotelName] = useState(saved.hotelName || '')
+  const [已有酒店名, set已有酒店名] = useState([])
   const [选址预言, set选址预言] = useState(saved.选址预言 || null)
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
@@ -2006,9 +2011,9 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName])
 
   // 属性飘字自动清除（2s，与飘字动画 1.4s 匹配）
   useEffect(() => {
@@ -2492,6 +2497,18 @@ export default function App() {
     doSettle({ auto: true, key: autoInfo.key })
   }, [autoInfo.due, autoInfo.key, report])
 
+  // ★ V114-P1：进入命名页时拉本班已有酒店名（只用于查重提示；拿不到 ⇒ 只做本地格式校验）
+  React.useEffect(() => {
+    if (!property || hotelName) return
+    let 停 = false
+    fetchAllGameStates().then(rows => {
+      if (停) return
+      const 本班 = (rows || []).filter(g => !user?.className || !g.group_name || String(g.group_name).startsWith(String(user.className)))
+      set已有酒店名(已有名字(本班))
+    }).catch(() => {})
+    return () => { 停 = true }
+  }, [property, hotelName])
+
   // 首次进入经营页时记下"开学教学日序号"（自动周报的本地基准；只写一次）
   React.useEffect(() => {
     if (established && brand && !Number.isFinite(openDayNo)) setOpenDayNo(teachingDayNo())
@@ -2656,6 +2673,20 @@ export default function App() {
     )
   }
 
+  // ★ V114-P1：已认领 + 未取名 ⇒ 命名页（进入筹建前的一次承诺动作 · 空名/重名都过不去）
+  if (property && !hotelName) {
+    return (
+      <div className="app">
+        <div className="statusbar">
+          <span className="time">{time || '09:41'}</span>
+          <span className="icons" />
+        </div>
+        <DemoPill user={user} />
+        <HotelNaming 已有={已有酒店名} onCreate={(名) => setHotelName(名)} />
+      </div>
+    )
+  }
+
   // 已登录 + 已选址 + 已选品牌 + 已认领 + 未筹建 → 筹建页
   if (!established) {
     return (
@@ -2694,7 +2725,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} />
+        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} />
       </div>
     )
   }
@@ -2799,7 +2830,7 @@ export default function App() {
           : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
-      business: <Business user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} />,

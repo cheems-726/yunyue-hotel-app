@@ -68,7 +68,7 @@ export function 读宣言() { return 读(DKEY) }
  * @param {{预算分配:string, 最大赌注:string, 最怕:string}} p
  * @returns {{成功:boolean, 原因?:string, 宣言?:object}}
  */
-export function 写宣言({ 预算分配, 最大赌注, 最怕 } = {}) {
+export function 写宣言({ 预算分配, 最大赌注, 最怕, 酒店名 = '' } = {}) {
   if (读宣言()) return { 成功: false, 原因: '宣言已生成，不可编辑（一次定终身）' }
   const 缺 = 缺哪些()
   if (缺.length) return { 成功: false, 原因: '还没写完取舍理由：' + 缺.map(x => x.名).join('、') }
@@ -79,6 +79,7 @@ export function 写宣言({ 预算分配, 最大赌注, 最怕 } = {}) {
     预算分配: String(预算分配).trim(),
     最大赌注: String(最大赌注).trim(),
     最怕: String(最怕).trim(),
+    酒店名: String(酒店名 || '').trim() || null,   // ★ V114-P1：宣言带上酒店名（可能为空：取名在宣言之后才走的路径）
     理由: 读理由(),
     版本: 1,
   }

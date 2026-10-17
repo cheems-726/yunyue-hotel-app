@@ -344,7 +344,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
   )
 }
 
-export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex, daySource }) {
+export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex, daySource, hotelName = '' }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
   // 🔴 E1（二期 · 唯一账本）：累计利润改走 metricDefs.sumNet —— 原自算 `Σ h.profit` 与

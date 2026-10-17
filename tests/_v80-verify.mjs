@@ -4,6 +4,7 @@
 //   ② 教师：独立 context → 老师演示 → 教师后台 → 「12 周任务书（打印版）」同覆盖层
 // 走查原语照抄 ui-smoke/_v76-verify（R51-1 同族教训）
 import { chromium } from 'playwright-core'
+import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
@@ -108,6 +109,7 @@ browser = await chromium.launch({ executablePath: EDGE, headless: true })
     if (done) break
   }
   await sleep(600)
+  await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
   if (await hasOverlay(page)) await closeOverlay(page)

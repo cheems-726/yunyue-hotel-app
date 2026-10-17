@@ -5,6 +5,7 @@
 //   ③ 筹建类：投资测算点「乐观情景」→ 反馈浮层出现（含 note 正文）
 //   ② 决策类：经营页「动态调价」点「不跟降」→ 反馈面板含 适用场景/教学点/引擎依据（V75 四段式）
 // ★ 走查原语（hasOverlay/closeOverlay/clickCard/clickStep/认领推进）整体照抄 ui-smoke（R51-1 同族教训：finder 逐字对齐现行文案）
+import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
@@ -97,6 +98,7 @@ for (let i = 0; i < 7; i++) {
   })
   await sleep(600)
 }
+await 过命名页(page)   // ★ V114-P1：酒店命名页
 ok('进入筹建（认领走完）', (await text(page)).includes('门店筹建'))
 
 // ③ 筹建类：投资测算情景卡

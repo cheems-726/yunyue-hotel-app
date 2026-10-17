@@ -1,3 +1,4 @@
+import { 只取有效组 } from './rosterIntegrity.mjs'   // ★ V114-P2：组↔账号一一对应（未分组不进统计）
 import TeacherDiagnosis from './TeacherDiagnosis.jsx'   // ★ V113-2.6：诊断组合（不做排名）
 import React, { useState, useEffect, useRef } from 'react'
 // ★ V97：统一导航栈（返回=弹栈 · 教师端接 popstate）
@@ -891,11 +892,13 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       //   ReferenceError，导致教师端【整片数据加载失败】却毫无提示（假绿同族）。
       //   现在用真实 state：优先服务端 classDay；取不到则按教学周推算并标记为近似。
       const effClassDay = classDay || (classWeek ? classWeek * 7 : 0)
-      const list = states.map(gs => summarize(gs, pMap[gs.user_id], effClassDay))
+      // ★ V114-P2④：**只读**「group_no 已分配 + game_states 有行」的组 —— 未分组账号一律不进统计
+      const 有效 = 只取有效组({ profiles, gameStates: states })
+      const list = 有效.map(gs => summarize(gs, pMap[gs.user_id], effClassDay))
       list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1) || b.historyCount - a.historyCount)
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
-      setRawStates(states)
+      setRawStates(有效)   // ★ V114-P2：诊断/看板只吃有效组
       fetchTeacherNotes().then(ns => { setNotedUids(new Set(ns.map(n => n.student_uid))); setAllNotes(ns) }).catch(() => {})
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
@@ -1382,7 +1385,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   学生每提交一项决策，这里会出现一行（时间 / 组 / 学生 / 决策 / 答案 / 属性反馈）
                 </div>
               ) : (
-                logs.slice(0, 20).map(lg => {
+                logs.filter(lg => lg && lg.group_key).slice(0, 20).map(lg => {   // ★ V114-P2：未分组账号的流水不进教师端
                   const p = profiles.find(x => x.user_id === lg.user_id) || {}
                   const d = decisions.find(x => x.id === lg.decision_id) || {}
                   const role = p.role_in_group && OWNER_LABELS[p.role_in_group] ? OWNER_LABELS[p.role_in_group] : null

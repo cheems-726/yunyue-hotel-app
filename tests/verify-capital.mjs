@@ -1,6 +1,7 @@
 // ✅项④ 验收：资金唯一权威 + B5（prevCapital 累积 / bizMode 落盘）+ 旧档平滑迁移
 // 运行：npm run build && node tests/verify-capital.mjs
 // 只走离线演示路径（不登录云端、不写生产数据）
+import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
 import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
@@ -94,6 +95,7 @@ try {
     })
     await sleep(550); if (done) break
   }
+      await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
   await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
   await clickStep(page, '证照办理')

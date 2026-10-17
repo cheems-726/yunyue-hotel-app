@@ -1,6 +1,7 @@
 // UI 冒烟测试：无头浏览器走完核心链路，防"白屏/点不了"级低级 bug
 // 运行：先 npm run build，再 node tests/ui-smoke.mjs（脚本自动起 preview 服务器）
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
+import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
 import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
 import { 过两道闸门 } from './_v109-site.mjs'
@@ -231,6 +232,9 @@ try {
     await sleep(550)
     if (done) break
   }
+  // ★ V114-P1：命名页（空名 ⇒ 进不了经营）
+  ok('命名页（空名不可进入经营）', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先取一个/.test(x.textContent)); return !!b && b.disabled === true }))
+      await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   ok('认领完成进入筹建', (await text(page)).includes('门店筹建'))
 
   // 5. 筹建：15 个选项逐一点击
