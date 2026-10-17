@@ -224,7 +224,8 @@ console.log('\n[4] 零影响层：结算输出不可能被本模块影响')
   const importers = files.filter(f => f !== 'propertyQuote.mjs' && /propertyQuote/.test(strip(src(f))))
   // 🔴 W3-1 重基线（D38-B）：引用方从"仅 Claim.jsx"扩为【交互层白名单】——
   //   onePageLedger（W3-1 钱账）需要报价单的"总投资"来算回本周期，属同一交互层；意图不变：不进结算路径
-  const ALLOWED = ['Claim.jsx', 'onePageLedger.mjs']
+  // ★ V113-1.2：brandFit.mjs 只读品牌门槛（brandTerms）做装不装得下的判断 ⇒ 白名单补它
+  const ALLOWED = ['Claim.jsx', 'onePageLedger.mjs', 'brandFit.mjs']
   ok(importers.every(f => ALLOWED.includes(f)) && importers.includes('Claim.jsx'),
     `引用方限于交互层白名单（${importers.join(',')}）`, importers.join(','))
   // 纯函数：同输入同输出 + 不改入参
