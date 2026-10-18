@@ -5,15 +5,27 @@ import { 校验酒店名, 查重, 名字最短, 名字最长 } from './hotelName
 export default function HotelNaming({ 已有 = [], onCreate, 默认名 = '' }) {
   const [文本, set文本] = useState(默认名)
   const [错误, set错误] = useState('')
+  const [提交中, set提交中] = useState(false)
   const 校 = 校验酒店名(文本)
   const 重 = 校.ok ? 查重(文本, 已有) : { 重名: false }
-  const 可提交 = 校.ok && !重.重名
+  const 可提交 = 校.ok && !重.重名 && !提交中
 
-  const 提交 = () => {
+  // ★ V125-#8/#11：命名 = 写云端 + 回读校验（App 的 onCreate 负责）。
+  //   失败必须停在本页并显示原因（旧版界面显示成功、云端没存）；本页可重复提交 = 可重复补命名。
+  const 提交 = async () => {
+    if (提交中) return
     if (!校.ok) { set错误(校.原因); return }
     if (重.重名) { set错误(`该名已被${重.组 ? ' ' + 重.组 + ' ' : '其他组'}使用`); return }
     set错误('')
-    onCreate(校.值)
+    set提交中(true)
+    try {
+      const r = await onCreate(校.值)
+      if (r && r.ok === false) { set错误(r.原因 || '保存失败，请重试'); set提交中(false) }
+      // 成功时 App 会切到经营页（本组件卸载），无需再 setState
+    } catch (e) {
+      set错误('保存失败，请重试（网络异常）')
+      set提交中(false)
+    }
   }
 
   return (
@@ -45,9 +57,12 @@ export default function HotelNaming({ 已有 = [], onCreate, 默认名 = '' }) {
           disabled={!可提交}
           onClick={提交}
         >
-          {可提交 ? `就叫「${校.值}」，进入经营 →` : '先取一个 2–12 字、没被用过的名字'}
+          {提交中 ? '正在写入云端…' : (可提交 ? `就叫「${校.值}」，进入经营 →` : '先取一个 2–12 字、没被用过的名字')}
         </button>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
+          命名会立即写入云端并回读校验；写入失败会提示，可重复重试
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
           取名后不可修改；如需重置，请老师在教师端处理（随存档一起清）
         </div>
       </div>

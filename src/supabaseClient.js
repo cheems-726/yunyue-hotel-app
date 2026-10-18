@@ -92,6 +92,18 @@ export async function fetchGameState(userId, groupKey = null) {
   return data.state
 }
 
+// V125-#8/#11：酒店名单独写 —— 命名是"一次承诺动作"，必须当场写进云端并回读确认。
+//   为什么不能只靠 800ms 防抖保存：旧实现 cloudState 载荷里没有 hotelName，防抖保存反而把
+//   云端已有的 hotelName 覆盖掉（组 2/3 实证：补命名后 jsonb 键消失）。
+//   ⇒ 先读当前档再合并（不丢其它字段）→ 写 → 调用方用 fetchGameState 回读比对。
+export async function saveHotelName(userId, name, groupKey = null) {
+  const 名 = String(name || '').trim()
+  if (!名) return false
+  const cur = (await fetchGameState(userId, groupKey)) || {}
+  // 云档可能还不存在（刚认领物业）：saveGameState 会插入建档，不覆盖任何已有字段
+  return saveGameState(userId, { ...cur, hotelName: 名 }, groupKey)
+}
+
 // 保存：有组键则写组档（一组一档），否则写个人档
 // 组档走「先更新后插入」两步式，更新时不携带 user_id —— 保持原属主，避免"最后写入者变成行属主"
 export async function saveGameState(userId, state, groupKey = null) {

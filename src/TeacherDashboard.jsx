@@ -1367,18 +1367,23 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
+                {/* ★ V125-#7：口径必须显式 —— 这里是"已完成项数"（组内按 id 去重，改答案不重复计数），
+                    不是"提交次数"。分母 = 组数 × 18 项；人均也带 /18，避免老师误读成"学生只做了一半"。 */}
                 {[
-                  { l: '全班决策数', v: totalDone },
-                  { l: '人均完成', v: (groups.length ? (totalDone / groups.length).toFixed(1) : 0) + ' 项' },
-                  { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—' },
+                  { l: '全班已完成决策', v: `${totalDone} / ${groups.length * 18}`, t: '已完成决策项数（同一项改多次只算 1 项）· 分母 = 组数 × 18 项' },
+                  { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 18 项`, t: '每组最多 18 项；已完成项数 ÷ 组数' },
+                  { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', t: '最近一次云端存档时间' },
                 ].map(s => (
-                  <div key={s.l} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
+                  <div key={s.l} title={s.t} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>{s.v}</div>
                     <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{s.l}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>
+                口径：已完成决策项数（同一项改答案不重复计数）· 分母 = {groups.length} 组 × 18 项 = {groups.length * 18} 项 · 与"提交次数"不是同一个数
+              </div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
 
             {/* ★ V117-④⑤：过程分台账（默认收起 · 可导出 CSV） */}

@@ -153,6 +153,7 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
       const { 代管决策 } = 领班代管({ 上周, 学生决策: decisions, 全班默认: opts.supervisorAuth || null, 学生覆盖: src.supervisorAuthStudent || null })
       if (Object.keys(代管决策).length > 0) 生效决策 = { ...代管决策, ...decisions }   // ★ 学生决策优先（已有键不覆盖）
     }
+  // 静默理由：离线降级：失败走默认值，不阻塞主流程
   } catch (e) {}   // 领班层异常 ⇒ 回到无领班行为（不拦补算）
   const bounds = validateDecisions(decisions)
   const prev = history.length ? history[history.length - 1] : null

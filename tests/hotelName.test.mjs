@@ -38,7 +38,8 @@ ok(组显示({ groupNo: 3 }) === '第3组', '缺项不写占位（不编）')
   const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
   ok(app.includes("hotelName || (property ? property.name"), '学生顶栏：酒店名优先（缺则回退物业名）')
   ok(wr.includes("hotelName ? hotelName + ' · ' : ''"), '周报标题：同一 hotelName 作前缀')
-  ok(td.includes("hotelName: s.hotelName || ''") && td.includes("' · ' + s.hotelName"), '教师端总览：第N组 · 酒店名（同一字段）')
+  // ★ V125-#8：1ef90e7 把这里改成模板串（无店名显示「（未命名）」），断言同步到实现
+  ok(td.includes("hotelName: s.hotelName || ''") && /第\$\{profile\.group_no\}组 · \$\{s\.hotelName \|\| '（未命名）'\}/.test(td), '教师端总览：第N组 · 酒店名（同一字段；缺名显示（未命名））')
 }
 
 console.log('══ V114-P1 酒店名 ══')

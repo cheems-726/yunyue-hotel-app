@@ -66,6 +66,7 @@ const SUITES = [
   { name: 'metricView（指标派生层·V113-2.2）', file: 'tests/metricView.test.mjs' },
   { name: 'diagnoseGroups（诊断组合·V113-2.6）', file: 'tests/diagnoseGroups.test.mjs' },
   { name: 'hotelName（酒店名规则·V114-P1）', file: 'tests/hotelName.test.mjs' },
+  { name: 'v125Ui（真跑问题维修第一批·V125）', file: 'tests/v125Ui.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
   { name: 'panelProps（InjectionPanel prop 完整性·V123）', file: 'tests/panelProps.test.mjs' },
   { name: 'personaSim（六人格定稿·V122）', file: 'tests/personaSim.test.mjs' },

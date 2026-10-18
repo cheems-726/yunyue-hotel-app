@@ -28,7 +28,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
@@ -347,6 +347,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   }, [])
   const [filter, setFilter] = useState('all') // all | undone | done | key
   const [showBreakdown, setShowBreakdown] = useState(false) // 资金卡支出构成折叠
+  // ★ V125-#2：决策入口首屏可发现 —— 顶部提示与进度行都点了滚到决策区（不再要求新学生先往下翻）
+  const 决策区Ref = React.useRef(null)
+  const 滚到决策 = () => { if (决策区Ref.current) 决策区Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
   // 满18庆祝：会话内首次集齐时弹一次（reload 不重复骚扰）
   const celebratedRef = React.useRef(Object.keys(doneDecisions || {}).length >= 18)
   React.useEffect(() => {
@@ -375,6 +378,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const t = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
           return t.title
         })()}</div>
+        {/* ★ V125-#2：首屏（不滚动）就能看到"还有几项待做"，点一下直达决策区 */}
+        <button
+          onClick={滚到决策}
+          style={{ marginTop: 8, padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (doneCount === 18 ? 'var(--good-border)' : 'var(--warn-border)'), background: doneCount === 18 ? 'var(--good-bg)' : 'var(--warn-bg)', color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {doneCount === 18 ? '本周 18 项决策已全部完成 ✓（可点回复看）' : `本周还有 ${18 - doneCount} 项决策待做 · 去决策 →`}
+        </button>
       </div>
 
       {/* 酒店状态面板（RPG属性）
@@ -387,13 +397,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       {/* ★ §32-U8-补 §2②：老师注入事件（本周生效）—— 30 秒应对卡（条件渲染：无注入 ⇒ 不渲染零变化） */}
       {!report && 本周注入.length > 0 && <InjectedEventsCard 事件s={本周注入} week={week} />}
 
-      {/* 本周决策进度 */}
+      {/* 本周决策进度（★ V125-#2：整块可点 ⇒ 滚到决策区；待做数直接写在行上） */}
       <div style={{ padding: '0 20px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 5 }}>
-          <span>本周决策进度</span>
+        <div onClick={滚到决策} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, cursor: 'pointer' }}>
+          <span>本周决策进度 <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{doneCount < 18 ? `· 还有 ${18 - doneCount} 项待做 →` : '· 全部完成 ✓'}</span></span>
           <span style={{ color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontWeight: 600 }}>{doneCount} / 18</span>
         </div>
-        <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
+        <div onClick={滚到决策} style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden', cursor: 'pointer' }}>
           <div style={{ height: '100%', width: (doneCount / 18 * 100) + '%', background: doneCount === 18 ? 'var(--good)' : 'var(--primary)', borderRadius: 3, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)' }}></div>
         </div>
       </div>
@@ -589,8 +599,21 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         </div>
       )}
 
-      {/* 18项能力点，按模块分组（未决策的排前面） */}
-          {modules.map(mod => (
+      {/* 18项能力点，按模块分组（未决策的排前面）· ★ V125-#2：决策区锚点（顶部提示点这里滚进来） */}
+      <div ref={决策区Ref} style={{ scrollMarginTop: 8 }}>
+          {/* ★ V125-#3：每日关键 = 3 项固定决策的筛选器（不是每日任务系统）。
+              全部做完时筛选结果为空 —— 必须给一句解释，否则看起来像"tab 坏了"（真跑实测原样复现）。 */}
+          {filter === 'key' && KEY_DECISIONS.every(id => doneDecisions[id] !== undefined) && (
+            <div className="card" style={{ background: 'var(--good-bg)', borderColor: 'var(--good-border)', fontSize: 12, color: 'var(--good)', lineHeight: 1.7 }}>
+              每日关键 3 项（动态调价 / 前台排班 / 口碑管理）本周已全部完成 ✓ —— 其余 15 项可在「全部」里继续做
+            </div>
+          )}
+          {modules.map(mod => {
+            const 列出 = decisions.filter(d => d.module === mod)
+              .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
+            // 「每日关键」筛选下，本模块没有关键项 ⇒ 整段不渲染（空 section 标题=噪声）
+            if (filter === 'key' && 列出.length === 0) return null
+            return (
             <div key={mod}>
               <div className="section-title">
                 <span className="left">{mod}</span>
@@ -604,8 +627,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                 </span>
               </div>
               <div className="task-list">
-                {decisions.filter(d => d.module === mod)
-                  .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
+                {列出
                   .map(d => ({ d, isDone: doneDecisions[d.id] !== undefined }))
                   .sort((a, b) => (a.isDone === b.isDone ? 0 : a.isDone ? 1 : -1))
                   .sort((a, b) => (b.d.owner === user?.groupRole ? 1 : 0) - (a.d.owner === user?.groupRole ? 1 : 0)) // 我的职责置顶
@@ -662,7 +684,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                 })}
               </div>
             </div>
-          ))}
+            )
+          })}
+      </div>
       {/* 回到顶部悬浮按钮（Business 内部，状态同作用域） */}
       {showTop && (
         <button
@@ -1960,6 +1984,31 @@ export default function App() {
     toast(`已改名为「${name}」，教师端同步更新`)
   }
 
+  // ★ V125-#8/#11：命名确认 = 写云端 + 回读校验，**写进去才算成功**（失败必须可见，不许假装成功）。
+  //   顺序很重要：先写云、回读一致后才 setHotelName —— 否则状态一变命名页就卸载，错误提示没地方显示。
+  //   离线/演示账号：只落本机（localStorage 是唯一存储），返回成功。
+  async function 确认酒店名(名) {
+    const name = String(名 || '').trim()
+    if (!name) return { ok: false, 原因: '名字不能为空' }
+    if (!user?.cloud || !user?.uid) { setHotelName(name); return { ok: true } }
+    const gk = groupKeyOf(user.className, user.groupNo)
+    try {
+      const ok = await saveHotelName(user.uid, name, gk)
+      if (!ok) { toast('酒店名未写入云端，请重试'); return { ok: false, 原因: '云端写入失败（网络或权限），请重试' } }
+      const 回读 = await fetchGameState(user.uid, gk)
+      if (String(回读?.hotelName || '').trim() !== name) {
+        toast('酒店名回读不一致，请重试')
+        return { ok: false, 原因: '云端回读不一致（可能被其它端覆盖），请重试' }
+      }
+      setHotelName(name)
+      toast(`酒店名已同步云端：${name}`)
+      return { ok: true }
+    } catch (e) {
+      toast('酒店名未写入云端，请检查网络后重试')
+      return { ok: false, 原因: '网络异常，酒店名未写入云端，请重试' }
+    }
+  }
+
   // 断网监听：顶部横幅提醒（本地存档不丢）
   useEffect(() => {
     const off = () => setOffline(true)
@@ -1987,6 +2036,9 @@ export default function App() {
   // 经营模式：认领页选择（direct 自主直营 / ota 平台合作）。旧档缺省 direct —— 与当前引擎默认一致，老班成绩零变化
   const [bizMode, setBizMode] = useState(saved.bizMode === 'ota' ? 'ota' : 'direct')
   const [restoring, setRestoring] = useState(true) // 正在恢复云端会话
+  // ★ V125-#11：登录恢复期闸门 —— 恢复完成前禁止云端防抖保存。
+  //   否则 800ms 先到、云端 GET 还没回来：cloudState.hotelName 仍是空 ⇒ 用空名覆盖云端真名（#11 同族竞态）。
+  const [云端恢复中, set云端恢复中] = useState(false)
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
   // 🔴 E2：自动周报相关状态（全部进存档）
   //   openDayNo    = 首次进入经营时的【教学日历日序号】—— 用来把本地日期换算成 classDay（T9：客户端只做本地等效显示，不判定归属）
@@ -2058,7 +2110,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2077,7 +2129,7 @@ export default function App() {
     } catch (e) { return null }
   })() })
   useEffect(() => {
-    if (!user?.cloud || !user?.uid || restoring) return
+    if (!user?.cloud || !user?.uid || restoring || 云端恢复中) return
     const gk = groupKeyOf(user.className, user.groupNo)
     let retries = 0, pending = true, retryT = null
     const doSave = async () => {
@@ -2110,7 +2162,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('pagehide', onHide)
     }
-  }, [user?.uid, JSON.stringify(cloudState), restoring])
+  }, [user?.uid, JSON.stringify(cloudState), restoring, 云端恢复中])
 
   // 真实时间
   useEffect(() => {
@@ -2160,6 +2212,7 @@ export default function App() {
     setOpenPage(null)
     // 真实登录：从云端恢复经营进度（本机进度让位于云端最新）
     if (userInfo.cloud && userInfo.uid) {
+      set云端恢复中(true)
       try {
         const cloudRaw = await fetchGameState(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
         // 🔴 批次 B1.5（读取侧）：云端档必须过 restoreFromCloud ——
@@ -2185,6 +2238,9 @@ export default function App() {
           if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
         setOperatorLogs(Array.isArray(cloudSaved.operatorLogs) ? cloudSaved.operatorLogs : [])
           setReport(cloudSaved.report || null)
+          // ★ V125-#11：必须回填酒店名 —— 原先登录不恢复 hotelName ⇒ 云端有名字也照样弹补命名页，
+          //   再命名一次又把云端名字覆盖掉（组 2/3 实证）。以云端为准（本机旧档可能属于别的账号）。
+          setHotelName(cloudSaved.hotelName || '')
           setWeek(cloudSaved.week || 1)
           setHistory(cloudSaved.history || [])
           setFinished(!!cloudSaved.finished)
@@ -2198,12 +2254,15 @@ export default function App() {
         }
       // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       } catch (e) {} // 云端失败时用本机存档，不阻塞
+      finally { set云端恢复中(false) }
     }
   }
   function resetProgress() {
     setLocation(null); setBrand(null); setProperty(null); setEstablished(false)
     setDoneDecisions({}); setWelcomed(false); setFinished(false)
     setWeek(1); setHistory([]); setReport(null)
+    // ★ V125-#11：换号必须清酒店名 —— 否则上一个账号的名字会带进新账号（本机残留）
+    setHotelName(''); set已有酒店名([])
     setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
@@ -2733,7 +2792,7 @@ export default function App() {
         <div style={{ padding: '10px 20px 0', fontSize: 12, color: 'var(--warn)', lineHeight: 1.7 }}>
           你的酒店还没有名字（V114 之前开的店）—— 补一个名字才能继续；**只补标识，不影响已经发生的结算**。
         </div>
-        <HotelNaming 已有={已有酒店名} onCreate={(名) => setHotelName(名)} />
+        <HotelNaming 已有={已有酒店名} onCreate={确认酒店名} />
       </div>
     )
   }
@@ -2747,7 +2806,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <HotelNaming 已有={已有酒店名} onCreate={(名) => setHotelName(名)} />
+        <HotelNaming 已有={已有酒店名} onCreate={确认酒店名} />
       </div>
     )
   }
