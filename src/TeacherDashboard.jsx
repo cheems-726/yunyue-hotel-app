@@ -465,7 +465,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
 //   · 通道：class_state.injected_events（老师专属写 / 全班读 —— 学生端整包保存不会覆盖它）
 //   · 公平红线 (a)：注入前对每个目标组调 校验注入合法性({注入周, 已结算周})，不合法**当场拦**（不等结算才发现）
 //   · ★ §33-V8：支持「整周」或「指定第 D 天起」（生效日分段 · weekSegments 按天生效通道）；不承诺分钟级精度
-function InjectionPanel({ rawStates, profiles, user, classDay = 0 }) {   // ★ V123-#1：classDay 必须传进来（line 716 用它算事件状态）
+function InjectionPanel({ rawStates, profiles, user, classDay = 0, classWeek = 0 }) {   // ★ V123-#1：classDay 必须传进来（line 716 用它算事件状态）
   const [库, set库] = useState(null)          // null=拉取中；[]=空
   const [通道就绪, set通道就绪] = useState(null)
   const [事件id, set事件id] = useState('E1')
@@ -1667,7 +1667,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       )}
 
  {/* §32-U8-补 §2①：老师事件注入面板 */}
-      {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} />}
+      {view === 'inject' && <InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} classWeek={classWeek} />}
 
  {/* §32-U8-补 §2④：AI 领班全班默认授权 + 代管巡览 */}
       {view === 'supervisor' && <SupervisorPanel rawStates={rawStates} profiles={profiles} />}
@@ -1784,7 +1784,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       </div>
     </div>
        </div>
-    {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} /></aside>}
+    {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} classWeek={classWeek} /></aside>}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     {/* ★ V97 用户要求：导航栏上方左右各一个 —— 左「‹ 返回」（弹栈回上一处）· 右「上一页 ›」（同 popstate 语义） */}
