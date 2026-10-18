@@ -96,7 +96,7 @@ export function 生成周决策(组号, week, 上周 = {}, 随机 = 0.5) {
     if (随机 < p.反应) 决策.pricing = 档[Math.max(0, Math.min(档.length - 1, 级 + 调))]
   }
   // ③c 四项驱动轴（campaign / overbook / hygiene / linen）—— 让每周都有变化来源，不是掷骰子
-  const 节奏 = { 1: 2, 2: 4, 3: 2, 4: 3, 5: 3, 6: 12 }[组号] || 4
+  const 节奏 = { 1: 2, 2: 3, 3: 2, 4: 3, 5: 3, 6: 12 }[组号] || 4
   决策.campaign = (week % 节奏 === 0) ? '做活动' : '不做活动'
   if (组号 === 1 && s.差评 >= 3) 决策.campaign = '做活动'
   if (组号 === 3) 决策.overbook = s.出租 < 70 ? '超售 3 间' : '不超售'
@@ -107,6 +107,13 @@ export function 生成周决策(组号, week, 上周 = {}, 随机 = 0.5) {
   if (组号 === 4) 决策.linen = (s.差评 >= 1 || week % 2 === 0) ? '外包' : '自洗'
   else if (组号 === 3) 决策.linen = week % 3 === 0 ? '自洗' : '外包'
   else 决策.linen = (s.差评 >= 2) ? '外包' : '自洗'   // 稳健组遇差评才换外包（不轻易改供应链）
+  // ③d 人格钳制：pricing 档位不许越界（这是"能认出是谁"的关键特征 · §9.3）
+  {
+    const 档 = 可调项.pricing
+    const 级 = Math.max(0, 档.indexOf(决策.pricing))
+    const 界 = { 1: [1, 3], 2: [1, 3], 3: [0, 1], 4: [1, 3], 5: [1, 3], 6: [2, 2] }[组号] || [0, 3]
+    决策.pricing = 档[Math.max(界[0], Math.min(界[1], 级))]
+  }
   // 能耗每周都在动（最基础的有变化）
   决策.energy = 22 + ((week + 组号) % 4)
 
