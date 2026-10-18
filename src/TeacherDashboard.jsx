@@ -1,3 +1,6 @@
+import { 台账行FromCloud } from './processLedgerRows.mjs'   // ★ V117-④：教师端台账行（云端数据）
+import ProcessLedger from './ProcessLedger.jsx'   // ★ V117-④⑤：台账块 + CSV
+import { 台账CSV } from './processScore.mjs'
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import { 只取有效组, 只取有效流水 } from './rosterIntegrity.mjs'   // ★ V114-P2：组↔账号一一对应（未分组不进统计）
 import TeacherDiagnosis from './TeacherDiagnosis.jsx'   // ★ V113-2.6：诊断组合（不做排名）
@@ -1374,6 +1377,38 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
+
+            {/* ★ V117-④⑤：过程分台账（默认收起 · 可导出 CSV） */}
+            <details style={{ marginBottom: 8 }}>
+              <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--text-sub)", padding: "6px 2px" }}>
+                过程分台账（点开看；不并入四维评分）
+              </summary>
+              <ProcessLedger
+                可导出={true}
+                rows={(rawStates || []).map(gs => {
+                  const p = (profiles || []).find(x => x.user_id === gs.user_id) || {}
+                  const 组 = p.group_no ? "第" + p.group_no + "组" : (gs.group_key || "—")
+                  const 日志 = (logs || []).filter(l => String(l.group_key || "") === String(gs.group_key || ""))
+                  return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志 })
+                })}
+                onExport={() => {
+                  try {
+                    const rows = (rawStates || []).map(gs => {
+                      const p = (profiles || []).find(x => x.user_id === gs.user_id) || {}
+                      const 组 = p.group_no ? "第" + p.group_no + "组" : (gs.group_key || "—")
+                      const 日志 = (logs || []).filter(l => String(l.group_key || "") === String(gs.group_key || ""))
+                      return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志 })
+                    })
+                    const blob = new Blob(["\ufeff" + 台账CSV(rows)], { type: "text/csv;charset=utf-8" })
+                    const a = document.createElement("a")
+                    a.href = URL.createObjectURL(blob)
+                    a.download = "过程分台账.csv"
+                    a.click()
+                    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+                  } catch (e) { 提示("导出失败：" + (e && e.message)) }
+                }}
+              />
+            </details>
 
             <TeacherDiagnosis states={rawStates || []} logs={logs} week={classWeek || null} />
             {/* 决策流水（decision_log）：哪组/谁/做了什么/得到什么反馈 —— 新记录实时置顶 */}

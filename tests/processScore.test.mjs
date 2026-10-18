@@ -68,6 +68,17 @@ ok(全.缺.length === 0, '数据齐时 缺项 应为空')
 // ── 判据 6：文案（红线①）
 ok(/不并入四维评分/.test(台账说明), '说明文案必须写明「不并入四维评分」')
 
+// ── 判据 6（V117-⑥ 文案断言）：界面必须渲染那句「不并入四维评分」，且教师端块可导出
+{
+  const { readFileSync } = await import('node:fs')
+  const pl = readFileSync('src/ProcessLedger.jsx', 'utf8')
+  ok(/{台账说明}/.test(pl), 'ProcessLedger 必须**渲染** {台账说明}（不是只 import）')
+  ok(/缺数据显/.test(pl), 'ProcessLedger 必须写明「缺数据显—（没交 ≠ 0 分）」')
+  const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
+  ok(/<ProcessLedger/.test(td) && /<details/.test(td), '教师端：折叠块 + ProcessLedger 已接')
+  ok(td.includes('台账CSV(rows)') && td.includes('过程分台账.csv'), '教师端：CSV 导出真的拼了台账 CSV')
+}
+
 console.log('══ V117 过程分台账 ══')
 console.log(`  三列：承诺书 8 + 归因 2/周 + 理由 4 ⇒ 本例满分 ${全.满分} · 合计 ${全.合计}`)
 for (const b of 坏.slice(0, 8)) console.log('  ✗ ' + b)
