@@ -93,6 +93,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
 
   // 持久化差评处理状态
   useEffect(() => {
+    // 静默理由：离线降级：失败走默认值，不阻塞主流程
     try { localStorage.setItem(REVIEW_KEY, JSON.stringify(reviews)) } catch (e) {}
   }, [reviews])
 

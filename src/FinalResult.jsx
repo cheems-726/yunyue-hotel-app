@@ -18,6 +18,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
   // 云端用户拉最新教师批注（成绩单引用）
   React.useEffect(() => {
     if (user?.cloud && user?.uid) {
+      // 静默理由：只读成绩单渲染，取不到回退默认值
       fetchMyNotes(user.uid).then(ns => { if (ns && ns.length) setTeacherNote(ns[0]) }).catch(() => {})
     }
   }, [user?.uid])
@@ -186,6 +187,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
                   ...(teacherNote && teacherNote.note ? [`教师点评：${teacherNote.note.slice(0, 40)}${teacherNote.note.length > 40 ? '…' : ''}`] : []),
                   '—— 云悦酒店经营模拟',
                 ].join('\n')
+                // 静默理由：只读成绩单渲染，取不到回退默认值
                 navigator.clipboard.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }).catch(() => {})
               }}
             >{copied ? '已复制，去群里粘贴吧' : '一键复制成绩单（发群里）'}</button>

@@ -71,6 +71,8 @@ const SUITES = [
   { name: 'deployParity（线上=本地·V115-①）', file: 'tests/deployParity.test.mjs' },
   { name: 'wiringVisible（5 条接线可见·V115-②）', file: 'tests/wiringVisible.test.mjs' },
   { name: 'processScore（过程分台账·V117）', file: 'tests/processScore.test.mjs' },
+  { name: 'silentCatch（静默 catch 白名单·V115-④）', file: 'tests/silentCatch.test.mjs' },
+  { name: 'eventResponses（应对→引擎效力映射·V118）', file: 'tests/eventResponses.test.mjs' },
   { name: 'optionsConsumed（选项必有消费方·V115-⑤）', file: 'tests/optionsConsumed.test.mjs', knownRed: { reason: '★ 决策选项 32/32 有消费方 ✅；但**注入事件的 102 个应对选项 0 个有可执行映射**（纯文案 · 选了不后果）。是否接线属产品决策（每条映射都会改学生感知）。基线 0 ⇒ 不许更糟。', since: '2026-10-18', decision: 'V115-⑤ 待决策', owner: '决策端' } },
   { name: 'importExport（导入/导出对称·V116）', file: 'tests/importExport.test.mjs' },
   { name: 'noDeadExports（死导出=0·V115-②）', file: 'tests/noDeadExports.test.mjs' },

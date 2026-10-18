@@ -161,6 +161,7 @@ function LoginPage({ onLogin }) {
     onLogin({ role, id: role === 'student' ? '20240101' : 'T001', name: role === 'student' ? '陈小明（演示）' : '王老师（演示）', cloud: false })
     if (role === 'student') {
       // ★ V55：离线演示显式注入演示种子评价（带"演示"名 · 与真实初始空口径分离）
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       try { localStorage.setItem('hotel-sim-reviews', JSON.stringify(DEMO_REVIEWS)) } catch (e) {}
     }
   }
@@ -287,6 +288,7 @@ function InjectedEventsCard({ 事件s, week }) {
   }, [左, 事件s, 回答])
   function 选(事件id, label, 超时) {
     set回答(prev => ({ ...prev, [事件id]: label }))
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.setItem('hotel-sim-event-response', JSON.stringify({ week: Number(week), 事件id, choice: label, 超时: !!超时 })) } catch (e) {}
   }
   if (!事件s.length) return null
@@ -1508,6 +1510,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
           })
           setMemberStates(map)
         }
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       } catch (e) {}
     }).catch(() => { if (!cancelled) setMembers([]) })
     return () => { cancelled = true }
@@ -1713,6 +1716,7 @@ function ScoreDetail({ history, onBack }) {
               try {
                 const revs = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
                 owed = revs.filter(r => r.status === 'pending' || r.status === 'ignored').length
+              // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
               } catch (e) {}
               return { icon: 'ops.cleaning', name: '零欠差评', got: owed !== null && owed === 0 }
             })(),
@@ -1792,6 +1796,7 @@ function loadState() {
         if (!localStorage.getItem(STORAGE_BAK_KEY)) localStorage.setItem(STORAGE_BAK_KEY, raw)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(r.save))
       } catch (e) { /* 写盘失败也不阻断：内存里已返回迁移结果 */ }
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       try { console.log('[存档迁移]', r.reason, '· 缩放 history', r.scaledHistory, '条') } catch (e) {}
       return r.save
     }
@@ -1805,6 +1810,7 @@ function loadState() {
 class AppErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { err: null } }
   static getDerivedStateFromError(err) { return { err } }
+  // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
   componentDidCatch(err) { try { console.error('[AppError]', err) } catch (e) {} }
   render() {
     if (!this.state.err) return this.props.children
@@ -1818,6 +1824,7 @@ class AppErrorBoundary extends React.Component {
         <button className="btn-confirm" style={{ marginTop: 24, width: '100%' }} onClick={() => { this.props.onReset && this.props.onReset(); this.setState({ err: null }) }}>
           重置界面，回到经营页
         </button>
+        // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
         <button className="btn btn-ghost" style={{ marginTop: 10, width: '100%' }} onClick={() => { try { localStorage.removeItem('hotel-sim-ui') } catch (e) {} location.reload() }}>
           刷新页面
         </button>
@@ -1895,13 +1902,16 @@ export default function App() {
   }, [anyLayerOpen])
 
   React.useEffect(() => {
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { window.history.pushState({ app: 1 }, '') } catch (e) {}
     const onPop = () => {
       const nav = navRef.current
       try {
         if (nav.openPage) nav.closePage()                                  // 选项2：只看子页，不看决策面板
         else if (nav.tab !== 'business') nav.setTab('business')
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       } catch (e) {}
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       try { window.history.pushState({ app: 1 }, '') } catch (e) {}
     }
     window.addEventListener('popstate', onPop)
@@ -2016,6 +2026,7 @@ export default function App() {
             className: profile.class_name || null,
           })
         }
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       } catch (e) {} finally {
         if (!cancelled) setRestoring(false)
       }
@@ -2030,6 +2041,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
   }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName])
 
@@ -2085,6 +2097,7 @@ export default function App() {
       if (!pending) return
       pending = false
       clearTimeout(t)
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       saveGameStateNow(user.uid, cloudState, gk).catch(() => {})
     }
     const onVis = () => { if (document.hidden) flushSave() }
@@ -2117,12 +2130,14 @@ export default function App() {
     try {
       const reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       setPendingReviewCount(reviews.filter(r => r.status === 'pending').length)
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
   }, [tab]) // tab 切换时刷新
 
   // 云端用户：拉取老师设定的全班统一周
   useEffect(() => {
     if (!user?.cloud) return
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     fetchClassWeek().then(setClassWeek).catch(() => {})
   }, [user?.uid, tab])
 
@@ -2154,7 +2169,9 @@ export default function App() {
         if (cloudMigrated) {
           // 🔴 批次 B1.5（回写侧）：迁移后【立刻】把 v2 落本机，避免"恢复后又被再迁一次"的窗口；
           //   随后云端上传 effect 会带着同一个 v2 标记回写云端（两处都不留旧档）
+          // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
           try { localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion(cloudSaved))) } catch (e) {}
+          // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
           try { console.log('[云端存档迁移]', '已按 D25 迁到新量级并回写本机 v2') } catch (e) {}
         }
         if (cloudSaved) {
@@ -2179,6 +2196,7 @@ export default function App() {
           // 换账号登录且云端无档：清掉上一账号的本机残留
           resetProgress()
         }
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       } catch (e) {} // 云端失败时用本机存档，不阻塞
     }
   }
@@ -2187,6 +2205,7 @@ export default function App() {
     setDoneDecisions({}); setWelcomed(false); setFinished(false)
     setWeek(1); setHistory([]); setReport(null)
     setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
   }
   const [logoutArmed, setLogoutArmed] = useState(false) // V25：两段式退出（替代阻塞式 confirm）
@@ -2195,12 +2214,14 @@ export default function App() {
 
       // ★ V25 卡点修复：原生 confirm 阻塞一切交互 ⇒ 两段式（第一次点=进入确认态 3 秒，再点=退出）
       if (!logoutArmed) { setLogoutArmed(true); setTimeout(() => setLogoutArmed(false), 3000); return }
+      // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
       try { await supabase.auth.signOut() } catch (e) {}
     }
     setUser(null)
     resetProgress()
     setTab('business')
     setOpenPage(null)
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem(STORAGE_KEY) } catch (e) {}
   }
   function handleSettle() {
@@ -2244,6 +2265,7 @@ export default function App() {
       if (!活) return
       setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : [])
       setClassSupAuth(cs.supervisor_auth || null)
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     }).catch(() => {})
     拉()
     const onVis = () => { if (!document.hidden) 拉() }
@@ -2270,6 +2292,7 @@ export default function App() {
   const [serverClassDay, setServerClassDay] = useState(null)
   useEffect(() => {
     let 活 = true
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     fetchClassDay().then(d => { if (活 && Number(d) > 0) setServerClassDay(Number(d)) }).catch(() => {})
     return () => { 活 = false }
   }, [])
@@ -2322,6 +2345,7 @@ export default function App() {
     const site = { ...(location?.attrs || { 客流: 3 }), district: location?.district }
     // 口碑页数据读一次，供本函数全程使用。
     // 🔴 历史 bug：原先 reviews 声明在下方第一个 try 内部，而"结算卡片入库"那段在另一个 try 里引用它
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     //    → ReferenceError 被自己的 catch(e){} 吞掉 → **结算生成的评价卡片从未写进口碑页**（潜伏已久，
     //    2026-09-22 因 bizMode 激活后出现真差评、断言才暴露）。作用域提到函数顶层，杜绝复发。
     let reviews = []
@@ -2377,6 +2401,7 @@ export default function App() {
           二期说明: '二期：R3/R6 代管动作真生效（并入决策集 · 学生决策优先）；R1/R2 需竞对价每日序列 ⇒ 明确不做',
         }
       }
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}   // 领班层任何异常不拦结算（回到无领班行为）
     // 代管决策并入：只填空位（学生优先的落地 · Object.assign 语义天然"已有键不覆盖"）
     const 本周生效决策 = (Object.keys(领班代管决策 || {}).length > 0) ? { ...领班代管决策, ...doneDecisions } : doneDecisions
@@ -2405,13 +2430,16 @@ export default function App() {
       }
       return   // 不结算 = 本周维持原状；学生已拿到明确出路
     }
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem('hotel-sim-crisis-response') } catch (e) {}
     // ★ §32-U8-补 §2②：本周的注入应对已进结算 ⇒ 清掉（只清本周的；别的周/未使用的不动）
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { const r = 读事件应对(); if (r && Number(r.week) === Number(week)) localStorage.removeItem('hotel-sim-event-response') } catch (e) {}
     // 结算差评回流口碑页（保留已处理的旧评价，追加本周新评价）
     try {
       const kept = reviews.filter(r => r.week == null && !String(r.id).startsWith('w'))
       localStorage.setItem('hotel-sim-reviews', JSON.stringify([...kept, ...result.generatedReviews]))
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
     if (crisisResponse) result.crisisChoice = crisisResponse // 危机应对选择存档（学期复盘用）
     // R0 最后一公里：把引擎返回的属性（含每周自然衰减）写回 state
@@ -2463,6 +2491,7 @@ export default function App() {
         // 未授权/无快照 ⇒ 也挂一个"本周领班未动作"记录（学生复盘卡能看到状态 · 条件字段）
         result.supervisorRecord = { actions: [], reports: [], 代管决策: {}, 代管率: 代管率(0, Object.keys(doneDecisions || {}).length), 本周未动作: true }
       }
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}   // 领班记录失败不拦结算（绝不因记录层把结算弄崩）
     setReport(result)
   }
@@ -2523,6 +2552,7 @@ export default function App() {
       if (停) return
       const 本班 = (rows || []).filter(g => !user?.className || !g.group_name || String(g.group_name).startsWith(String(user.className)))
       set已有酒店名(已有名字(本班))
+    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     }).catch(() => {})
     return () => { 停 = true }
   }, [property, hotelName])
@@ -2746,6 +2776,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
+        // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
         <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
       </div>
     )

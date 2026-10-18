@@ -56,6 +56,7 @@ function 迷你柱({ 报告 }) {
 export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose }) {
   const [展开周, set展开周] = useState(null)
   const 报告 = 构建经营报告(gs, { 组名, 批注 })
+  // 静默理由：离线降级：失败走默认值，不阻塞主流程
   const 打印 = () => { try { window.print() } catch (e) {} }
 
   return (

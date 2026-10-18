@@ -15,6 +15,7 @@ export default function AttributionCard({ week, prev, cur, groupKey, userId }) {
     saveDecisionLog({
       userId, groupKey, week, decisionId: `归因-W${week}`, answer: k,
       feedback: `本周归因：${k}（真值 ${判分(week, prev, cur).真值 || '—'}）`,
+    // 静默理由：云端镜像属尽力而为；本机已记录，失败不打断周报
     }).catch(() => {})
   }
   const 选中 = 已 && 已.选择 ? 已.选择 : r.选择

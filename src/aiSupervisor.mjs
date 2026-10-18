@@ -95,6 +95,7 @@ export function 领班决策({ state, authorizations }) {
     if (rule.requires !== 'none' && !(auth && auth.ok)) {
       // 无授权 ⇒ 只报告不动作（reason 拿建议值但不执行 —— 模板要能处理 a=null）
       let 建议值 = null
+      // 静默理由：领班为可选能力，缺数据时回退无代管
       try { 建议值 = rule.act(s) } catch (e) {}
       reports.push({ ruleId: rule.id, reason: rule.reason(s, 建议值) + (rule.item === '__report' ? '' : '（未获授权，仅报告不动作）') })
       continue

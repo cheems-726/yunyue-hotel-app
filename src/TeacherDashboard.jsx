@@ -906,10 +906,13 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       setGroups(list)
       setProfiles(profiles.filter(p => p.role === 'student').sort((a, b) => (a.student_no || '').localeCompare(b.student_no || '') || (a.group_no || 99) - (b.group_no || 99)))
       setRawStates(有效)   // ★ V114-P2：诊断/看板只吃有效组
+      // 静默理由：只读聚合，取不到保持上一屏数据
       fetchTeacherNotes().then(ns => { setNotedUids(new Set(ns.map(n => n.student_uid))); setAllNotes(ns) }).catch(() => {})
       setClassByUid(Object.fromEntries(profiles.map(p => [p.user_id, p.class_name || ''])))
+      // 静默理由：只读聚合，取不到保持上一屏数据
       fetchClassWeek().then(w => { setClassWeekState(w); setWeekInput(String(w)) }).catch(() => {})
       // W1-5：一并取服务端 classDay（失败静默回 0，不影响其余加载）
+      // 静默理由：只读聚合，取不到保持上一屏数据
       fetchClassDay().then(d => { if (d) setClassDay(d) }).catch(() => {})
       setCloudOk(true)
     } catch (e) {

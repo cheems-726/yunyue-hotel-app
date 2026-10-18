@@ -14,6 +14,7 @@ const 周期数 = decisions.filter(d => cadenceOf(d.id) === 'periodic').length
 const 一次数 = decisions.filter(d => cadenceOf(d.id) === 'onetime').length
 
 export default function SemesterTasks({ onClose }) {
+  // 静默理由：离线降级：失败走默认值，不阻塞主流程
   const 打印 = () => { try { window.print() } catch (e) {} }
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--fill)', zIndex: 9000, overflowY: 'auto' }}>

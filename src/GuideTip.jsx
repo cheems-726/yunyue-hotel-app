@@ -5,8 +5,10 @@ import { useState } from 'react'
 // 持久化：localStorage `hotel-guide-<k>` = '1' ⇒ 关闭后不再出现；guideResetAll() 一键重看
 const KEY = k => `hotel-guide-${k}`
 export function guideSeen(k) { try { return localStorage.getItem(KEY(k)) === '1' } catch (e) { return true } }
+// 静默理由：引导提示属可选 UI，存储不可用时静默跳过
 export function guideClose(k) { try { localStorage.setItem(KEY(k), '1') } catch (e) {} }
 export function guideResetAll() {
+  // 静默理由：引导提示属可选 UI，存储不可用时静默跳过
   try { Object.keys(localStorage).filter(x => x.startsWith('hotel-guide-')).forEach(x => localStorage.removeItem(x)) } catch (e) {}
 }
 

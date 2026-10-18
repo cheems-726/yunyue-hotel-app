@@ -124,11 +124,13 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     let rvDayCount = Number(st.rvDayCount) || 0
     const rvWeekKey = `hotel-review-week-w${week || 1}`
     let rvWeekCount = 0
+    // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
     try { rvWeekCount = Number(localStorage.getItem(rvWeekKey)) || 0 } catch (e) {}
     const rvToday = teachingDayKey()   // T2.3/E1：与 dateKey 同源，避免各自读墙钟后脱钩
 
     const persist = () => {
       const s = statsRef.current
+      // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
       try { localStorage.setItem(storeKey, JSON.stringify({ income: s.income, expense: s.expense, checkout: s.checkout, checkin: s.checkin, guests: s.guests, gameMin, pendingClean, feed: feedRef.current, flows: flowsRef.current, rvDayNo, rvDayCount })) } catch (e) {}
     }
     const feedRef = { current: st.feed }
@@ -163,6 +165,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     const readRvList = () => {
       try { const l = JSON.parse(localStorage.getItem(RV_KEY) || '[]'); return Array.isArray(l) ? l : [] } catch (e) { return [] }
     }
+    // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
     const writeRvList = (l) => { try { localStorage.setItem(RV_KEY, JSON.stringify(l)) } catch (e) {} }
 
     function tryLiveReview(isCheckout, clockTag, room) {
@@ -185,8 +188,10 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
         writeRvList([...list, res.entry])
         rvDayCount += 1
         rvWeekCount += 1
+        // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
         try { localStorage.setItem(rvWeekKey, String(rvWeekCount)) } catch (e) {}
         pushFeed(res.feedText, 0)
+      // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
       } catch (e) {}
     }
 
@@ -272,6 +277,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
     let seen = null
     try { const raw = localStorage.getItem(seenKey); seen = raw ? JSON.parse(raw) : null } catch (e) { seen = null }
     if (!Array.isArray(seen)) {   // 首次：以现状为基线（不重播历史决策），只写基线
+      // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
       try { localStorage.setItem(seenKey, JSON.stringify(ids)) } catch (e) {}
       return
     }
@@ -296,6 +302,7 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
       api.push(`[${tag}] 完成「${name}」→ ${fmtAns(decisions[id])}${parts.length ? ' · ' + parts.join('，') : ''}`, 0)
     })
     api.persist()
+    // 静默理由：只读展示，取不到就回退默认值（不阻塞经营页）
     try { localStorage.setItem(seenKey, JSON.stringify(ids)) } catch (e) {}
   }, [decisions])
 

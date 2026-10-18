@@ -85,6 +85,7 @@ function CrisisCard({ event, week }) {
   function pick(label) {
     if (choice) return
     setChoice(label)
+    // 静默理由：只读渲染，取不到回退默认值
     try { localStorage.setItem('hotel-sim-crisis-response', JSON.stringify({ week, choice: label })) } catch (e) {}
   }
   if (!hotSeen) return <HotReviewOverlay event={event} onDone={() => setHotSeen(true)} />
@@ -134,6 +135,7 @@ function SupervisorCard({ result }) {
     const 新 = { ...覆盖 }
     if (v === '默认') delete 新[key]; else 新[key] = { ok: v === '开' }
     set覆盖(新)
+    // 静默理由：只读渲染，取不到回退默认值
     try { localStorage.setItem('hotel-sim-supervisor-auth', JSON.stringify(新)) } catch (e) {}
   }
   const 状态字 = (key) => {
@@ -596,6 +598,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           try {
             const revs = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
             owed = revs.filter(r => r.status === 'pending' || r.status === 'ignored').length
+          // 静默理由：只读渲染，取不到回退默认值
           } catch (e) {}
           const badges = [
             history.some(h => h.profit > 0),
