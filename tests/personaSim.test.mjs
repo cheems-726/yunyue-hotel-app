@@ -55,6 +55,7 @@ const 距 = (a, b) => a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0)
 function 可分率(seq) {
   let 对 = 0, 总 = 0
   const 错例 = []
+  const 矩阵 = Array.from({ length: 6 }, () => Array(6).fill(0))   // ★ ⑥ 6×6 混淆矩阵
   for (let g = 1; g <= 6; g++) {
     for (let w = 1; w <= 12; w++) {
       总++
@@ -68,11 +69,12 @@ function 可分率(seq) {
       const 样 = 特征(seq[g][w - 1])
       let 最近 = null, 最小 = Infinity
       for (let h = 1; h <= 6; h++) { const d2 = 距(样, 质心[h]); if (d2 < 最小) { 最小 = d2; 最近 = h } }
+      矩阵[g - 1][最近 - 1]++
       if (最近 === g) 对++
       else if (错例.length < 5) 错例.push(`第${g}组W${w} 被判成第${最近}组`)
     }
   }
-  return { 率: 对 / 总, 对, 总, 错例 }
+  return { 率: 对 / 总, 对, 总, 错例, 矩阵 }
 }
 {
   const r = 可分率(序列)
@@ -80,7 +82,10 @@ function 可分率(seq) {
   // RV：纯随机 ⇒ 必须掉到 ≈1/6
   const rr = 可分率(随机序列)
   ok(rr.率 <= 0.45, `§3-9 RV：纯随机决策的可分率必须≈1/6（实得 ${(rr.率 * 100).toFixed(1)}%）—— 否则这条判据在数噪声`)
-  console.log(`  §3-9 可分性：人格序列 ${(r.率 * 100).toFixed(1)}%（${r.对}/${r.总}）· RV 随机 ${(rr.率 * 100).toFixed(1)}%`)
+  console.log('  §3-9 可分性：' + (r.率 * 100).toFixed(1) + '%（' + r.对 + '/' + r.总 + '）· RV 随机 ' + (rr.率 * 100).toFixed(1) + '%')
+  console.log('  混淆矩阵（行=真实组 · 列=判成组 · 对角=命中）')
+  console.log('        判1  判2  判3  判4  判5  判6')
+  r.矩阵.forEach((row, i) => console.log('   真' + (i + 1) + '  ' + row.map(n => String(n).padStart(3)).join('  ')))
 }
 
 // ── §3-2（§9.1 分人格阈值）：活跃 ≥8 · 躺平 ≥3

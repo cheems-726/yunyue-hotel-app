@@ -1,7 +1,7 @@
 // V108-D2 ★★ 差评概率 → 待处理累计 → 平台处罚 → 发酵 → 上热门 整条链：逐环节断言 + **两条反例 RV**
 //   引擎级纯调用（不写库 · 可复跑）。用法：node penalty_chain.mjs
-import { 违规判定, 违规后果, 平台评分, OTA_RATING_CONFIG } from './engine/otaRating.mjs'
-import { shouldHotReview, hotCrisisWeeks, HOT_REVIEW_CONFIG } from './engine/hotReview.mjs'
+import { 违规判定, 违规后果, 平台评分, OTA_RATING_CONFIG } from './src/otaRating.mjs'
+import { shouldHotReview, hotCrisisWeeks, HOT_REVIEW_CONFIG } from './src/hotReview.mjs'
 
 let bad = 0
 const ok = (name, cond, detail = '') => { console.log(`  ${cond ? '✓' : '✗'} ${name}${detail ? '  ' + detail : ''}`); if (!cond) bad++ }
