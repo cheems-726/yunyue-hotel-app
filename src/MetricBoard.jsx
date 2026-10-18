@@ -19,6 +19,11 @@ export default function MetricBoard({ row }) {
     { k: '总营收', v: 万元(v.总营收) },
   ]
   const 经营项 = v.成本.项.filter(x => !x.一次性 && x.占比 != null && x.占比 > 0)
+  // ★ V115 §3-③：GOP 之前 = 部门成本 + 营销 + OTA（这些算进经营毛利）；之后 = 租金/两费/罚款/改造/超售
+  const 前置键 = ['客房变动成本', '客房部固定', '人力固定', '公区能耗', '行政管理', '维修保养', '营销推广', 'OTA佣金']
+  const 前置项 = 经营项.filter(x => 前置键.includes(x.名))
+  const 后置项 = 经营项.filter(x => !前置键.includes(x.名))
+  const 合 = (arr) => arr.reduce((a, x) => a + x.占比, 0)
   const 一次项 = v.成本.项.filter(x => x.一次性 && x.额 !== 0)
   const 色 = ['var(--primary)', 'var(--info)', 'var(--good)', 'var(--warn)', 'var(--bad)']
   return (
@@ -42,20 +47,32 @@ export default function MetricBoard({ row }) {
       </div>
       {经营项.length > 0 ? (
         <>
-          <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', background: 'var(--fill)' }} data-costbar="1">
-            {经营项.map((x, i) => (
-              <div key={x.名} title={`${x.名} ${pct(x.占比)}`} data-w={x.占比.toFixed(6)}
-                style={{ width: (x.占比 * 100) + '%', background: 色[i % 色.length] }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-            {经营项.map((x, i) => (
-              <span key={x.名} style={{ fontSize: 12, color: 'var(--text-sub)' }}>
-                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 色[i % 色.length], marginRight: 4 }} />
-                {x.名} {pct(x.占比)}
-              </span>
-            ))}
-          </div>
+          {[
+            { 段: 'GOP 之前（经营毛利内）', 项s: 前置项, 起: 0 },
+            { 段: 'GOP 之后（租金/两费/罚款/改造/超售）', 项s: 后置项, 起: 前置项.length },
+          ].map(({ 段, 项s, 起 }) => (
+            <div key={段} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{段} · 占经营成本 {pct(合(项s))}</div>
+              {项s.length > 0 ? (
+                <>
+                  <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', background: 'var(--fill)' }} data-costbar="1">
+                    {项s.map((x, k) => (
+                      <div key={x.名} title={`${x.名} ${pct(x.占比)}`} data-w={x.占比.toFixed(6)}
+                        style={{ width: (x.占比 * 100) + '%', background: 色[(起 + k) % 色.length] }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                    {项s.map((x, k) => (
+                      <span key={x.名} style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 色[(起 + k) % 色.length], marginRight: 4 }} />
+                        {x.名} {pct(x.占比)}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>本周无此类科目（0 值不占行）</div>}
+            </div>
+          ))}
         </>
       ) : <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>成本明细缺失 ⇒ 不画条形（不补算）</div>}
 

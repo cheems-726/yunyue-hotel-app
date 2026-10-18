@@ -1,3 +1,4 @@
+import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import { 只取有效组, 只取有效流水 } from './rosterIntegrity.mjs'   // ★ V114-P2：组↔账号一一对应（未分组不进统计）
 import TeacherDiagnosis from './TeacherDiagnosis.jsx'   // ★ V113-2.6：诊断组合（不做排名）
 import React, { useState, useEffect, useRef } from 'react'
@@ -1080,7 +1081,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           {/* V66 · 重置本机引导（老师帮学生清掉"已关闭引导"标记 · 只影响本机浏览器） */}
           <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}
-              onClick={() => { if (!window.confirm('确定重置本机引导吗？\n\n影响：本浏览器上的学生重新进入选址/决策/认领/筹建页时会再次看到新手提示（不影响任何成绩与存档）。')) return; guideResetAll(); alert('已重置本机引导：学生在此浏览器重新进入选址/决策/认领/筹建页，会重新看到新手提示') }}   /* ★ V98-② 危险操作二次确认 */>
+              onClick={() => { if (!window.confirm('确定重置本机引导吗？\n\n影响：本浏览器上的学生重新进入选址/决策/认领/筹建页时会再次看到新手提示（不影响任何成绩与存档）。')) return; guideResetAll(); 提示('已重置本机引导：学生在此浏览器重新进入选址/决策/认领/筹建页，会重新看到新手提示') }}   /* ★ V98-② 危险操作二次确认 */>
               重置演示引导（本机）
             </button>
             {/* §33-V80：12 周任务书（打印版 · 课堂发全班） */}

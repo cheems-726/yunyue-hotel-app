@@ -12,6 +12,7 @@ import { 创建导航栈 } from './navStack.mjs'
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
+import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import HotelNaming from './HotelNaming.jsx'   // ★ V114-P1：酒店命名页（一次承诺）
 import { 已有名字 } from './hotelName.mjs'
 // ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— FinalResult/Reputation 出现在流程后段，React.lazy 切独立 chunk
@@ -2200,7 +2201,7 @@ export default function App() {
         if (cs) { setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : []); setClassSupAuth(cs.supervisor_auth || null) }
         fetchClassWeek().then(classWeek => {
           if (classWeek > 0 && week > classWeek) {
-      window.alert(` 老师已把全班进度控制在第 ${classWeek} 周，第 ${week} 周还没开课。等老师推进后再来结算。`)
+      提示(`老师在控制进度：第 ${week} 周还没开课（已到第 ${classWeek} 周）—— 等老师推进后再结算`)
           } else {
             doSettle({}, inj ? { injectedEvents: inj, supervisorAuth: cs.supervisor_auth || null } : null)
           }
@@ -2669,6 +2670,23 @@ export default function App() {
         </div>
         <DemoPill user={user} />
         <Claim brand={brand} location={location} onComplete={handleClaimComplete} />
+      </div>
+    )
+  }
+
+  // ★ V115 §3-①：**已开业但没名字**的老组 ⇒ 补命名（一次性；只补标识，不影响已发生结算）
+  if (established && property && !hotelName) {
+    return (
+      <div className="app">
+        <div className="statusbar">
+          <span className="time">{time || '09:41'}</span>
+          <span className="icons" />
+        </div>
+        <DemoPill user={user} />
+        <div style={{ padding: '10px 20px 0', fontSize: 12, color: 'var(--warn)', lineHeight: 1.7 }}>
+          你的酒店还没有名字（V114 之前开的店）—— 补一个名字才能继续；**只补标识，不影响已经发生的结算**。
+        </div>
+        <HotelNaming 已有={已有酒店名} onCreate={(名) => setHotelName(名)} />
       </div>
     )
   }

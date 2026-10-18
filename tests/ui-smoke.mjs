@@ -370,7 +370,7 @@ try {
   ok('周报显示 GOP / 净利润两个指标', rep.includes('净利润') && rep.includes('GOP') && rep.includes('经营毛利'))
   // ★ V113-1.4：第 1 周对照（反思必填 ⇒ 不填按钮 disabled）
   // ★ V113-2.1：指标观察板（成本条形合计 100%±0.1% · 一次性项单列）
-  ok('指标观察板（成本条形合计 100%±0.1%）', await page.evaluate(() => { const bar = document.querySelector('[data-costbar=\"1\"]'); if (!bar) return false; const s = [...bar.children].reduce((a, c) => a + Number(c.getAttribute('data-w')), 0); return Math.abs(s - 1) <= 0.001 }))
+  ok('指标观察板（成本条形合计 100%±0.1% · 分两段）', await page.evaluate(() => { const bars = [...document.querySelectorAll('[data-costbar="1"]')]; if (!bars.length) return false; const s = bars.reduce((acc, b) => acc + [...b.children].reduce((a, c) => a + Number(c.getAttribute('data-w')), 0), 0); return Math.abs(s - 1) <= 0.001 }))
   // ★ V114-P1④：周报标题同样带酒店名（三处同源之二）
   ok('周报标题带酒店名（与顶栏逐字相同）', (await text(page)).includes('云悦测试店 · 第 1 周经营结果'))
   ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
