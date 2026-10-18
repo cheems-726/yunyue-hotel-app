@@ -1,4 +1,4 @@
-import { 只取有效组 } from './rosterIntegrity.mjs'   // ★ V114-P2：组↔账号一一对应（未分组不进统计）
+import { 只取有效组, 只取有效流水 } from './rosterIntegrity.mjs'   // ★ V114-P2：组↔账号一一对应（未分组不进统计）
 import TeacherDiagnosis from './TeacherDiagnosis.jsx'   // ★ V113-2.6：诊断组合（不做排名）
 import React, { useState, useEffect, useRef } from 'react'
 // ★ V97：统一导航栈（返回=弹栈 · 教师端接 popstate）
@@ -1388,7 +1388,8 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   学生每提交一项决策，这里会出现一行（时间 / 组 / 学生 / 决策 / 答案 / 属性反馈）
                 </div>
               ) : (
-                logs.filter(lg => lg && lg.group_key).slice(0, 20).map(lg => {   // ★ V114-P2：未分组账号的流水不进教师端
+                // ★ V115-② B-10：统一走 rosterIntegrity.只取有效流水（不再各处手写 filter）
+                只取有效流水(logs, new Set((rawStates || []).map(g => String(g.group_key || '')).filter(Boolean))).slice(0, 20).map(lg => {
                   const p = profiles.find(x => x.user_id === lg.user_id) || {}
                   const d = decisions.find(x => x.id === lg.decision_id) || {}
                   const role = p.role_in_group && OWNER_LABELS[p.role_in_group] ? OWNER_LABELS[p.role_in_group] : null

@@ -44,8 +44,3 @@ export function handoverOf(entries, decisionId) {
 }
 
 // 界面横幅文案（非负责人视图 · 不阻断 —— 卡 §3：不许做成硬阻断）
-export function handoverBanner(decisionId, myRole) {
-  const owner = decisionOwnerOf(decisionId)
-  if (!owner || owner === myRole) return null          // 责任人本人（或未选职务/null）⇒ 无横幅
-  return { owner }
-}

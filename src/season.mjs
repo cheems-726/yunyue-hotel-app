@@ -59,4 +59,4 @@ export function 季节文案(week) {
 }
 
 // 同一周全班是否同季节（守门用 · 也是公平性口径的机器表述）
-export const 全班同季节 = (week) => 季节因子(week)
+const 全班同季节 = (week) => 季节因子(week)

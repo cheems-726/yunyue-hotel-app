@@ -12,5 +12,5 @@
 //   ⇒ 本模块按【产品现实】定 TOTAL_WEEKS = 12，并把"第 126 天"视为长跑口径的串写。
 //   ★ 这不是"另立时间概念"——恰恰是把"期末"钉在既有的结业口径（week 12）上，单源化。
 export const TOTAL_WEEKS = 12
-export const TOTAL_DAYS = TOTAL_WEEKS * 7
+const TOTAL_DAYS = TOTAL_WEEKS * 7
 export const 学期口径说明 = '教学学期 = 12 周（FinalResult/ App 结业判定同源）；"18 周/126 天"是长跑测试（longRun126）的长度，不是学期'

@@ -32,7 +32,7 @@ const sumBy = (read) => (history) => {
 export const sumGop = sumBy(gopOf)
 export const sumNet = sumBy(netOf)
 // 累计比率（唯一算式点）：率 = 分子 / 分母，分母 ≤0 或非有限 ⇒ null（界面显示"—"，绝不臆造 0%）
-export const 率Of = (分子, 分母) => (Number.isFinite(分子) && Number.isFinite(分母) && 分母 > 0 ? 分子 / 分母 : null)
+const 率Of = (分子, 分母) => (Number.isFinite(分子) && Number.isFinite(分母) && 分母 > 0 ? 分子 / 分母 : null)
 
 // ── 🔴 E1（二期 · 唯一账本）· 聚合量与四维评分【单源】──────────────────────────
 // 起因（BL-7 同族：同一批"可由引擎周值导出的量"曾各写一份）：
@@ -116,7 +116,7 @@ export const 累计净利率 = (history, 口径 = '经营') => 率Of(
   totalRevenue(history),
 )
 
-export const franchiseFeeOf = (h) => (h && h.franchiseFees && Number.isFinite(h.franchiseFees.合计) ? h.franchiseFees.合计 : 0)
+const franchiseFeeOf = (h) => (h && h.franchiseFees && Number.isFinite(h.franchiseFees.合计) ? h.franchiseFees.合计 : 0)
 export const sumFranchiseFee = (history) => (Array.isArray(history) ? history : []).reduce((s, h) => s + franchiseFeeOf(h), 0)
 
 // 周环比用的"上一周分数"（去掉最后一周再算；不足 2 周 → null）

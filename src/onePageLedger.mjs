@@ -28,7 +28,7 @@ export const EXTRAPOLATION_NOTE = '外推：按基准单周年化，非实际发
 export const ENGINE_FEE_NOTE = '引擎自 §14.3 起对 汉庭/全季/海友 实收加盟管理费（营收 5%）+ CRS（营收有效 2.4%）；其余品牌费率待补 ⇒ 不计费也不编造'
 
 // 基准决策 = "常规经营"（与批次报告/单配置锚点同源的 7 项），不是"不作为"的空决策
-export const BASE_DECISIONS = {
+const BASE_DECISIONS = {
   pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗',
   'hr-optimize': '全员培训', 'member-convert': '强调品质', reputation: '道歉+赔偿',
 }

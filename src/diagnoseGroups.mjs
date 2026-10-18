@@ -1,3 +1,4 @@
+import { 汇总未填 } from './attribution.mjs'   // ★ V115-② B-11：归因「谁填了」的单源
 // V113-2.6 · 教师端"诊断组合"（**不做排名** · 只给可执行的判断）
 //
 // ── 为什么不做排名 ─────────────────────────────────────────────────
@@ -75,6 +76,8 @@ export function 诊断组合(groups = []) {
 
 /** 教师端标红：本周归因未填的组（decision_id = 归因-W<week>），输入 = fetchDecisionLogs 的行 */
 export function 归因未填的组(groups = [], logs = [], week) {
-  const 已 = new Set((logs || []).filter(l => String(l && l.decision_id) === `归因-W${week}`).map(l => String(l.group_key || l.user_id || '')))
+  // ★ V115-② B-11：统一到 attribution.汇总未填（同一份「谁填了」的口径，少一套实现）
+  const { 已填 } = 汇总未填(logs, week)
+  const 已 = new Set(已填)
   return (groups || []).map(g => ({ 名: g.名, groupKey: g.groupKey || g.名, 已填: 已.has(String(g.groupKey || g.名)) })).filter(x => !x.已填)
 }

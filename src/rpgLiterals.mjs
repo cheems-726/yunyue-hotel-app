@@ -5,7 +5,7 @@ import { ATTR_INIT, qualityOf } from './attrs.js'
 import { parseRooms } from './settlement.js'
 
 // 四项 ↔ 引擎字段 ↔ 显示名 ↔ 范围（对照表本体 · 需求 3.1-1）
-export const RPG_LITERALS = [
+const RPG_LITERALS = [
   {
     名称: '硬件评分', 显示: (state) => `${qualityOf(state)} / 100`,
     引擎字段: 'attrs.quality（属性池品质 · 含装修档初始值与每周自然衰减）', 范围: '20–100（衰减下限 20）',
@@ -33,7 +33,7 @@ export const RPG_LITERALS = [
 ]
 
 // 一次性读取（界面传 state/site/brand 即得四项字面）
-export function readRpgLiterals({ state, site, brand }) {
+function readRpgLiterals({ state, site, brand }) {
   const out = {}
   for (const item of RPG_LITERALS) {
     try {
