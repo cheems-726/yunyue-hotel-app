@@ -27,7 +27,8 @@ const 本sha = sha(本buf)
   const { execFileSync } = await import('node:child_process')
   const 构建时间 = statSync('dist/assets/' + 本包).mtimeMs
   let 提交时间 = 0
-  try { 提交时间 = Number(execFileSync('git', ['log', '-1', '--format=%ct'], { encoding: 'utf8' }).trim()) * 1000 } catch (e) { 提交时间 = 0 }
+  // ★ 只比**最后一次改 src 的提交**：改测试/文档不该让 dist 变旧（否则 --no-build 纯测试批次会误报）
+  try { 提交时间 = Number(execFileSync('git', ['log', '-1', '--format=%ct', '--', 'src'], { encoding: 'utf8' }).trim()) * 1000 } catch (e) { 提交时间 = 0 }
   const 新鲜 = 提交时间 === 0 || 构建时间 >= 提交时间 - 1000   // 容忍 1s 同秒
   console.log(`══ V116-P0-2② 构建新鲜度：dist mtime ${new Date(构建时间).toISOString()} vs HEAD 提交 ${提交时间 ? new Date(提交时间).toISOString() : '（取不到）'}`)
   if (!新鲜) {
