@@ -60,7 +60,6 @@ for (const f of 文件) {
       const [原名, 别名] = t.split(/\s+as\s+/).map(x => x.trim())
        import数++
       if (!是Barrel) ok(存.has(原名), `${f}: 从 ${目标原} 导入的「${原名}」**没有被导出**（构建会挂）`)
-      if (别名) ok(别名 === 原名 || true, '')
     }
   }
 }
