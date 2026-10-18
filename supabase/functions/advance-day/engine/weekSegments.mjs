@@ -56,7 +56,7 @@ export function segmentsOf(decisionsByDay, baseDecisions = {}) {
 }
 
 /** 每段份额 = 段内 `dayWeights(seed=week)` 权重和 ÷ 总权重（与拆天同一套权重） */
-export function sharesOf(segs, week) {
+function sharesOf(segs, week) {
   const w = dayWeights(week)
   const total = w.reduce((a, b) => a + b, 0) || 1
   return segs.map(s => {
