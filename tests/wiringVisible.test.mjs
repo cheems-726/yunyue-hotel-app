@@ -33,6 +33,22 @@ const 读 = (f) => readFileSync('src/' + f, 'utf8')
   ok(/\{周标签\(r\.week\)\}/.test(s), 'B-16：**逐周表用 周标签()**（不再手写"第 N 周"）')
 }
 
+// B-15b 半接入必备字段（V116-P0-3：审计端点名处置 ⇒ 做成真断言）
+{
+  const fm = readFileSync('src/franchiseModel.mjs', 'utf8')
+  ok(/半接入必备字段/.test(fm), '半接入必备字段 仍在单源里（口径表）')
+  // 用它断言：半接入品牌**必须有造价 + 门槛，且不得有费率字段**（缺就是缺，不许编）
+  const { FRANCHISE_MODEL } = await import('../src/franchiseModel.mjs')
+  const { 半接入必备字段, 半接入禁止字段 } = await import('../src/franchiseModel.mjs')
+  const 半 = Object.entries(FRANCHISE_MODEL).filter(([, t]) => t && t.单房造价 && !t.管理费 && !t.中央预订系统_CRS)
+  ok(半.length >= 3, )
+  for (const [名, t] of 半) {
+    ok(!!t[半接入必备字段.造价], )
+    ok(!!t[半接入必备字段.门槛], )
+    for (const 禁 of 半接入禁止字段) ok(!(禁 in t), )
+  }
+}
+
 console.log('══ V115-② 接线可见性（5 条）══')
 for (const b of 坏.slice(0, 8)) console.log('  ✗ ' + b)
 console.log(`结果: ${检查数 - 坏.length} 通过 / ${坏.length} 失败`)

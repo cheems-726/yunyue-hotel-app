@@ -12,8 +12,20 @@ const ok = (c, m) => { 检查数++; if (!c) 坏.push(m) }
 
 const srcs = readdirSync('src').filter(f => /\.mjs$/.test(f) && !f.startsWith('settle-old'))
 const testFiles = readdirSync('tests').filter(f => /\.(mjs|js)$/.test(f))
+// ★ V116-P0-3：**引用方必须扫全部 src 文件**（.mjs/.js/.jsx 递归）——
+//   上一版只扫 .mjs ⇒ GeoMap.jsx 对 CITY_GEO 的引用看不见 ⇒ 误删（构建挂）。口径写在这里，输出也打印。
+const 扫 = (dir) => {
+  const out = []
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name)
+    if (e.isDirectory()) { if (!['node_modules', 'dist', '.git'].includes(e.name)) out.push(...扫(p)) }
+    else if (/\.(mjs|js|jsx)$/.test(e.name)) out.push(p)
+  }
+  return out
+}
+const 全部src = 扫('src')
 const 全文 = {}
-for (const f of srcs) 全文['src/' + f] = readFileSync(join('src', f), 'utf8')
+for (const p of 全部src) 全文[p.replace(/\\/g, '/')] = readFileSync(p, 'utf8')
 for (const f of testFiles) 全文['tests/' + f] = readFileSync(join('tests', f), 'utf8')
 
 // 收集导出名
@@ -21,7 +33,8 @@ const 导出 = []
 for (const f of srcs) {
   const s = 全文['src/' + f]
   // export function X / export const X / export async function X / export let/var X
-  for (const m of s.matchAll(/export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/g)) {
+  // ★ 标识符允许中文（V116-P0-3：原先只认 ASCII ⇒ 131 这个数被少算了）
+  for (const m of s.matchAll(/export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([^\s=({\n]+)/g)) {
     导出.push({ 名: m[1], 文件: 'src/' + f })
   }
 }
@@ -30,9 +43,11 @@ ok(导出.length > 100, `导出总量应 >100（实测 ${导出.length}）——
 let 死 = 0
 for (const { 名, 文件 } of 导出) {
   // 别的 src 文件里出现（含 import / 调用）
-  const 他处src = Object.entries(全文).some(([k, 文]) => k.startsWith('src/') && k !== 文件 && new RegExp(`\\b${名}\\b`).test(文))
-  // tests 里出现
-  const 他处test = Object.entries(全文).some(([k, 文]) => k.startsWith('tests/') && new RegExp(`\\b${名}\\b`).test(文))
+  // ★ V116-P0-3：`\b` 只认 ASCII 词边界 ⇒ 中文名一律"未引用"。改用 Unicode 边界（前后不能是标识符字符）
+  const esc = 名.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const 引用 = (文) => new RegExp(`(^|[^\\w$\\u4e00-\\u9fa5])${esc}($|[^\\w$\\u4e00-\\u9fa5])`).test(文)
+  const 他处src = Object.entries(全文).some(([k, 文]) => k.startsWith('src') && k !== 文件 && 引用(文))
+  const 他处test = Object.entries(全文).some(([k, 文]) => k.startsWith('tests/') && 引用(文))
   if (!他处src && !他处test) { 死++; 坏.push(`死导出：${名}（${文件}）—— 只在定义处出现`) }
 }
 

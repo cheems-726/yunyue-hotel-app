@@ -26,3 +26,12 @@ export const 定位点 = {
 }
 
 // 重庆四区单文件 → 合并 features（首次构建期已合并进 chongqing_core.json · 此处仅记录来源）
+
+// ★ V116 P0-1：恢复导出（V115-② 误删 —— 死导出扫描只把 .mjs 当引用方，漏了 GeoMap.jsx）
+export const CITY_GEO = {
+  成都: 'geo/510100_full.json',
+  德阳: 'geo/510600_full.json',
+  绵阳: 'geo/510700_full.json',
+  承德: 'geo/130800_full.json',
+  重庆: 'geo/chongqing_core.json',   // 渝中/江北/沙坪坝/南岸 四区合并（构建期已由四份单区 DataV 文件合成）
+}
