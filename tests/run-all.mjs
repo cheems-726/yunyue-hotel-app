@@ -67,6 +67,7 @@ const SUITES = [
   { name: 'diagnoseGroups（诊断组合·V113-2.6）', file: 'tests/diagnoseGroups.test.mjs' },
   { name: 'hotelName（酒店名规则·V114-P1）', file: 'tests/hotelName.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
+  { name: 'resetSemantics（复位语义·openDayNo/weekBase 不参与引擎）', file: 'tests/resetSemantics.test.mjs' },
   { name: 'weekReset（重置后 N 天=⌊N/7⌋条·R113-1/R113-2）', file: 'tests/weekReset.test.mjs' },
   { name: 'deployParity（线上=本地·V115-①）', file: 'tests/deployParity.test.mjs' },
   { name: 'wiringVisible（5 条接线可见·V115-②）', file: 'tests/wiringVisible.test.mjs' },
