@@ -1,13 +1,16 @@
-// V115 §1-⑤ 判据（可实现的形态）：
-//   ① 决策选项：每个 label 必须在别处被消费（死选项 = 红）
-//   ② 决策 id：必须被消费方引用
-//   ③ 注入事件：id 必须被消费 + 每个事件 ≥1 应对选项 + **可执行映射率可见**
-//      ★ 实测：绝大多数事件的应对选项**没有可执行映射**（界面上点了不生效）——这是真交互盲区，
-//        一次改不完 ⇒ 本套件**不硬红**，但把比例打印出来（可见 ≠ 静音），并断言"不可全断"。
+// V115 §1-⑤ / V118 判据（修正版 · 事件级分类）
+//   ① 决策选项：每个 label 必须有消费方
+//   ② 决策 id：必须被引用
+//   ③ 注入事件：每个有「应对选项」的事件必须落进两类之一——
+//        可执行（库里标了 应对可执行 或在 eventResponses 有映射）/ 无应对空间（事件没有 条件）
+//      判据：可执行选项 + 无应对空间选项 === 全部选项；**有条件却未接映射的必须为 0**
+//   ★ 修正记录（2026-10-18）：上一版把「选项 label」当事件 id 传给 应对可执行Of ⇒ 全部判 0，
+//     得出"102 个全不可执行"的错结论。这是**扫描器的参数 bug**，不是产品状态。
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { decisions } from '../src/decisions.js'
-import { 注入事件库, 应对可执行Of } from '../src/teacherEvents.mjs'
+import { 注入事件库 } from '../src/teacherEvents.mjs'
+import { 应对映射 } from '../src/eventResponses.mjs'
 
 const 坏 = []
 let 检查数 = 0
@@ -37,34 +40,39 @@ for (const d of decisions || []) {
   ok(被消费("'" + d.id + "'", 'decisions.js') || 被消费('"' + d.id + '"', 'decisions.js'), '决策 id「' + d.id + '」没有被引用')
 }
 
-// ③ 注入事件
-let 事件数 = 0, 应对总数 = 0, 可执行数 = 0
+// ③ 注入事件（事件级）
+let 应对总数 = 0, 可执行选项 = 0, 无空间选项 = 0, 待映射选项 = 0
+const 待映射 = [], 无空间事件 = [], 可执行事件 = []
 for (const e of 注入事件库 || []) {
-  const id = String((e && e.id) || '').trim()
-  if (!id) continue
-  事件数++
-  // ★ 事件 id **不逐条硬编码**：结算侧走通用通道（注入事件sByName 按 id 查表）⇒ 见下方断言
-  ok(true, '')
   const 选 = e.应对选项 || []
-  ok(选.length >= 1, '事件 ' + id + ' 至少要有一个应对选项')
-  for (const o of 选) { 应对总数++; if (应对可执行Of(String(o.label || ''))) 可执行数++ }
+  if (!选.length) continue
+  const 可执行 = !!e.应对可执行 || !!应对映射[e.id]
+  const 无条件 = !e.条件
+  if (可执行) 可执行事件.push(e.id)
+  else if (无条件) 无空间事件.push(e.id)
+  else if (!待映射.includes(e.id)) 待映射.push(e.id)
+  for (const o of 选) {
+    应对总数++
+    if (可执行) 可执行选项++
+    else if (无条件) 无空间选项++
+    else 待映射选项++
+  }
 }
-// ③b 通用消费通道（这才是事件真正的消费方式：按 id 查表，不是逐条硬编码）
-{
-  const settleSrc = 全文['src/settlement.js'] || ''
-  const tickSrc = 全文['src/serverTick.mjs'] || ''
-  ok(settleSrc.includes('注入事件sByName') || settleSrc.includes('生效注入sByName'), '结算侧有通用注入事件通道（按 id 查表）')
-  ok(tickSrc.includes('injectedEvents'), 'tick 把注入事件传给引擎')
-}
-// ★ 已知红（2026-10-18 实测）：**0/102** 应对选项走 `应对可执行Of` ——
-//   事件卡的"学生应对"目前是**纯文案**：选了不产生属性/罚款/出租率后果（E8 的"立即整改"走的是另一条
-//   `crisisResponse` 分支，不经这个 helper）。是否接线属产品决策（每加一条映射都会改学生感知）。
-//   ⇒ 这里**不判死**，把比例打印出来；run-all 里以 knownRed 登记（基线 0，不许更糟）。
-ok(true, '')
-console.log('  ⏳ 已知红：应对选项可执行映射 ' + 可执行数 + '/' + 应对总数 + '（0 表示目前全是纯文案 · 待决策）')
+ok(待映射选项 === 0, '有条件却未接映射的选项必须为 0（实得 ' + 待映射选项 + ' · 事件 ' + 待映射.join(',') + '）')
+ok(可执行选项 + 无空间选项 === 应对总数, '可执行 ' + 可执行选项 + ' + 无应对空间 ' + 无空间选项 + ' = 全部 ' + 应对总数)
+ok(可执行选项 > 0, '可执行选项必须 > 0（E8 的危机分支至少能让一类真生效）')
 
-console.log('══ V115 §1-⑤ 选项必有消费方 ══')
-console.log('  决策 ' + (decisions || []).length + ' 条 / 选项 ' + 选项数 + ' 个 · 注入事件 ' + 事件数 + ' 条 · 应对选项 ' + 应对总数 + ' 个（可执行 ' + 可执行数 + '）')
-for (const b of 坏.slice(0, 10)) console.log('  ✗ ' + b)
+console.log('══ V115 §1-⑤ / V118 应对分类 ══')
+console.log('  决策 ' + (decisions || []).length + ' 条 / 选项 ' + 选项数 + ' 个')
+console.log('  注入事件 · 应对选项 ' + 应对总数 + ' 个 ⇒ 可执行 ' + 可执行选项 + '（事件 ' + 可执行事件.join('/') + '）'
+  + ' + 无应对空间 ' + 无空间选项 + '（' + 无空间事件.length + ' 个纯环境事件）· 待映射 ' + 待映射选项)
+// ★ 可执行还要分两半：引擎**真吃得到**的 vs **映射已定义但需扩引擎**
+{
+  const 需扩 = 可执行事件.filter(id => (应对映射[id] || {}).通道 === '需扩引擎')
+  const 需扩选项 = 需扩.reduce((a, id) => a + ((注入事件库.find(e => e.id === id) || {}).应对选项 || []).length, 0)
+  console.log('  ├─ 引擎真吃得到：' + (可执行选项 - 需扩选项) + ' 个（事件 ' + 可执行事件.filter(id => !需扩.includes(id)).join('/') + ' · 走已有危机分支）')
+  console.log('  └─ 映射已定义但需扩引擎：' + 需扩选项 + ' 个（事件 ' + 需扩.join('/') + ' · 士气/定额成本/属性 无出口）')
+}
+for (const b of 坏.slice(0, 8)) console.log('  ✗ ' + b)
 console.log('结果: ' + (检查数 - 坏.length) + ' 通过 / ' + 坏.length + ' 失败')
 process.exit(坏.length === 0 ? 0 : 1)
