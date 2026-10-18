@@ -12,6 +12,10 @@ import { 创建导航栈 } from './navStack.mjs'
 import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
+import ProcessLedger from './ProcessLedger.jsx'   // ★ V117：过程分台账
+import { 过程分台账 } from './processScore.mjs'   // ★ V117：纯派生
+import { 读理由, 取舍项 } from './choiceReasons.mjs'   // ★ V117：取舍理由（本机）
+import { 判分 as 归因判分 } from './attribution.mjs'   // ★ V117：归因判分
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import HotelNaming from './HotelNaming.jsx'   // ★ V114-P1：酒店命名页（一次承诺）
 import { 已有名字 } from './hotelName.mjs'
@@ -977,6 +981,19 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
       <div className="header">
         <div className="row1"><span className="hotel-name">我的</span></div>
       </div>
+
+      {/* ★ V117：过程分台账（本机三列；①承诺书分数待抽共用函数 ⇒ 先显「—」） */}
+      <ProcessLedger rows={(() => {
+        const 归因 = []
+        for (let i = 1; i < (history || []).length; i++) {
+          const r = 归因判分(history[i] && history[i].week, history[i - 1], history[i])
+          归因.push({ 填了: r.填了, 过程分: r.过程分 })
+        }
+        const all = 读理由()
+        const 理由 = 取舍项.filter(x => String((all[x.key] && all[x.key].text) || "").trim().length >= 12).map(x => x.key)
+        const t = 过程分台账({ 承诺书: null, 归因, 理由 })
+        return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
+      })()} />
 
       <div style={{display:'flex',alignItems:'center',gap:14,margin:'0 20px 16px'}}>
         <div style={{width:56,height:56,borderRadius:'50%',background:(() => {
