@@ -21,6 +21,23 @@ if (!本包) { console.error('✗ 本地 dist/index.html 里找不到 assets/ind
 const 本buf = readFileSync('dist/assets/' + 本包)
 const 本sha = sha(本buf)
 
+// ★ V116-P0-2②：**构建新鲜度前置** —— 构建失败时 dist 不变，旧 vs 旧 会假绿（D323 就是这么来的）
+{
+  const { statSync } = await import('node:fs')
+  const { execFileSync } = await import('node:child_process')
+  const 构建时间 = statSync('dist/assets/' + 本包).mtimeMs
+  let 提交时间 = 0
+  try { 提交时间 = Number(execFileSync('git', ['log', '-1', '--format=%ct'], { encoding: 'utf8' }).trim()) * 1000 } catch (e) { 提交时间 = 0 }
+  const 新鲜 = 提交时间 === 0 || 构建时间 >= 提交时间 - 1000   // 容忍 1s 同秒
+  console.log(`══ V116-P0-2② 构建新鲜度：dist mtime ${new Date(构建时间).toISOString()} vs HEAD 提交 ${提交时间 ? new Date(提交时间).toISOString() : '（取不到）'}`)
+  if (!新鲜) {
+    console.log('  ✗ dist 比最后一次提交旧 ⇒ **这次构建没跑**（或构建失败）⇒ 不许拿旧 dist 比 sha256（这就是 D323 的假绿）')
+    console.log('结果: 0 通过 / 1 失败')
+    process.exit(1)
+  }
+  console.log('  ✓ dist 不早于 HEAD 提交（构建是新的）')
+}
+
 let 线上 = null
 for (const u of 入口) {
   try {
