@@ -70,6 +70,7 @@ const SUITES = [
   { name: 'weekReset（重置后 N 天=⌊N/7⌋条·R113-1/R113-2）', file: 'tests/weekReset.test.mjs' },
   { name: 'deployParity（线上=本地·V115-①）', file: 'tests/deployParity.test.mjs' },
   { name: 'wiringVisible（5 条接线可见·V115-②）', file: 'tests/wiringVisible.test.mjs' },
+  { name: 'processScore（过程分台账·V117）', file: 'tests/processScore.test.mjs' },
   { name: 'importExport（导入/导出对称·V116）', file: 'tests/importExport.test.mjs' },
   { name: 'noDeadExports（死导出=0·V115-②）', file: 'tests/noDeadExports.test.mjs' },
   { name: 'selectColumns（禁手写 select 列·V115-③）', file: 'tests/selectColumns.test.mjs' },
