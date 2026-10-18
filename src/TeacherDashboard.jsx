@@ -93,7 +93,7 @@ function summarize(gs, profile, classDay = 0) {
     hotelName: s.hotelName || '',
     groupKey: gs.group_key || '',
     name: profile?.group_no
-      ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组${s.hotelName ? ' · ' + s.hotelName : ''}`
+      ? `${profile.class_name ? profile.class_name + ' · ' : ''}第${profile.group_no}组 · ${s.hotelName || '（未命名）'}`
       : (profile?.display_name || gs.user_id.slice(0, 8)),
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
