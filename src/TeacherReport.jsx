@@ -4,7 +4,7 @@
 //   本文件【不做任何数字运算】—— 只管排版与格式化（格式化统一走 metricDefs 的 pct/wan2/yuanFmt）
 import React, { useState } from 'react'
 import Icon from './Icon.jsx'
-import { 构建经营报告, 周序列 } from './teacherReport.mjs'
+import { 报告口径注, 周标签, 构建经营报告, 周序列 } from './teacherReport.mjs'
 import { pct, wan2, yuanFmt, NET_LABEL, GOP_SHORT } from './metricDefs.mjs'
 
 const 卡片 = { background: '#fff', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }
@@ -146,6 +146,10 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
 
             {/* 三、逐周表 + 迷你柱 */}
             <div className="tr-card" style={卡片}>
+              {/* ★ V115-② B-16：口径注常驻（没有口径注 = 数字没法被信任） */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 8, padding: '6px 8px', background: 'var(--bg)', borderRadius: 8 }}>
+                {报告口径注.净利率}
+              </div>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>三、逐周经营 <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>（点某行看该周 7 天流水；列值均为 history 原值）</span></div>
               <迷你柱 报告={报告} />
               <div style={{ overflowX: 'auto', marginTop: 6 }}>
@@ -159,7 +163,7 @@ export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose })
                     {报告.逐周.map(r => (
                       <React.Fragment key={r.week}>
                         <tr onClick={() => set展开周(展开周 === r.week ? null : r.week)} style={{ cursor: 'pointer', background: 展开周 === r.week ? 'var(--warn-bg)' : 'transparent' }}>
-                          <td style={{ ...表格格, fontWeight: 700 }}>第 {r.week} 周</td>
+                          <td style={{ ...表格格, fontWeight: 700 }}>{周标签(r.week)}</td>
                           <td style={表格格}>{万(r.营收)}</td>
                           <td style={表格格}>{万(r.成本)}</td>
                           <td style={表格格}>{r.GOP === null ? '—' : 万(r.GOP)}</td>

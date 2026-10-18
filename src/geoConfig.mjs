@@ -2,13 +2,6 @@
 // ★ 红线遵守：全部为真实边界数据，零自绘假轮廓。老浏览器/窄屏回退卡片视图（SiteSelection 原有芯片列表保留）。
 
 // 城市 → GeoJSON 文件（public/geo/ 下 · fetch 加载）
-export const CITY_GEO = {
-  成都: 'geo/510100_full.json',
-  德阳: 'geo/510600_full.json',
-  绵阳: 'geo/510700_full.json',
-  承德: 'geo/130800_full.json',
-  重庆: 'geo/chongqing_core.json',   // 渝中/江北/沙坪坝/南岸 四区合并（构建期已由四份单区 DataV 文件合成）
-}
 
 // 应用区位名 → 行政区划名（GeoJSON features.properties.name）· 缺省 = 同名
 // ★ 五洲广场商圈/观音桥/解放碑/南滨 是【商圈】，落在父级行政边界内 ⇒ 轮廓用父区、标注用商圈名（诚实：无独立行政边界）

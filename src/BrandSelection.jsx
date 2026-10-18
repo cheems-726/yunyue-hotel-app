@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { 品牌可行性 } from './brandFit.mjs'   // ★ V113-1.2：装不下的品牌要能举证
+import { 接入范围说明 } from './franchiseFees.mjs'   // ★ V115-② B-14
+import { 半接入说明 } from './franchiseModel.mjs'   // ★ V115-② B-15
 import WhyNot from './WhyNot.jsx'   // ★ V113-1.3：品牌取舍句
 import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
@@ -134,6 +136,10 @@ export default function BrandSelection({ location, onConfirm }) {
         <span className="step-tag">第二步 · 选品牌</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店品牌</h1>
         <div className="sub">品牌决定物业标准、加盟费用、房价带</div>
+        {/* ★ V115-② B-14/15：费率接入范围必须让学生看见（展示有数 ≠ 引擎计费 · D313） */}
+        <div style={{ fontSize: 12, color: "var(--warn)", marginTop: 6, lineHeight: 1.7 }}>
+          计费范围：{接入范围说明}　·　{半接入说明}
+        </div>
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 20px', marginBottom: 8 }}>

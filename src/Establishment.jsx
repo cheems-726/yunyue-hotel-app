@@ -8,7 +8,7 @@ import { 筹建账, 放弃清单, 预算口径 } from './startupBudget.mjs'   //
 import { 读宣言, 写宣言, 缺哪些 } from './choiceReasons.mjs'   // V113-1.3：开店宣言（一次生成 · 不可编辑）
 import WhyNot from './WhyNot.jsx'   // V113-1.3：每步取舍句
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
-import { 证照信息, 来源行, 通用免责 } from './premiseInfo.mjs'   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
+import { 证照信息, 来源行, 通用免责, 未核实项 } from './premiseInfo.mjs'   // ★ V115-② B-13：未核实项要露出来   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
 // 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
 const 投资项清单 = [
@@ -332,7 +332,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
               <div key={l.name} onClick={() => onPick(key, {
                 title: `证照：${l.name}（成都/德阳 · 本地办事信息）`,
                 changes: [{ label: '办理部门', value: l.dept, dir: '' }, { label: '办理顺序', value: `第 ${i + 1} 步`, dir: '' }, { label: '要点', value: l.note, dir: '' }, { label: '逾期风险', value: li === 0 ? '无主体一切免谈' : li === 2 ? '消防不通过=特种证卡死' : '延误开业=少赚', dir: 'down' }, ...详情行],
-                note: (li === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : li === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`) + `\n— ${来源行}\n${通用免责}`,
+                note: (li === 0 ? '营业执照是一切的前置：没有主体资格，后续刻章、消防、特种行业许可全部办不了。所以它必须第一步。' : li === 2 ? '消防检查合格证是特种行业经营许可证的前置——公安消防先验收合格，属地公安分局才会发特种证。这两张证的先后关系最容易排错。' : `${l.dept}核发。筹建期所有证照要并联推进：材料先备齐、能办的先办，别串行等待——晚开业一天就少一天收入。`) + `\n— ${来源行}\n${通用免责}\n未核实（只给官方公示入口，不写数）：${未核实项.join(" · ")}`,
               })} style={{ ...clickable(key), borderRadius: 10, marginBottom: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--warn-bg)', color: 'var(--warn)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
                 <div style={{ flex: 1 }}>

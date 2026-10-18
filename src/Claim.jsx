@@ -3,7 +3,8 @@ import Icon from './Icon.jsx'
 import ResultFeedback from './ResultFeedback.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
-import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
+import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'
+import { 缺数据文案 } from './investReturn.mjs'   // ★ V115-② B-12：缺数据时的统一提示   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
 import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
@@ -248,7 +249,7 @@ export default function Claim({ brand, location, onComplete }) {
  {step === 2 && '实地勘址：柱网、电梯、消防、采光条件良好，可实现房量符合品牌标准。 勘址完成'}
               {step === 3 && (ledger
                 ? `收益模型测算：以引擎确定性单周为基准 —— 出租率 ${ledger.occ}%、实收均价 ${ledger.adr} 元/间·天，${payback.text.replace('回本周期：', '')}`
-                : '收益模型测算：选中物业后可见「一页钱账」')}
+                : `收益模型测算：${缺数据文案}（选中物业后可看「一页钱账」）`)}
  {step === 4 && '商务条款：确认加盟费、合作责任、营建标准、筹备计划。 条款达成'}
               {step === 5 && `合同签署：完成产权审核，正式签约。你已认领「${selectedProperty?.name}」，获得${brand.name}品牌经营权！`}
             </div>

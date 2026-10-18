@@ -69,6 +69,8 @@ const SUITES = [
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
   { name: 'weekReset（重置后 N 天=⌊N/7⌋条·R113-1/R113-2）', file: 'tests/weekReset.test.mjs' },
   { name: 'deployParity（线上=本地·V115-①）', file: 'tests/deployParity.test.mjs' },
+  { name: 'wiringVisible（5 条接线可见·V115-②）', file: 'tests/wiringVisible.test.mjs' },
+  { name: 'noDeadExports（死导出=0·V115-②）', file: 'tests/noDeadExports.test.mjs' },
   { name: 'selectColumns（禁手写 select 列·V115-③）', file: 'tests/selectColumns.test.mjs' },
   { name: 'attribution（归因题·V113-2.5）', file: 'tests/attribution.test.mjs' },
   { name: 'historyMetrics（history 存量字段·V113-2.3）', file: 'tests/historyMetrics.test.mjs' },
