@@ -49,6 +49,7 @@ import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：�
 import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
+import { 下一周状态 } from './weekRollover.mjs'   // ★ V127-#4：进入下一周的单一口径（可断言）
 import GuideTip, { guideResetAll } from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · 可重置）
 import SemesterTasks from './SemesterTasks.jsx'   // §33-V80 · 12 周任务书（学生/教师共用 · 只读 · 可打印）
 import { teachingDayNo } from './teachingClock.mjs'
@@ -2626,18 +2627,19 @@ export default function App() {
   }, [established, brand, openDayNo])
 
   // 结算确认后：进入下一周，清空决策，保存历史
+  // ★ V127-#4：口径抽成纯函数（可断言）—— week+1 · doneDecisions 清空 · history 追加 ·
+  //   **不碰 classDay / teacher_offset_days**（D326：旧判据 classDay+7 与实现不符）。
   function handleNextWeek() {
-    const newHistory = [...history, report]
-    setHistory(newHistory)
+    const 下一步 = 下一周状态({ history, report, week })
+    setHistory(下一步.history)
     setDecisionChanges([])          // E2：本周流水已进周报 ⇒ 清空，下周重新记
     prevDecisionsRef.current = {}   // 新一周：首次填写不算"改动"
-    if (week >= 12) {
+    setReport(null)
+    if (下一步.finished) {
       // 12周经营结束，出最终成绩
       setFinished(true)
-      setReport(null)
     } else {
-      setReport(null)
-      setWeek(week + 1)
+      setWeek(下一步.week)
       setDoneDecisions({}) // 新一周重新做决策
     }
   }

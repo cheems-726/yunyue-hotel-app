@@ -1,4 +1,5 @@
 import { 台账行FromCloud } from './processLedgerRows.mjs'   // ★ V117-④：教师端台账行（云端数据）
+import { 班级平均口碑 } from './teacherMetrics.mjs'   // ★ V127-#2：班级平均口径（评分已是 5 分制，不得再 /20）
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117-④⑤：台账块 + CSV
 import { 台账CSV } from './processScore.mjs'
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
@@ -1229,7 +1230,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               const withData = visibleGroups.filter(g => g.historyCount > 0)
               const avg = (fn) => withData.length ? Math.round(withData.reduce((a, g) => a + fn(g), 0) / withData.length) : 0
               const avgOcc = avg(g => g.occ)
-              const avgRating = avg(g => g.rating)
+              const avgRating = 班级平均口碑(withData.map(g => g.rating))   // ★ V127-#2：5 分制直接求平均（不再 /20）
               const lossCount = withData.filter(g => g.profit < 0).length
               const avgEvents = withData.length ? +(withData.reduce((a, g) => {
                 const gs = rawStates.find(x => x.user_id === g.uid)
@@ -1240,7 +1241,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   {[
                     { l: '平均出租率', v: avgOcc + '%' },
-                    { l: '平均口碑', v: avgRating ? (avgRating / 20).toFixed(1) : '—' },
+                    { l: '平均口碑', v: avgRating != null ? avgRating.toFixed(1) : '—' },
                     { l: '平均事件/组', v: avgEvents },
                     { l: '亏损组', v: lossCount + '组' },
                   ].map(s => (
@@ -1370,7 +1371,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 {/* ★ V125-#7：口径必须显式 —— 这里是"已完成项数"（组内按 id 去重，改答案不重复计数），
                     不是"提交次数"。分母 = 组数 × 18 项；人均也带 /18，避免老师误读成"学生只做了一半"。 */}
                 {[
-                  { l: '全班已完成决策', v: `${totalDone} / ${groups.length * 18}`, t: '已完成决策项数（同一项改多次只算 1 项）· 分母 = 组数 × 18 项' },
+                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 18}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 结算后归零属正常（下周重新计）· 分母 = 组数 × 18 项' },
                   { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 18 项`, t: '每组最多 18 项；已完成项数 ÷ 组数' },
                   { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', t: '最近一次云端存档时间' },
                 ].map(s => (
@@ -1381,9 +1382,9 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 ))}
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>
-                口径：已完成决策项数（同一项改答案不重复计数）· 分母 = {groups.length} 组 × 18 项 = {groups.length * 18} 项 · 与"提交次数"不是同一个数
+                口径：本周已完成决策项数（同一项改答案不重复计数）· 分母 = {groups.length} 组 × 18 项 = {groups.length * 18} 项 · 与"提交次数"不是同一个数
               </div>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>结算后归零属正常（下周重新计）· 学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
 
             {/* ★ V117-④⑤：过程分台账（默认收起 · 可导出 CSV） */}

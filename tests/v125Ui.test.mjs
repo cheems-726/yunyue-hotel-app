@@ -39,9 +39,10 @@ console.log('\n[#8/#11] 酒店名云端同步（写云 → 回读 → 失败可�
 console.log('\n[#7] 教师端决策数：名称 + 分母 + 去重口径')
 {
   const td = src('TeacherDashboard.jsx')
-  ok(/全班已完成决策/.test(td), '标签改为「全班已完成决策」（不再用模糊的"全班决策数"）')
+  ok(/本周已完成决策/.test(td), '标签为「本周已完成决策」（V127-#3 起；旧"全班决策数"不再使用）')
   ok(/groups\.length \* 18/.test(td), '★ 分母 = 组数 × 18 项（老师能看出 49/108 的进度，不会误读成"才做一半"）')
   ok(/改答案不重复计数/.test(td), '★ 口径说明写明"同一项改答案不重复计数"（≠ 提交次数）')
+  ok(/结算后归零属正常/.test(td), 'V127-#3：说明"结算后归零属正常"（防老师误读为清零故障）')
   ok(/\/ 18 项/.test(td), '人均完成带 /18 分母')
 }
 
@@ -86,7 +87,8 @@ console.log('\n[#4] 「进入下一周」：入口在学生端周报（不是教
   const app = src('App.jsx')
   const wr = src('WeeklyReport.jsx')
   const td = src('TeacherDashboard.jsx')
-  ok(/function handleNextWeek\(\)/.test(app) && /setWeek\(week \+ 1\)/.test(app), '学生端周报确认 ⇒ week + 1 且清空本周决策')
+  // ★ V127-#4：口径抽到 weekRollover.下一周状态；这里只验 App 接上了它（行为断言在 weekRollover.test）
+  ok(/下一周状态\(\{ history, report, week \}\)/.test(app) && /setWeek\(下一步\.week\)/.test(app), '学生端周报确认 ⇒ week + 1 且清空本周决策（V127 纯函数单源）')
   ok(/进入第 \$\{result\.week \+ 1\} 周/.test(wr), '周报按钮文案 =「进入第 N+1 周」')
   ok(!/进入下一周/.test(td), '教师端没有「进入下一周」按钮（推进 = 学生周报 + 服务端 tick；V125-#4 的 classDay+7 判据与实现不符，需审计端裁定）')
 }

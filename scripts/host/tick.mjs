@@ -2,10 +2,13 @@
 // V106-A1 / R5：host 端的 advance-day（替代云端 pg_cron + Edge Function）
 //   · 与 supabase/functions/advance-day/{index.ts,db.ts} **逐行等价**（本文件只做 IO，不含任何结算计算）
 //   · 引擎用 **同一份组装物** ./engine/（由 scripts/build-edge-function.mjs 从 src/ 机械搬运）
-//   · 幂等：tick_key = tickKey(classDay, groupKey) 作主键，重复 tick 走 23505 静默跳过
+//   · ★ V127-#1：本文件是服务器 /opt/yunyue/tick/tick.mjs 的【唯一来源】。
+//     禁止在服务器上直接手改（必须先进这个仓库、再由审计端部署）。
+//   · 流水：只在 advanced=true 或 violations>0 时写 server_tick_log；键用 tickLogKey（分钟戳），
+//     撞键 ⇒ console.warn + duplicates 计数（不再静默）。
 // 用法：node tick.mjs [--dry]
 import { readFileSync } from 'node:fs'
-import { advanceGroupOneDay, tickKey, TICK_VERSION } from './engine/serverTick.mjs'
+import { advanceGroupOneDay, tickLogKey, TICK_VERSION } from './engine/serverTick.mjs'
 
 const CONF = process.env.YUNYUE_CONF || '/opt/yunyue/etc/keys.json'
 const REST = process.env.YUNYUE_REST || 'http://127.0.0.1:3000'
@@ -55,17 +58,22 @@ async function writeGroupState(group, save) {
   if (!r.ok) throw new Error('写档失败：' + r.status + ' ' + (await r.text()))
 }
 
-/** 幂等键作主键；冲突(23505)即"同一天已跑过"，静默跳过 */
+/** 审计流水（键带分钟戳）；撞键 = 同一分钟重复调用 ⇒ warn + 返回 duplicate（不再静默） */
 async function writeTickLog({ tick_key, class_day, group_key, result, ok }) {
-  if (DRY) return
+  if (DRY) return { inserted: false, duplicate: false }
   const r = await fetch(REST + '/server_tick_log', {
     method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
     body: JSON.stringify({ tick_key, class_day, group_key, result, ok }),
   })
   if (!r.ok) {
     const b = await r.text()
-    if (!/23505|duplicate key/.test(b)) throw new Error('写 server_tick_log 失败：' + r.status + ' ' + b)
+    if (/23505|duplicate key/.test(b)) {
+      console.warn(`[tick] 流水撞键（同一分钟重复调用）：tick_key=${tick_key} group=${group_key} class_day=${class_day}`)
+      return { inserted: false, duplicate: true }
+    }
+    throw new Error('写 server_tick_log 失败：' + r.status + ' ' + b)
   }
+  return { inserted: true, duplicate: false }
 }
 
 /** ★ V107-E3：结算前**不可变**快照（insert-only、**无 conflict target** ⇒ 同日重跑只追加、绝不覆盖）。
@@ -95,22 +103,29 @@ async function main() {
   const groups = await readGroups()
   const allInjections = Array.isArray(cls?.injected_events) ? cls.injected_events : []
   const out = []
+  let duplicates = 0
+  const 记流水 = async (args) => { const L = await writeTickLog(args); if (L && L.duplicate) duplicates++; return L }
   for (const g of groups) {
     const save = g.state || {}
     const gk = g.group_key || g.user_id
     const injections = allInjections.filter(e => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
     const r = advanceGroupOneDay(save, classDay, { groupKey: gk, injectedEvents: injections.length ? injections : null })
-    out.push({ group: gk, advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, violations: r.violations })
+    out.push({ group: gk, advanced: r.advanced, gated: r.gated || false, gate: r.gate || null, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, violations: r.violations })
+    // ★ V127-#1：一次调用一个流水键（分钟戳）—— 旧 tickKey 已被历史轮次占满，导致日志整轮被静默吞掉
+    const logKey = tickLogKey(classDay, gk)
     if (r.violations && r.violations.length) {
-      await writeTickLog({ tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false })
+      await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false })
       continue
     }
     if (!DRY && r.advanced && r.save) {
-      await writePreSettleSnapshot({ tick_key: tickKey(classDay, gk), group: g })   // ★ V107-E3：先落不可变快照，再改档
+      await writePreSettleSnapshot({ tick_key: logKey, group: g })   // ★ V107-E3：先落不可变快照，再改档
       await writeGroupState(g, r.save)
     }
-    await writeTickLog({ tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, engineVersion: TICK_VERSION }, ok: true })
+    // ★ V127-#1：只在【真结算】时写流水（无推进/被前置闸拦下的日子不写）
+    if (!DRY && r.advanced) {
+      await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, 决策来源: r.决策来源, engineVersion: TICK_VERSION }, ok: true })
+    }
   }
-  console.log(JSON.stringify({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, dry: DRY, engineVersion: TICK_VERSION, detail: out }))
+  console.log(JSON.stringify({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, gated: out.filter(x => x.gated).length, duplicates, dry: DRY, engineVersion: TICK_VERSION, detail: out }))
 }
 main().catch(e => { console.error(JSON.stringify({ ok: false, error: String(e && e.message || e) })); process.exit(1) })
