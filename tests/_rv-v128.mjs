@@ -70,5 +70,9 @@ console.log('【RV-V128】逐批靶子（每次只改一处 · 逐次还原）\n
 例s.push(试一例('#3d 台账丢掉第四列', 'src/processScore.mjs',
   '...委,', '...{},', 'tests/processScore.test.mjs'))
 
+// ── §3 批3 教师端缺做名单 ─────────────────────────────────────
+例s.push(试一例('#3e 教师端卡片标题改掉（缺做名单不可见）', 'src/TeacherDashboard.jsx',
+  '今日委托（谁没做）', '委托', 'tests/v128Semester.test.mjs'))
+
 console.log(`\n结果: ${例s.filter(Boolean).length} / ${例s.length} 条 RV 成立`)
 process.exit(例s.every(Boolean) ? 0 : 1)

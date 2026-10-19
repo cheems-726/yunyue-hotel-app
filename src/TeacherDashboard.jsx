@@ -1,5 +1,6 @@
 import { 台账行FromCloud } from './processLedgerRows.mjs'   // ★ V117-④：教师端台账行（云端数据）
 import { 班级平均口碑 } from './teacherMetrics.mjs'   // ★ V127-#2：班级平均口径（评分已是 5 分制，不得再 /20）
+import { 今日缺做 } from './dailyQuestTeacher.mjs'   // ★ V128-#3 批3：今天谁没做委托（不排名）
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117-④⑤：台账块 + CSV
 import { 台账CSV } from './processScore.mjs'
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
@@ -1386,6 +1387,29 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>结算后归零属正常（下周重新计）· 学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>
+
+            {/* ★ V128-#3 批3：今天谁没做委托（只提示缺做 · 不排名 · 不计分） */}
+            {(() => {
+              const 组s = (groups || []).map(g => {
+                const gs = (rawStates || []).find(x => x.user_id === g.uid)
+                const rec = (gs && gs.state && gs.state.weekInputs && gs.state.weekInputs.每日委托) || []
+                return { 组: g.name, 每日委托: rec }
+              })
+              const r = 今日缺做({ 组s, classDay })
+              return (
+                <div className="card" style={{ marginBottom: 8, borderColor: r.可判 && r.缺做.length ? 'var(--bad-border)' : 'var(--border)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: r.可判 && r.缺做.length ? 'var(--bad)' : 'var(--text)', marginBottom: 4 }}>今日委托（谁没做）</div>
+                  <div style={{ fontSize: 12, color: r.可判 && r.缺做.length ? 'var(--bad)' : 'var(--text-sub)', lineHeight: 1.8 }}>
+                    {!r.可判
+                      ? '教学日历未同步（classDay=0）⇒ 暂不判定'
+                      : r.缺做.length === 0
+                        ? `今天第 ${r.天} 天 · 全班都做了 ✓`
+                        : `今天第 ${r.天} 天 · 缺做 ${r.缺做.length} 组：${r.缺做.map(x => x.组).join('、')}`}
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4 }}>只提示缺做，不排名、不计分 · 数据来自各组 weekInputs.每日委托</div>
+                </div>
+              )
+            })()}
 
             {/* ★ V117-④⑤：过程分台账（默认收起 · 可导出 CSV） */}
             <details style={{ marginBottom: 8 }}>
