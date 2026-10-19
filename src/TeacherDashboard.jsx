@@ -1398,7 +1398,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   const p = (profiles || []).find(x => x.user_id === gs.user_id) || {}
                   const 组 = p.group_no ? "第" + p.group_no + "组" : (gs.group_key || "—")
                   const 日志 = (logs || []).filter(l => String(l.group_key || "") === String(gs.group_key || ""))
-                  return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志, 选址承诺书: (gs.state && gs.state.选址承诺书) || null, 理由: (gs.state && gs.state.取舍理由) || [] })
+                  return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志, 选址承诺书: (gs.state && gs.state.选址承诺书) || null, 理由: (gs.state && gs.state.取舍理由) || [], 每日委托: (gs.state && gs.state.weekInputs && gs.state.weekInputs.每日委托) || [], 本周天数: Math.min(7, Math.max(0, Number(classDay) - (Number(gs.week || (gs.state && gs.state.week) || 1) - 1) * 7)) })
                 })}
                 onExport={() => {
                   try {
@@ -1406,7 +1406,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                       const p = (profiles || []).find(x => x.user_id === gs.user_id) || {}
                       const 组 = p.group_no ? "第" + p.group_no + "组" : (gs.group_key || "—")
                       const 日志 = (logs || []).filter(l => String(l.group_key || "") === String(gs.group_key || ""))
-                      return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志, 选址承诺书: (gs.state && gs.state.选址承诺书) || null, 理由: (gs.state && gs.state.取舍理由) || [] })
+                      return 台账行FromCloud({ 组, 酒店名: (gs.state && gs.state.hotelName) || "", history: (gs.state && gs.state.history) || [], 归因日志: 日志, 选址承诺书: (gs.state && gs.state.选址承诺书) || null, 理由: (gs.state && gs.state.取舍理由) || [], 每日委托: (gs.state && gs.state.weekInputs && gs.state.weekInputs.每日委托) || [], 本周天数: Math.min(7, Math.max(0, Number(classDay) - (Number(gs.week || (gs.state && gs.state.week) || 1) - 1) * 7)) })
                     })
                     const blob = new Blob(["\ufeff" + 台账CSV(rows)], { type: "text/csv;charset=utf-8" })
                     const a = document.createElement("a")

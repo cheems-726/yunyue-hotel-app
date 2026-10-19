@@ -38,9 +38,22 @@ export const WEEK_INPUTS_VERSION = 1
 export const 空周输入 = (week) => ({
   版本: WEEK_INPUTS_VERSION, week: Number(week),
   pendingNegatives: 0, resolvedCount: 0, liveNegCount: 0, livePosCount: 0, crisisResponse: null, 注入应对: null,
+  每日委托: [],
 })
 
 const 非负整数 = (v) => Math.max(0, Math.floor(Number(v) || 0))
+
+/** ★ V128-#3 批2：委托记录只保留四个字段（第一版**只记录**，引擎不读） */
+function 委托记录净化(list) {
+  return (Array.isArray(list) ? list : [])
+    .filter(x => x && Number.isFinite(Number(x.天)) && x.类)
+    .map(x => ({
+      天: Math.max(1, Math.min(7, Math.round(Number(x.天)))),
+      类: String(x.类),
+      选项: String(x.选项 || ''),
+      时刻: String(x.时刻 || ''),
+    }))
+}
 
 /**
  * 从「评价流水 + 危机选择」派生本周结算输入（纯函数）
@@ -63,7 +76,7 @@ const 突发处置映射 = {
   '推卸责任': '不理会',
 }
 
-export function settleInputsFrom({ reviews, week, crisis = null, eventResponse = null, decisions = {}, 处理人职务 = null } = {}) {
+export function settleInputsFrom({ reviews, week, crisis = null, eventResponse = null, decisions = {}, 处理人职务 = null, dailyQuests = [] } = {}) {
   const 流水 = Array.isArray(reviews) ? reviews : []
   const w = Number(week)
   // ① 结算卡（跨周累计）—— 欠账/整改只认它们（确定性；实证见文件头 ①）
@@ -86,7 +99,7 @@ export function settleInputsFrom({ reviews, week, crisis = null, eventResponse =
   const 注入应对 = (eventResponse && Number(eventResponse.week) === w && eventResponse.事件id && eventResponse.choice)
     ? { [String(eventResponse.事件id)]: String(eventResponse.choice) }
     : null
-  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, resolvedWeight, liveNegCount, livePosCount, crisisResponse, 注入应对 }
+  return { 版本: WEEK_INPUTS_VERSION, week: w, pendingNegatives, resolvedCount, resolvedWeight, liveNegCount, livePosCount, crisisResponse, 注入应对, 每日委托: 委托记录净化(dailyQuests) }
 }
 
 // 从存档里取【本周】的输入：版本/周号对不上 ⇒ 视为没有（返回 null，由调用方决定兜底）
@@ -104,5 +117,7 @@ export function weekInputsOf(save, week) {
     crisisResponse: typeof w.crisisResponse === 'string' ? w.crisisResponse : null,
     // ★ §32-U8-补：注入应对（加法扩展 · 旧载荷无此字段 ⇒ null ⇒ 与改前逐字节一致）
     注入应对: (w.注入应对 && typeof w.注入应对 === 'object') ? { ...w.注入应对 } : null,
+    // ★ V128-#3 批2：每日委托记录（只记录 · 引擎不读 · 旧载荷无此字段 ⇒ []）
+    每日委托: 委托记录净化(w.每日委托),
   }
 }

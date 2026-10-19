@@ -5,7 +5,7 @@
 import { 过程分台账, 选址过程分 } from './processScore.mjs'
 import { 真值 } from './attribution.mjs'
 
-export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [] } = {}) {
+export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [], 每日委托 = [], 本周天数 = 0 } = {}) {
   const 周s = Array.isArray(history) ? history : []
   const 归因 = []
   for (const lg of (归因日志 || [])) {
@@ -21,5 +21,8 @@ export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归
   // 缺数据一律传 null（台账显示「—」），不许编 0
   const 承诺书 = 选址承诺书 && typeof 选址承诺书 === 'object' ? 选址过程分(选址承诺书).过程分 : null
   const 理由键 = Array.isArray(理由) ? 理由.filter(Boolean) : null
-  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键 }) }
+  // ★ V128-#3 批2：每日委托第四列（按天计 · 只展示不并入合计）
+  const 完成 = new Set((Array.isArray(每日委托) ? 每日委托 : []).map(r => Number(r && r.天)).filter(n => Number.isFinite(n) && n >= 1)).size
+  const 委托 = { 完成, 应完成: Math.max(0, Math.min(7, Math.round(Number(本周天数) || 0))) }
+  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键, 委托 }) }
 }

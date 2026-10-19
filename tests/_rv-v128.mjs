@@ -56,5 +56,19 @@ console.log('【RV-V128】逐批靶子（每次只改一处 · 逐次还原）\n
   'attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })',
   'attrsAfter = applyAttrsDelta(attrsAfter, { morale: -20 })', 'tests/_v128-before-after.mjs'))
 
+// ── §3 批1 委托生成器 ─────────────────────────────────────────
+例s.push(试一例('#3a 每天上限改成 3', 'src/dailyQuests.mjs',
+  'export const 每天上限 = 2', 'export const 每天上限 = 3', 'tests/dailyQuests.test.mjs'))
+例s.push(试一例('#3b 造一个支配选项（有最优解）', 'src/dailyQuests.mjs',
+  "{ label: '解释澄清', 代价: '占用前台 20 分钟', 维度: { 成本友好: 1, 体验: 1, 关系: 2 } }",
+  "{ label: '解释澄清', 代价: '占用前台 20 分钟', 维度: { 成本友好: 2, 体验: 2, 关系: 2 } }", 'tests/dailyQuests.test.mjs'))
+
+// ── §3 批2 委托落库 + 台账第四列 ─────────────────────────────
+例s.push(试一例('#3c 让引擎"读"每日委托（只记录护栏）', 'src/settlement.js',
+  "import { 应对效力Of } from './eventResponses.mjs'",
+  "const 每日委托 = null\nimport { 应对效力Of } from './eventResponses.mjs'", 'tests/dailyQuestLog.test.mjs'))
+例s.push(试一例('#3d 台账丢掉第四列', 'src/processScore.mjs',
+  '...委,', '...{},', 'tests/processScore.test.mjs'))
+
 console.log(`\n结果: ${例s.filter(Boolean).length} / ${例s.length} 条 RV 成立`)
 process.exit(例s.every(Boolean) ? 0 : 1)
