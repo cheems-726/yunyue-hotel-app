@@ -121,16 +121,17 @@ await new Promise(r => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 
 try {
-  // ① 真推进 +6
-  console.log('\n[①] 真推进一天 ⇒ 恰好 +6 行，键带分钟戳')
+  // ① 真推进 +6（并模拟旧轮次已占满 d1|gN 键 —— 冷启动判据 ⑤）
+  console.log('\n[①] 真推进一天 ⇒ 恰好 +6 行，键带分钟戳（旧键已占满也能插）')
   {
     st.offset = 0
+    for (let i = 1; i <= 6; i++) st.logKeys.add(`d1|g${i}`)   // 旧轮次遗留键（无分钟戳）
     const before = st.logs.length
     const r = await 跑tick(dir, port)
     const j = 解析(r.out)
     ok(r.c === 0 && j && j.ok === true, `脚本正常退出（exit=${r.c}）`, r.err.slice(0, 200))
     ok(j && j.advanced === 6, `6 组都真结算（advanced=${j && j.advanced}）`)
-    ok(st.logs.length - before === 6, `server_tick_log 恰好 +6 行（实际 +${st.logs.length - before}）`)
+    ok(st.logs.length - before === 6, `旧键占满时新键仍插入成功：恰好 +6 行（实际 +${st.logs.length - before}）`)
     ok(st.logs.slice(before).every(x => /^d1\|g\d+\|t\d{12}$/.test(x.tick_key)), '键形如 d1|gN|tYYYYMMDDHHmm', st.logs.slice(before).map(x => x.tick_key).join(','))
     ok(st.snapshots === 6, `结算前不可变快照 6 条（实际 ${st.snapshots}）`)
   }
