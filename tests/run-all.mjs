@@ -221,6 +221,7 @@ const SUITES = [
       },
       since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
+  { name: 'offlineLogin（断网登录真浏览器·V129）', file: 'tests/offlineLogin.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'v75-verify（点开必有内容抽查·V75）', file: 'tests/_v75-verify.mjs', browser: true },
