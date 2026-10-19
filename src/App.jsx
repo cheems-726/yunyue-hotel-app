@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Icon from './Icon.jsx'
 import SiteSelection from './SiteSelection.jsx'
 import { migrateSave, withScaleVersion, restoreFromCloud, SCALE } from './stateMigration.mjs'
@@ -32,7 +32,7 @@ import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
@@ -64,69 +64,117 @@ import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
 //   注意：settle（引擎）不引用本模块（一期边界有守门断言）—— 记录在 App 层生成后挂到 result。
 import { 生效授权, 领班决策, 代管率 } from './aiSupervisor.mjs'
 import { DEMO_REVIEWS } from './Reputation.jsx'   // V55 · 演示种子（仅离线注入）
+import { 校验工号, 分类登录错误, 登录预检, 错误类型 } from './loginReliability.mjs'   // ★ V129：登录可靠性（预检/分级）
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
+// ★ V129-R109-1：连通预检横幅（挂载即跑；只作建议，不阻塞离线演示）
+function 预检横幅({ 预检, onDemo, onUseEntry }) {
+  if (!预检 || 预检.状态 === 'ok') return null
+  if (预检.状态 === '探测中') {
+    return <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>正在检查连接…</div>
+  }
+  if (预检.状态 === '入口可用') {
+    return (
+      <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.7 }}>
+        <b>连不上登录服务器（当前入口不通）</b> → 建议改用以下入口：
+        <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <code style={{ fontSize: 12 }}>{预检.可用入口}</code>
+          {onUseEntry && <button className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }} onClick={() => onUseEntry(预检.可用入口)}>使用这个入口 →</button>}
+        </div>
+        <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>仍可继续用当前入口重试（入口只是建议，不强制）</div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 12, lineHeight: 1.7 }}>
+      <b>连不上测试机（不是密码问题）</b>：A 当前入口 / B http / C https 三个入口都探测不通。
+      {onDemo && <div style={{ marginTop: 6 }}><button className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }} onClick={onDemo}>先用离线演示 →</button></div>}
+    </div>
+  )
+}
+
 function LoginPage({ onLogin }) {
   const [step, setStep] = useState('choose') // choose | form | demo
   const [role, setRole] = useState('') // student | teacher
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [errorNext, setErrorNext] = useState('')       // ★ V129：每类错误都要给"下一步"
+  const [errorKind, setErrorKind] = useState('')
   const [busy, setBusy] = useState(false)
+  // ★ V129-R109-1：登录页挂载即做连通预检（不等用户点登录）
+  const [预检, set预检] = useState({ 状态: '探测中', 说明: '正在检查连接…', 可用入口: null, 入口s: [] })
+  const accountRef = useRef(null)
+
+  useEffect(() => {
+    let 停 = false
+    登录预检({ supabaseUrl: SUPABASE_URL, origin: (typeof window !== 'undefined' ? window.location.origin : '') })
+      .then(r => { if (!停) set预检(r) })
+      // 静默理由：预检失败本身就是"网络不可达"，由横幅呈现；不能再抛错打断登录页
+      .catch(() => { if (!停) set预检({ 状态: '全不通', supabaseOk: false, 可用入口: null, 入口s: [], 说明: '三个入口都不通（不是密码问题）' }) })
+    return () => { 停 = true }
+  }, [])
+
+  function 清错误() { setError(''); setErrorNext(''); setErrorKind('') }
+  function 报错(类) { setError(类.文案); setErrorNext(类.下一步); setErrorKind(类.类型) }
 
   function chooseRole(r) {
     setRole(r)
     setStep('form')
-    setError('')
+    清错误()
   }
 
-  // 学号/工号规则：学生纯数字，教师 T+数字
-  function validateAccount(id) {
-    if (role === 'student' && !/^\d{4,12}$/.test(id)) return '学号应为 4-12 位数字'
-    if (role === 'teacher' && !/^[tT]\d{1,6}$/.test(id)) return '教师工号应为 T+数字（如 T001）'
-    return ''
-  }
+  // 学号/工号规则（★ V129：抽到 loginReliability 单源，便于守门断言）
+  function validateAccount(id) { return 校验工号(role, id) }
 
+  // ★ V129-R109-2：登录错误分级 + 服务器故障自动重试（账号密码内容保留）
   async function handleLogin() {
-    if (!account || !password) { setError('请输入账号和密码'); return }
+    if (!account || !password) { setError('请输入账号和密码'); setErrorNext(''); setErrorKind(''); return }
     const vErr = validateAccount(account)
-    if (vErr) { setError(vErr); return }
+    if (vErr) { setError(vErr); setErrorNext('请修改后重试（老师：T+数字；学生：纯数字）'); setErrorKind(错误类型.工号格式); accountRef.current && accountRef.current.focus(); return }
     setBusy(true)
-    setError('')
+    清错误()
+    const 入口 = (预检 && 预检.可用入口) || (typeof window !== 'undefined' ? window.location.origin : '当前入口')
     try {
       const email = emailFor(account)
-      const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password: String(password).trim() })   // ★ V106-D2④：trim 首尾空格（手机输入常见尾随空格 ⇒ 曾致『账号或密码错误』）
+      let authErr = null, data = null, 重试 = 0
+      for (let i = 0; i < 3; i++) {
+        const r = await supabase.auth.signInWithPassword({ email, password: String(password).trim() })   // ★ V106-D2④：trim 首尾空格（不许回退）
+        authErr = r.error; data = r.data
+        if (!authErr) break
+        const 类 = 分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口, 重试次数: 重试 })
+        if (类.类型 !== 错误类型.服务器故障 || i >= 2) break
+        重试++
+        await new Promise(res => setTimeout(res, 400 * (i + 1)))
+      }
       if (authErr) {
-        if (authErr.message.includes('Invalid login')) {
-          setError('账号或密码错误。还没注册过？点「注册并登录」')
-        } else {
-          setError('登录失败：' + authErr.message + '（检查网络/梯子）')
-        }
+        报错(分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口, 重试次数: 重试 }))
         return
       }
       await completeLogin(data.user, account)
     } catch (e) {
-      setError('网络异常：' + (e.message || e))
+      报错(分类登录错误({ message: e.message || String(e), name: e.name, status: e.status || 0, 入口 }))
     } finally {
       setBusy(false)
     }
   }
 
   async function handleSignup() {
-    if (!account || !password) { setError('请输入账号和密码'); return }
+    if (!account || !password) { setError('请输入账号和密码'); setErrorNext(''); setErrorKind(''); return }
     const vErr = validateAccount(account)
-    if (vErr) { setError(vErr); return }
-    if (String(password).trim().length < 6) { setError('密码至少 6 位'); return }
+    if (vErr) { setError(vErr); setErrorNext('请修改后重试（老师：T+数字；学生：纯数字）'); setErrorKind(错误类型.工号格式); accountRef.current && accountRef.current.focus(); return }
+    if (String(password).trim().length < 6) { setError('密码至少 6 位'); setErrorNext('换一个更长的口令再试'); setErrorKind(''); return }
     setBusy(true)
-    setError('')
+    清错误()
+    const 入口 = (预检 && 预检.可用入口) || (typeof window !== 'undefined' ? window.location.origin : '当前入口')
     try {
       const email = emailFor(account)
       const { data, error: authErr } = await supabase.auth.signUp({ email, password: String(password).trim() })   // ★ V106-D2④
-      if (authErr) { setError('注册失败：' + authErr.message); return }
-      if (!data.session) { setError('注册成功但未返回会话，请再点登录'); return }
+      if (authErr) { const 类 = 分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口 }); 报错({ ...类, 文案: '注册失败：' + 类.文案 }); return }
+      if (!data.session) { setError('注册成功但未返回会话'); setErrorNext('请再点一次「登录」'); return }
       await completeLogin(data.user, account)
     } catch (e) {
-      setError('网络异常：' + (e.message || e))
+      报错(分类登录错误({ message: e.message || String(e), name: e.name, status: e.status || 0, 入口 }))
     } finally {
       setBusy(false)
     }
@@ -180,6 +228,7 @@ function LoginPage({ onLogin }) {
           <div style={{ fontSize: 16, color: 'var(--text-muted)', marginTop: 6 }}>连锁酒店经营模拟系统</div>
         </div>
         <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>请选择你的身份</div>
+        <预检横幅 预检={预检} />
         <button className="btn btn-primary" style={{ flex: '0 0 auto', padding: '16px 0', fontSize: 16, marginBottom: 12 }} onClick={() => chooseRole('student')}>我是学生</button>
         <button className="btn btn-ghost" style={{ flex: '0 0 auto', padding: '16px 0', fontSize: 16 }} onClick={() => chooseRole('teacher')}>我是老师</button>
       </div>
@@ -210,9 +259,12 @@ function LoginPage({ onLogin }) {
         </div>
       </div>
 
+      <预检横幅 预检={预检} onDemo={handleDemoLogin} onUseEntry={(u) => { if (typeof window !== 'undefined') window.location.href = u }} />
+
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>{role === 'student' ? '学号' : '工号'}</div>
         <input
+          ref={accountRef}
           onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交（!busy 守卫 · R109-1：删掉原先重复的第二行 —— JSX 重复属性只有最后一个生效，会把 !busy 静默丢掉）*/
           value={account}
           onChange={e => setAccount(e.target.value)}
@@ -233,7 +285,20 @@ function LoginPage({ onLogin }) {
         />
       </div>
 
-      {error && <div style={{ color: 'var(--bad)', fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>{error}</div>}
+      {error && (
+        <div style={{ color: 'var(--bad)', fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
+          <div>{error}</div>
+          {errorNext && <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>下一步：{errorNext}</div>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+            {errorKind === 错误类型.服务器故障 && (
+              <button className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }} disabled={busy} onClick={handleLogin}>重试 →</button>
+            )}
+            {errorKind === 错误类型.网络不可达 && 预检 && 预检.可用入口 && (
+              <button className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }} onClick={() => { if (typeof window !== 'undefined') window.location.href = 预检.可用入口 }}>改用可用入口 →</button>
+            )}
+          </div>
+        </div>
+      )}
 
       <button className="btn-confirm" disabled={busy} onClick={handleLogin}>{busy ? '登录中…' : '登录'}</button>
       <button className="btn btn-ghost" style={{ flex: '0 0 auto', marginTop: 10, padding: '12px 0' }} disabled={busy} onClick={handleSignup}>
