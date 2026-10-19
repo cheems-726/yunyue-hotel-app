@@ -58,6 +58,12 @@ export function 缺哪些() {
   return 取舍项.filter(k => !理由合格(all[k.key] && all[k.key].text))
 }
 
+/** 已写够的取舍理由键（★ V128-#1：台账列与云端镜像共用这一处口径） */
+export function 合格理由键() {
+  const all = 读理由()
+  return 取舍项.filter(k => 理由合格(all[k.key] && all[k.key].text)).map(k => k.key)
+}
+
 /** 全部理由就绪？（生成宣言的前置） */
 export function 理由齐了吗() { return 缺哪些().length === 0 }
 

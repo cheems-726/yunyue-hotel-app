@@ -15,6 +15,37 @@
 
 export const 结构 = { 承诺书满分: 8, 归因每周: 2, 理由满分: 4 }
 
+// ★ V128-#1（D324）：选址承诺书的 8 分制评分从 SiteSelection 组件里**抽到单源**。
+//   原先它写在组件内部 ⇒ 教师端台账拿不到 ⇒ 承诺书列恒「—」。现在学生端/教师端共用本函数。
+import { districts } from './siteLocations.mjs'
+const 六维 = ['客流', '房价', '租金', '竞争', '人力', '波动']
+
+/**
+ * 选址承诺书过程分（4 项 × 0–2 = 8 分 · 公开评分表 · 只看"学生说了什么"）
+ * @param {{假设:string, 为何不是:string, 打脸维:string, 验尸?:string}} c
+ * @returns {{四项:Array<{名:string,分:number,据:string}>, 过程分:number, 满分:number}}
+ */
+export function 选址过程分(c) {
+  const x = c && typeof c === 'object' ? c : {}
+  const 假设 = String(x.假设 || '')
+  const 为何不是 = String(x.为何不是 || '')
+  const 打脸维 = String(x.打脸维 || '')
+  const 验尸 = String(x.验尸 || '')
+  const 全部区 = Object.values(districts).flat()
+  const 全文 = `${假设} ${为何不是} ${打脸维} ${验尸}`
+  const 维数 = 六维.filter(v => 全文.includes(v)).length
+  const 两区点名 = 全部区.filter(d => 为何不是.includes(d.name)).length
+  const 打脸 = /打脸|风险|最怕|短板|不足|低估/.test(打脸维) && 打脸维.trim().length >= 6
+  const 可验证 = /(出租率|均价|RevPAR|入住|客流|营收|万|%|\d)/.test(假设)
+  const 四项 = [
+    { 名: '引用了几维真实数据', 分: 维数 >= 2 ? 2 : (维数 === 1 ? 1 : 0), 据: `命中维度 ${维数} 个` },
+    { 名: '写了「为什么不是另外两个区」', 分: 两区点名 >= 2 ? 2 : (两区点名 === 1 ? 1 : 0), 据: `点名区县 ${两区点名} 个` },
+    { 名: '给了反向证据（最易被打脸的一维）', 分: 打脸 ? 2 : (打脸维.trim() ? 1 : 0), 据: 打脸维.trim() ? '已写' : '未写' },
+    { 名: '写出可验证假设（含可测指标）', 分: 可验证 ? 2 : (假设.trim().length >= 10 ? 1 : 0), 据: 可验证 ? '含可测指标' : '未见指标' },
+  ]
+  return { 四项, 过程分: 四项.reduce((s, v) => s + v.分, 0), 满分: 8 }
+}
+
 const 限 = (v, max) => {
   if (v === null || v === undefined || v === '') return null   // ★ 缺数据 ≠ 0 分
   const n = Number(v)

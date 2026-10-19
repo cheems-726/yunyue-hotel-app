@@ -4,6 +4,7 @@ import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEY
 import RadarChart from './RadarChart.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
+import { 选址过程分 } from './processScore.mjs'   // ★ V128-#1：承诺书评分单源（学生端/教师端共用）
 
 // 成德绵区县选址数据（6维属性 1-5 档 + 优势/代价）
 const attrLabels = { 客流:'客流', 房价:'房价', 租金:'租金', 竞争:'竞争', 人力:'人力', 波动:'波动' }
@@ -137,22 +138,9 @@ export default function SiteSelection({ onConfirm, onLog }) {
     const 校准扣 = Math.abs(命中 - 置信)
     return { 命中率: Math.round(命中 * 100), 置信度: Number(p.置信度), 校准扣: Math.round(校准扣 * 100), 得分: Math.round((命中 - 校准扣 * 0.5) * 100) }
   }
-  /** T2 过程分：4 项 × 0–2 · **公开评分表** · 只看"学生说了什么"（结构化信号，不看数值高低） */
-  const 六维 = ['客流', '房价', '租金', '竞争', '人力', '波动']
-  function 过程分(c) {
-    const 全文 = `${c.假设} ${c.为何不是} ${c.打脸维} ${c.验尸}`
-    const 维数 = 六维.filter(v => 全文.includes(v)).length
-    const 两区点名 = 全部区.filter(x => c.为何不是.includes(x.name)).length
-    const 打脸 = /打脸|风险|最怕|短板|不足|低估/.test(c.打脸维) && c.打脸维.trim().length >= 6
-    const 可验证 = /(出租率|均价|RevPAR|入住|客流|营收|万|%|\d)/.test(c.假设)
-    const 四项 = [
-      { 名: '引用了几维真实数据', 分: 维数 >= 2 ? 2 : (维数 === 1 ? 1 : 0), 据: `命中维度 ${维数} 个` },
-      { 名: '写了「为什么不是另外两个区」', 分: 两区点名 >= 2 ? 2 : (两区点名 === 1 ? 1 : 0), 据: `点名区县 ${两区点名} 个` },
-      { 名: '给了反向证据（最易被打脸的一维）', 分: 打脸 ? 2 : (c.打脸维.trim() ? 1 : 0), 据: c.打脸维.trim() ? '已写' : '未写' },
-      { 名: '写出可验证假设（含可测指标）', 分: 可验证 ? 2 : (c.假设.trim().length >= 10 ? 1 : 0), 据: 可验证 ? '含可测指标' : '未见指标' },
-    ]
-    return { 四项, 过程分: 四项.reduce((s, x) => s + x.分, 0), 满分: 8 }
-  }
+  /** T2 过程分：4 项 × 0–2 · **公开评分表** · 只看"学生说了什么"（结构化信号，不看数值高低）
+   *  ★ V128-#1：实现已抽到 src/processScore.mjs 的 选址过程分()（教师端台账同源） */
+  const 过程分 = 选址过程分
 
   function barCls(val) {
     if (val >= 4) return 'bar-high'

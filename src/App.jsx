@@ -13,8 +13,8 @@ import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117：过程分台账
-import { 过程分台账 } from './processScore.mjs'   // ★ V117：纯派生
-import { 读理由, 取舍项 } from './choiceReasons.mjs'   // ★ V117：取舍理由（本机）
+import { 过程分台账, 选址过程分 } from './processScore.mjs'   // ★ V117：纯派生 · V128：承诺书评分单源
+import { 合格理由键 } from './choiceReasons.mjs'   // ★ V117：取舍理由（本机）· V128：合格键单源
 import { 判分 as 归因判分 } from './attribution.mjs'   // ★ V117：归因判分
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import HotelNaming from './HotelNaming.jsx'   // ★ V114-P1：酒店命名页（一次承诺）
@@ -1009,16 +1009,16 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         <div className="row1"><span className="hotel-name">我的</span></div>
       </div>
 
-      {/* ★ V117：过程分台账（本机三列；①承诺书分数待抽共用函数 ⇒ 先显「—」） */}
+      {/* ★ V117：过程分台账（本机三列）· ★ V128-#1：①承诺书已接单源评分（不再是「—」） */}
       <ProcessLedger rows={(() => {
         const 归因 = []
         for (let i = 1; i < (history || []).length; i++) {
           const r = 归因判分(history[i] && history[i].week, history[i - 1], history[i])
           归因.push({ 填了: r.填了, 过程分: r.过程分 })
         }
-        const all = 读理由()
-        const 理由 = 取舍项.filter(x => String((all[x.key] && all[x.key].text) || "").trim().length >= 12).map(x => x.key)
-        const t = 过程分台账({ 承诺书: null, 归因, 理由 })
+        const 理由 = 合格理由键()
+        const 承诺书 = 选址承诺书 ? 选址过程分(选址承诺书).过程分 : null
+        const t = 过程分台账({ 承诺书, 归因, 理由 })
         return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
       })()} />
 
@@ -2111,7 +2111,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')

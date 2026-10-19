@@ -1,11 +1,11 @@
 // V117-④ · 教师端台账行（从**云端数据**拼 · 不读学生本机）
 //   · 归因：decision_log 里「归因-W<n>」的作答 + 该组 history 的 prev/cur 算真值（命中再加 1）
-//   · 承诺书：评分函数还在 SiteSelection 组件内部 ⇒ 传 null（显「—」，不编）
-//   · 理由：只存学生本机 ⇒ 传 null（显「—」，补传另案）
-import { 过程分台账 } from './processScore.mjs'
+//   · 承诺书：★ V128-#1 已接单源 选址过程分()（云端 state.选址承诺书 随存档上传）
+//   · 理由：★ V128-#1 云端 state.取舍理由（合格键数组，随存档上传；教师端不再读学生本机）
+import { 过程分台账, 选址过程分 } from './processScore.mjs'
 import { 真值 } from './attribution.mjs'
 
-export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [] } = {}) {
+export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [] } = {}) {
   const 周s = Array.isArray(history) ? history : []
   const 归因 = []
   for (const lg of (归因日志 || [])) {
@@ -18,5 +18,8 @@ export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归
     const 命中 = !!(t && String(lg.answer || '') === t)
     归因.push({ 填了: true, 过程分: 命中 ? 2 : 1 })
   }
-  return { 组, 酒店名, 台账: 过程分台账({ 承诺书: null, 归因, 理由: null }) }
+  // 缺数据一律传 null（台账显示「—」），不许编 0
+  const 承诺书 = 选址承诺书 && typeof 选址承诺书 === 'object' ? 选址过程分(选址承诺书).过程分 : null
+  const 理由键 = Array.isArray(理由) ? 理由.filter(Boolean) : null
+  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键 }) }
 }

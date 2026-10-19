@@ -1,6 +1,6 @@
 // V117 判据：过程分台账（三列 · 归因累加 · 缺数据显「—」不补 0 · CSV 行数 = 组数 · 不并入四维）
 //   反例 RV：删一条理由 ⇒ ③ 4→3 且合计 −1；清空归因 ⇒ ② null（不是 0）；改四维口径 ⇒ 本套件不负责但 scoreOf 前后一致
-import { 过程分台账, 台账CSV, 台账说明, 结构 } from '../src/processScore.mjs'
+import { 过程分台账, 台账CSV, 台账说明, 结构, 选址过程分 } from '../src/processScore.mjs'
 import { scoreOf } from '../src/metricDefs.mjs'
 
 const 坏 = []
@@ -77,6 +77,42 @@ ok(/不并入四维评分/.test(台账说明), '说明文案必须写明「不�
   const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
   ok(/<ProcessLedger/.test(td) && /<details/.test(td), '教师端：折叠块 + ProcessLedger 已接')
   ok(td.includes('台账CSV(rows)') && td.includes('过程分台账.csv'), '教师端：CSV 导出真的拼了台账 CSV')
+}
+
+// ── ★ V128-#1（D324）：承诺书单源评分 + 两列真接线
+{
+  const 满分书 = {
+    假设: '锦江区出租率能到 65%，营收 120 万',
+    为何不是: '不选武侯区，也不选青羊区',
+    打脸维: '最怕竞争激烈，客流被分流',
+    验尸: '若客流不达预期就算打脸',
+    反对意见: '无',
+  }
+  const 八 = 选址过程分(满分书)
+  ok(八.过程分 === 8 && 八.满分 === 8, `四项写满 ⇒ 8/8（实得 ${八.过程分}/${八.满分}）`)
+  const 两项书 = { 假设: '营收 100 万', 为何不是: '', 打脸维: '最怕差评发酵，口碑受损', 验尸: '' }
+  const 四 = 选址过程分(两项书)
+  ok(四.过程分 === 4, `只写两项（假设+打脸）⇒ 4/8（实得 ${四.过程分}/8）`)
+  ok(选址过程分(null).过程分 === 0, '空承诺书 ⇒ 0（但台账层会传 null 表示"没交"）')
+
+  // 台账：承诺书列非空 + 理由=4 + 合计 = 8+归因+4（口径不变）
+  const t = 过程分台账({ 承诺书: 八.过程分, 归因: [{ 填了: true, 过程分: 2 }, { 填了: true, 过程分: 2 }], 理由: ['bizMode', 'property', 'brand', 'invest'] })
+  ok(t.承诺书 === 8, `台账①承诺书 = 8（实得 ${t.承诺书}）`)
+  ok(t.理由条数 === 4, `台账③理由条数 = 4（实得 ${t.理由条数}）`)
+  ok(t.合计 === 8 + 4 + 4, `合计 = ①+②+③ = 16（实得 ${t.合计}）`)
+  ok(!t.缺.includes('选址承诺书'), '承诺书已接 ⇒ 不再列为缺项')
+
+  // 静态接线：学生端 + 云端载荷 + 教师端三处都必须传
+  const { readFileSync } = await import('node:fs')
+  const app = readFileSync('src/App.jsx', 'utf8')
+  ok(/const 承诺书 = 选址承诺书 \? 选址过程分\(选址承诺书\)\.过程分 : null/.test(app), '学生端台账：承诺书 = 选址过程分(存档承诺书)')
+  ok(/选址承诺书, 取舍理由:/.test(app), '云端载荷含 选址承诺书 与 取舍理由（教师端才有数据）')
+  const rows = readFileSync('src/processLedgerRows.mjs', 'utf8')
+  ok(/选址过程分\(选址承诺书\)\.过程分/.test(rows), '教师端台账行用同一评分函数')
+  ok(/理由: 理由键/.test(rows), '教师端台账行接收理由键数组')
+  const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
+  ok((td.match(/选址承诺书: \(gs\.state && gs\.state\.选址承诺书\)/g) || []).length === 2, '教师端两处（展示+导出）都传承诺书')
+  ok((td.match(/理由: \(gs\.state && gs\.state\.取舍理由\)/g) || []).length === 2, '教师端两处都传取舍理由')
 }
 
 console.log('══ V117 过程分台账 ══')
