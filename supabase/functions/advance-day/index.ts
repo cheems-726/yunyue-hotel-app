@@ -17,7 +17,7 @@
 //   也支持手动调用：POST /functions/v1/advance-day?dry=1 只算不写（供巡检）。
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { advanceGroupOneDay, tickKey, TICK_VERSION } from './engine/serverTick.mjs'
+import { advanceGroupOneDay, tickLogKey, TICK_VERSION } from './engine/serverTick.mjs'
 import { classDayNow, readGroups, readClassState, writeGroupState, writeTickLog } from './db.ts'
 
 const CORS = {
@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     //   · 目标过滤口径与前端一致：targets=null ⇒ 全班；否则需含该组 group_key
     const allInjections: any[] = Array.isArray((cls as any)?.injected_events) ? (cls as any).injected_events : []
     const out = []
+    let duplicates = 0
 
     for (const g of groups) {
       const save = g.state || {}
@@ -57,18 +58,23 @@ Deno.serve(async (req) => {
       const injections = allInjections.filter((e: any) => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
       // ② 调逻辑（本文件不含任何计算）
       const r = advanceGroupOneDay(save, classDay, { groupKey: gk, injectedEvents: injections.length ? injections : null })
-      out.push({ group: gk, advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, violations: r.violations })
+      out.push({ group: gk, advanced: r.advanced, gated: r.gated || false, gate: r.gate || null, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, violations: r.violations })
 
       // 数值合理性不过 → 记录但不静默覆盖（③ 只存结果，不改数）
       if (r.violations.length) {
-        await writeTickLog(supa, { tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false, dry })
+        const L = await writeTickLog(supa, { tick_key: tickLogKey(classDay, gk), class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false, dry })
+        if (L && L.duplicate) duplicates++
         continue
       }
       if (!dry && r.advanced) await writeGroupState(supa, g, r.save)
-      if (!dry) await writeTickLog(supa, { tick_key: tickKey(classDay, gk), class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, engineVersion: TICK_VERSION }, ok: true, dry })
+      // ★ V126-#4：只在"真结算"时写审计流水（前置闸拦下的日子不写）—— tick_key 带分钟戳，不再被历史轮次占满
+      if (!dry && r.advanced) {
+        const L = await writeTickLog(supa, { tick_key: tickLogKey(classDay, gk), class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, 决策来源: r.决策来源, engineVersion: TICK_VERSION }, ok: true, dry })
+        if (L && L.duplicate) duplicates++
+      }
     }
 
-    return json({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, detail: out, dry, engineVersion: TICK_VERSION })
+    return json({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, gated: out.filter(x => x.gated).length, duplicates, detail: out, dry, engineVersion: TICK_VERSION })
   } catch (e) {
     return json({ ok: false, error: String(e && e.message || e) }, 500)
   }

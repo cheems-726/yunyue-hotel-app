@@ -58,8 +58,13 @@ console.log('\n[2] ★② 服务端输出 === 浏览器端 settle() 输出（逐
 
   ok(JSON.stringify(r.snapshot) === JSON.stringify(browserRow),
     '第 5 天日行【逐字节相同】：服务端 tick === 浏览器 settle+buildDailyReport')
-  ok(JSON.stringify(r.save.history[0]) === JSON.stringify(browserWeek),
-    '整周结果【逐字节相同】：服务端写回的那一周 === 浏览器单独结算的那一周')
+  // ★ V126：服务端在引擎结果上只追加【审计标记】（决策数/决策来源/结算闸），金额与字段值不动。
+  //   零变化对照 = 剥掉标记后必须与浏览器 settle 逐字节一致。
+  const 剥标 = (h) => { const { 决策数, 决策来源, 结算闸, ...rest } = (h || {}); return rest }
+  ok(JSON.stringify(剥标(r.save.history[0])) === JSON.stringify(browserWeek),
+    '整周结果【逐字节相同】（剥掉 V126 审计标记后）：服务端写回的那一周 === 浏览器单独结算的那一周')
+  ok(r.save.history[0].决策数 === 7 && r.save.history[0].决策来源 === 'student',
+    `审计标记在位：决策数=${r.save.history[0].决策数} · 来源=${r.save.history[0].决策来源}`)
   // 逐字段比对（便于失败时定位）
   const diffs = Object.keys(browserRow).filter(k => JSON.stringify(r.snapshot[k]) !== JSON.stringify(browserRow[k]))
   ok(diffs.length === 0, `逐字段无差异（差异字段 ${diffs.length}：${diffs.join(',') || '无'}）`)
@@ -85,22 +90,30 @@ console.log('\n[3] ★③ 幂等：重复触发结果相同')
 console.log('\n[4] 跨周推进与补算一致性')
 {
   const save = mkSave()
-  const d8 = advanceGroupOneDay(advanceGroupOneDay(save, 7).save, 8)
-  ok(d8.advanced === true && d8.week === 2, '第 8 天跨到第 2 周 ⇒ 触发新结算')
+  const afterW1 = advanceGroupOneDay(save, 7).save
+  // ★ V126-#2：结算后 doneDecisions 必须清空（否则第 2 周拿第 1 周的决策再结算一遍）
+  ok(Object.keys(afterW1.doneDecisions || {}).length === 0, '结算后 doneDecisions 已清空')
+  // ★ V126-#1：第 2 周第 1 天、学生还没做决策 ⇒ 前置闸拦住（不再"首次遇到就整周算完"）
+  const gated = advanceGroupOneDay(afterW1, 8)
+  ok(gated.advanced === false && gated.gated === true, '第 2 周未做决策 ⇒ 前置闸拦住（gated=true）')
+  ok(gated.save.history.length === 1, '被拦住时不追加 history')
+  // 学生做完第 2 周决策后 ⇒ 允许结算
+  const d8 = advanceGroupOneDay({ ...afterW1, week: 2, doneDecisions: { ...DEC } }, 8)
+  ok(d8.advanced === true && d8.week === 2, '第 8 天跨到第 2 周（学生已提交决策）⇒ 触发新结算')
   ok(d8.save.history.length === 2, 'history 有 2 周')
 
-  // 补算（逐天推到第 10 天）=== 直接跳到第 10 天
+  // 逐天推进：第 1 周在第 7 天结算；第 2 周因决策被清空、未再提交 ⇒ 一直拦到第 10 天
   const stepwise = advanceGroupToDay(mkSave(), 10)
-  const jump = (() => { let s = mkSave(); for (const d of [10]) { const r = advanceGroupOneDay(s, d); s = r.save } return s })()
-  // 直接跳也会先结算第 1 周（因为第 10 天属于第 2 周，需要第 1 周的结果作 prevGoodRate）
+  const jump = (() => { let s = { ...mkSave(), week: 2 }; for (const d of [10]) { const r = advanceGroupOneDay(s, d); s = r.save } return s })()
   ok(stepwise.days.length === 10, `逐天推进产生 10 条记录（${stepwise.days.length}）`)
-  ok(stepwise.days.filter(x => x.advanced).length === 2, `其中真正结算的只有 2 次（第 1、2 周；实际 ${stepwise.days.filter(x => x.advanced).length}）`)
+  ok(stepwise.days.filter(x => x.advanced).length === 1, `其中真正结算的只有 1 次（第 1 周；第 2 周未做决策 ⇒ 前置闸 · 实际 ${stepwise.days.filter(x => x.advanced).length}）`)
   const swLast = stepwise.days[stepwise.days.length - 1].snapshot
-  ok(!!swLast && swLast.dayIndex === 3, `第 10 天 = 第 2 周第 3 天（dayIndex=${swLast && swLast.dayIndex}）`)
-  ok(!!jump.history.length, `直接跳到第 10 天也能算（history ${jump.history.length} 周）`)
-  // 逐天 vs 直接跳：周 1 的结果必须一致
+  ok(swLast === null, `第 10 天没有结算结果 ⇒ 快照为 null（dayIndex=${swLast && swLast.dayIndex}）`)
+  ok(!!jump.history.length, `直接跳到第 10 天也能算（history ${jump.history.length} 周 · 第 2 周用首日决策）`)
+  // 逐天 vs 直接跳：周 1 的结果必须一致（剥掉 V126 审计标记后逐字节）
   const browserW1 = settle({ site: SITE, brand: BRAND, decisions: DEC, week: 1, attrs: mkSave().attrs, prevCapital: mkSave().capital })
-  ok(JSON.stringify(stepwise.save.history[0]) === JSON.stringify(browserW1), '补算出的第 1 周 === 浏览器结算的第 1 周（逐字节）')
+  const 剥标 = (h) => { const { 决策数, 决策来源, 结算闸, ...rest } = (h || {}); return rest }
+  ok(JSON.stringify(剥标(stepwise.save.history[0])) === JSON.stringify(browserW1), '补算出的第 1 周 === 浏览器结算的第 1 周（剥标记后逐字节）')
 }
 
 console.log('\n[5] ★④ 数值合理性校验（越界不写回）')

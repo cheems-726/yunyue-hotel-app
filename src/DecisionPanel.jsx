@@ -108,7 +108,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
   const hasSelection = decision.type === 'slider'
     ? true
     : decision.type === 'budget'
-      ? budgetTotal > 0
+      // ★ V126-#5：分配额必须有、且不得超预算（超了先让红字提示，确认键禁用）
+      ? budgetTotal > 0 && budgetTotal <= decision.total
       : decision.type === 'sort'
         ? sortItems.length > 0
         : selected !== null
@@ -251,17 +252,19 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
                   value={budget[item] || 0}
                   onChange={e => {
                     const newVal = Number(e.target.value)
-                    const others = decision.items.filter(i => i !== item).reduce((a, b) => a + (budget[b] || 0), 0)
-                    // 约束：总和不能超 total
-                    const maxAllow = decision.total - others
-                    setBudget({ ...budget, [item]: Math.min(newVal, maxAllow) })
+                    // ★ V126-#5：函数式更新（连续拖动不读旧闭包）。
+                    //   不再把单项硬夹到"剩余额度" —— 那会让 45/30/25 这种分法根本设不进去
+                    //   （先设 45 时被夹回 34，实测只剩 89/100）；现在允许暂时超预算，
+                    //   由下方红字 + 确认键禁用兜底，学生按自己的顺序分配即可。
+                    setBudget(prev => ({ ...prev, [item]: Math.max(0, Math.min(newVal, decision.total)) }))
                   }}
                   style={{ width: '100%', accentColor: 'var(--primary)' }}
                 />
               </div>
             ))}
-            <div style={{ fontSize: 16, color: budgetTotal > decision.total ? 'var(--bad)' : 'var(--warn)', fontWeight: 600, marginTop: 8 }}>
-              已分配：{budgetTotal} / {decision.total}{budgetTotal > decision.total ? '（超出预算！）' : ''}
+            <div style={{ fontSize: 16, color: budgetTotal > decision.total ? 'var(--bad)' : budgetTotal === decision.total ? 'var(--good)' : 'var(--warn)', fontWeight: 600, marginTop: 8 }}>
+              已分配：{budgetTotal} / {decision.total}
+              {budgetTotal > decision.total ? '（超出预算！请调低）' : budgetTotal < decision.total ? `（还剩 ${decision.total - budgetTotal} 未分配）` : ' ✓'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>{budgetResult()}</div>
             {decision.依据 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.6 }}>引擎依据：{decision.依据}</div>}
@@ -319,7 +322,11 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
       {/* 确认按钮 */}
       <div style={{ padding: '8px 20px 24px' }}>
         <button className="btn-confirm" disabled={!hasSelection} onClick={confirm}>
-          {isEdit ? '修改决策，保存' : selected || decision.type === 'slider' || decision.type === 'sort' ? '确认决策，保存' : '请先做出选择'}
+          {isEdit ? '修改决策，保存'
+            : (selected || decision.type === 'slider' || decision.type === 'sort' || (decision.type === 'budget' && hasSelection))
+              ? '确认决策，保存'
+              : decision.type === 'budget' && budgetTotal > decision.total ? '分配超出预算，请调整'
+                : '请先做出选择'}
         </button>
       </div>
 

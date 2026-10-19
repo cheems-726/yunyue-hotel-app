@@ -62,10 +62,13 @@ function 推(save, 起, 天数) {
   ok(s.history.length === 1, `首周已在 history ⇒ 7 天后仍应 1 条（实得 ${s.history.length}）—— 幂等键是 history.week`)
 }
 
-// ⑥ RV：起点错位（从第 7 天起跑 84 天）⇒ 13 条（这就是线上症状）
+// ⑥ RV：起点错位（从第 7 天起跑 84 天）—— ★V126 后语义变了：
+//   周结算只发生在每周第 7 天（旧版"首次遇到即结算"会把第 13 周提前算掉 ⇒ 13 条）。
+//   现在 day7..day90 = 第 1..12 周的周尾（第 90 天是第 13 周第 6 天，不结算）⇒ 12 条。
 {
   const s = 推(复位存档(), 7, 84)
-  ok(s.history.length === 13, `起点 7 跑 84 天应得 13 条（实得 ${s.history.length}）—— 复位必须从第 1 天起`)
+  ok(s.history.length === 12, `起点 7 跑 84 天应得 12 条（实得 ${s.history.length}）—— 周结算只在周尾发生（V126-#1）`)
+  ok(s.history[0].week === 1 && s.history[11].week === 12, '周次应为 1..12（不再出现第 13 周提前结算）')
 }
 
 console.log('══ R113-1 复位语义 ══')

@@ -66,7 +66,9 @@ for (const k of ['客房变动成本', '客房部固定', '人力固定', '公�
 // ── ④ 静态：tick 必须把【整条结算结果】追加进 history（不是只存投影）
 {
   const src = readFileSync('src/serverTick.mjs', 'utf8')
-  ok(/history:\s*\[\.\.\.history,\s*result\]/.test(src), 'tick 的 history 追加必须是整条 result（gop/成本明细随行）')
+  // ★ V126：追加对象改为 结算结果 = { ...result, 决策数, 决策来源 }（整条引擎结果 + 审计标记）
+  ok(/history:\s*\[\.\.\.history,\s*结算结果\]/.test(src), 'tick 的 history 追加必须是整条结算结果（gop/成本明细随行）')
+  ok(/const 结算结果 = \{\s*\.\.\.result/.test(src), '结算结果 由整条 result 展开而来（不是只有投影字段）')
 }
 
 console.log('══ V113-2.3 history 存量字段（指标可用）══')

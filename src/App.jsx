@@ -2552,6 +2552,10 @@ export default function App() {
       }
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}   // 领班记录失败不拦结算（绝不因记录层把结算弄崩）
+    // ★ V126-#2：决策来源留痕（随 history 持久化）—— 服务端补算同名字段（serverTick）。
+    //   口径 = 学生本周实际提交的决策项数；领班代管单独记在 supervisorRecord，不冒充学生决策。
+    result.决策数 = Object.keys(doneDecisions || {}).filter(k => !String(k).startsWith('__')).length
+    result.决策来源 = result.决策数 ? 'student' : 'none'
     setReport(result)
   }
   // ★ §32-U8-补 §2④：领班决策的【状态快照】—— 从本周结算结果派生（不新算一套账）。

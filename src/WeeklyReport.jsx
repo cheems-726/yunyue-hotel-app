@@ -245,6 +245,19 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         <div className="sub">决策 → 结果 → 复盘</div>
       </div>
 
+      {/* ★ V126-#1/#2：本周决策不足/为 0 的显式标注 —— 服务端周尾兜底结算时必须说清"为什么判 0 分" */}
+      {result.决策数 === 0 && (
+        <div className="card" style={{ background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 12, lineHeight: 1.8 }}>
+          <b>本周未做任何决策（判 0 分）</b>：18 项全部按"维持现状"生效。
+          {result.决策来源 === 'week-end-fallback' ? '（周尾仍未达最低决策数，系统按未做决策结算）' : '（不作为也是一种决策）'}
+        </div>
+      )}
+      {result.结算闸 && result.决策数 > 0 && (
+        <div className="card" style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.8 }}>
+          本周只提交了 {result.决策数} 项决策（低于最低 {result.结算闸.阈值} 项）：其余按"维持现状"生效。
+        </div>
+      )}
+
       {/* 称号变化横幅 */}
       {promoted && (
         <div className="card" style={{ background: 'linear-gradient(90deg,var(--good-bg),var(--card))', border: '1px solid var(--good-border)', textAlign: 'center', padding: 16 }}>

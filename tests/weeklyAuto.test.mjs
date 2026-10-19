@@ -21,6 +21,9 @@ import { ATTR_INIT } from '../src/attrs.js'
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
 const src = (f) => readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
+// ★ V126：服务端结算结果会多出审计标记（决策数/决策来源/结算闸）—— 对拍"补算 === 在线"时剥掉，
+//   否则会把"只加了标记"误判成数值不同（零变化纪律比的是金额与字段值）。
+const 剥标 = (h) => { const { 决策数, 决策来源, 结算闸, ...rest } = (h || {}); return rest }
 
 const SITE = { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2, district: '锦江区' }
 const BRAND = { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' }
@@ -83,7 +86,7 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
   const 带输入的存档 = { ...存档, weekInputs: { 版本: WEEK_INPUTS_VERSION, week: 1, ...输入 } }
   const 补算 = advanceGroupOneDay(带输入的存档, 7, { decisions: DEC })
   ok(补算.inputsSource === 'save', `服务端确认采用了存档里的周内输入（inputsSource=${补算.inputsSource}）`)
-  ok(JSON.stringify(补算.save.history[0]) === JSON.stringify(在线),
+  ok(JSON.stringify(剥标(补算.save.history[0])) === JSON.stringify(在线),
     '★ B7：含实时评价/欠账/整改/危机的周，服务端【补算 === 在线】逐字节一致')
   // 反向验证靶子：不带 weekInputs（旧档形态）⇒ 必然不同 ⇒ 证明上面的一致不是"两边都忽略输入"
   const 旧档 = advanceGroupOneDay(存档, 7, { decisions: DEC })
@@ -103,7 +106,7 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
     const 在线全 = settle({ site: 存档.location, brand: 存档.brand, decisions: DEC, week: 1, attrs: 存档.attrs, prevCapital: 存档.capital, prevGoodRate: null, bizMode: 'direct', ...全输入, hotState, penaltyState, injectedEvents: 注入, eventResponses: { E8: '立即整改' } })
     const 带全的存档 = { ...存档, weekInputs: { 版本: WEEK_INPUTS_VERSION, week: 1, ...全输入 }, hotReviewCrisis: hotState, pendingPenalty: penaltyState }
     const 补算全 = advanceGroupOneDay(带全的存档, 7, { decisions: DEC, injectedEvents: 注入 })
-    ok(JSON.stringify(补算全.save.history[0]) === JSON.stringify(在线全),
+    ok(JSON.stringify(剥标(补算全.save.history[0])) === JSON.stringify(在线全),
       '★★ B7 全通道：含危机期/R6延迟/职务权重/注入事件+应对的周，【补算 === 在线】逐字节一致',
       `差异键：${Object.keys(在线全).filter(k => JSON.stringify(在线全[k]) !== JSON.stringify(补算全.save.history[0][k])).slice(0, 6).join(',')}`)
     // 反证（防"修好又丢"）：把存档的 hotReviewCrisis 删掉 ⇒ 危机惩罚消失 ⇒ 与在线必然不等
@@ -131,7 +134,7 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
       const 在线r = settle({ site: 存档.location, brand: 存档.brand, decisions: { ...代管决策并(上周结算, 学生决策, 全班默认, null) }, week: 2, attrs: 上周结算.attrsAfter, prevCapital: 上周结算.capital, prevGoodRate: 上周结算.finalGoodRate, bizMode: 'direct' })
       const 补算r = advanceGroupOneDay(带领班的存档, 14, { decisions: 学生决策, supervisorAuth: 全班默认 })
       const 补算周报 = 补算r.save.history.find(h => Number(h.week) === 2) || 补算r.save.history[补算r.save.history.length - 1]
-      ok(JSON.stringify(补算周报) === JSON.stringify(在线r),
+      ok(JSON.stringify(剥标(补算周报)) === JSON.stringify(在线r),
         '★★ V3 全通道：授权领班（R3+R6）+ 离线补算 === 一直在线【逐字节】',
         `差异键：${Object.keys(在线r).filter(k => JSON.stringify(在线r[k]) !== JSON.stringify(补算周报[k])).slice(0, 6).join(',')}`)
       // 反证：摘掉 serverTick 的领班入参（不传 supervisorAuth）⇒ 补算退回无代管 ⇒ 与在线不等
@@ -155,7 +158,7 @@ console.log('\n[3] 跨端同源：服务端 advanceGroupOneDay === 客户端同�
       const 在线 = settleWeekSegmented({ ...参数, injectedEvents: [自定义事件] })
       const 带事件的存档 = { ...存档, doneDecisions: 决策v8 }
       const 补算 = advanceGroupOneDay(带事件的存档, 7, { decisions: 决策v8, injectedEvents: [自定义事件] })
-      ok(JSON.stringify(补算.save.history[0]) === JSON.stringify(在线),
+      ok(JSON.stringify(剥标(补算.save.history[0])) === JSON.stringify(在线),
         '★★ V8 全通道：按日自定义事件（生效日=4）+ 离线补算 === 一直在线【逐字节】',
         `差异键：${Object.keys(在线).filter(k => JSON.stringify(在线[k]) !== JSON.stringify(补算.save.history[0][k])).slice(0, 5).join(',')}`)
       // 反证：补算不带事件 ⇒ 无代管无事件 ⇒ 与在线不等

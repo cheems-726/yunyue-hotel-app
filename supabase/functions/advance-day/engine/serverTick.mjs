@@ -101,6 +101,28 @@ export function tickKey(classDay, groupKey) {
   return `d${Number(classDay) || 0}|${groupKey || 'solo'}`
 }
 
+// ★ V126-#4：server_tick_log 的【审计流水键】—— 与结算幂等无关（结算幂等靠 history 里有没有该周）。
+//   旧版直接用 tickKey 当主键 ⇒ 上一轮占满 d1–d84 后，本轮整轮插入都被 23505 静默吞掉（审计脱钩）。
+//   这里加分钟级时间戳：同一分钟内的重复调用才会撞键（撞了就 warn + 计数，不再静默）。
+export function tickLogKey(classDay, groupKey, at = new Date()) {
+  const d = at instanceof Date ? at : new Date(at)
+  const p = n => String(n).padStart(2, '0')
+  const stamp = `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}`
+  return `${tickKey(classDay, groupKey)}|t${stamp}`
+}
+
+// ★ V126-#1：结算前置闸阈值 —— 本周决策 < 6 项时，周内不结算（等到周尾再按"未做决策"结算）。
+//   为什么需要：advanceGroupOneDay 是"首次遇到某周就把整周算完"，复位开班后第 1 天就被 0 决策结算，
+//   学生随后补做也改不了历史 ⇒ 第一个周报必然是假的。
+export const 结算前置最少决策 = 6
+
+/** 决策集里真实决策项数（排除 __ 开头的辅助键） */
+export function 决策计数(d) {
+  const o = d && typeof d === 'object' ? d : {}
+  return Object.keys(o).filter(k => !String(k).startsWith('__')).length
+}
+
+
 // 游戏日 → { week, dayIndex }
 // 🔴 E2（N-2 夜跑）：实现搬到 src/weeklyAuto.mjs（客户端自动周报与服务端逐日推进【同一份口径】），
 //   本处只 re-export —— 否则"客户端第几天"与"服务端第几天"迟早各写一份（BL-7 同族）。
@@ -141,7 +163,30 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   }
 
   // 需要结算新的一周：用"最后决策延续"（学生没交新决策时沿用上一次）
-  const decisions = opts.decisions || src.lastDecisions || src.doneDecisions || {}
+  // ★ V126-#2 补强：doneDecisions 只有当存档周 == 本次结算周时才可信。
+  //   否则"连接中的客户端还停在上一周、把上周 18 项又传上来"会被当成新一周的决策（正是本卡要杀的病）。
+  //   opts.decisions 是调用方显式给的（测试/补算通道），按其原义信任。
+  const 存档周 = Number(src.week || 1)
+  const 本周决策可信 = !Number.isFinite(存档周) || 存档周 === Number(week)
+  const decisions = opts.decisions
+    || (本周决策可信 ? (src.lastDecisions || src.doneDecisions || {}) : {})
+  // ★ V126-#1：结算前置闸 —— 周内决策不足 ⇒ 不结算（周尾仍未达阈值 ⇒ 照常结算并打标）。
+  const 决策数 = 决策计数(decisions)
+  const 周尾 = dayIndex >= DAYS_PER_WEEK
+  const 周尾兜底 = 周尾 && 决策数 < 结算前置最少决策
+  if (决策数 < 结算前置最少决策 && !周尾 && opts.forceSettle !== true) {
+    return {
+      tickKey: key, classDay: Number(classDay), week, dayIndex,
+      advanced: false, gated: true,
+      gate: { 决策数, 阈值: 结算前置最少决策, 原因: `第 ${dayIndex}/${DAYS_PER_WEEK} 天 · 决策 ${决策数}/18 项 < ${结算前置最少决策} ⇒ 暂不结算（等学生做完）` },
+      snapshot: null, save: src, violations: [], engineVersion: TICK_VERSION, 决策数,
+    }
+  }
+  // ★ V126-#2：决策来源留痕 —— 旧实现 lastDecisions 从不写入 ⇒ 实际只有 student / none；
+  //   一旦有人启用"延续"通道，历史里必须能甄别（不再出现"周周有决策"却查不出来源）。
+  const 决策来源 = opts.decisions ? 'explicit'
+    : (!本周决策可信 ? 'stale-ignored'
+      : (决策计数(src.lastDecisions) ? 'carried-over' : (决策数 ? 'student' : 'none')))
   // ★★ §33-V3（AI 领班二期 · 补算通道同步 —— B7 教训：动 settle 入参的批次必须同步 serverTick）：
   //   服务端领班与客户端【同一纯函数】aiSupervisor.领班代管() ⇒ "补算 === 在线"由同一份源码保证。
   //   授权两层 = opts.supervisorAuth（全班默认 · Edge 从 class_state 读传入）+ src.supervisorAuthStudent（学生覆盖 · 随存档上传）。
@@ -210,15 +255,32 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
     decisionsByDay: decisionsByDayFrom({ base: 生效决策, changes: src.decisionChanges, week }),
   })
 
-  const nextSave = { ...src, week, capital: result.capital, attrs: result.attrsAfter, history: [...history, result] }
+  // ★ V126-#1/#2：结果打标（决策数/来源/周尾兜底）—— 金额字段原样来自引擎，不做任何数值改动
+  const 结算结果 = {
+    ...result,
+    决策数,
+    决策来源: 周尾兜底 ? 'week-end-fallback' : 决策来源,
+    ...(周尾兜底 ? { 结算闸: { 阈值: 结算前置最少决策, 决策数, 原因: '周尾仍未达阈值 ⇒ 按"未做决策"结算（周报标注判 0 分侧）' } } : {}),
+  }
+  // ★ V126-#2：结算成功 ⇒ 清空本周决策与本周变更（不清 ⇒ 第 2 周拿第 1 周的决策/变更再结算一遍）。
+  //   weekBase 一并清：它是"本周改动前的决策集"，留着会让下周的分段基线错位。
+  const nextSave = {
+    ...src, week, capital: 结算结果.capital, attrs: 结算结果.attrsAfter, history: [...history, 结算结果],
+    doneDecisions: {},
+  }
+  // 只清"确实存在"的周内字段：旧档没有这些键 ⇒ 不新增键（存档形状按需变化，不无中生有）
+  if (Array.isArray(nextSave.decisionChanges)) nextSave.decisionChanges = []
+  if (nextSave.weekBase) nextSave.weekBase = null
+  delete nextSave.lastDecisions
   const stateBounds = validateStateBounds(nextSave)
   return {
     tickKey: key, classDay: Number(classDay), week, dayIndex,
     advanced: true,
-    snapshot: daySnapshotOf(result, dayIndex),
+    snapshot: daySnapshotOf(结算结果, dayIndex),
     save: nextSave,
     violations: [...(bounds.ok ? [] : bounds.violations.map(x => `${x.id}: ${x.why}`)), ...stateBounds.violations],
     engineVersion: TICK_VERSION,
+    决策数, 决策来源: 结算结果.决策来源,
     inputsSource: 存档输入 ? 'save' : 'default',
     baseSource,          // §21.1-A-1：'save'（客户端上传）| 'derived'（旧档兜底反推）
     baseMismatch,        // §21.1-A-1：上传值与反推值不一致 ⇒ 客户端记账可能缺失（交叉核对，不静默）      // §16.2-B7：'default' = 存档没带本周输入（补算口径会与在线不同）

@@ -49,10 +49,16 @@ export async function writeGroupState(supa, group, save) {
   }
 }
 
-/** 记 tick（幂等键作主键；冲突即"同一天已跑过"，静默跳过） */
+/** 记 tick（审计流水；key 带分钟戳，撞键 = 同一分钟重复调用 ⇒ warn + 计数，不再静默） */
 export async function writeTickLog(supa, { tick_key, class_day, group_key, result, ok, dry }) {
-  if (dry) return
+  if (dry) return { inserted: false, duplicate: false }
   const { error } = await supa.from('server_tick_log').insert({ tick_key, class_day, group_key, result, ok })
-  // 主键冲突（23505）= 同一天同一组已记过 ⇒ 幂等命中，不算错
-  if (error && error.code !== '23505') throw new Error('写 server_tick_log 失败：' + error.message)
+  if (!error) return { inserted: true, duplicate: false }
+  if (error.code === '23505') {
+    // ★ V126-#4：旧实现把撞键当"幂等命中"静默跳过 ⇒ 8 次真推进、6 组真写档，日志一条没有。
+    //   现在撞键必须留痕（console.warn）并由调用方计数返回，审计才能发现"日志与写档脱钩"。
+    console.warn(`[advance-day] tick log 撞键（重复调用）：tick_key=${tick_key} group=${group_key} class_day=${class_day} result=${JSON.stringify(result)}`)
+    return { inserted: false, duplicate: true }
+  }
+  throw new Error('写 server_tick_log 失败：' + error.message)
 }
