@@ -3092,10 +3092,11 @@ export default function App() {
         {/* 切页动画包装层：必须是可收缩的 flex 容器，否则会被内容撑高、把 .tabbar 顶出视口（9-19 回归） */}
         <div key={(tab || '') + '|' + (openPage ? openPage.key : '')} style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', animation: 'pageIn 0.25s cubic-bezier(0.22,1,0.36,1)' }}>{mainPage}</div>
       </AppErrorBoundary>
-      {/* 断网横幅 */}
+      {/* 断网横幅（★ V129-R109-3：不许"假活着" —— 明说页面来自缓存、数据不可用） */}
       {offline && (
-        <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-          网络异常，进度已保存在本机
+        <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 52px)', left: '50%', transform: 'translateX(-50%)', zIndex: 250, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>离线模式 · 数据不可用（页面来自缓存）</span>
+          <button onClick={() => { if (typeof window !== 'undefined') window.location.reload() }} style={{ border: '1px solid var(--bad-border)', background: 'var(--card)', color: 'var(--bad)', borderRadius: 999, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>重试</button>
         </div>
       )}
       {/* V61：离线演示常驻角标改为全域 DemoPill（含预开店各壳 · 见各分支 statusbar 后） */}

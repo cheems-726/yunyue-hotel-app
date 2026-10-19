@@ -77,6 +77,7 @@ const SUITES = [
   { name: 'v128Semester（六组×84天+教师缺做·V128批3）', file: 'tests/v128Semester.test.mjs' },
   { name: 'headSelfContained（HEAD 自包含·V129-#5）', file: 'tests/headSelfContained.test.mjs' },
   { name: 'loginReliability（登录预检与错误分级·V129）', file: 'tests/loginReliability.test.mjs' },
+  { name: 'swPolicy（API 不复用缓存·V129）', file: 'tests/swPolicy.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
   { name: 'panelProps（InjectionPanel prop 完整性·V123）', file: 'tests/panelProps.test.mjs' },
   { name: 'personaSim（六人格定稿·V122）', file: 'tests/personaSim.test.mjs' },

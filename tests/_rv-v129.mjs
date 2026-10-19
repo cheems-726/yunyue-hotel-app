@@ -47,6 +47,11 @@ const 例s = []
   '登录预检({ supabaseUrl: SUPABASE_URL, origin:',
   '登录预检({ supabaseUrl: SUPABASE_URL, originX:', 'tests/loginReliability.test.mjs'))
 
+// §3 SW：API 回退缓存（假活着）
+例s.push(试一例('#3a sw 对 /rest 回退缓存', 'public/sw.js',
+  'if (API_RE.test(pathname)) return',
+  'if (false) return', 'tests/swPolicy.test.mjs'))
+
 // §2 错误分级
 例s.push(试一例('#2a 400 并回网络错误', 'src/loginReliability.mjs',
   "if (st === 0 || name === 'TypeError'",
