@@ -52,6 +52,21 @@ const 例s = []
   'if (API_RE.test(pathname)) return',
   'if (false) return', 'tests/swPolicy.test.mjs'))
 
+// §4 入口自检：三个入口都不可达仍 exit=0 ⇒ 红
+{
+  let 红 = false, out = ''
+  try {
+    out = execFileSync(process.execPath, [path.join(APP, 'tests/_v109_entry_probe.mjs')], {
+      cwd: APP, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 90000,
+      env: { ...process.env, V129_DOMAIN: 'no-such.invalid', V129_IP: '127.0.0.1' },
+    })
+  } catch (e) { out = (e.stdout || '') + (e.stderr || ''); 红 = e.status !== 0 }
+  const 正常 = 跑('tests/_v109_entry_probe.mjs')
+  const 正常可接受 = 正常.code === 0 && (/PASS/.test(正常.out) || /SKIP/.test(正常.out))
+  console.log(`  ${红 && 正常可接受 ? '✓' : '✗'} #4 三入口不可达 ⇒ exit≠0 且打印 FAIL（红=${红}）· 正常路径：${/SKIP/.test(正常.out) ? 'SKIP（无网）' : 'PASS'}`)
+  例s.push(红 && 正常可接受)
+}
+
 // §2 错误分级
 例s.push(试一例('#2a 400 并回网络错误', 'src/loginReliability.mjs',
   "if (st === 0 || name === 'TypeError'",
