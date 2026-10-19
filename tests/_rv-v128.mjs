@@ -42,5 +42,19 @@ console.log('【RV-V128】逐批靶子（每次只改一处 · 逐次还原）\n
   'const 承诺书 = 选址承诺书 && typeof 选址承诺书 === \'object\' ? 选址过程分(选址承诺书).过程分 : null',
   'const 承诺书 = null', 'tests/processScore.test.mjs'))
 
+// ── §2 V118 四出口 ────────────────────────────────────────────
+例s.push(试一例('#2a 变动成本出口拿掉', 'src/settlement.js',
+  'if (注入应对成本加) variableCost += 注入应对成本加',
+  '', 'tests/v128Outputs.test.mjs'))
+例s.push(试一例('#2b 士气出口拿掉', 'src/settlement.js',
+  'attrsAfter = applyAttrsDelta(attrsAfter, { morale: Number(E7效力.士气) })',
+  'attrsAfter = attrsAfter', 'tests/v128Outputs.test.mjs'))
+例s.push(试一例('#2c 品质/声誉出口拿掉', 'src/settlement.js',
+  'const 有应对E3 = !!(效力E3 && Number.isFinite(Number(效力E3.品质)))',
+  'const 有应对E3 = false', 'tests/v128Outputs.test.mjs'))
+例s.push(试一例('#2d 无应对分支改坏（零变化）', 'src/settlement.js',
+  'attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })',
+  'attrsAfter = applyAttrsDelta(attrsAfter, { morale: -20 })', 'tests/_v128-before-after.mjs'))
+
 console.log(`\n结果: ${例s.filter(Boolean).length} / ${例s.length} 条 RV 成立`)
 process.exit(例s.every(Boolean) ? 0 : 1)

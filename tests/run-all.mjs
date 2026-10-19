@@ -71,6 +71,7 @@ const SUITES = [
   { name: 'hostTick（生产 tick 流水口径·V127）', file: 'tests/hostTick.test.mjs' },
   { name: 'teacherOverview（教师端口径与文案·V127）', file: 'tests/teacherOverview.test.mjs' },
   { name: 'weekRollover（进入下一周口径·V127）', file: 'tests/weekRollover.test.mjs' },
+  { name: 'v128Outputs（注入+应对四出口·V128）', file: 'tests/v128Outputs.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
   { name: 'panelProps（InjectionPanel prop 完整性·V123）', file: 'tests/panelProps.test.mjs' },
   { name: 'personaSim（六人格定稿·V122）', file: 'tests/personaSim.test.mjs' },

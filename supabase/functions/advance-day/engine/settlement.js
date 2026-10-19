@@ -21,6 +21,8 @@ import { 校验等级限制 } from './tierLimit.mjs'   // ★ §31.2-A1 ③：�
 import { shouldHotReview, hotCrisisWeeks, hotCrisisActive, hotCrisisPenalties, applyHotReviewImmediate, HOT_REVIEW_CONFIG } from './hotReview.mjs'   // ★ §32-U1 R2：差评上热门三级惩罚
 // ★ §32-U3 世界层（三件 · 全确定性：按教学周查表 / 由本周已有信号派生 ⇒ 同周全班同结果 · 不消耗随机位置）
 import { 天气, 天气客流系数, 天气文案 } from './weather.mjs'
+// ★ V128-#2（D327 批准 · V118 §2）：注入事件的"学生应对"效力单源（幅度写死在映射表里，引擎不现算）
+import { 应对效力Of } from './eventResponses.mjs'
 import { 季节, 季节因子, 季节文案 } from './season.mjs'
 import { 平台评分, 渠道流量系数, 流量循环因子, 违规判定, 违规后果 } from './otaRating.mjs'
 
@@ -230,6 +232,16 @@ export function settle({ site, brand, decisions, week = 1, pendingNegatives = 0,
     if (Number.isFinite(Number(en.变动成本系数))) 注入v8成本系数 *= Number(en.变动成本系数)
     if (Number.isFinite(Number(en.罚款))) 注入v8罚款 += Number(en.罚款)
   }
+  // ★ V128-#2（D327 批准 · V118 §2）：E7/E3 的"注入 + 应对"四个出口。
+  //   · 只在【该事件被注入 且 学生选了应对】时生效；无注入/无应对 ⇒ 本段全零 ⇒ 改前逐字节一致。
+  //   · 幅度单源 = eventResponses.应对映射（引擎只读，不现算、不拍脑袋）。
+  //   · 叠加顺序（写死，不靠对象键序）：决策基础 → E3 品质/声誉 delta → E7 士气 delta 或 变动成本加（元·总额）。
+  //     四个出口全部是【加法增量】，不与既有三键（价格/超售/能耗）互相覆盖。
+  const 应对值Of = (id) => (eventResponses && typeof eventResponses === 'object' ? eventResponses[id] : null)
+  const E7效力 = 生效注入sByName.has('E7') ? 应对效力Of('E7', 应对值Of('E7')).效力 : null
+  let 注入应对成本加 = 0   // 单位：元（本周总额）—— E7 涨薪/加福利（映射表原文"本周多花 8000 元"）
+  if (E7效力 && Number.isFinite(Number(E7效力.变动成本加))) 注入应对成本加 += Number(E7效力.变动成本加)
+
   // ★ §32-U4-R4：有效处理权重（职务匹配 ×1.3）。缺省/非法 ⇒ 回退到 resolvedCount（零变化）
   const 有效处理数 = Number.isFinite(Number(resolvedWeight)) && Number(resolvedWeight) > 0 ? Number(resolvedWeight) : resolvedCount
   prevGoodRate = numOr(prevGoodRate, null)
@@ -750,6 +762,8 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   if (注入v8成本系数 !== 1) perRoomVariable = Math.round(perRoomVariable * 注入v8成本系数)
   // 🔴 T1.1（D16 拍板）：variableCost 同为【一晚】口径 → ×7
   let variableCost = occupiedRooms * perRoomVariable * 7
+  // ★ V128-#2：E7「涨薪/加福利」的定额成本（元·本周总额）—— 加法增量，不覆盖决策算出的基础变动成本
+  if (注入应对成本加) variableCost += 注入应对成本加
   const dept = deptCostWeekly({ rooms, decisions, 人力档: Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3 })   // ★ §33-V4-A8：人力档 → laborFixed 单价
   const deptCost = dept.total
 
@@ -1083,14 +1097,32 @@ for (let i = 0; i < reviewCount; i++) {
     addEvent({ type: 'bad', icon: 'status.critical', name: '老师注入事件未生效（与本周随机事件互斥）', text: ev.name + ' 与本周已随机触发的事件同类 —— 按去重口径只生效一条（见事件系统注释）', impact: '无', tip: '同一市场冲击不该叠加成双倍' })
   }
   if (生效注入sByName.has('E3')) {
-    const 全额 = (decisions.hygiene || '不停房') === '不停房'
-    const 扣 = { quality: 全额 ? -8 : -4, reputation: 全额 ? -5 : -2 }
+    // ★ V128-#2：有应对 ⇒ 由【应对】决定半额/全额（效力单源）；无应对 ⇒ 保持改前口径（卫生决策决定）
+    const 应对E3 = 应对值Of('E3')
+    const 效力E3 = 应对效力Of('E3', 应对E3).效力
+    const 有应对E3 = !!(效力E3 && Number.isFinite(Number(效力E3.品质)))
+    const 全额 = 有应对E3 ? Number(效力E3.品质) === -8 : ((decisions.hygiene || '不停房') === '不停房')
+    const 扣 = 有应对E3
+      ? { quality: Number(效力E3.品质), reputation: Number(效力E3.声誉) }
+      : { quality: 全额 ? -8 : -4, reputation: 全额 ? -5 : -2 }
     attrsAfter = applyAttrsDelta(attrsAfter, 扣)
-    addEvent({ type: 'bad', icon: 'ops.cleaning', name: '卫生突检结果', text: 全额 ? '检查发现卫生隐患（卫生计划为"不停房"）⇒ 品质 −8 / 声誉 −5' : '检查基本合格（已有停房深清洁）⇒ 品质 −4 / 声誉 −2（减半）', impact: '品质/声誉下滑', tip: '品质是底线投资：不整改 → 下周差评潮' })
+    const 文案 = 有应对E3
+      ? `${应对E3}：品质 ${扣.quality} / 声誉 ${扣.reputation}`
+      : (全额 ? '检查发现卫生隐患（卫生计划为"不停房"）⇒ 品质 −8 / 声誉 −5' : '检查基本合格（已有停房深清洁）⇒ 品质 −4 / 声誉 −2（减半）')
+    addEvent({ type: 'bad', icon: 'ops.cleaning', name: 有应对E3 ? '卫生突检结果（已应对）' : '卫生突检结果', text: 文案, impact: 有应对E3 ? '你的应对决定扣减幅度' : '品质/声誉下滑', tip: '品质是底线投资：不整改 → 下周差评潮' })
   }
   if (生效注入sByName.has('E7')) {
-    const 冷处理 = true   // 离线默认最差 / 30 秒未选 = 冷处理（与危机超时语义一致）
-    if (冷处理) {
+    // ★ V128-#2：有应对 ⇒ 涨薪/加福利 = 士气不跌 + 成本 +8000（成本在上方 variableCost 入账）；
+    //   冷处理/离线/无应对 ⇒ 保持改前口径：士气 −10（离线默认最差）
+    const 应对E7 = 应对值Of('E7')
+    const 有应对E7 = !!(E7效力 && Number.isFinite(Number(E7效力.士气)))
+    if (有应对E7) {
+      attrsAfter = applyAttrsDelta(attrsAfter, { morale: Number(E7效力.士气) })
+      addEvent({ type: 'bad', icon: 'event.resign', name: `员工集体请辞威胁（${应对E7}）`, text: `${应对E7}：士气 ${Number(E7效力.士气)}`, impact: `士气 ${Number(E7效力.士气)}`, tip: '冷处理会散人心；涨薪/加福利不扣士气，但要花真金白银' })
+    } else if (E7效力 && Number.isFinite(Number(E7效力.变动成本加))) {
+      // 涨薪/加福利：士气不跌，成本已入 variableCost（此处只留事件卡）
+      addEvent({ type: 'bad', icon: 'event.resign', name: `员工集体请辞威胁（${应对E7}）`, text: `${应对E7}：士气不跌，本周多花 ${Number(E7效力.变动成本加).toLocaleString()} 元`, impact: `成本 +${Number(E7效力.变动成本加).toLocaleString()} 元`, tip: '涨薪/加福利是把不确定性换成确定的现金支出' })
+    } else {
       attrsAfter = applyAttrsDelta(attrsAfter, { morale: -10 })
       addEvent({ type: 'bad', icon: 'event.resign', name: '员工集体请辞威胁（冷处理）', text: '你没有（或没能）做出应对 ⇒ 团队士气 −10', impact: '士气 −10', tip: '人力是资产不是成本：涨薪（成本+）或招临时工（品质−）都是应对' })
     }

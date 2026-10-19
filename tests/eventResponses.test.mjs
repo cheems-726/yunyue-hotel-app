@@ -56,27 +56,27 @@ const ok = (c, m) => { 检查数++; if (!c) 坏.push(m) }
   ok(无应对空间(无.id, 注入事件库) === true, '无应对空间() 应返回 true')
 }
 
-// ⑥ 通道标注必须真实：
+// ⑥ 通道标注必须真实（★ V128-#2 起 E7/E3 已接线）：
 //    · 「危机分支已有」⇒ settlement 里必须有 注入E8已整改 分支读 eventResponses.E8
-//    · 「需扩引擎」⇒ 效力键里必须含引擎读不了的（变动成本加/士气/品质/声誉）
+//    · 「已接线」⇒ settlement 必须真的读 应对效力Of 并落四个出口（成本加/士气/品质/声誉）
 {
   const SRC = readFileSync("src/settlement.js", "utf8")
   ok(SRC.includes("注入E8已整改") && SRC.includes("eventResponses"), "settlement 有 E8 应对分支（读 eventResponses）")
-  const 引擎能读 = ["客流系数", "变动成本系数", "罚款"]
-  let 需扩数 = 0
-  for (const [id, m] of Object.entries(应对映射)) {
-    if (m.通道 === "危机分支已有") continue
-    需扩数++
-    const 键s = Object.values(m.选项).flatMap(v => Object.keys(v.效力))
-    ok(键s.some(k => !引擎能读.includes(k)), id + " 标了需扩引擎，但效力键全都能被引擎读（标注过严）")
-  }
-  ok(需扩数 >= 2, "需扩引擎的映射应 ≥2 条（实测 " + 需扩数 + "）—— 这是本包「接不了」的硬证据")
+  ok(/应对效力Of\('E7'/.test(SRC) && /应对效力Of\('E3'/.test(SRC), "E7/E3 已接线（settlement 读应对效力Of）")
+  ok(/注入应对成本加/.test(SRC) && /variableCost \+= 注入应对成本加/.test(SRC), "出口①：变动成本加（元·总额）已入账")
+  ok(/applyAttrsDelta\(attrsAfter, \{ morale: Number\(E7效力\.士气\) \}\)/.test(SRC), "出口②：士气 delta 已落属性")
+  ok(/quality: Number\(效力E3\.品质\), reputation: Number\(效力E3\.声誉\)/.test(SRC), "出口③④：品质/声誉 delta 已落属性")
+  ok(应对映射.E7.通道 === '已接线' && 应对映射.E3.通道 === '已接线', "映射表的通道标注与实现一致（E7/E3=已接线）")
+  const 代码 = SRC.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
+  ok(!/8000/.test(代码), "★ 幅度单源：settlement 代码里不得写死 8000（必须从 eventResponses 读）")
 }
 // ⑦ 统计
 {
   const s = 映射统计()
-  ok(s.事件数 === Object.keys(应对映射).length && s.需扩引擎.length >= 2, `映射统计应列出需扩引擎（${s.需扩引擎.join('/')}）`)
-  ok(!(s.已通 || []).includes('E7') && (s.已通 || []).includes('E8'), '现有通道只通 E8（危机分支），E7 不通')
+  ok(s.事件数 === Object.keys(应对映射).length, `映射统计事件数 = ${s.事件数}`)
+  ok((s.已接线 || []).includes('E7') && (s.已接线 || []).includes('E3'), `已接线应含 E7/E3（实得 ${(s.已接线 || []).join('/')}）`)
+  ok((s.需扩引擎 || []).length === 0, `需扩引擎应清零（实得 ${(s.需扩引擎 || []).join('/')}）—— V128-#2 已把四个出口接上`)
+  ok((s.已通 || []).includes('E8'), '现有通道仍通 E8（危机分支）')
 }
 
 console.log('══ V118 应对 → 引擎效力（映射语义 + 通道真伪）══')
