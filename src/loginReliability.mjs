@@ -5,7 +5,7 @@
 //   · 预检失败不阻塞离线演示
 //   · 密码首尾空格仍要能登录（旧行为不回退）—— 本模块不参与 trim 决策，登录处继续 trim
 
-export const 备选入口 = [
+const 备选入口 = [
   { 名: 'B 备选（HTTP）', url: 'http://121.196.196.37' },
   { 名: 'C 备选（HTTPS · 自签）', url: 'https://121.196.196.37' },
 ]
@@ -72,6 +72,7 @@ export function 校验工号(role, id) {
 /** 单地址探测（默认 3s 超时 · 不抛错，返回结构化结果） */
 export async function 探测地址(url, { timeout = 3000, fetchImpl = globalThis.fetch } = {}) {
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
+  // 静默理由：AbortController 已被平台回收/不可用 ⇒ 超时兜底失败不影响探测结果（fetch 自身会超时）
   const t = setTimeout(() => { try { ctl && ctl.abort() } catch (e) {} }, Math.max(100, Number(timeout) || 3000))
   try {
     const r = await fetchImpl(url, { signal: ctl ? ctl.signal : undefined, cache: 'no-store', mode: 'cors' })
