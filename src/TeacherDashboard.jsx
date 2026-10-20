@@ -11,7 +11,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { 创建导航栈, 造返回处理器 } from './navStack.mjs'
 import Icon from './Icon.jsx'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { saveGameStateNow } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）
+import { saveGameStateNow, advanceClassOffset } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）· V131：推进教学日
+import { 推进目标, 本周第几天 } from './advanceWeek.mjs'   // ★ V131 §2：不跳周
 import { hotCrisisActive } from './hotReview.mjs' // R3：危机期是否仍生效（与引擎同一判定）
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
@@ -862,6 +863,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
   const [classDay, setClassDay] = useState(0)
   const [weekInput, setWeekInput] = useState('')
   const [weekSaved, setWeekSaved] = useState(false)
+  const [推进中, set推进中] = useState(false)   // ★ V131 §2
   const [newChips, setNewChips] = useState({}) // uid -> Set(决策id)：最近一次刷新新增/变化的决策（高亮）
   const [chipDetail, setChipDetail] = useState(null) // 大屏chips点击的详情
   const [liveWeekFilter, setLiveWeekFilter] = useState(0) // 大屏周次筛选（0=当前周/最新，1-12=历史周快照）
@@ -945,6 +947,21 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
   }
 
   // 教师设置全班统一周
+  // ★ V131 §2：老师推进教学日（不跳周 · 只写 teacher_offset_days · RLS 限教师）
+  async function 推进班级(模式) {
+    if (推进中) return
+    const t = 推进目标(classDay, 模式)
+    if (!t.可执行) { 提示(t.原因); return }
+    set推进中(true)
+    const r = await advanceClassOffset(t.增量)
+    set推进中(false)
+    if (!r.ok) {
+      提示((r.code === '42501' || /permission|权限|row-level|policy/i.test(String(r.error))) ? '无权限：只有教师账号能推进（RLS）' : '推进失败：' + r.error)
+      return
+    }
+    setClassDay(t.目标)
+    提示(`已推进到第 ${t.目标} 天（本周第 ${本周第几天(t.目标)}/7 天）· 服务端 ≤1 分钟内结算`)
+  }
   async function saveClassWeek() {
     const w = Math.max(0, Math.min(12, Number(weekInput) || 0))
     if (await setClassWeek(w)) {
@@ -1147,6 +1164,26 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
             </div>
             <div style={{ fontSize: 11, color: weekSaved ? 'var(--good)' : 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
               {weekSaved ? '已保存，全班即时生效' : classWeek > 0 ? `学生只能结算到第 ${classWeek} 周——保证全班同一周看到同一个市场和事件（公平）` : '未限制：各组按自己节奏推进'}
+            </div>
+
+            {/* ★ V131 §2：推进教学日（不跳周） */}
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-sub)', marginBottom: 6 }}>
+                教学日：第 <b>{classDay > 0 ? classDay : '—'}</b> 天 · 本周第 <b>{classDay > 0 ? 本周第几天(classDay) : '—'}</b>/7 天
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button disabled={推进中 || !(classDay > 0) || !推进目标(classDay, '本周结束').可执行} onClick={() => 推进班级('本周结束')}
+                  style={{ flex: 1, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', opacity: (推进中 || !(classDay > 0) || !推进目标(classDay, '本周结束').可执行) ? 0.5 : 1 }}>
+                  推进到本周结束（结算）
+                </button>
+                <button disabled={推进中 || !(classDay > 0) || !推进目标(classDay, '下一周').可执行} onClick={() => 推进班级('下一周')}
+                  style={{ flex: 1, border: '1px solid var(--primary-border)', background: 'var(--card)', color: 'var(--info)', fontSize: 12, fontWeight: 600, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', opacity: (推进中 || !(classDay > 0) || !推进目标(classDay, '下一周').可执行) ? 0.5 : 1 }}>
+                  进入下一周（第 7 天可用）
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
+                不跳周：先把本周推到第 7 天，再进下一周（history 周次才连续）· 服务端 tick 10 分钟一次，建议改 1 分钟
+              </div>
             </div>
           </div>
 

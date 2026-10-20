@@ -41,5 +41,12 @@ const 例s = []
   'const 需复盘 = !本周复盘完成(复盘历史, result && result.week)', 'const 需复盘 = false', 'tests/v131Thinking.test.mjs'))
 例s.push(试一例('#2c 三问最短改 1 字', 'src/weekReview.mjs',
   'export const 每题最短 = 20', 'export const 每题最短 = 1', 'tests/weekReview.test.mjs'))
+
+// 批3：推进一周不跳周
+例s.push(试一例('#3a 本周结束直接 +7（跳过周末判定）', 'src/advanceWeek.mjs',
+  "return { 可执行: true, 目标: d + (7 - day), 增量: 7 - day, 原因: '' }",
+  "return { 可执行: true, 目标: d + 7, 增量: 7, 原因: '' }", 'tests/advanceWeek.test.mjs'))
+例s.push(试一例('#3b 下一周去掉第7天守卫', 'src/advanceWeek.mjs',
+  "if (day !== 7) return { 可执行: false", "if (false) return { 可执行: false", 'tests/advanceWeek.test.mjs'))
 console.log(`\n结果: ${例s.filter(Boolean).length} / ${例s.length} 条 RV 成立`)
 process.exit(例s.every(Boolean) ? 0 : 1)

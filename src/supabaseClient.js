@@ -234,6 +234,20 @@ export async function fetchClassState() {
   return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 通道就绪: false }
 }
 
+// ★ V131 §2：老师推进教学日 —— 只写 class_state.teacher_offset_days（RLS 限教师；学生 JWT 应 403/42501）
+//   增量由调用方按"不跳周"规则算好（见 src/advanceWeek.mjs），本函数只做读-加-写。
+export async function advanceClassOffset(delta) {
+  const 增 = Number(delta)
+  if (!Number.isFinite(增) || 增 === 0) return { ok: false, error: '增量无效' }
+  const { data, error } = await supabase.from('class_state').select('*').eq('id', 1).maybeSingle()   // ★ 数据入口禁手写列清单（守门）
+  if (error) return { ok: false, error: error.message, code: error.code }
+  const cur = Number(data && data.teacher_offset_days) || 0
+  const next = Math.max(0, cur + Math.round(增))
+  const { error: e2 } = await supabase.from('class_state').update({ teacher_offset_days: next }).eq('id', 1)
+  if (e2) return { ok: false, error: e2.message, code: e2.code }
+  return { ok: true, offset: next }
+}
+
 // 老师：覆盖写【注入事件表】（调用方负责 append 后传全量 —— 服务端不做读改写）
 export async function setClassInjections(events) {
   const { error } = await supabase
