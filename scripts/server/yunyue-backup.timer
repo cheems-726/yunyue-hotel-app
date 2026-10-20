@@ -1,0 +1,10 @@
+[Unit]
+Description=yunyue 每日 00:15 自动备份（archive 00:05 之后）
+
+[Timer]
+OnCalendar=*-*-* 00:15:00
+Persistent=true
+Unit=yunyue-backup.service
+
+[Install]
+WantedBy=timers.target

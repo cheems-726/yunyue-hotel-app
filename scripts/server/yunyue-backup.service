@@ -1,0 +1,10 @@
+[Unit]
+Description=yunyue 每日备份（pg_dump + 配置打码包 + 前端快照）
+After=postgresql.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/yunyue/scripts/backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
