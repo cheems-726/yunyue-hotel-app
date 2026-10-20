@@ -1,0 +1,12 @@
+# V130 §4-③ · sshd 防护（22 端口全公网 + 密码登录已开启 ⇒ 必须有爆破防护）
+# 安装位置：/etc/fail2ban/jail.local（由 scripts/server/install-units.sh 下发）
+# 判据：fail2ban-client status sshd 显示 jail 在跑；临时 ban 一个 IP ⇒ Currently banned 1
+[DEFAULT]
+backend  = systemd
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+ignoreip = 127.0.0.1/8 ::1
+
+[sshd]
+enabled = true
