@@ -84,6 +84,8 @@ const SUITES = [
   { name: 'weekReview（三问复盘·V131）', file: 'tests/weekReview.test.mjs' },
   { name: 'v131Thinking（思维项接线·V131）', file: 'tests/v131Thinking.test.mjs' },
   { name: 'advanceWeek（老师推进不跳周·V131）', file: 'tests/advanceWeek.test.mjs' },
+  { name: 'thinkingBoard（思维看板·V131）', file: 'tests/thinkingBoard.test.mjs' },
+  { name: 'claimChoices（认领6步取舍·V131）', file: 'tests/claimChoices.test.mjs' },
   { name: 'loginReliability（登录预检与错误分级·V129）', file: 'tests/loginReliability.test.mjs' },
   { name: 'swPolicy（API 不复用缓存·V129）', file: 'tests/swPolicy.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },

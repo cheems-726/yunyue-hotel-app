@@ -211,26 +211,39 @@ try {
   ok('取舍句·经营模式（要求写一句）', (await text(page)).includes('写一句：经营模式 的取舍'))
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '交通枢纽物业'); await sleep(400)
+  // ★ V131 §1-C：每步先做一个有代价的取舍（需理由的两步也填一句）
+  const 认领一步 = async () => {
+    await page.evaluate(() => {
+      const o = document.querySelector('[data-claim-opt]')
+      if (o) o.click()
+      const ta = document.querySelector('[data-claim-reason]')
+      if (ta) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+        setter.call(ta, '现金紧，先保开业，再逐步把品质补上。')
+        ta.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+    await sleep(250)
+    await page.evaluate(() => {
+      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /确认本步取舍|完成认领|下一步|确认无误/.test(x.textContent))
+      if (n) n.click()
+    })
+    await sleep(500)
+  }
   // 🔴 W3-2：第 3 步「项目决策」必须出现物业报价单（投资侧可追溯 / 无来源标待补）
   let quoteSeen = false
-  for (let i = 0; i < 4 && !quoteSeen; i++) {
+  for (let i = 0; i < 6 && !quoteSeen; i++) {
     if ((await text(page)).includes('物业报价单')) { quoteSeen = true; break }
-    await page.evaluate(() => { const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent)); n && n.click() })
-    await sleep(600)
+    await 认领一步()
   }
   ok('认领·项目决策步出现物业报价单（W3-2）', quoteSeen)
   // 🔴 W3-1/W3-5：同一页必须出现「一页钱账」（收益侧 + 回本周期）
   ok('认领·项目决策步出现一页钱账（W3-1/W3-5）', (await text(page)).includes('一页钱账') && (await text(page)).includes('回本周期'))
-  for (let i = 0; i < 7; i++) {
-    const done = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
-      if (b) { b.click(); return true }
-      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
-      if (n) { n.click(); return false }
-      return false
-    })
-    await sleep(550)
-    if (done) break
+  // ★ V131：纯确认步必须为 0（每步都有 [data-claim-opt]）；走完 6 步
+  for (let i = 0; i < 8; i++) {
+    const 在认领 = !(await text(page)).includes('门店筹建') && !(await text(page)).includes('给你的酒店取名')
+    if (!在认领) break
+    await 认领一步()
   }
   // ★ V114-P1：命名页（空名 ⇒ 进不了经营）
   ok('命名页（空名不可进入经营）', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先取一个/.test(x.textContent)); return !!b && b.disabled === true }))

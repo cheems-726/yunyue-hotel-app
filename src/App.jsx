@@ -2059,6 +2059,9 @@ export default function App() {
   // ★ V131 §1-B/§1-D：关键决策理由（按 decisionId 存）· 三问复盘（按周存）
   const [决策理由, set决策理由] = useState(saved.决策理由 && typeof saved.决策理由 === 'object' ? saved.决策理由 : {})
   const [复盘, set复盘] = useState(Array.isArray(saved.复盘) ? saved.复盘 : [])
+  // ★ V131 §1-C：认领 6 步取舍（进存档 · 只作讲评素材）
+  const [认领取舍, set认领取舍] = useState(saved.认领取舍 && typeof saved.认领取舍 === 'object' ? saved.认领取舍 : {})
+  const [认领取舍理由, set认领取舍理由] = useState(saved.认领取舍理由 && typeof saved.认领取舍理由 === 'object' ? saved.认领取舍理由 : {})
   const [选址预言, set选址预言] = useState(saved.选址预言 || null)
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
@@ -2185,10 +2188,10 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由])
 
   // ★ V128-#3 批2：切周后重新读本周委托记录（记录按周存）
   useEffect(() => { set委托记录(读委托记录(week)) }, [week])
@@ -2206,7 +2209,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2364,6 +2367,7 @@ export default function App() {
     // ★ V131：换号/重开清押注
     set本周押注(null); set押注历史([])
     set决策理由({}); set复盘([])
+    set认领取舍({}); set认领取舍理由({})
     setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
@@ -2796,6 +2800,9 @@ export default function App() {
   function handleClaimComplete(result) {
     if (result.property) setProperty(result.property)          // 完成认领（第二步）
     if (result.mode) setBizMode(result.mode === 'ota' ? 'ota' : 'direct')  // 认领第一步选的经营模式（此前被丢弃 → B5 根因）
+    // ★ V131 §1-C：6 步取舍进存档（只作讲评素材 · 不影响引擎）
+    if (result.取舍 && typeof result.取舍 === 'object') set认领取舍(result.取舍)
+    if (result.取舍理由 && typeof result.取舍理由 === 'object') set认领取舍理由(result.取舍理由)
     setEstablished(false)
   }
   function handleEstablished(choices) {

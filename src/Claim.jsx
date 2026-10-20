@@ -9,7 +9,9 @@ import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
 import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
 import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领
-import WhyNot from './WhyNot.jsx'   // ★ V113-1.3：每步一句取舍   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
+import WhyNot from './WhyNot.jsx'
+import { 认领取舍项, 取舍摘要, 本步可继续 } from './claimChoices.mjs'   // ★ V131 §1-C：6 步真取舍
+import { 理由合格 } from './keyReasons.mjs'   // ★ V113-1.3：每步一句取舍   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
 // 加盟 6 步流程（来自华住真实加盟流程）
 const claimSteps = [
@@ -32,6 +34,9 @@ export default function Claim({ brand, location, onComplete }) {
   const [feedback, setFeedback] = useState(null)
   // ★ V113-0.1：房量由学生自己测算（两个可调参数 · 只有"经验值"默认，没有标准答案）
   const [测算参数, set测算参数] = useState({ 得房率: null, 单房建筑面积: null })
+  // ★ V131 §1-C：每步取舍 + 需理由的两步
+  const [取舍, set取舍] = useState({})
+  const [取舍理由, set取舍理由] = useState({})
 
   const propList = getPropertyList(brand.level)
   // ★ V113-0.1：测算参数 —— 未手填时取该档"经验值"默认（可调 · 非标准答案）
@@ -44,6 +49,8 @@ export default function Claim({ brand, location, onComplete }) {
   const 房量判定 = 房量装得下(brand, 测算房量)
   const 房量不达标 = !!房量判定 && 房量判定.装得下 === false
   const current = claimSteps[step]
+  const 本步项 = 认领取舍项[current.key]
+  const 可继续 = 本步可继续(current.key, 取舍, 取舍理由, 理由合格)
   const progress = Math.round((step / (claimSteps.length - 1)) * 100)
   // 🔴 W3-2：物业报价单（选中物业后即可算；口径见 src/propertyQuote.mjs 顶部注释）
   const quote = selectedProperty ? propertyQuote(brand, selectedProperty, location?.attrs, { roomsOverride: 测算房量 }) : null
@@ -85,10 +92,11 @@ export default function Claim({ brand, location, onComplete }) {
 
   // 第0步选物业，第1-5步走流程
   function next() {
+    if (!可继续) return
     if (step < claimSteps.length - 1) setStep(step + 1)
     else {
       setClaimed(true)
-      onComplete({ property: selectedProperty, brand })
+      onComplete({ property: selectedProperty, brand, 取舍, 取舍理由 })
     }
   }
   function prev() {
@@ -101,7 +109,7 @@ export default function Claim({ brand, location, onComplete }) {
         <span className="step-tag">第三步 · 认领酒店</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>认领一家酒店</h1>
         <div className="sub">{brand.name}品牌 · {location?.district} · 走完加盟流程正式认领</div>
-        <GuideTip k="claim">现在是第 {step + 1}/6 步：看完本步内容点「我已阅读，确认无误 →」进入下一步；点错的可以点「上一步」回改；六步全走完才能进入筹建。</GuideTip>
+        <GuideTip k="claim">现在是第 {step + 1}/6 步：每步都要做一个有代价的取舍（选完会显示你放弃了什么），没有纯确认步；点「上一步」可回改。</GuideTip>
       </div>
 
       {/* 进度条 */}
@@ -356,6 +364,42 @@ export default function Claim({ brand, location, onComplete }) {
             )}
           </div>
         )}
+        {/* ★ V131 §1-C：本步真取舍（有代价 · 选完显示放弃了什么） */}
+        {本步项 && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--border)' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{本步项.标题} <span style={{ fontSize: 12, color: 'var(--bad)', fontWeight: 400 }}>（有代价，不能全要）</span></div>
+            {本步项.选项.map(o => (
+              <div key={o.label} data-claim-opt={o.label}
+                className={`district-card ${取舍[current.key] === o.label ? 'selected' : ''}`}
+                style={{ padding: 12, marginBottom: 8 }}
+                onClick={() => set取舍(prev => ({ ...prev, [current.key]: o.label }))}>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{o.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--bad)', marginTop: 2 }}>代价：{o.代价}</div>
+                <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 2 }}>收益：{o.收益}</div>
+              </div>
+            ))}
+            {取舍[current.key] && (
+              <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.7 }}>
+                你放弃了：{本步项.选项.filter(o => o.label !== 取舍[current.key]).map(o => o.label).join(' / ')}
+              </div>
+            )}
+            {本步项.需理由 && (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--warn)', marginBottom: 3 }}>一句话说明为什么这样选（≤30 字，必填）</div>
+                <input data-claim-reason="1" value={取舍理由[current.key] || ''} maxLength={30}
+                  onChange={e => set取舍理由(prev => ({ ...prev, [current.key]: e.target.value }))}
+                  placeholder="例如：现金紧，先保开业再谈品质"
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'right' }}>{String(取舍理由[current.key] || '').trim().length}/30</div>
+              </div>
+            )}
+            {step > 0 && 取舍摘要(取舍, claimSteps.slice(0, step).map(x => x.key)).length > 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.7 }}>
+                你之前的取舍：{取舍摘要(取舍, claimSteps.slice(0, step).map(x => x.key)).join('；')}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 底部按钮 */}
@@ -365,14 +409,15 @@ export default function Claim({ brand, location, onComplete }) {
         )}
         <button
           className="btn-confirm"
-          style={{ flex: 2, opacity: ((step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标)) ? 0.5 : 1 }}
-          disabled={(step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标)}
+          style={{ flex: 2, opacity: ((step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标) || !可继续) ? 0.5 : 1 }}
+          disabled={(step === 0 && (!bizMode || !selectedProperty)) || (step === claimSteps.length - 1 && 房量不达标) || !可继续}
           onClick={next}
         >
           {step === 0 && !bizMode ? '请先选择经营模式'
+            : !可继续 ? (本步项 && 本步项.需理由 ? '先做出取舍并写一句理由' : '先做出本步取舍')
             : step === claimSteps.length - 1
               ? (房量不达标 ? `装不下：你测算 ${测算房量} 间 < 品牌要求 —— 换更大物业或降档` : '完成认领，进入筹建 →')
-              : `我已阅读「${current.title}」，确认无误 →`}
+              : '确认本步取舍 →'}
         </button>
       </div>
 

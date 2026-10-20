@@ -42,6 +42,16 @@ const 例s = []
 例s.push(试一例('#2c 三问最短改 1 字', 'src/weekReview.mjs',
   'export const 每题最短 = 20', 'export const 每题最短 = 1', 'tests/weekReview.test.mjs'))
 
+// 批4：认领 6 步取舍必选
+例s.push(试一例('#4a 去掉"没选不能下一步"', 'src/claimChoices.mjs',
+  "if (!取舍 || !取舍[key]) return false", "if (false) return false", 'tests/claimChoices.test.mjs'))
+例s.push(试一例('#4b 选项不再可定位（无法选择）', 'src/Claim.jsx',
+  'data-claim-opt={o.label}', 'data-claim-opt', 'tests/claimChoices.test.mjs'))
+
+// 批5：思维看板按偏差排序
+例s.push(试一例('#5a 看板改回按名字排（不看偏差）', 'src/thinkingBoard.mjs',
+  'if (y !== x) return y - x', 'if (y !== x) return 0', 'tests/thinkingBoard.test.mjs'))
+
 // 批3：推进一周不跳周
 例s.push(试一例('#3a 本周结束直接 +7（跳过周末判定）', 'src/advanceWeek.mjs',
   "return { 可执行: true, 目标: d + (7 - day), 增量: 7 - day, 原因: '' }",
