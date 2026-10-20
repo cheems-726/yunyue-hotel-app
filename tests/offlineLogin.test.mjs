@@ -46,7 +46,9 @@ try {
   // ② 断网登录 ⇒ 报"连不上服务器"，不是"账号或密码错误"
   await page.getByText('我是学生', { exact: true }).click().catch(() => {})
   await page.locator('input').first().fill('20240101')
-  await page.locator('input[type=password]').fill('test123456')
+  // ★ V130 §1：这里只验证"断连时不要误报密码错"，密码值本身不参与断言 ⇒ 用占位串，
+  //   不再写真实测试机口令（明文口令不许进仓库；判据见 tests/ledgerSecrets.test.mjs）
+  await page.locator('input[type=password]').fill(process.env.SY_PW || 'placeholder-pw-130')
   await page.getByRole('button', { name: /^登录$/ }).click().catch(() => {})
   const 报错 = await page.waitForFunction(() => /连不上服务器|网络不可达|连不上测试机/.test(document.body.innerText), null, { timeout: 20000 }).then(() => true).catch(() => false)
   const 报错文本 = await page.evaluate(() => document.body.innerText)

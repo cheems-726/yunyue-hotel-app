@@ -55,6 +55,8 @@ const SUITES = [
   { name: 'franchiseRegression（加盟回归·W4-6B）', file: 'tests/franchiseRegression.test.mjs' },
   // Wave 4 · D-2：仓库卫生（垃圾文件不得被跟踪 + .gitignore 规则在位 + 证据图引用检查）
   { name: 'repoHygiene（仓库卫生·D-2）', file: 'tests/repoHygiene.test.mjs' },
+  // ★ V130 §1：台账密料守门（已跟踪文件里明文口令/密钥 0 命中；历史记录走 allowlist）
+  { name: 'ledgerSecrets（台账密料守门·V130）', file: 'tests/ledgerSecrets.test.mjs' },
   { name: 'duplicateJsxAttr（JSX 重复属性·R109-1）', file: 'tests/duplicateJsxAttr.test.mjs' },
   { name: 'offlineWriteGuard（离线云写入不发请求·R109-2）', file: 'tests/offlineWriteGuard.test.mjs' },
   { name: 'propertyFacts（候选物业事实表·V113-0.1）', file: 'tests/propertyFacts.test.mjs' },

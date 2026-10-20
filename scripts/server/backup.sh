@@ -87,6 +87,18 @@ DEL_DB=$(find "$DBD" -name 'yunyue-*.dump' -mtime +7 -print -delete 2>/dev/null 
 DEL_ETC=$(find "$ETCD" -name 'etc-*.tgz' -mtime +30 -print -delete 2>/dev/null | wc -l)
 DEL_WEB=$(find "$WEBD" -name 'web-*.tgz' -mtime +30 -print -delete 2>/dev/null | wc -l)
 
+# ── ⑤ 数据卫生（V130 §10-3：权限 / 旧失败 tick 归档 / 快照保留）──────────
+#   放在备份之后：先有备份，再做删除类操作
+HK=/opt/yunyue/scripts/housekeeping.sh
+if [ -x "$HK" ]; then
+  if bash "$HK" >>"$LOG" 2>&1; then
+    log "OK   housekeeping"
+  else
+    log "FAIL housekeeping（见上文）"
+    RC=1
+  fi
+fi
+
 if [ "$RC" -eq 0 ]; then
   log "DONE rc=0 清理: db${DEL_DB} etc${DEL_ETC} web${DEL_WEB}"
 else

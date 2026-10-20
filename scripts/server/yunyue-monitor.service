@@ -1,0 +1,8 @@
+[Unit]
+Description=yunyue 服务器使用监测（每 10 分钟一条 JSON 快照 + 告警）
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node /opt/yunyue/scripts/monitor.mjs
+Nice=15
