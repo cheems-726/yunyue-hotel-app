@@ -3,6 +3,7 @@
 // 每组一行：本周押注（押/实际/得分/偏差）· 3 条关键理由原文 · 三问复盘摘要
 // 排序：按"押注偏差"从大到小（先讲错得最多的组）——这是**讲评顺序**，不是排名。
 import { 本周关键决策 } from './keyReasons.mjs'
+import { 认领取舍项 } from './claimChoices.mjs'   // ★ V132 §2：开局取舍上桌
 
 /** 从组存档派生一行（缺数据如实置 null，不编） */
 export function 思维行({ 组 = '', state = {}, week = 1 } = {}) {
@@ -17,8 +18,22 @@ export function 思维行({ 组 = '', state = {}, week = 1 } = {}) {
     return { id, 文本: (r && Number(r.week) === Number(week) && String(r.文本 || '').trim()) ? String(r.文本).trim() : '' }
   })
   const 复盘 = (Array.isArray(s.复盘) ? s.复盘 : []).find(x => x && Number(x.week) === Number(week)) || null
+  // ★ V132 §2：开局 6 步取舍（选了什么 / 放弃了什么 / 两句理由）
+  const 取舍 = (s.认领取舍 && typeof s.认领取舍 === 'object') ? s.认领取舍 : {}
+  const 取舍理由 = (s.认领取舍理由 && typeof s.认领取舍理由 === 'object') ? s.认领取舍理由 : {}
+  const 开局 = Object.entries(认领取舍项).map(([key, it]) => {
+    const 选 = String(取舍[key] || '')
+    return {
+      key,
+      标题: it.标题,
+      选,
+      放弃: it.选项.filter(o => o.label !== 选).map(o => o.label),
+      理由: String(取舍理由[key] || ''),
+    }
+  })
   return {
     组,
+    开局,
     押注: 押 ? { 出租率: 押.出租率, 净利方向: 押.净利方向, 迟押: !!押.迟押 } : null,
     实际出租率,
     实际方向: 已结 ? 已结.实际方向 : null,

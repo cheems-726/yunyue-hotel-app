@@ -62,7 +62,7 @@ const 限 = (v, max) => {
  * @param {{完成:number, 应完成:number}|null} p.委托 每日委托（完成天数/应完成天数）· 只展示不并入合计
  * @returns {{承诺书:number|null, 归因:number|null, 理由条数:number|null, 委托:string|null, 合计:number|null, 满分:number, 缺:string[]}}
  */
-export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], 委托 = null, 押注校准 = null, 关键理由 = null } = {}) {
+export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], 委托 = null, 押注校准 = null, 关键理由 = null, 押注迟押 = false } = {}) {
   const 承诺 = 限(承诺书, 结构.承诺书满分)
 
   // 归因：**没有任何一周作答 ⇒ null**（缺数据 ≠ 0 分）；有作答 ⇒ 累加过程分
@@ -97,7 +97,7 @@ export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], �
   const 合计 = 项.every(v => v != null) ? 项.reduce((a, b) => a + b, 0) : null
 
   const 满分 = 结构.承诺书满分 + 结构.归因每周 * 周s.length + 结构.理由满分
-  return { 承诺书: 承诺, 归因: 归因分, 理由条数, ...委, 押注校准: 押注分, 关键理由: 关键条数, 合计, 满分, 缺 }
+  return { 承诺书: 承诺, 归因: 归因分, 理由条数, ...委, 押注校准: 押注迟押 ? '迟' : 押注分, 关键理由: 关键条数, 合计, 满分, 缺 }
 }
 
 /**

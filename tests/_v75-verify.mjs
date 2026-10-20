@@ -11,6 +11,7 @@ import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
+import { 走完认领 } from './claimWalk.mjs'   // ★ V132 §1：认领 6 步取舍（共用）
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4177
@@ -88,16 +89,12 @@ await clickText(page, '确认选择'); await sleep(700)
 await clickCard(page, 'OTA平台合作'); await sleep(400)
 await clickText(page, '确认'); await sleep(650)
 await clickCard(page, '交通枢纽物业'); await sleep(400)
-for (let i = 0; i < 7; i++) {
-  if ((await text(page)).includes('门店筹建')) break
-  await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
-    if (b) { b.click(); return }
-    const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
-    n && n.click()
-  })
-  await sleep(600)
-}
+// ★ V132 §1 防回归：未做本步取舍 ⇒ 下一步禁用（且文案说明）
+ok('认领：未做取舍时下一步禁用', await page.evaluate(() => {
+  const b = [...document.querySelectorAll('button')].find(x => x.disabled && /先做出本步取舍|先做出取舍/.test(x.textContent))
+  return !!b
+}))
+await 走完认领(page, sleep)
 await 过命名页(page)   // ★ V114-P1：酒店命名页
 ok('进入筹建（认领走完）', (await text(page)).includes('门店筹建'))
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import WeekReview from './WeekReview.jsx'   // ★ V131 §1-D：三问复盘（每题 ≥20 字）
 import BetCard from './BetCard.jsx'   // ★ V131 §1-A：未押注时在周报里补押（不计分）
 import { 押注有效 } from './bets.mjs'
+import { 认领取舍项 } from './claimChoices.mjs'   // ★ V132 §2：开局选择每周可见
 import MetricBoard from './MetricBoard.jsx'   // ★ V113-2.1：本周 6 指标 + 成本结构
 import AttributionCard from './AttributionCard.jsx'   // ★ V113-2.5：每周归因（不卡关）
 import { 复盘Of, 本周复盘完成 } from './weekReview.mjs'
@@ -200,7 +201,7 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null, 复盘历史 = [], on复盘提交 = null }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null, 复盘历史 = [], on复盘提交 = null, 认领取舍 = null, 认领取舍理由 = null }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
   // ★ V131 §1-D：三问复盘（所有周都要，每题 ≥20 字）
   const 记录复盘 = 复盘Of(复盘历史, result && result.week)
@@ -263,6 +264,25 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         <div className="card" style={{ background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.8 }}>
           本周只提交了 {result.决策数} 项决策（低于最低 {result.结算闸.阈值} 项）：其余按"维持现状"生效。
         </div>
+      )}
+
+      {/* ★ V132 §2：开局 6 步取舍（每周都让他看见自己当初押了什么） */}
+      {认领取舍 && Object.keys(认领取舍).length > 0 && (
+        <details className="card" style={{ borderColor: 'var(--border-strong)' }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-sub)' }}>你的开局选择（6 步取舍 · 点开）</summary>
+          <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.8 }}>
+            {Object.entries(认领取舍项).map(([key, it]) => {
+              const 选 = 认领取舍[key]
+              const 放弃 = it.选项.filter(o => o.label !== 选).map(o => o.label)
+              const 理 = 认领取舍理由 && 认领取舍理由[key]
+              return (
+                <div key={key} style={{ padding: '2px 0' }}>
+                  <b>{it.标题.split('：')[0]}：</b>{选 || '（未选）'}{选 && 放弃.length ? <span style={{ color: 'var(--text-muted)' }}>（放弃：{放弃.join(' / ')}）</span> : null}{理 ? <div style={{ color: 'var(--text-sub)' }}>理由：{理}</div> : null}
+                </div>
+              )
+            })}
+          </div>
+        </details>
       )}
 
       {/* 称号变化横幅 */}

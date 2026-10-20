@@ -109,6 +109,10 @@ if (!师.status && !学.status && 师.error === 学.error) {
 // ⑤ 结论
 const 入口可用 = [A, B, C].filter(x => x.status === 200).length
 const 安全面ok = 应关.every(p => 关ok.includes(p))
+const 通过数 = 结果.filter(x => x.通过).length
+const 失败数 = 结果.filter(x => !x.通过).length
 const 结论 = 入口可用 > 0 ? 'PASS' : 'FAIL'
-console.log(`\n结论: ${结论} · 可用入口 ${入口可用}/3 · 安全面 ${安全面ok ? 'OK' : '有端口意外开放'} · ${结果.filter(x => x.通过).length}/${结果.length} 项通过`)
-process.exit(入口可用 > 0 && 安全面ok ? 0 : 1)
+console.log(`\n结论: ${结论} · 可用入口 ${入口可用}/3 · 安全面 ${安全面ok ? 'OK' : '有端口意外开放'} · ${通过数}/${结果.length} 项通过`)
+// ★ V132 §4：run-all 统一解析的尾行（SKIP 不计失败，但上面已打印）
+console.log(`结果: ${通过数} 通过 / ${失败数} 失败`)
+process.exit(通过数 > 0 && 失败数 === 0 && 入口可用 > 0 && 安全面ok ? 0 : 1)

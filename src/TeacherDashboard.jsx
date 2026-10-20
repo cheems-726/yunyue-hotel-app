@@ -1460,6 +1460,9 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-sub)', padding: '6px 2px' }}>
                     思维看板（押注 / 理由 / 三问复盘 · 按押注偏差排序 · 讲评顺序，不是排名）
                   </summary>
+                  <div style={{ fontSize: 12, color: rows.some(r => r.押注 && r.押注.迟押) ? 'var(--warn)' : 'var(--text-muted)', padding: '4px 2px', fontWeight: 600 }}>
+                    本周迟押 {rows.filter(r => r.押注 && r.押注.迟押).length}/{rows.length} 组
+                  </div>
                   {rows.map(r => (
                     <details key={r.组} style={{ background: 'var(--bg)', borderRadius: 8, padding: '6px 10px', marginBottom: 6 }}>
                       <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
@@ -1471,7 +1474,12 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                         {` · 理由 ${r.理由条数}/3`}{r.复盘 ? ' · 已复盘' : ' · 未复盘'}
                       </summary>
                       <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.8, padding: '4px 0 2px' }}>
-                        <div><b>关键理由：</b>{r.理由s.map(x => <span key={x.id} style={{ display: 'block' }}>{x.id}：{x.文本 || '（未写）'}</span>)}</div>
+                        <div><b>开局取舍：</b>{r.开局.map(x => (
+                          <span key={x.key} style={{ display: 'block' }}>
+                            {x.标题}：{x.选 || '（未选）'}{x.选 && x.放弃.length ? ` · 放弃了：${x.放弃.join(' / ')}` : ''}{x.理由 ? ` · 理由：${x.理由}` : ''}
+                          </span>
+                        ))}</div>
+                        <div style={{ marginTop: 4 }}><b>关键理由：</b>{r.理由s.map(x => <span key={x.id} style={{ display: 'block' }}>{x.id}：{x.文本 || '（未写）'}</span>)}</div>
                         <div style={{ marginTop: 4 }}><b>三问复盘：</b>{r.复盘 ? r.复盘.map((t, i) => <span key={i} style={{ display: 'block' }}>{i + 1}. {t}</span>) : '（未提交）'}</div>
                       </div>
                     </details>

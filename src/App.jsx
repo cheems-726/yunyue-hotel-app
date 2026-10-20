@@ -1099,9 +1099,10 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         const 承诺书 = 选址承诺书 ? 选址过程分(选址承诺书).过程分 : null
         const 委托 = { 完成: 完成天数(委托记录), 应完成: Number(本周天数) || 0 }
         const 押注周 = history.length ? history[history.length - 1].week : week
+        const 押注条目 = (Array.isArray(押注历史) ? 押注历史 : []).find(x => x && Number(x.week) === Number(押注周))
         const 押 = 押注校准(押注历史, 押注周)
         const 关键 = 关键理由条数(决策理由, week, 本周关键决策(decisions))
-        const t = 过程分台账({ 承诺书, 归因, 理由, 委托, 押注校准: 押, 关键理由: 关键 })
+        const t = 过程分台账({ 承诺书, 归因, 理由, 委托, 押注校准: 押, 押注迟押: !!(押注条目 && 押注条目.迟押), 关键理由: 关键 })
         return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
       })()} />
 
@@ -2998,7 +2999,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} 押注={本周押注} 押注历史={押注历史} on押注={提交押注} 复盘历史={复盘} on复盘提交={提交复盘} />
+        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} 押注={本周押注} 押注历史={押注历史} on押注={提交押注} 复盘历史={复盘} on复盘提交={提交复盘} 认领取舍={认领取舍} 认领取舍理由={认领取舍理由} />
       </div>
     )
   }

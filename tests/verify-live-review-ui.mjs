@@ -12,7 +12,8 @@
 
 import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
-import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
+import { 走完认领 } from './claimWalk.mjs'   // ★ V132 §1：认领 6 步取舍
+import { 过周报闸门 } from './weekGate.mjs'   // ★ V132：三问+押注闸门
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false
@@ -147,16 +148,7 @@ await clickText(page, '确认选址'); await sleep(700)
   await clickCard(page, 'OTA平台合作'); await sleep(400)
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '交通枢纽物业'); await sleep(400)
-  for (let i = 0; i < 7; i++) {
-    const done = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
-      if (b) { b.click(); return true }
-      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
-      if (n) { n.click(); return false }
-      return false
-    })
-    await sleep(550); if (done) break
-  }
+  await 走完认领(page, sleep)
       await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
   await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
@@ -382,9 +374,9 @@ await clickText(page, '确认选址'); await sleep(700)
     localStorage.setItem('hotel-sim-reviews', JSON.stringify(list))
   })
   await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
-  // 结算态（report 已存档）会重载后停在周报页 —— 先点「进入第 N 周」回到带导航的壳
-  await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
-  await page.evaluate(() => { const b = document.querySelector('.btn-confirm'); if (b && /进入第|最终成绩/.test(b.textContent)) b.click() })
+  // 结算态（report 已存档）会重载后停在周报页 —— 先过三问/押注闸门，再点「进入第 N 周」回到带导航的壳
+  await 过周报闸门(page, sleep)
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && /进入第|最终成绩/.test(x.textContent)); if (b) b.click() })
   await sleep(1200)
   // 「关联经营」要能反查到"当时选了什么"：进入下一周会清空 doneDecisions，故此刻补回并二次重载
   await page.evaluate(() => {

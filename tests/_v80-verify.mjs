@@ -9,6 +9,7 @@ import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
+import { 走完认领 } from './claimWalk.mjs'   // ★ V132 §1：认领 6 步取舍（共用）
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4177
@@ -97,18 +98,7 @@ browser = await chromium.launch({ executablePath: EDGE, headless: true })
   await clickCard(page, 'OTA平台合作'); await sleep(400)
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '交通枢纽物业'); await sleep(400)
-  for (let i = 0; i < 7; i++) {
-    const done = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
-      if (b) { b.click(); return true }
-      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
-      if (n) { n.click(); return false }
-      return false
-    })
-    await sleep(550)
-    if (done) break
-  }
-  await sleep(600)
+  await 走完认领(page, sleep)
   await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档

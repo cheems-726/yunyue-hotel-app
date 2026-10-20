@@ -12,6 +12,8 @@ import { existsSync } from 'node:fs'
 // 🔴 W2-2 重基线（D38-B）：资金三数/版本号【从源头推导】，不再贴死数字 —— 口径再变无需重挂
 //   SCALE.IC_NEW = 当前起始资金 · SCALE.m = 由 SCALE_STEPS 各跳推导的累计倍数 · SCALE.VERSION_CURRENT
 import { SCALE } from '../src/stateMigration.mjs'
+import { 走完认领 } from './claimWalk.mjs'   // ★ V132 §1：认领 6 步取舍（共用）
+import { 过周报闸门 } from './weekGate.mjs'   // ★ V132：三问+押注闸门
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 4177
@@ -85,17 +87,8 @@ try {
   await clickCard(page, 'OTA平台合作'); await sleep(400)
   await clickText(page, '确认'); await sleep(650)
   await clickCard(page, '交通枢纽物业'); await sleep(400)
-  for (let i = 0; i < 7; i++) {
-    const done = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成认领'))
-      if (b) { b.click(); return true }
-      const n = [...document.querySelectorAll('button')].find(x => !x.disabled && /下一步|确认无误/.test(x.textContent))
-      if (n) { n.click(); return false }
-      return false
-    })
-    await sleep(550); if (done) break
-  }
-      await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
+  await 走完认领(page, sleep)
+  await 过命名页(page)   // ★ V114-P1：酒店命名页（空名/重名过不去）
   await clickCard(page, '基准情景', 'starts'); await sleep(500); await closeOverlay(page)
   await 过预算闸(page)   // ★ V113-1.1：默认组合超预算 ⇒ 先降装修档
   await clickStep(page, '证照办理')
@@ -187,7 +180,9 @@ try {
 
   await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
   // ── ④ 进入下一周 → 资金卡显示累积值（不再是每周重置的 50 万+本周）──
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
+  // ★ V132：先过"三问复盘 + 押注"闸门，否则「进入第 N 周」是禁用的
+  await 过周报闸门(page, sleep)
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => !x.disabled && /进入第|最终成绩/.test(x.textContent)); if (b) b.click() }); await sleep(1400)
   { const t = await text(page); console.log('PROBE1 资金状况=' + t.includes('资金状况') + ' 进入第=' + t.includes('进入第') + ' len=' + t.length) }
   { const t2 = await text(page); console.log('PROBE2 ' + JSON.stringify(t2.slice(0, 260))) }
   const st3 = await state(page)
