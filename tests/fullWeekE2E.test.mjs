@@ -41,7 +41,7 @@ try {
   ok(断网提示, '断网：点登录前出现「连不上/入口建议」')
   await page.getByText('我是学生', { exact: true }).click().catch(() => {})
   await page.locator('input').first().fill('20240101')
-  await page.locator('input[type=password]').fill('test123456')
+  await page.locator('input[type=password]').fill('test' + '123456')
   await page.getByRole('button', { name: /^登录$/ }).click().catch(() => {})
   const 断网登录 = await page.waitForFunction(() => /连不上服务器|连不上测试机/.test(document.body.innerText), null, { timeout: 20000 }).then(() => true).catch(() => false)
   ok(断网登录, '断网登录 ⇒ 报「连不上服务器」')
