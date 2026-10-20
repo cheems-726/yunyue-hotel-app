@@ -78,6 +78,8 @@ const SUITES = [
   { name: 'dailyQuestLog（委托记录与零变化·V128批2）', file: 'tests/dailyQuestLog.test.mjs' },
   { name: 'v128Semester（六组×84天+教师缺做·V128批3）', file: 'tests/v128Semester.test.mjs' },
   { name: 'headSelfContained（HEAD 自包含·V129-#5）', file: 'tests/headSelfContained.test.mjs' },
+  { name: 'bets（押注评分·V131）', file: 'tests/bets.test.mjs' },
+  { name: 'v131Bet（押注接线与闸门·V131）', file: 'tests/v131Bet.test.mjs' },
   { name: 'loginReliability（登录预检与错误分级·V129）', file: 'tests/loginReliability.test.mjs' },
   { name: 'swPolicy（API 不复用缓存·V129）', file: 'tests/swPolicy.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },

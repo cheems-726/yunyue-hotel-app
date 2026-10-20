@@ -13,7 +13,9 @@ import TeacherDashboard from './TeacherDashboard.jsx'
 import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117：过程分台账
-import DailyQuests from './DailyQuests.jsx'   // ★ V128-#3 批2：今日委托卡（只记录）
+import DailyQuests from './DailyQuests.jsx'
+import BetCard from './BetCard.jsx'   // ★ V131 §1-A：先押注后揭晓
+import { 结算押注, 押注有效, 押注校准 } from './bets.mjs'   // ★ V128-#3 批2：今日委托卡（只记录）
 import { 生成当日委托 } from './dailyQuests.mjs'
 import { 读委托记录, 追加委托记录, 完成天数, 清空委托记录 } from './dailyQuestLog.mjs'
 import { 天气 as 本周天气 } from './weather.mjs'
@@ -402,7 +404,7 @@ function InjectedEventsCard({ 事件s, week }) {
   )
 }
 
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托 }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托, 押注 = null, on押注 }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -466,6 +468,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
 
       {/* ★ §32-U8-补 §2②：老师注入事件（本周生效）—— 30 秒应对卡（条件渲染：无注入 ⇒ 不渲染零变化） */}
       {!report && 本周注入.length > 0 && <InjectedEventsCard 事件s={本周注入} week={week} />}
+
+      {/* ★ V131 §1-A：先押注，后揭晓 */}
+      <div style={{ padding: '0 0' }}><BetCard week={week} 押注={押注} onSubmit={on押注} /></div>
 
       {/* ★ V128-#3 批2：今日委托（每天 1–2 个 · 3 选 1 · 只记录） */}
       <DailyQuests 委托们={委托们} 记录={委托记录} 反思={每日委托反思} 本周={week} on确认={on确认委托} />
@@ -1018,7 +1023,7 @@ function Report({ report, week, history, brand, property, location }) {
 }
 
 // ===== 我的页 =====
-function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename, attrs, 选址承诺书 = null, 委托记录 = [], 本周天数 = 0 }) {
+function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename, attrs, 选址承诺书 = null, 委托记录 = [], 本周天数 = 0, 押注历史 = [] }) {
   // B2/B3 修复：改名弹窗的 state 与 JSX 必须和入口（下方 ✏️）在同一组件。
   // 原实现弹窗在 Business、入口在 Profile → 两边都 ReferenceError（真机表现"点了没反应"）
   const [renameOpen, setRenameOpen] = useState(false)
@@ -1091,7 +1096,9 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         const 理由 = 合格理由键()
         const 承诺书 = 选址承诺书 ? 选址过程分(选址承诺书).过程分 : null
         const 委托 = { 完成: 完成天数(委托记录), 应完成: Number(本周天数) || 0 }
-        const t = 过程分台账({ 承诺书, 归因, 理由, 委托 })
+        const 押注周 = history.length ? history[history.length - 1].week : week
+        const 押 = 押注校准(押注历史, 押注周)
+        const t = 过程分台账({ 承诺书, 归因, 理由, 委托, 押注校准: 押 })
         return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
       })()} />
 
@@ -2043,6 +2050,9 @@ export default function App() {
   // ★ V128-#3 批2：每日委托（记录在本机 · 反思随存档）—— 第一版只记录，不影响结算
   const [委托记录, set委托记录] = useState(() => 读委托记录(saved.week || 1))
   const [每日委托反思, set每日委托反思] = useState(Array.isArray(saved.每日委托反思) ? saved.每日委托反思 : [])
+  // ★ V131 §1-A：先押注后揭晓（本周锁死 · 只进台账）
+  const [本周押注, set本周押注] = useState(saved.本周押注 && typeof saved.本周押注 === 'object' ? saved.本周押注 : null)
+  const [押注历史, set押注历史] = useState(Array.isArray(saved.押注历史) ? saved.押注历史 : [])
   const [选址预言, set选址预言] = useState(saved.选址预言 || null)
   const [finished, setFinished] = useState(saved.finished || false) // 是否完成12周经营
   const [welcomed, setWelcomed] = useState(saved.welcomed || false) // 是否看过欢迎页
@@ -2169,10 +2179,10 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思])
+  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史])
 
   // ★ V128-#3 批2：切周后重新读本周委托记录（记录按周存）
   useEffect(() => { set委托记录(读委托记录(week)) }, [week])
@@ -2190,7 +2200,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, 本周押注, 押注历史, weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2345,6 +2355,8 @@ export default function App() {
     setHotelName(''); set已有酒店名([])
     // ★ V128：换号/重开清委托记录与反思（本机残留不带入下一个账号）
     set委托记录([]); set每日委托反思([]); 清空委托记录()
+    // ★ V131：换号/重开清押注
+    set本周押注(null); set押注历史([])
     setAttrs({ ...ATTR_INIT }) // 换号/重开：属性回到初值
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {}
@@ -2638,6 +2650,12 @@ export default function App() {
     //   口径 = 学生本周实际提交的决策项数；领班代管单独记在 supervisorRecord，不冒充学生决策。
     result.决策数 = Object.keys(doneDecisions || {}).filter(k => !String(k).startsWith('__')).length
     result.决策来源 = result.决策数 ? 'student' : 'none'
+    // ★ V131 §1-A：押注揭晓（只记录 · 不进四维评分）
+    if (押注有效(本周押注, week)) {
+      const 押 = 结算押注(本周押注, result)
+      result.押注 = 押
+      set押注历史(prev => [...(Array.isArray(prev) ? prev : []).filter(x => Number(x && x.week) !== Number(week)), 押])
+    }
     setReport(result)
   }
   // ★ §32-U8-补 §2④：领班决策的【状态快照】—— 从本周结算结果派生（不新算一套账）。
@@ -2736,6 +2754,14 @@ export default function App() {
       })
     }
     toast('委托已完成，已记录（不进入结算）')
+  }
+  // ★ V131 §1-A：提交本周押注（周锁定；补押不计分）
+  function 提交押注(值) {
+    if (押注有效(本周押注, week)) { toast('本周已押注，不可修改'); return }
+    const b = { week, 出租率: Math.round(Number(值 && 值.出租率)), 净利方向: String((值 && 值.净利方向) || ''), 提交时刻: new Date().toISOString(), ...(值 && 值.迟押 ? { 迟押: true } : {}) }
+    if (!押注有效(b, week)) { toast('押注无效：请给出 0–100 的出租率和净利方向'); return }
+    set本周押注(b)
+    toast(b.迟押 ? '已补押（不计分）' : '押注已锁定，周报揭晓')
   }
   function handleSiteConfirm(result) {
     setLocation(result)
@@ -2950,7 +2976,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} />
+        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} 押注={本周押注} 押注历史={押注历史} on押注={提交押注} />
       </div>
     )
   }
@@ -3074,10 +3100,10 @@ export default function App() {
           : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
-      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
-      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} />,
+      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} />,
     }
     mainPage = pages[tab]
   }

@@ -5,7 +5,7 @@
 import { 过程分台账, 选址过程分 } from './processScore.mjs'
 import { 真值 } from './attribution.mjs'
 
-export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [], 每日委托 = [], 本周天数 = 0 } = {}) {
+export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [], 每日委托 = [], 本周天数 = 0, 押注历史 = [] } = {}) {
   const 周s = Array.isArray(history) ? history : []
   const 归因 = []
   for (const lg of (归因日志 || [])) {
@@ -24,5 +24,9 @@ export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归
   // ★ V128-#3 批2：每日委托第四列（按天计 · 只展示不并入合计）
   const 完成 = new Set((Array.isArray(每日委托) ? 每日委托 : []).map(r => Number(r && r.天)).filter(n => Number.isFinite(n) && n >= 1)).size
   const 委托 = { 完成, 应完成: Math.max(0, Math.min(7, Math.round(Number(本周天数) || 0))) }
-  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键, 委托 }) }
+  // ★ V131 §1-A：押注校准（取最后一次已结算周）
+  const 押注周 = 周s.length ? Number(周s[周s.length - 1].week) || 0 : 0
+  const 押注 = (Array.isArray(押注历史) ? 押注历史 : []).find(x => x && Number(x.week) === 押注周)
+  const 押注分 = 押注 && Number.isFinite(Number(押注.总分)) ? Number(押注.总分) : null
+  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键, 委托, 押注校准: 押注分 }) }
 }

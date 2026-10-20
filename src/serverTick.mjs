@@ -24,7 +24,8 @@ import { weekInputsOf, 空周输入 } from './weekInputs.mjs'
 export { DAYS_PER_WEEK }   // W1-5：进度口径需要它（周↔天换算），属 tick 的公开面
 // W1-4：哈希链抽到独立模块（单一实现，避免 serverTick 与防作弊模块各写一份）
 import { fnv1a, entryIdOf, chainHash } from './decisionLogIntegrity.mjs'
-import { 领班代管 } from './aiSupervisor.mjs'   // ★ §33-V3：代管动作（同构纯函数 · 双端共用同一份源码）
+import { 领班代管 } from './aiSupervisor.mjs'   // ★ V131：押注评分（只记录）
+import { 结算押注, 押注有效 } from './bets.mjs'   // ★ §33-V3：代管动作（同构纯函数 · 双端共用同一份源码）
 export { fnv1a, entryIdOf, chainHash }   // 兼容既有调用方（serverTick.test 直接从本文件取）
 
 export const TICK_VERSION = 1
@@ -256,10 +257,13 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   })
 
   // ★ V126-#1/#2：结果打标（决策数/来源/周尾兜底）—— 金额字段原样来自引擎，不做任何数值改动
+  // ★ V131 §1-A：押注揭晓（只记录 · 不改金额）；无押注 ⇒ 不加键（零变化）
+  const 押注 = 押注有效(src.本周押注, week) ? 结算押注(src.本周押注, result) : null
   const 结算结果 = {
     ...result,
     决策数,
     决策来源: 周尾兜底 ? 'week-end-fallback' : 决策来源,
+    ...(押注 ? { 押注 } : {}),
     ...(周尾兜底 ? { 结算闸: { 阈值: 结算前置最少决策, 决策数, 原因: '周尾仍未达阈值 ⇒ 按"未做决策"结算（周报标注判 0 分侧）' } } : {}),
   }
   // ★ V126-#2：结算成功 ⇒ 清空本周决策与本周变更（不清 ⇒ 第 2 周拿第 1 周的决策/变更再结算一遍）。

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import Week1Review from './Week1Review.jsx'   // ★ V113-1.4：第 1 周对照（反思必填）
+import BetCard from './BetCard.jsx'   // ★ V131 §1-A：未押注时在周报里补押（不计分）
+import { 押注有效 } from './bets.mjs'
 import MetricBoard from './MetricBoard.jsx'   // ★ V113-2.1：本周 6 指标 + 成本结构
 import AttributionCard from './AttributionCard.jsx'   // ★ V113-2.5：每周归因（不卡关）
 import { 第1周反思完成 } from './choiceReasons.mjs'
@@ -198,10 +200,14 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '' }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
   const [反思ok, set反思ok] = useState(() => 第1周反思完成())
   const 需反思 = Number(result && result.week) === 1 && !反思ok
+  // ★ V131 §1-A：未押注不能进入下一周（周报里可补押，但补押不计分）
+  const 押 = result && result.押注 ? result.押注 : null
+  const 本周已押 = !!押 || 押注有效(押注, result && result.week)
+  const 需押注 = !本周已押
   const [dailyOpen, setDailyOpen] = useState(false)   // B2-2：日报折叠态（随周报重挂载，符合既有惯例）
   // 🔴 W2-3：牌位值读【净利润】权威字段（netProfit；旧档回退 profit —— 引擎恒等式保证同值）
   const netP = Number.isFinite(result.netProfit) ? result.netProfit : result.profit
@@ -727,9 +733,31 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
       <MetricBoard row={result} />
       {Number(result && result.week) >= 2 && history.length >= 1 && <AttributionCard week={Number(result.week)} prev={history[history.length - 1]} cur={result} userId={userId} groupKey={groupKey} />}
       {Number(result && result.week) === 1 && <Week1Review result={result} onStatus={set反思ok} />}
+      {/* ★ V131 §1-A：押注揭晓（押 X → 实际 Y → 得分 Z） */}
+      {押 && (
+        <div className="card" style={{ borderColor: 'var(--primary-border)', background: 'var(--primary-bg)' }}>
+          <div className="card-title" style={{ marginBottom: 4 }}>押注揭晓（第 {押.week} 周）</div>
+          <div style={{ fontSize: 16, color: 'var(--text)', lineHeight: 1.9 }}>
+            押 <b>{押.出租率}%</b> / <b>{押.净利方向}</b>
+            <span style={{ color: 'var(--text-muted)' }}> → 实际 </span>
+            <b>{押.实际出租率}%</b> / <b>{押.实际方向}</b>
+            <span style={{ color: 'var(--text-muted)' }}> → </span>
+            <b style={{ color: 押.总分 >= 10 ? 'var(--good)' : 押.总分 >= 5 ? 'var(--warn)' : 'var(--bad)' }}>{押.迟押 ? '补押 · 不计分' : `${押.总分} 分`}</b>
+          </div>
+          {!押.迟押 && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+              出租率 {押.出租率得分}/10（误差 {押.误差} 个点）· 净利方向 {押.方向得分}/5
+            </div>
+          )}
+        </div>
+      )}
+      {!本周已押 && on押注 && (
+        <BetCard week={Number(result && result.week) || 1} 押注={押注} onSubmit={on押注} late />
+      )}
+
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" style={{ opacity: 需反思 ? 0.5 : 1 }} disabled={需反思} onClick={onClose}>
- {需反思 ? '先填「我忽略了什么信号」才能进入下一周' : (result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`)}
+        <button className="btn-confirm" style={{ opacity: 需反思 || 需押注 ? 0.5 : 1 }} disabled={需反思 || 需押注} onClick={onClose}>
+ {需押注 && 需反思 ? '先押注并填「我忽略了什么信号」才能进入下一周' : 需押注 ? '先押注（补押不计分）才能进入下一周' : 需反思 ? '先填「我忽略了什么信号」才能进入下一周' : (result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`)}
         </button>
  {/* E2：周报是【自动】产生的 —— 允许"先不处理，回去接着做决策"，
  经营页保留只读回看入口「 查看本周周报」（不允许这里再改任何数值） */}

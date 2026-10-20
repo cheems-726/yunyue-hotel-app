@@ -62,7 +62,7 @@ const 限 = (v, max) => {
  * @param {{完成:number, 应完成:number}|null} p.委托 每日委托（完成天数/应完成天数）· 只展示不并入合计
  * @returns {{承诺书:number|null, 归因:number|null, 理由条数:number|null, 委托:string|null, 合计:number|null, 满分:number, 缺:string[]}}
  */
-export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], 委托 = null } = {}) {
+export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], 委托 = null, 押注校准 = null } = {}) {
   const 承诺 = 限(承诺书, 结构.承诺书满分)
 
   // 归因：**没有任何一周作答 ⇒ null**（缺数据 ≠ 0 分）；有作答 ⇒ 累加过程分
@@ -85,6 +85,8 @@ export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], �
     return { 委托完成: 完n, 委托应完成: 应n, 委托: 应n > 0 ? `${完n}/${应n}` : null }
   })()
 
+  const 押注分 = (押注校准 == null || !Number.isFinite(Number(押注校准))) ? null : Math.max(0, Math.min(15, Number(押注校准)))
+
   const 项 = [承诺, 归因分, 理由条数]
   const 缺 = []
   if (承诺 == null) 缺.push('选址承诺书')
@@ -94,7 +96,7 @@ export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], �
   const 合计 = 项.every(v => v != null) ? 项.reduce((a, b) => a + b, 0) : null
 
   const 满分 = 结构.承诺书满分 + 结构.归因每周 * 周s.length + 结构.理由满分
-  return { 承诺书: 承诺, 归因: 归因分, 理由条数, ...委, 合计, 满分, 缺 }
+  return { 承诺书: 承诺, 归因: 归因分, 理由条数, ...委, 押注校准: 押注分, 合计, 满分, 缺 }
 }
 
 /**
@@ -102,11 +104,11 @@ export function 过程分台账({ 承诺书 = null, 归因 = [], 理由 = [], �
  * @param {Array<{组:string, 酒店名:string, 台账:object}>} rows
  */
 export function 台账CSV(rows = []) {
-  const 头 = ['组', '酒店名', '①承诺书', '②归因', '③理由条数', '④每日委托', '合计', '满分', '缺项']
+  const 头 = ['组', '酒店名', '①承诺书', '②归因', '③理由条数', '④每日委托', '⑤押注校准', '合计', '满分', '缺项']
   const 行 = (rows || []).map(r => {
     const t = (r && r.台账) || {}
     return [
-      r && r.组, r && (r.酒店名 || ''), t.承诺书, t.归因, t.理由条数, t.委托, t.合计, t.满分, (t.缺 || []).join('/'),
+      r && r.组, r && (r.酒店名 || ''), t.承诺书, t.归因, t.理由条数, t.委托, t.押注校准, t.合计, t.满分, (t.缺 || []).join('/'),
     ].map(v => {
       const s = v == null ? '—' : String(v)
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s

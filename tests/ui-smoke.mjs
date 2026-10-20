@@ -374,8 +374,20 @@ try {
   // ★ V114-P1④：周报标题同样带酒店名（三处同源之二）
   ok('周报标题带酒店名（与顶栏逐字相同）', (await text(page)).includes('云悦测试店 · 第 1 周经营结果'))
   ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
-  ok('第1周反思未填时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先填「我忽略了什么信号」/.test(x.textContent)); return !!b && b.disabled === true }))
+  ok('第1周反思/押注未完成时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /我忽略了什么信号/.test(x.textContent)); return !!b && b.disabled === true }))
   await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
+  // ★ V131 §1-A：先押注（周报里补押，不计分）—— 未押注同样禁止进下一周
+  ok('未押注时禁止进下一周（补押提示在位）', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先押注/.test(x.textContent)); return !!b && b.disabled === true }))
+  await page.evaluate(() => {
+    const range = document.querySelector('[data-bet-range="1"]')
+    if (range) { const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(range, '70'); range.dispatchEvent(new Event('input', { bubbles: true })) }
+    const d = [...document.querySelectorAll('[data-bet-dir]')].find(x => x.getAttribute('data-bet-dir') === '小幅盈利')
+    if (d) d.click()
+  })
+  await sleep(300)
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /补押（仅记录，不计分）/.test(x.textContent)); if (b) b.click() })
+  await sleep(600)
+  ok('补押后可进下一周', (await text(page)).includes('进入第 2 周'))
   // 进入第2周：原生 locator 点击（actionability等待，重渲染竞态下最稳）
   let week2 = false
   for (let r = 0; r < 3 && !week2; r++) {
