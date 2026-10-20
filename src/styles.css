@@ -501,3 +501,9 @@ input[type="range"]::-webkit-slider-thumb {
   .t-flow [style*="font-size: 12px"] { font-size: 16px !important; }
   .t-flow [style*="font-size: 13px"] { font-size: 18px !important; }
 }
+
+/* ★ V131 §3：触屏可点元素 ≥44px（手机宽度下生效；不改桌面密度） */
+@media (max-width: 520px) {
+  button, .city-tab, .district-card { min-height: 44px; }
+  button { min-width: 44px; }
+}

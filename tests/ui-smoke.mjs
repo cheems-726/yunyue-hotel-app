@@ -326,6 +326,43 @@ try {
   // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
   await assertLayout(page, '学生经营页')
   await assertNoHorizOverflow(page, '学生经营页')
+
+  // ★ V131 §3：真拖滑块（鼠标坐标拖拽，不是设 value）
+  await page.evaluate(() => { const c = [...document.querySelectorAll('.task-card')].find(x => x.textContent.includes('超额预订')); c && c.click() })
+  await sleep(700)
+  const dragBefore = await page.evaluate(() => { const r = document.querySelector('input[type=range]'); return r ? Number(r.value) : null })
+  const box = await page.locator('input[type=range]').first().boundingBox().catch(() => null)
+  if (box) {
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.85, box.y + box.height / 2, { steps: 10 })
+    await page.mouse.up()
+  }
+  await sleep(300)
+  const dragAfter = await page.evaluate(() => { const r = document.querySelector('input[type=range]'); return r ? Number(r.value) : null })
+  ok('真拖滑块（鼠标坐标）数值变化', dragBefore != null && dragAfter != null && dragAfter !== dragBefore, `${dragBefore} → ${dragAfter}`)
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button, span')].find(x => x.textContent.includes('‹ 返回')); b && b.click() })
+  await sleep(600)
+
+  // ★ V131 §3：390×844 触屏检查（无横向溢出 + 可点元素 ≥44px）
+  await page.setViewportSize({ width: 390, height: 844 })
+  await sleep(500)
+  const mobile = await page.evaluate(() => {
+    const w = document.documentElement.clientWidth
+    const overflow = document.documentElement.scrollWidth > w + 1
+    const sel = 'button, .task-card, .city-tab, .tabbar button, .district-card'
+    const els = [...document.querySelectorAll(sel)].filter(e => {
+      const r = e.getBoundingClientRect()
+      return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'
+    })
+    const small = els.filter(e => { const r = e.getBoundingClientRect(); return r.height < 44 || r.width < 44 })
+    return { overflow, total: els.length, smallCount: small.length, small: small.slice(0, 10).map(e => `${(e.textContent || '').trim().slice(0, 10)}:${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`) }
+  })
+  ok('390px 无横向溢出', !mobile.overflow)
+  ok(`可点元素 ≥44px（共 ${mobile.total} 个，<44 的 ${mobile.smallCount} 个）`, mobile.smallCount === 0, mobile.small.join(' | '))
+  await page.setViewportSize({ width: 480, height: 900 })
+  await sleep(400)
+
   // 职业置顶断言：注入 groupRole=lobby → 大堂经理职责决策应置顶且带"我的职责"徽章（防回归）
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('hotel-sim-state') || '{}')
