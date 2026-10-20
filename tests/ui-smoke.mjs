@@ -393,6 +393,26 @@ try {
   })
   ok('390px 无横向溢出', !mobile.overflow)
   ok(`可点元素 ≥44px（共 ${mobile.total} 个，<44 的 ${mobile.smallCount} 个）`, mobile.smallCount === 0, mobile.small.join(' | '))
+  // ★ V134 §2：逐页 390×844（报表/口碑/我的/游戏）
+  const 量页 = async (名) => {
+    const m = await page.evaluate(() => {
+      const w = document.documentElement.clientWidth
+      const overflow = document.documentElement.scrollWidth > w + 1
+      const sel = 'button, .task-card, .city-tab, .tabbar button, .district-card'
+      const els = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' })
+      const small = els.filter(e => { const r = e.getBoundingClientRect(); return r.height < 44 || r.width < 44 })
+      return { overflow, total: els.length, smallCount: small.length, small: small.slice(0, 6).map(e => `${(e.textContent || '').trim().slice(0, 8)}:${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`) }
+    })
+    ok(`390·${名}：无横向溢出`, !m.overflow)
+    ok(`390·${名}：可点元素 ≥44（${m.total} 个，<44 ${m.smallCount}）`, m.smallCount === 0, m.small.join(' | '))
+  }
+  for (const 名 of ['报表', '口碑', '我的', '游戏']) {
+    await page.evaluate((n) => { const b = [...document.querySelectorAll('.tabbar button')].find(x => x.textContent.includes(n)); b && b.click() }, 名)
+    await sleep(600)
+    await 量页(名)
+  }
+  await page.evaluate(() => { const b = [...document.querySelectorAll('.tabbar button')].find(x => x.textContent.includes('经营')); b && b.click() })
+  await sleep(500)
   await page.setViewportSize({ width: 480, height: 900 })
   await sleep(400)
 
@@ -646,6 +666,20 @@ try {
     }
     okT('教师端底部三导航+实时大屏', liveReady)
     await assertLayout(pg, '教师实时决策')
+    // ★ V134 §2：教师端 390×844
+    await pg.setViewportSize({ width: 390, height: 844 }); await sleep(500)
+    {
+      const m = await pg.evaluate(() => {
+        const w = document.documentElement.clientWidth
+        const overflow = document.documentElement.scrollWidth > w + 1
+        const els = [...document.querySelectorAll('button, .city-tab, .district-card')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' })
+        const small = els.filter(e => { const r = e.getBoundingClientRect(); return r.height < 44 || r.width < 44 })
+        return { overflow, total: els.length, smallCount: small.length, small: small.slice(0, 6).map(e => `${(e.textContent || '').trim().slice(0, 8)}:${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`) }
+      })
+      okT('390·教师端：无横向溢出', !m.overflow)
+      okT(`390·教师端：可点元素 ≥44（${m.total} 个，<44 ${m.smallCount}）`, m.smallCount === 0, m.small.join(' | '))
+    }
+    await pg.setViewportSize({ width: 480, height: 900 }); await sleep(300)
     // ── V12批0-4 · 教师端 DOM 键名扫描（D133 原发现地：决策流水行）──
     {
       const ICONS_KEYS = Object.keys(JSON.parse(readFileSync(new URL('./icon-keys.json', import.meta.url), 'utf8')))

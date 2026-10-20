@@ -289,7 +289,10 @@ const s = (site && typeof site.attrs === 'object' && site.attrs)
   //     与成都住建局《租赁住房平均租金水平信息》的住宅类 40–46 元/㎡/月同量级；
   //     旧的 65（≈65 元/㎡/月）明显高于市场 ⇒ 本次是【向真实租金回归】，不是为过断言调参。
   //   ★ 门禁仍保持 ⏳ 已知红：阈值 ≤15% 与教学目标 20–30% 互不相容（见待决策队列 A-1(i)/(ii)）。
-  const rentCost = rentPerRoomDay(s.租金 || 3)
+  // ★ V134 §1（D162）：经济型品牌的【租金系数】—— 经济型普遍选低租金物业/二楼以上（真实行业做法）。
+  //   缺省/非法 ⇒ 1 ⇒ 所有既有品牌逐字节不变（零变化）。
+  const 品牌租金系数 = brand && Number.isFinite(Number(brand.rentFactor)) ? Math.max(0.5, Math.min(1, Number(brand.rentFactor))) : 1
+  const rentCost = rentPerRoomDay(s.租金 || 3) * 品牌租金系数
 
   // 1.6 竞争强度（选址"竞争"属性 1-5 → 客流折减）
   const competition = 1.15 - (s.竞争 || 3) * 0.05 // 竞争越大，客流越被分走

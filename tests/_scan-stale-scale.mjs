@@ -106,7 +106,8 @@ if (SINCE) {
     console.error('✗ --since ' + SINCE + ' 无法解析：' + String(r.stderr || '').trim().slice(0, 160))
     process.exit(2)
   }
-  sinceList = (r.stdout || '').trim().split(/\r?\n/).filter(Boolean).map(p => p.replace(/^src\//, ''))
+  // ★ V134 §4：git diff 会带出 public/games 等非 src 代码；扫描器只扫 src 根 ⇒ 先按 src/ 过滤（判据不放宽）
+  sinceList = (r.stdout || '').trim().split(/\r?\n/).filter(Boolean).filter(p => p.startsWith('src/')).map(p => p.replace(/^src\//, ''))
   scanned = files.filter(f => sinceList.includes(f))
 }
 

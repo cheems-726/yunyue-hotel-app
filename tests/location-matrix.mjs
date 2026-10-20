@@ -3,7 +3,7 @@ import { settle } from '../src/settlement.js'
 import { districts } from '../src/siteLocations.mjs'
 
 const BRANDS = [
-  { name: '汉庭', price: '180-280元', standard: '客房70间起', level: '经济型 · 国民' },
+  { name: '汉庭', price: '210-310元', standard: '客房70间起', level: '经济型 · 国民', rentFactor: 0.5 },   // ★ V134：同步 brands.mjs（阈值/判据未动）
   { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' },
 ]
 

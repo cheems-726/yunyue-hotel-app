@@ -54,7 +54,7 @@ console.log('\n[2] --since 限定范围（且结果 ⊆ 全量）')
   //   修法：把 sinceFiles 先按同一前缀过滤再比 —— 判据没放宽（"扫了但没记"仍会被抓），只是口径对齐。
   // 🔴 2026-10-03（V10b）：同 N-0 先例再做一次口径对齐 —— 扫描器只扫 src 根的 .js/.jsx/.mjs
   //   （styles.css 等非代码文件从来不在扫描范围），该扫清单按同一规则过滤后再比（判据不放宽）。
-  const 该扫 = (j2.scope.sinceFiles || []).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.startsWith('settle-old'))
+  const 该扫 = (j2.scope.sinceFiles || []).filter(f => /\.(js|jsx|mjs)$/.test(f) && !f.includes('/') && !f.startsWith('settle-old'))
   ok(该扫.length === j2.scope.scannedFiles,
     `scannedFiles 恰等于【该扫的】改动代码文件数（${该扫.length} 个；已按扫描器同口径排除 settle-old-* 与非代码文件）`)
   // ⊆：--since 的真残留集合必须是全量的子集（按 file:line）

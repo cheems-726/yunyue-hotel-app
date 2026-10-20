@@ -88,6 +88,7 @@ const SUITES = [
   { name: 'claimChoices（认领6步取舍·V131）', file: 'tests/claimChoices.test.mjs' },
   { name: 'v132（V131返工收口·V132）', file: 'tests/v132.test.mjs' },
   { name: 'gamesLibrary（小游戏入口守门·V133）', file: 'tests/gamesLibrary.test.mjs' },
+  { name: 'v134Balance（经济型可经营·V134）', file: 'tests/v134Balance.test.mjs' },
   { name: 'loginReliability（登录预检与错误分级·V129）', file: 'tests/loginReliability.test.mjs' },
   { name: 'swPolicy（API 不复用缓存·V129）', file: 'tests/swPolicy.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },
@@ -234,6 +235,7 @@ const SUITES = [
       since: '2026-09-27', decision: 'D39 + D47-e', owner: '用户（待决策队列）',
     } },
   { name: 'offlineLogin（断网登录真浏览器·V129）', file: 'tests/offlineLogin.test.mjs', browser: true },
+  { name: 'fullWeekE2E（全周真交互·V134）', file: 'tests/fullWeekE2E.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）
