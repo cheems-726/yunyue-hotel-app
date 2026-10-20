@@ -8,7 +8,7 @@
 set -euo pipefail
 
 SRC="${1:?用法: install-units.sh <目录>}"
-for f in backup.sh opscheck.sh restore-drill.sh housekeeping.sh monitor.mjs \
+for f in backup.sh opscheck.sh restore-drill.sh housekeeping.sh offsite-backup.sh monitor.mjs \
          yunyue-backup.service yunyue-backup.timer \
          yunyue-monitor.service yunyue-monitor.timer jail.local; do
   [ -f "$SRC/$f" ] || { echo "✗ 缺文件：$SRC/$f" >&2; exit 1; }
