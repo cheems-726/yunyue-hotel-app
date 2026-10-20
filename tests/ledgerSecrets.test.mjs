@@ -7,7 +7,7 @@
 //   C 扫描自检 —— 必须真的扫到两个仓 + 对外台账（防"扫了个空还绿"）
 // 覆盖：文档仓（..）+ 代码仓（.），各用 git ls-files 取跟踪清单（未跟踪的本地密料/私钥天然不在内）
 // 运行：node tests/ledgerSecrets.test.mjs
-// RV：往任意**非 allowlist** 的被跟踪文件里插一行 `test123456` ⇒ 必红（见 tests/_rv-v130-ledger.mjs）
+// RV：往任意**非 allowlist** 的被跟踪文件里插一行共享口令 ⇒ 必红（见 tests/_rv-v130-ledger.mjs）
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
