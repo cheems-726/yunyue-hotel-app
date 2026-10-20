@@ -223,6 +223,9 @@ const SUITES = [
     } },
   { name: 'offlineLogin（断网登录真浏览器·V129）', file: 'tests/offlineLogin.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
+  // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
+  //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）
+  { name: 'opscheck（服务器九项巡检·V130）', file: 'tests/opscheck.test.mjs', browser: true },
   { name: 'verify-capital（资金权威 + B5）', file: 'tests/verify-capital.mjs', browser: true },
   { name: 'v75-verify（点开必有内容抽查·V75）', file: 'tests/_v75-verify.mjs', browser: true },
   { name: 'v76-verify（品牌面板与对比抽查·V76）', file: 'tests/_v76-verify.mjs', browser: true },
