@@ -14,6 +14,8 @@ import WeeklyReport from './WeeklyReport.jsx'
 import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117：过程分台账
 import DailyQuests from './DailyQuests.jsx'
+import GamesLibrary from './GamesLibrary.jsx'   // ★ V133：小游戏入口
+import GamePlayer from './GamePlayer.jsx'
 import BetCard from './BetCard.jsx'   // ★ V131 §1-A：先押注后揭晓
 import { 结算押注, 押注有效, 押注校准 } from './bets.mjs'
 import { 本周关键决策, 关键理由条数 } from './keyReasons.mjs'   // ★ V131 §1-B
@@ -2137,6 +2139,7 @@ export default function App() {
   //   否则 800ms 先到、云端 GET 还没回来：cloudState.hotelName 仍是空 ⇒ 用空名覆盖云端真名（#11 同族竞态）。
   const [云端恢复中, set云端恢复中] = useState(false)
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
+  const [游戏进行中, set游戏进行中] = useState(null)   // ★ V133：正在玩的小游戏（null=不在玩）
   // 🔴 E2：自动周报相关状态（全部进存档）
   //   openDayNo    = 首次进入经营时的【教学日历日序号】—— 用来把本地日期换算成 classDay（T9：客户端只做本地等效显示，不判定归属）
   //   decisionChanges = 本周决策改动流水（第几天改了什么）⇒ 周报「本周变更记录」
@@ -2298,6 +2301,7 @@ export default function App() {
     { key: 'report', icon: 'nav.report', label: '报表' },
     { key: 'reputation', icon: 'nav.review', label: '口碑', badge: true },
     { key: 'profile', icon: 'nav.me', label: '我的' },
+    { key: 'games', icon: 'event.holiday', label: '游戏' },   // ★ V133：第 5 项
   ]
 
   function open(title, icon, key) {
@@ -3131,6 +3135,7 @@ export default function App() {
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,
+      games: <GamesLibrary onPlay={set游戏进行中} />,   // ★ V133：游戏列表
     }
     mainPage = pages[tab]
   }
@@ -3165,6 +3170,9 @@ export default function App() {
       {/* P1-补：左边缘手势拦截层（仅弹层/决策面板打开时渲染） */}
       {anyLayerOpen && <div ref={edgeGuardRef} className="edge-guard" aria-hidden="true" />}
 
+      {/* ★ V133：全屏游戏（覆盖 tabbar） */}
+      {游戏进行中 && <GamePlayer 游戏={游戏进行中} onBack={() => set游戏进行中(null)} />}
+      {!游戏进行中 && (
       <div className="tabbar">
         {tabs.map(t => (
           <button className={`tab ${tab === t.key && !openPage ? 'active' : ''}`} key={t.key} onClick={() => { setTab(t.key); close() }}>
@@ -3174,6 +3182,7 @@ export default function App() {
           </button>
         ))}
       </div>
+      )}
       {/* 全班进度提示：老师锁周且学生超前时显示 */}
       {classWeek > 0 && !report && !finished && week > classWeek && (
         <div onClick={() => setTab('business')} style={{ position: 'fixed', bottom: 'calc(86px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, fontWeight: 600, padding: '8px 16px', borderRadius: 999, whiteSpace: 'nowrap', zIndex: 50, maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -87,6 +87,7 @@ const SUITES = [
   { name: 'thinkingBoard（思维看板·V131）', file: 'tests/thinkingBoard.test.mjs' },
   { name: 'claimChoices（认领6步取舍·V131）', file: 'tests/claimChoices.test.mjs' },
   { name: 'v132（V131返工收口·V132）', file: 'tests/v132.test.mjs' },
+  { name: 'gamesLibrary（小游戏入口守门·V133）', file: 'tests/gamesLibrary.test.mjs' },
   { name: 'loginReliability（登录预检与错误分级·V129）', file: 'tests/loginReliability.test.mjs' },
   { name: 'swPolicy（API 不复用缓存·V129）', file: 'tests/swPolicy.test.mjs' },
   { name: 'rosterIntegrity（名册一致性·V114-P2）', file: 'tests/rosterIntegrity.test.mjs' },

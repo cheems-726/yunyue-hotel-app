@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>客房摆放 · 摆一摆</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- 开场：选房 -->
+<section class="start" id="start">
+  <div class="start-glow"></div>
+  <div class="start-inner">
+    <div class="start-eyebrow">客 房 实 训 · 摆 一 摆</div>
+    <h1 class="start-title">选 一 间 房</h1>
+    <p class="start-sub">按华住旗下品牌的真实房型来摆 · 摆完看星级</p>
+    <div class="rooms" id="rooms"></div>
+    <div class="start-foot">放错不扣分，想怎么摆就怎么摆</div>
+  </div>
+</section>
+
+<div class="ui" id="ui">
+  <header class="brand">
+    <div class="eyebrow" id="brandLine">全季 · 大床房</div>
+    <h1 id="roomName">大床房</h1>
+    <p class="sub">把拆散的客房用品，摆回你觉得对的位置</p>
+  </header>
+
+  <div class="count">已摆放 <b id="cnt">0</b> / <span id="total">14</span></div>
+
+  <div class="tools">
+    <div class="seg" id="views">
+      <button data-view="iso" class="on">45°</button>
+      <button data-view="top">俯视</button>
+      <button data-view="front">正视</button>
+    </div>
+    <button class="btn" id="btnBack">换房</button>
+    <button class="btn" id="btnReset">重置</button>
+    <button class="btn primary" id="btnDone">完成布置</button>
+  </div>
+
+  <div class="tray" id="tray">
+    <div class="tray-head">
+      <div class="tray-title">待 摆 放</div>
+      <div class="tray-hint">拖到房间里，放到你觉得对的位置</div>
+    </div>
+    <div class="chips-wrap">
+      <button class="scroll-btn left" id="scrollL" aria-label="向左">‹</button>
+      <div class="chips" id="chips"></div>
+      <button class="scroll-btn right" id="scrollR" aria-label="向右">›</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
