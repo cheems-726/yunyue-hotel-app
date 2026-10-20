@@ -60,7 +60,7 @@ console.log('\n[④] 闸门与接线（静态）')
 {
   const wr = readFileSync('src/WeeklyReport.jsx', 'utf8')
   ok(/const 需押注 = !本周已押/.test(wr), '周报：未押注 ⇒ 需押注')
-  ok(/disabled=\{需反思 \|\| 需押注\}/.test(wr), '★ 未押注 ⇒ 「进入下一周」禁用')
+  ok(/disabled=\{需复盘 \|\| 需押注\}/.test(wr), '★ 未押注 ⇒ 「进入下一周」禁用（与复盘闸门串联）')
   ok(/押 \{押\.出租率\}%|押 <b>\{押\.出租率\}%/.test(wr), '周报渲染「押 X% → 实际 Y% → 得分 Z」')
   ok(/补押 · 不计分/.test(wr), '补押明确标注不计分')
   const app = readFileSync('src/App.jsx', 'utf8')
