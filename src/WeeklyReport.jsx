@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import Week1Review from './Week1Review.jsx'   // ★ V113-1.4：第 1 周对照（反思必填）
+import WeekReview from './WeekReview.jsx'   // ★ V131 §1-D：三问复盘（每题 ≥20 字）
 import BetCard from './BetCard.jsx'   // ★ V131 §1-A：未押注时在周报里补押（不计分）
 import { 押注有效 } from './bets.mjs'
 import MetricBoard from './MetricBoard.jsx'   // ★ V113-2.1：本周 6 指标 + 成本结构
 import AttributionCard from './AttributionCard.jsx'   // ★ V113-2.5：每周归因（不卡关）
-import { 第1周反思完成 } from './choiceReasons.mjs'
+import { 复盘Of, 本周复盘完成 } from './weekReview.mjs'
 import Icon from './Icon.jsx'
 import { getTitle } from './hotelTitle.js'
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
@@ -200,10 +200,11 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null, 复盘历史 = [], on复盘提交 = null }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
-  const [反思ok, set反思ok] = useState(() => 第1周反思完成())
-  const 需反思 = Number(result && result.week) === 1 && !反思ok
+  // ★ V131 §1-D：三问复盘（所有周都要，每题 ≥20 字）
+  const 记录复盘 = 复盘Of(复盘历史, result && result.week)
+  const 需复盘 = !本周复盘完成(复盘历史, result && result.week)
   // ★ V131 §1-A：未押注不能进入下一周（周报里可补押，但补押不计分）
   const 押 = result && result.押注 ? result.押注 : null
   const 本周已押 = !!押 || 押注有效(押注, result && result.week)
@@ -732,7 +733,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
 
       <MetricBoard row={result} />
       {Number(result && result.week) >= 2 && history.length >= 1 && <AttributionCard week={Number(result.week)} prev={history[history.length - 1]} cur={result} userId={userId} groupKey={groupKey} />}
-      {Number(result && result.week) === 1 && <Week1Review result={result} onStatus={set反思ok} />}
+      <WeekReview week={Number(result && result.week) || 1} 记录={记录复盘} on提交={on复盘提交} />
       {/* ★ V131 §1-A：押注揭晓（押 X → 实际 Y → 得分 Z） */}
       {押 && (
         <div className="card" style={{ borderColor: 'var(--primary-border)', background: 'var(--primary-bg)' }}>
@@ -756,8 +757,8 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
       )}
 
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" style={{ opacity: 需反思 || 需押注 ? 0.5 : 1 }} disabled={需反思 || 需押注} onClick={onClose}>
- {需押注 && 需反思 ? '先押注并填「我忽略了什么信号」才能进入下一周' : 需押注 ? '先押注（补押不计分）才能进入下一周' : 需反思 ? '先填「我忽略了什么信号」才能进入下一周' : (result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`)}
+        <button className="btn-confirm" style={{ opacity: 需复盘 || 需押注 ? 0.5 : 1 }} disabled={需复盘 || 需押注} onClick={onClose}>
+ {需押注 && 需复盘 ? '先押注并完成三问复盘才能进入下一周' : 需押注 ? '先押注（补押不计分）才能进入下一周' : 需复盘 ? '先完成三问复盘才能进入下一周' : (result.week >= 12 ? ' 查看 12 周最终成绩 →' : `进入第 ${result.week + 1} 周，重新决策 →`)}
         </button>
  {/* E2：周报是【自动】产生的 —— 允许"先不处理，回去接着做决策"，
  经营页保留只读回看入口「 查看本周周报」（不允许这里再改任何数值） */}

@@ -4,10 +4,11 @@ import { 代价文案 } from './decisionRisk.mjs' // §32-U4c-R6 原则④：代
 import ResultFeedback from './ResultFeedback.jsx'
 // 🔴 E3（N-3）：档位与'次日生效'口径来自 decisionCadence（单源；本文件不另写一份）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG, 归属日 } from './decisionCadence.mjs'
+import { 理由合格 } from './keyReasons.mjs'   // ★ V131 §1-B：关键决策必填一句理由
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
-export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [] }) {
+export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [], 要求理由 = false, 初始理由 = '' }) {
   const [feedback, setFeedback] = useState(null)
   const [sliderVal, setSliderVal] = useState(() =>
     decision.type === 'slider' && initial != null ? initial : (decision.min ?? 0)
@@ -27,6 +28,8 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
     decision.type === 'sort' && Array.isArray(initial) ? [...initial] : (decision.items || [])
   )
   const [timeLeft, setTimeLeft] = useState(30)
+  const [理由, set理由] = useState(String(初始理由 || ''))   // ★ V131：关键决策的一句理由
+  const [理由错误, set理由错误] = useState('')
   const [selected, setSelected] = useState(() =>
     (decision.type === 'option' || decision.type === 'timer') && typeof initial === 'string' ? initial : null
   )
@@ -95,13 +98,16 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
   }
 
   function confirm() {
+    // ★ V131 §1-B：关键决策未写理由 ⇒ 不能确认（不是提交后提示）
+    if (要求理由 && !理由合格(理由)) { set理由错误('这项代价最大：先写一句为什么（≤30 字）'); return }
+    set理由错误('')
     let answer
     if (decision.type === 'slider') answer = sliderVal
     else if (decision.type === 'budget') answer = { ...budget }
     else if (decision.type === 'sort') answer = [...sortItems]
     else answer = selected
 
-    onDone(decision.id, answer)
+    onDone(decision.id, answer, 要求理由 ? 理由.trim() : '')
   }
 
   // 是否有有效选择
@@ -319,9 +325,26 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
         )}
       </div>
 
+      {/* ★ V131 §1-B：关键决策必填一句理由 */}
+      {要求理由 && (
+        <div style={{ margin: '0 20px 8px', padding: '10px 12px', borderRadius: 10, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)' }}>
+          <div style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 700, marginBottom: 4 }}>一句话说明为什么（≤30 字，必填）</div>
+          <input
+            value={理由}
+            maxLength={30}
+            data-reason-input="1"
+            onChange={e => { set理由(e.target.value); set理由错误('') }}
+            placeholder="例如：回收期太长，这学期回不了本"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box' }}
+          />
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'right' }}>{理由.trim().length}/30</div>
+          {理由错误 && <div style={{ fontSize: 12, color: 'var(--bad)' }}>{理由错误}</div>}
+        </div>
+      )}
+
       {/* 确认按钮 */}
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" disabled={!hasSelection} onClick={confirm}>
+        <button className="btn-confirm" disabled={!hasSelection || (要求理由 && !理由合格(理由))} onClick={confirm}>
           {isEdit ? '修改决策，保存'
             : (selected || decision.type === 'slider' || decision.type === 'sort' || (decision.type === 'budget' && hasSelection))
               ? '确认决策，保存'

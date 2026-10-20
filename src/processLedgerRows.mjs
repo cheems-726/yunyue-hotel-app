@@ -4,8 +4,9 @@
 //   · 理由：★ V128-#1 云端 state.取舍理由（合格键数组，随存档上传；教师端不再读学生本机）
 import { 过程分台账, 选址过程分 } from './processScore.mjs'
 import { 真值 } from './attribution.mjs'
+import { 本周关键决策, 关键理由条数 } from './keyReasons.mjs'   // ★ V131 §1-B
 
-export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [], 每日委托 = [], 本周天数 = 0, 押注历史 = [] } = {}) {
+export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归因日志 = [], 选址承诺书 = null, 理由 = [], 每日委托 = [], 本周天数 = 0, 押注历史 = [], 决策理由 = {} } = {}) {
   const 周s = Array.isArray(history) ? history : []
   const 归因 = []
   for (const lg of (归因日志 || [])) {
@@ -28,5 +29,8 @@ export function 台账行FromCloud({ 组 = '', 酒店名 = '', history = [], 归
   const 押注周 = 周s.length ? Number(周s[周s.length - 1].week) || 0 : 0
   const 押注 = (Array.isArray(押注历史) ? 押注历史 : []).find(x => x && Number(x.week) === 押注周)
   const 押注分 = 押注 && Number.isFinite(Number(押注.总分)) ? Number(押注.总分) : null
-  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键, 委托, 押注校准: 押注分 }) }
+  // ★ V131 §1-B：本周 3 项关键决策写了几条理由
+  const 周 = 周s.length ? Number(周s[周s.length - 1].week) || 1 : 1
+  const 关键 = 关键理由条数(决策理由, 周, 本周关键决策([]))
+  return { 组, 酒店名, 台账: 过程分台账({ 承诺书, 归因, 理由: 理由键, 委托, 押注校准: 押注分, 关键理由: 关键 }) }
 }

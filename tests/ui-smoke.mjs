@@ -3,7 +3,7 @@
 // 机制：任何 UI 改动 commit 前必须全过（PASS ≥ 清单全绿）
 import { 过命名页 } from './_v114-name.mjs'   // ★ V114-P1
 import { chromium } from 'playwright-core'
-import { 填第1周反思 } from './_v113-week1.mjs'   // ★ V113-1.4
+// ★ V131：三问复盘改为页面内联填写（不再用 V113 单问助手）
 import { 过两道闸门 } from './_v109-site.mjs'
 let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ 结束时不清杀）
 import { spawn, execSync } from 'node:child_process'
@@ -373,9 +373,19 @@ try {
   ok('指标观察板（成本条形合计 100%±0.1% · 分两段）', await page.evaluate(() => { const bars = [...document.querySelectorAll('[data-costbar="1"]')]; if (!bars.length) return false; const s = bars.reduce((acc, b) => acc + [...b.children].reduce((a, c) => a + Number(c.getAttribute('data-w')), 0), 0); return Math.abs(s - 1) <= 0.001 }))
   // ★ V114-P1④：周报标题同样带酒店名（三处同源之二）
   ok('周报标题带酒店名（与顶栏逐字相同）', (await text(page)).includes('云悦测试店 · 第 1 周经营结果'))
-  ok('第1周对照面板（含我忽略了什么信号）', (await text(page)).includes('我忽略了什么信号'))
-  ok('第1周反思/押注未完成时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /我忽略了什么信号/.test(x.textContent)); return !!b && b.disabled === true }))
-  await 填第1周反思(page)   // ★ V113-1.4：第 1 周「我忽略了什么信号」必填
+  ok('第1周三问复盘面板在位', (await text(page)).includes('本周哪个信号'))
+  ok('复盘/押注未完成时禁止进下一周', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /三问复盘/.test(x.textContent)); return !!b && b.disabled === true }))
+  // ★ V131 §1-D：三问各 ≥20 字（真输入 + 提交）
+  await page.evaluate(() => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+    document.querySelectorAll('[data-review-q]').forEach((el, i) => {
+      setter.call(el, '这是第' + (i + 1) + '问的复盘：本周看到了信号但没有重视，事后看代价不小，下周只改一件事并提前判断。')
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  })
+  await sleep(300)
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '提交复盘'); if (b) b.click() })
+  await sleep(500)
   // ★ V131 §1-A：先押注（周报里补押，不计分）—— 未押注同样禁止进下一周
   ok('未押注时禁止进下一周（补押提示在位）', await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /先押注/.test(x.textContent)); return !!b && b.disabled === true }))
   await page.evaluate(() => {
