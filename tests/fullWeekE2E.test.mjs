@@ -54,7 +54,7 @@ try {
   await page.unroute('**/auth/v1/token**')
   for (const h of ['http://121.196.196.37', 'https://121.196.196.37', `http://localhost:${PORT}`]) await page.unroute(h + '/health')
   // 恢复段：token 用「真 GoTrue 400 形状」回包。理由（实测，2026-10-21）：
-  //   ① 共享测试口令已被审计端重置（20240101/test123456 现在返回 invalid_credentials）
+  //   ① 共享测试口令已被审计端重置（20240101/共享测试口令 现在返回 invalid_credentials）
   //   ② 本机到 supabase.co 的连接时通时断（ERR_CONNECTION_RESET），真发包做判据会闪红
   //   判据不变：拦截面撤掉后，登录必须进入「服务器应答」链路（口令错），不得再是「连不上」
   await page.route('**/auth/v1/token**', r => r.fulfill({ status: 400, contentType: 'application/json',
