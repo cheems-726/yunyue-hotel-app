@@ -236,6 +236,7 @@ const SUITES = [
     } },
   { name: 'offlineLogin（断网登录真浏览器·V129）', file: 'tests/offlineLogin.test.mjs', browser: true },
   { name: 'fullWeekE2E（全周真交互·V134）', file: 'tests/fullWeekE2E.test.mjs', browser: true },
+  { name: 'emptyState（V99 空态逐面·V135）', file: 'tests/emptyState.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

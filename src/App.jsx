@@ -108,6 +108,7 @@ function LoginPage({ onLogin }) {
   const [errorNext, setErrorNext] = useState('')       // ★ V129：每类错误都要给"下一步"
   const [errorKind, setErrorKind] = useState('')
   const [busy, setBusy] = useState(false)
+  const [显示密码, set显示密码] = useState(false)   // ★ V135 §1-2：显示/隐藏密码（R3 唯一缺口）
   // ★ V129-R109-1：登录页挂载即做连通预检（不等用户点登录）
   const [预检, set预检] = useState({ 状态: '探测中', 说明: '正在检查连接…', 可用入口: null, 入口s: [] })
   const accountRef = useRef(null)
@@ -279,16 +280,21 @@ function LoginPage({ onLogin }) {
         />
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, position: 'relative' }}>
         <div style={{ fontSize: 16, color: 'var(--text-sub)', marginBottom: 6 }}>密码</div>
         <input
           onKeyDown={e => { if (e.key === 'Enter' && !busy) handleLogin() }}   /* ★ V98-⑤ 回车提交（!busy 守卫 · R109-1 同上）*/
-          type="password"
+          type={显示密码 ? 'text' : 'password'}
           value={password}
           onChange={e => setPassword(e.target.value)}
           placeholder="至少 6 位"
-          style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', padding: '14px 56px 14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
         />
+        <button type="button" data-pwd-toggle="1" aria-label={显示密码 ? '隐藏密码' : '显示密码'} disabled={busy}
+          onClick={() => set显示密码(v => !v)}
+          style={{ position: 'absolute', right: 4, bottom: 4, minWidth: 44, minHeight: 44, background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+          {显示密码 ? '隐藏' : '显示'}
+        </button>
       </div>
 
       {error && (

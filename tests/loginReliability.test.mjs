@@ -70,6 +70,8 @@ console.log('\n[③] 登录页接线（静态）：挂载即预检 · 错误带�
   const 注册trim = (app.match(/signUp\(\{ email, password: String\(password\)\.trim\(\) \}\)/g) || []).length
   ok(登录trim === 1 && 注册trim === 1, `登录/注册都保留 trim（实得 ${登录trim}/${注册trim}）`)
   ok(/校验工号\(role, id\)/.test(app), '工号校验走 loginReliability 单源')
+  // ★ V135 §1-2：R3 显示/隐藏密码
+  ok(/data-pwd-toggle="1"/.test(app) && /type=\{显示密码 \? 'text' : 'password'\}/.test(app), '密码显示/隐藏切换在位（R3）')
 }
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败')

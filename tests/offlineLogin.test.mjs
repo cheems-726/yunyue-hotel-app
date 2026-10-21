@@ -45,6 +45,13 @@ try {
 
   // ② 断网登录 ⇒ 报"连不上服务器"，不是"账号或密码错误"
   await page.getByText('我是学生', { exact: true }).click().catch(() => {})
+  // ★ V135 §1-2：显示/隐藏密码（R3）
+  const 初始 = await page.locator('input[type=password]').count()
+  await page.click('[data-pwd-toggle]').catch(() => {})
+  const 明文 = await page.locator('input[type=text]').count()
+  await page.click('[data-pwd-toggle]').catch(() => {})
+  const 回密 = await page.locator('input[type=password]').count()
+  ok(初始 === 1 && 明文 >= 1 && 回密 === 1, '密码显示/隐藏可切换（text ⇄ password）')
   await page.locator('input').first().fill('20240101')
   // ★ V130 §1：这里只验证"断连时不要误报密码错"，密码值本身不参与断言 ⇒ 用占位串，
   //   不再写真实测试机口令（明文口令不许进仓库；判据见 tests/ledgerSecrets.test.mjs）
