@@ -35,6 +35,15 @@ export function 分类登录错误({ message = '', status = 0, name = '', 入口
       可重试: true,
     }
   }
+  // ①-0 账号停用：GoTrue 对禁用账号返回 400 user_banned（必须先于 400 通用分支，否则会显示成"密码错"）
+  if (/user.?banned|user is banned/i.test(msg)) {
+    return {
+      类型: 错误类型.凭证错误,
+      文案: '账号已停用（不能登录）',
+      下一步: '该账号已被停用；需要恢复请联系老师',
+      可重试: false,
+    }
+  }
   // ② 凭证错误：Supabase 400 invalid_credentials（必须在服务器故障之前判，避免 4xx 被并进网络错）
   if (st === 400 || /invalid.?login|invalid.?credentials|账号或密码错误/i.test(msg)) {
     return {

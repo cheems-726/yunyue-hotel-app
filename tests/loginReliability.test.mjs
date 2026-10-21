@@ -17,6 +17,8 @@ console.log('\n[①] 四类错误：文案 + 下一步 都在')
 
   const 凭证 = 分类登录错误({ message: 'Invalid login credentials', status: 400 })
   ok(凭证.类型 === 错误类型.凭证错误, '400 invalid_credentials ⇒ 凭证错误')
+  const 停用 = 分类登录错误({ message: 'User is banned', status: 400 })
+  ok(停用.文案.includes('停用') && !/密码|口令/.test(停用.文案), '400 user_banned ⇒ 账号停用，不显示「密码错」')
   ok(/工号或密码不对/.test(凭证.文案) && /大小写|空格/.test(凭证.文案), '凭证文案含"工号或密码不对（大小写/空格）"')
   ok(/旧口令立即失效/.test(凭证.下一步), '凭证：下一步含"旧口令立即失效"')
 
