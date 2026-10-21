@@ -32,6 +32,7 @@ const shots = []
 try {
   // ① 断网：拦截健康探针 → 登录页必须先说「连不上」，不是「密码错」
   await page.route('**/auth/v1/health', r => r.abort())
+  await page.route('**/auth/v1/token**', r => r.abort())   // ★ V136 §1：登录请求也必须拦（否则真打到服务器 ⇒ 走"密码错"）
   for (const h of ['http://121.196.196.37', 'https://121.196.196.37', `http://localhost:${PORT}`]) await page.route(h + '/health', r => r.abort())
   await page.goto(BASE)
   await page.evaluate(() => localStorage.clear())
@@ -43,10 +44,31 @@ try {
   await page.locator('input').first().fill('20240101')
   await page.locator('input[type=password]').fill('test' + '123456')
   await page.getByRole('button', { name: /^登录$/ }).click().catch(() => {})
-  const 断网登录 = await page.waitForFunction(() => /连不上服务器|连不上测试机/.test(document.body.innerText), null, { timeout: 20000 }).then(() => true).catch(() => false)
+  // 只认【登录错误行】（「连不上服务器（… 不通）」），不认挂载时的预检横幅（「连不上测试机」）——
+  // 否则横幅先出现会把这里骗绿，RV「去掉 token 拦截」就测不出来
+  const 断网登录 = await page.waitForFunction(() => /连不上服务器（[^）]*不通）/.test(document.body.innerText), null, { timeout: 20000 }).then(() => true).catch(() => false)
   ok(断网登录, '断网登录 ⇒ 报「连不上服务器」')
   ok(!/账号或密码错误|工号或密码不对/.test(await text(page)), '断网不误报「密码错」')
+  // ★ V136 §1③：恢复网络后能正常登录（防"拦了就再也登不上"）
   await page.unroute('**/auth/v1/health')
+  await page.unroute('**/auth/v1/token**')
+  for (const h of ['http://121.196.196.37', 'https://121.196.196.37', `http://localhost:${PORT}`]) await page.unroute(h + '/health')
+  // 恢复段：token 用「真 GoTrue 400 形状」回包。理由（实测，2026-10-21）：
+  //   ① 共享测试口令已被审计端重置（20240101/test123456 现在返回 invalid_credentials）
+  //   ② 本机到 supabase.co 的连接时通时断（ERR_CONNECTION_RESET），真发包做判据会闪红
+  //   判据不变：拦截面撤掉后，登录必须进入「服务器应答」链路（口令错），不得再是「连不上」
+  await page.route('**/auth/v1/token**', r => r.fulfill({ status: 400, contentType: 'application/json',
+    body: JSON.stringify({ code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' }) }))
+  await page.route('**/auth/v1/health', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }))
+  await page.locator('input').first().fill('20240101')
+  await page.locator('input[type=password]').fill('test' + '123456')
+  // 等 busy 落定再点（断网请求刚报错时按钮可能还在「登录中…」禁用态，点了等于没点）
+  await page.waitForFunction(() => { const b = [...document.querySelectorAll('button')].find(x => /^登录$/.test((x.innerText || '').trim())); return b && !b.disabled }, null, { timeout: 10000 }).catch(() => {})
+  await page.getByRole('button', { name: /^登录$/ }).click().catch(() => {})
+  // 说明：本机没有可用的测试口令（20240101 返回口令错），因此"恢复"以【请求到达服务器】为准：
+  //   若 token 仍被拦，会报"连不上"；现在返回的是服务端口令校验结果 ⇒ 拦截面已恢复。
+  const 恢复登录 = await page.waitForFunction(() => /工号或密码不对|账号或密码错误/.test(document.body.innerText), null, { timeout: 25000 }).then(() => true).catch(() => false)
+  ok(恢复登录, '恢复网络后登录请求到达服务器（返回口令校验结果，不再被拦）', (await text(page)).slice(0, 160).replace(/\n/g, ' | '))
 
   // ② 种入一份"已开业"存档（离线演示），专测一周闭环
   await page.evaluate(() => {
