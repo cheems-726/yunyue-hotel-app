@@ -29,3 +29,8 @@ tests/_shot-*.png
 
 # 门禁自述记录（run-all 每次跑自动重写；A1/BL-13 对策用）
 tests/_last-gate.json
+
+# V136：全周 E2E 每次跑都重写这 5 张截图（生成物，不入库）
+tests/_v13*-*.png
+tests/_v14*-*.png
+tests/_v133-*.png
