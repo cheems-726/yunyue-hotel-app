@@ -15,8 +15,8 @@
 //   磁盘>80% · 可用内存<150MB · tick>30 分钟没跑 · 备份>48h · 证书<15 天 ·
 //   SSH 失败>200 次/日 · 当前封禁>10 个
 // ═══════════════════════════════════════════════════════════════════════════
-import { execSync } from 'node:child_process'
-import { appendFileSync, existsSync, readFileSync, renameSync, statSync } from 'node:fs'
+import { execSync, spawnSync } from 'node:child_process'
+import { appendFileSync, existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 
 const JSONL = '/var/log/yunyue-monitor.jsonl'
@@ -125,6 +125,17 @@ if (alarms.length) {
   const aline = `[${ts}] ` + alarms.join(' | ')
   appendFileSync(ALERTS, aline + '\n')
   console.error('⚠ 告警：' + alarms.join(' | '))
+  // ★ 邮件推送（1 小时内只发一次，防刷屏；未配置授权码时 notify.sh 自己退出 2，不影响监测）
+  try {
+    const STAMP = '/var/lib/yunyue-notify-last'
+    let prev = 0
+    try { prev = Number(readFileSync(STAMP, 'utf8').trim()) || 0 } catch { /* 首次 */ }
+    if (Date.now() - prev > 3600e3) {
+      const r = spawnSync('/bin/bash', ['/opt/yunyue/scripts/notify.sh', `【云悦告警】${alarms.length} 项`, `${alarms.join('\n')}\n\n${line}`], { encoding: 'utf8', timeout: 30000 })
+      if (r.status === 0) { try { writeFileSync(STAMP, String(Date.now())) } catch {} }
+      else console.error('  （邮件未发送：' + String((r.stdout || '') + (r.stderr || '')).trim().slice(0, 160) + '）')
+    }
+  } catch { /* 通知失败不影响监测结论 */ }
   process.exit(1)
 }
 process.exit(0)
