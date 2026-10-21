@@ -15,7 +15,9 @@ export const brandGroups = [
       { name: '海友', icon: 'prop.hotel', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
       { name: '宜必思', icon: 'prop.hotel', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
       // ★ V87（2026-10-08）：官方 API 全量枚举新增（渠道① 官方原页 · franchise-cmsapi.huazhu.com/brand/brand/17）
-      { name: '怡莱', icon: 'prop.hotel', fee: '3000元/间(≥10万)·旧版官方', cost: '造价待补（官方现行 API 无此字段）', price: '待补', standard: '待补（以官网登记为准）', desc: '华住 2019 年升级的中小微经济型单体酒店管理品牌（官方 API brand/17）。' },
+      // ★ V136 §2：怡莱房价带 = 官方案例三口取外包（芜湖店 169 · 成都翻牌前 114.3/后 140.8 · 单位元，单房售价=ADR）
+      //   来源 https://franchise-cmsapi.huazhu.com/brand/brand/17（updateTime 2025-09-19）· 取数 2026-10-21 · 置信中（单店案例，非品牌公开带宽）
+      { name: '怡莱', icon: 'prop.hotel', fee: '3000元/间(≥10万)·旧版官方', cost: '造价待补（官方现行 API 无此字段）', price: '115-170元', standard: '待补（以官网登记为准）', desc: '华住 2019 年升级的中小微经济型单体酒店管理品牌（官方 API brand/17）。' },
     ]
   },
   {
