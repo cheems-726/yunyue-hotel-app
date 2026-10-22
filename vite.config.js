@@ -26,6 +26,8 @@ export default defineConfig({
   // ★ V138 §1.1：部署包用同源（location.origin）访问 Supabase ⇒ 本地 preview 必须把
   //   /rest /auth /realtime 代理到测试机，否则本地跑 UI 测试会 404（云断言被 skip，等于空转）
   preview: {
+    // V142 测试：允许用 www/test 的 Host 头打开本地 preview（验证“旧站横幅”）
+    allowedHosts: ['www.2026911301.xyz', 'test.2026911301.xyz'],
     proxy: {
       '/rest': { target: 'https://test.2026911301.xyz', changeOrigin: true, secure: false },
       '/auth': { target: 'https://test.2026911301.xyz', changeOrigin: true, secure: false },

@@ -241,6 +241,8 @@ const SUITES = [
   { name: 'loginDiagV140（登录诊断/兜底·V140）', file: 'tests/loginDiagV140.test.mjs', browser: true },
   { name: 'weeklyProfit（经营利润口径·V141）', file: 'tests/weeklyProfit.test.mjs' },
   { name: 'v141Profit（经营表现/游戏入口·V141）', file: 'tests/v141Profit.test.mjs', browser: true },
+  { name: 'entryHosts（入口域名白名单·V142）', file: 'tests/entryHosts.test.mjs' },
+  { name: 'v142Host（旧站横幅/跳转·V142）', file: 'tests/v142Host.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

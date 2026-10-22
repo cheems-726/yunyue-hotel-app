@@ -32,11 +32,31 @@ export function 周策略(h, n = 3) {
   return rows.sort((a, b) => order(a.id) - order(b.id)).slice(0, n)
 }
 
-/** 一句话归因（只拼代价表原文；没有决策就如实说没有） */
-export function 周归因(h) {
-  const s = 周策略(h, 3)
-  if (!s.length) return '本周无决策记录（按维持现状执行）'
-  return s.map(x => `${x.name}（${x.选项}）：${x.代价 || '无登记代价'}`).join('；')
+const 同值 = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+
+/** 本周 vs 上周改过的决策（只取既有 decisions 字段；没有变化 ⇒ 空数组） */
+export function 变化项(h, prev) {
+  const a = (h && h.decisions) || {}
+  const b = (prev && prev.decisions) || {}
+  const ids = [...new Set([...Object.keys(a), ...Object.keys(b)])]
+  return ids.filter(id => !同值(a[id], b[id])).map(id => {
+    const 旧 = b[id] != null ? (选项键(id, b[id]) || String(b[id])) : '未做'
+    const 新 = a[id] != null ? (选项键(id, a[id]) || String(a[id])) : '未做'
+    const 代价 = a[id] != null ? (选项代价(id, a[id])?.代价 || '无登记代价') : ''
+    return { id, name: 名称.get(id) || id, 旧, 新, 代价 }
+  })
+}
+
+/** 一句话归因：首周列初始策略；之后只解释【变化】；没变就明说未调整 */
+export function 周归因(h, prev = null) {
+  if (!prev) {
+    const s = 周策略(h, 3)
+    if (!s.length) return '首周无决策记录（按维持现状执行）'
+    return '首周：' + s.map(x => `${x.name}（${x.选项}）：${x.代价 || '无登记代价'}`).join('；')
+  }
+  const 变 = 变化项(h, prev)
+  if (!变.length) return '本周未调整决策，利润变化来自外部（出租率/事件/淡旺季）'
+  return 变.map(x => `${x.name}：${x.旧} → ${x.新}${x.代价 ? `（${x.代价}）` : ''}`).join('；')
 }
 
 /** 最近 4 周平均 GOP（回本外推只许用最近 4 周，不许整段平均） */

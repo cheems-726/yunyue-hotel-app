@@ -37,7 +37,7 @@ try {
       location: { city: '成都', district: '锦江区', attrs: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 } },
       brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.5 },
       property: { name: '交通枢纽物业' }, established: true, hotelName: '云悦V141店', welcomed: true,
-      week: 4, capital: 1490000, attrs: { quality: 60, reputation: 70, morale: 65 },
+      week: 5, capital: 1490000, attrs: { quality: 60, reputation: 70, morale: 65 },
       bizMode: 'direct', scaleVersion: 3, openDayNo: null, report: null, finished: false,
       decisionChanges: [], __autoSettled: [], operatorLogs: [], estChoices: {},
       doneDecisions: { pricing: '不跟降', shifts: '满编保服务' },
@@ -45,6 +45,7 @@ try {
         周(1, 28000, -50000, '不跟降', '满编保服务'),
         周(2, 30000, -40000, '跟降 10%', '满编保服务'),
         周(3, 32000, -30000, '不跟降', '精简省成本'),
+        周(4, 32000, -30000, '不跟降', '精简省成本'),
       ],
     }
     localStorage.setItem('hotel-sim-state', JSON.stringify(st))
@@ -54,10 +55,10 @@ try {
   console.log('▶ V141 · 经营表现 / 周策略 / 回本折叠')
   const t = await page.evaluate(() => document.body.innerText)
   ok(t.includes('云悦V141店') && t.includes('经营表现'), '进入经营页且首屏有「经营表现」')
-  ok(t.includes('+9.0万') && t.includes('累计经营利润'), '累计经营利润 = +9.0万（GOP 三周和）')
+  ok(t.includes('+12.2万') && t.includes('累计经营利润'), '累计经营利润 = +12.2万（GOP 四周和）')
   ok(t.includes('本周 +3.2万'), '本周经营利润 = +3.2万')
-  ok(t.includes('第 1 周') && t.includes('第 2 周') && t.includes('第 3 周'), '12 周清单含已结算的 3 周')
-  ok(t.includes('策略：') && t.includes('归因：') && /动态调价|排班策略/.test(t), '每周有「策略 → 归因」且来自决策目录')
+  ok(t.includes('第 1 周') && t.includes('第 2 周') && t.includes('第 3 周') && t.includes('第 4 周'), '12 周清单含已结算的 4 周')
+  ok(t.includes('首周策略：') && t.includes('调整：') && t.includes('归因：') && /动态调价|排班策略/.test(t), '每周有「策略/调整 → 归因」且来自决策目录')
   const pay = await page.evaluate(() => { const d = document.querySelector('details[data-payback="1"]'); return d ? { open: d.open, text: d.textContent } : null })
   ok(!!pay && pay.open === false, '投资回收默认折叠')
   if (pay) ok(/一次性投入|待补/.test(pay.text) || /一次性投入/.test(t), '折叠项含一次性投入（或待补）')
@@ -66,6 +67,7 @@ try {
   const st = await page.evaluate(() => { const e = document.querySelector('[data-server-status="1"]'); return e ? e.innerText : '' })
   ok(/服务端已推进/.test(st) && /第 4 周第 6\/7 天/.test(st), `状态条含周/天（${st.slice(0, 80)}）`)
   ok(/本周决策 2\/18/.test(st) && /还差 4 项/.test(st), '状态条含决策 2/18 与闸门原因')
+  ok(/本周未调整决策/.test(t), '第 4 周与上周决策相同 ⇒ 显示「未调整」')
 
   console.log('\n▶ V141 · 游戏入口')
   ok(await page.locator('[data-game-entry="1"]').count() === 1, '经营页有游戏入口卡')

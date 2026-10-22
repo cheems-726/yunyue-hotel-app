@@ -1,7 +1,7 @@
 // V141 §1 · 经营表现（主展示 = 赚了多少）+ 每周策略归因 + 投资回收（折叠）
 import React from 'react'
 import { gopOf, wan1 } from './metricDefs.mjs'
-import { 累计GOP, 本周GOP, 上周GOP, 周策略, 周归因, 回本参考 } from './weeklyProfit.mjs'
+import { 累计GOP, 本周GOP, 上周GOP, 周策略, 变化项, 周归因, 回本参考 } from './weeklyProfit.mjs'
 
 const 带号万 = (v) => (Number.isFinite(v) ? (v >= 0 ? '+' : '') + wan1(v) : '—')
 
@@ -66,7 +66,9 @@ export default function ProfitStory({ history = [] }) {
               const g = gopOf(h)
               const 前 = i > 0 ? gopOf(hs[i - 1]) : null
               const d = (前 != null && Number.isFinite(g)) ? g - 前 : null
-              const 策 = 周策略(h, 3)
+              const 前周 = i > 0 ? hs[i - 1] : null
+              const 变 = 前周 ? 变化项(h, 前周) : []
+              const 策 = 前周 ? 变 : 周策略(h, 3)
               return (
                 <div key={i} style={{ padding: '7px 0', borderBottom: '1px solid var(--fill)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
@@ -76,13 +78,13 @@ export default function ProfitStory({ history = [] }) {
                       {d != null && <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>比上周 {d >= 0 ? '+' : '−'}{wan1(Math.abs(d))}</span>}
                     </span>
                   </div>
-                  {策.length > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
-                      策略：{策.map(x => `${x.name}（${x.选项}）`).join(' · ')}
-                    </div>
-                  )}
+                  <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
+                    {前周
+                      ? (变.length ? `调整：${变.map(x => `${x.name}（${x.旧} → ${x.新}）`).join(' · ')}` : '调整：本周未调整决策')
+                      : (策.length ? `首周策略：${策.map(x => `${x.name}（${x.选项}）`).join(' · ')}` : '首周无决策记录')}
+                  </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.6 }}>
-                    归因：{周归因(h)}
+                    归因：{周归因(h, 前周)}
                   </div>
                 </div>
               )

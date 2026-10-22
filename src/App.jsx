@@ -71,7 +71,8 @@ import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
 //   注意：settle（引擎）不引用本模块（一期边界有守门断言）—— 记录在 App 层生成后挂到 result。
 import { 生效授权, 领班决策, 代管率 } from './aiSupervisor.mjs'
 import { DEMO_REVIEWS } from './Reputation.jsx'   // V55 · 演示种子（仅离线注入）
-import { 校验工号, 分类登录错误, 登录预检, 错误类型, 规范化账号, 密码问题提示, base是旧云端, 内核文本 } from './loginReliability.mjs'   // ★ V129：登录可靠性（预检/分级）· V139：规范化/诊断
+import { 校验工号, 分类登录错误, 登录预检, 错误类型, 规范化账号, 密码问题提示, base是旧云端, 内核文本 } from './loginReliability.mjs'
+import { 是否本系统, 正式入口, 跳转地址 } from './entryHosts.mjs'   // ★ V142：入口域名白名单单源   // ★ V129：登录可靠性（预检/分级）· V139：规范化/诊断
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 // ★ V129-R109-1：连通预检横幅（挂载即跑；只作建议，不阻塞离线演示）
@@ -293,9 +294,23 @@ function LoginPage({ onLogin }) {
     }
   }
 
+  // ★ V142 §1：非白名单域名（如 www.2026911301.xyz = Vercel 旧站）必须在登录页顶部红字提示
+  const 域名不对 = typeof location !== 'undefined' && !是否本系统(location.hostname)
+  const 域名横幅 = 域名不对 ? (
+    <div data-host-guard="1" style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', color: 'var(--bad)', fontSize: 12, lineHeight: 1.7, textAlign: 'left' }}>
+      <b>你打开的是旧站点 {typeof location !== 'undefined' ? location.hostname : ''}</b>，账号不在这个站。
+      <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <code style={{ fontSize: 12 }}>{正式入口}</code>
+        <button type="button" data-host-jump="1" className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, minHeight: 44 }} onClick={() => { if (typeof location !== 'undefined') location.replace(跳转地址(location)) }}>一键跳转 →</button>
+      </div>
+      <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>正式地址是 test 开头；www 是 10-19 的旧包，登录不了。</div>
+    </div>
+  ) : null
+
   if (step === 'choose') {
     return (
       <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}>
+        {域名横幅}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{ width: 80, height: 80, borderRadius: 24, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}><Icon name="prop.hotel" size={44} /></div>
           <div style={{ fontSize: 24, fontWeight: 700 }}>云悦酒店</div>
@@ -326,6 +341,7 @@ function LoginPage({ onLogin }) {
 
   return (
     <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
+      {域名横幅}
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>{role === 'student' ? '学生登录' : '教师登录'}</div>
         <div style={{ fontSize: 16, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -398,6 +414,8 @@ function LoginPage({ onLogin }) {
           <div style={{ color: (base是旧云端(SUPABASE_URL) && typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) ? 'var(--bad)' : 'inherit' }}>
             接口地址：<code data-diag-base="1">{SUPABASE_URL || '未知'}</code>
             {base是旧云端(SUPABASE_URL) && typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && <b> ← 包指回旧云端，请点“强制更新”</b>}
+          </div>
+          <div>当前域名：<code data-diag-host="1">{typeof location !== 'undefined' ? location.hostname : '未知'}</code> · <b style={{ color: 是否本系统(typeof location !== 'undefined' ? location.hostname : '') ? 'var(--good)' : 'var(--bad)' }}>{是否本系统(typeof location !== 'undefined' ? location.hostname : '') ? '本系统' : '非本系统（旧站）'}</b>
           </div>
           <div>健康检查：{健康 ? (健康.status === '失败' ? '失败（连不上）' : 健康.status === '检测中' ? '检测中…' : `HTTP ${健康.status} · ${健康.ms}ms`) : '展开后自动检测'}</div>
           <div>最近一次：{最近尝试 ? `${new Date(最近尝试.ts).toLocaleString()} · ${最近尝试.账号} · ${最近尝试.status || '无状态'} ${最近尝试.code || ''}` : '无'}</div>
