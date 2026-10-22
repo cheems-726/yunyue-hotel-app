@@ -166,6 +166,11 @@ if (banned > 10) alarms.push(`当前封禁 ${banned} 个 IP > 10`)
 // 每日登录探针（--probe-now 强制；结果并入 alarms）
 const 探针 = await runLoginProbe(args.includes('--probe-now'))
 if (探针 && 探针.alarms && 探针.alarms.length) alarms.push(...探针.alarms)
+// ★ V139 §5：登录探针跑的当天，同步生成 GoTrue 登录日报（一天一行，同一天覆盖）
+if (探针 && 探针.rows) {
+  const ar = spawnSync(process.execPath, ['/opt/yunyue/scripts/auth-report.mjs', '--daily'], { encoding: 'utf8', timeout: 30000 })
+  if (ar.status !== 0) alarms.push('auth 日报失败：' + String((ar.stderr || ar.stdout || '').trim()).slice(0, 120))
+}
 
 const row = {
   ts, host: os.hostname(), load1, diskUsedPct, memAvailMB, swapUsedMB,
