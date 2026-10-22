@@ -170,6 +170,9 @@ if (探针 && 探针.alarms && 探针.alarms.length) alarms.push(...探针.alarm
 if (探针 && 探针.rows) {
   const ar = spawnSync(process.execPath, ['/opt/yunyue/scripts/auth-report.mjs', '--daily'], { encoding: 'utf8', timeout: 30000 })
   if (ar.status !== 0) alarms.push('auth 日报失败：' + String((ar.stderr || ar.stdout || '').trim()).slice(0, 120))
+  // ★ V145 §2：每日登录自检 5/5（失败进告警）
+  const sc = spawnSync(process.execPath, ['/opt/yunyue/scripts/loginSelfCheck.mjs'], { encoding: 'utf8', timeout: 90000 })
+  if (sc.status !== 0) alarms.push('登录自检未过 5/5：' + String((sc.stdout || sc.stderr || '').trim()).split('\n').slice(-1)[0].slice(0, 120))
 }
 
 const row = {

@@ -109,9 +109,14 @@ try {
   if (String(残留) !== '0') die(`旧云端地址线上残留 ${残留} 处 ⇒ 学生登录会指错后端`)
   if (Number(引用) < 1) die(`线上 index.html 未引用新入口包 ${entry}`)
 
+  // ★ V145 §2：第 ⑤ 步登录自检（红 ⇒ 部署失败，不许“部署成功但登录坏”）
+  step('⑤', '登录自检 5/5（/opt/yunyue/scripts/loginSelfCheck.mjs）')
+  run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`, 'node /opt/yunyue/scripts/loginSelfCheck.mjs'], { stdio: 'inherit' })
+
   console.log(`✓ 入口包：${entry}`)
   console.log('✓ 云端残留：0')
   console.log(`✓ sha256：线上=本地（${sha.slice(0, 12)}…）`)
+  console.log('✓ 登录自检：5/5')
 } finally {
   try { rmSync(tgz, { force: true }) } catch { /* 静默理由：临时包清理失败不影响部署结论 */ }
 }
