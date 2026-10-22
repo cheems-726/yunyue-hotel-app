@@ -48,7 +48,7 @@ import { TITLES } from './hotelTitle.js'
 import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, qualityOf } from './attrs.js'
 // 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
 //   （本文件原有三处自算：组员概况 Σocc/Σprofit、积分明细页的【第三套评分副本】）
-import { scoreOf, sumNet, avgOccupancy } from './metricDefs.mjs'
+import { scoreOf, sumNet, sumGop, avgOccupancy } from './metricDefs.mjs'
 // 🔴 E3（N-3）：三档节奏（实时/周期/一次性）在界面上必须可辨 —— 档位口径来自 decisionCadence（单源）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
@@ -1036,7 +1036,7 @@ function KpiDelta({ cur, prev, goodUp = true, unit = '' }) {
     </span>
   )
 }
-function Report({ report, week, history, brand, property, location }) {
+function Report({ report, week, history, brand, property, location, capital }) {
   // 智能诊断：基于真实经营指标
   const diagnoses = []
   if (report) {
@@ -1054,6 +1054,27 @@ function Report({ report, week, history, brand, property, location }) {
         <div className="row1"><span className="hotel-name">报表</span></div>
         <div className="sub">{report ? `第 ${report.week} 周结算` : `第 ${week} 周 · 累计`}</div>
       </div>
+
+      {/* ★ V144 §1：报表页第一眼回答「12 周到底赚了多少」——GOP 口径，与经营页同一套数据 */}
+      {history.length > 0 && (() => {
+        const 周数 = history.length
+        const gop = sumGop(history).value
+        const 净 = sumNet(history).value
+        const 一次性 = history.reduce((a, h) => a + (Number(h && h.oneTimeFees && h.oneTimeFees.合计) || 0), 0)
+        const 初始 = Number.isFinite(capital) ? capital - 净 : null
+        const w1 = (v) => (v / 10000).toFixed(1)
+        return (
+          <div className="card" data-report-answer="1" style={{ borderColor: 'var(--primary-border)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{周数} 周经营利润（GOP · 不含一次性开办费）</div>
+            <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.15, color: gop >= 0 ? 'var(--good)' : 'var(--bad)' }}>{gop >= 0 ? '+' : ''}{w1(gop)} 万</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6, lineHeight: 1.7 }}>
+              开店一次性投入 −{w1(一次性)} 万
+              {初始 != null && Number.isFinite(capital) && <span> · 账面 {w1(初始)} 万 → {w1(capital)} 万</span>}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>这是经营赚的钱；一次性开办费只发生一次，回本参考见下方折叠。</div>
+          </div>
+        )
+      })()}
 
       <WeekMatrix history={history} />
       {report ? (
@@ -1130,14 +1151,15 @@ function Report({ report, week, history, brand, property, location }) {
         )}
       </div>
 
-      <div className="card">
+      <details className="card" data-cash-details="1" style={{ display: 'block' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', minHeight: 44, lineHeight: '44px' }}>看累计现金与盈亏平衡（含一次性开办费）</summary>
         <div className="card-title">累计净利润（含一次性开办费）· 盈亏平衡</div>
         {history.length > 0 ? (
           <BreakEvenChart history={history} />
         ) : (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
         )}
-      </div>
+      </details>
         {/* ★ V95 / V141：投资回收 = 参考项，默认折叠，不进首屏、不进成绩 */}
         <details className='card' data-payback-report="1" style={{ display: 'block' }}>
           <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', minHeight: 44, lineHeight: '44px' }}>展开：投资回收（参考 · 默认收起 · 课程内不要求回本）</summary>
@@ -1176,7 +1198,8 @@ function Report({ report, week, history, brand, property, location }) {
               <span style={{ fontSize: 16, fontWeight: 600 }}>第 {h.week} 周</span>
               <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-sub)' }}>
                 <span>出租率 {h.occupancy}%</span>
-                <span>利润 <span style={{ color: h.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{h.profit}</span></span>
+                <span>经营利润 <b style={{ color: (Number.isFinite(h.gop) ? h.gop : 0) >= 0 ? 'var(--good)' : 'var(--bad)' }}>{Number.isFinite(h.gop) ? (h.gop >= 0 ? '+' : '') + h.gop : '—'}</b></span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>含开办费净利 {Number.isFinite(h.profit) ? (h.profit >= 0 ? '+' : '') + h.profit : '—'}</span>
               </div>
             </div>
           ))
@@ -3295,7 +3318,7 @@ export default function App() {
   } else {
     const pages = {
       business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} classDay={权威日} onPlayGame={() => set游戏进行中(游戏库[0])} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
-      report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
+      report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} capital={capital} />,
       reputation: <Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,
       games: <GamesLibrary onPlay={set游戏进行中} />,   // ★ V133：游戏列表

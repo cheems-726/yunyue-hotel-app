@@ -528,7 +528,8 @@ try {
 
   // 8. 四 tab
   await clickText(page, '报表'); await sleep(700)
-  ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计净利润（含一次性开办费）· 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
+  // ★ V144：报表页首屏 = 经营利润 GOP；盈亏平衡/尚未回本降到默认折叠
+  ok('报表页：经营利润主视觉 + 回本折叠', (await text(page)).includes('周经营利润') && (await text(page)).includes('看累计现金与盈亏平衡'))
   await assertLayout(page, '学生报表')
   await page.screenshot({ path: 'tests/_s3-report.png' })
   await clickText(page, '口碑'); await sleep(700)

@@ -23,7 +23,8 @@ import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'
 import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标记   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
-import { 扫描错误操作, parseBrandBase } from './errorOps.mjs' // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
+import { 扫描错误操作, parseBrandBase } from './errorOps.mjs'
+import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
@@ -68,6 +69,7 @@ function summarize(gs, profile, classDay = 0) {
   const negScore = S.negativeScore
   const score = S.finalScore
   const totalRev = totalRevenue(history)
+  const 一次性 = (history || []).reduce((a, h) => a + (Number(h && h.oneTimeFees && h.oneTimeFees.合计) || 0), 0)
   // 🔴 W2-3（W10 正名）：教师端与学生端同口径 —— 净利润（评分基准，= 既有 profit）+ GOP（经营毛利，不含租金）
   //   旧档周无 gop 字段 ⇒ sumGop 只累加有字段的周，并回报覆盖度（教师端要能判断"这组 GOP 是否完整"）
   const gopTotal = sumGop(history)
@@ -100,7 +102,7 @@ function summarize(gs, profile, classDay = 0) {
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
-    gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete,
+    gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete, oneTime: +(一次性 / 10000).toFixed(1),
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
     score: 无结算 ? null : score, scorePrev: 无结算 ? null : scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,
@@ -842,6 +844,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   }, []) // live实时决策 | ranking排名 | me我的 | groups分组管理 | teaching教学参考（后两者从'我的'进入）
   const [rankBy, setRankBy] = useState('score') // 排名排序维度：score/profit/occ/rating
   const [groups, setGroups] = useState(null) // null=加载中 []=云端无数据
+  const [copySix, setCopySix] = useState('')
   const [cloudOk, setCloudOk] = useState(true)
   const [notedUids, setNotedUids] = useState(new Set())
   const [allNotes, setAllNotes] = useState([]) // 全部批注（GroupDetail 时间线用）
@@ -1143,6 +1146,31 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       {/* 班级总览（从'我的'进入） */}
       {view === 'overview' && groups !== null && (
         <div>
+          {/* ★ V144 §2：六组一句话（教师投屏/一键复制；不排名、不打分） */}
+          {(() => {
+            const 行 = 六组一句话(groups)
+            const 文本 = 行.join('\n')
+            const 复制 = async () => {
+              try { await navigator.clipboard.writeText(文本); setCopySix('已复制') } catch (e) {
+                try {
+                  const ta = document.createElement('textarea'); ta.value = 文本; ta.style.position = 'fixed'; ta.style.opacity = '0'
+                  document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); setCopySix('已复制')
+                } catch (e2) { setCopySix('复制失败，请手动选中') }
+              }
+              setTimeout(() => setCopySix(''), 2000)
+            }
+            return (
+              <div className="card" data-six-line="1" style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>六组一句话（投屏 / 复制）</div>
+                  <button data-copy-six="1" onClick={复制} style={{ border: '1px solid var(--primary-border)', background: 'var(--card)', color: 'var(--info)', fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, minHeight: 44 }}>复制六行</button>
+                </div>
+                {copySix && <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 4 }}>{copySix}</div>}
+                <div style={{ fontSize: 12, whiteSpace: 'pre-wrap', lineHeight: 1.9, marginTop: 6, color: 'var(--text-sub)' }}>{文本 || '暂无已结算的组'}</div>
+              </div>
+            )
+          })()}
+
           {/* 教学进度控制：全班统一周 */}
           <div className="card" style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}> 教学进度控制（全班统一周）</div>
