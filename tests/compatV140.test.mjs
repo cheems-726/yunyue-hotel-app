@@ -53,6 +53,14 @@ console.log('\n[②] index.html 静态骨架 + ES5 兜底')
   }
 }
 
+console.log('\n[②-2] Service Worker（V139 §3）：skipWaiting/claim/构建号入缓存 + API 不走缓存')
+{ 
+  const sw = readFileSync('public/sw.js', 'utf8')
+  ok(/skipWaiting\(\)/.test(sw) && /clients\.claim\(\)/.test(sw), 'SW 有 skipWaiting + clients.claim（新版本能接管）')
+  ok(/__BUILD_VERSION__/.test(sw) && /CACHE_NAME/.test(sw), 'SW 缓存名随构建版本变化（旧 cache 会被清）')
+  ok(/API_RE/.test(sw) && /return/.test(sw), 'SW 对 /rest /auth /realtime 不 respondWith（不拿缓存假活着）')
+}
+
 console.log('\n[③] 诊断面板：UA / 内核 / SW')
 {
   const app = readFileSync('src/App.jsx', 'utf8')

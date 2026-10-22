@@ -528,7 +528,7 @@ try {
 
   // 8. 四 tab
   await clickText(page, '报表'); await sleep(700)
-  ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计利润 · 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
+  ok('报表页：盈亏平衡图渲染', (await text(page)).includes('累计净利润（含一次性开办费）· 盈亏平衡') && (await text(page)).includes('盈亏平衡线'))
   await assertLayout(page, '学生报表')
   await page.screenshot({ path: 'tests/_s3-report.png' })
   await clickText(page, '口碑'); await sleep(700)

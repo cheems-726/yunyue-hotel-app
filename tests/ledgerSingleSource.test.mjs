@@ -165,7 +165,7 @@ console.log('\n[2] 静态扫描：聚合/评分阶梯只许出现在 metricDefs�
   const 死 = ALLOW.filter(a => !hits.some(h => h.rule === a.rule && h.file === a.file))
   ok(死.length === 0, '白名单无死条目（每条都至少命中一次）', 死.map(a => `${a.rule} ${a.file}`).join(','))
   // 三处消费方必须真的 import 单源（防"声明 import、实际自算"）
-  for (const [f, need] of [['FinalResult.jsx', /scoreOf/], ['TeacherDashboard.jsx', /scoreOf/], ['HotelStatus.jsx', /sumNet/]]) {
+  for (const [f, need] of [['FinalResult.jsx', /scoreOf/], ['TeacherDashboard.jsx', /scoreOf/], ['HotelStatus.jsx', /sum(Net|Gop)/]]) {
     ok(need.test(code(f)), `${f} 已 import 单源（${need.source}）`)
   }
 }

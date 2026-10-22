@@ -15,6 +15,7 @@ import WeekMatrix from './WeekMatrix.jsx'   // ★ V113-2.4：12 周指标矩阵
 import ProcessLedger from './ProcessLedger.jsx'   // ★ V117：过程分台账
 import DailyQuests from './DailyQuests.jsx'
 import GamesLibrary from './GamesLibrary.jsx'   // ★ V133：小游戏入口
+import { 游戏库 } from './games/registry.mjs'   // ★ V141：经营页入口卡单源
 import GamePlayer from './GamePlayer.jsx'
 import BetCard from './BetCard.jsx'   // ★ V131 §1-A：先押注后揭晓
 import { 结算押注, 押注有效, 押注校准 } from './bets.mjs'
@@ -34,6 +35,7 @@ import { 已有名字 } from './hotelName.mjs'
 import FinalResult from './FinalResult.jsx'
 import Reputation from './Reputation.jsx'
 import HotelStatus from './HotelStatus.jsx'
+import ProfitStory from './ProfitStory.jsx'   // ★ V141 §1：经营表现（GOP）+ 周策略归因 + 回本折叠
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
@@ -502,7 +504,7 @@ function InjectedEventsCard({ 事件s, week }) {
   )
 }
 
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托, 押注 = null, on押注 }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托, 押注 = null, on押注, onPlayGame, classDay = 0 }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -531,6 +533,19 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   }, [doneDecisions])
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
+  // ★ V141 §2.5：结算发生的那一刻提示 3 秒（history 增长 = 刚结算）
+  const [结算提示, set结算提示] = useState('')
+  const 上次数 = useRef(history.length)
+  useEffect(() => {
+    if (history.length > 上次数.current) {
+      const w = history[history.length - 1] && history[history.length - 1].week
+      set结算提示(`刚刚完成第 ${w} 周结算`)
+      const t = setTimeout(() => set结算提示(''), 3000)
+      上次数.current = history.length
+      return () => clearTimeout(t)
+    }
+    上次数.current = history.length
+  }, [history.length])
   const occ = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : null)
   const rev = report ? (report.revenue / 10000).toFixed(2) : (history.length ? (history[history.length - 1].revenue / 10000).toFixed(2) : null)
   const neg = report ? report.negativeCount : (history.length ? history[history.length - 1].negativeCount : null)
@@ -557,6 +572,29 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         </button>
       </div>
 
+      {/* ★ V141 §2.5：服务端在跑要看得见（classDay 来自服务端权威；决策数来自本周存档） */}
+      {(() => {
+        const wd = (() => { try { return dayToWeekDay(Number(classDay) || 0) } catch (e) { return { week, dayIndex: 1 } } })()
+        const 阈 = 6
+        const 已结算 = !!report
+        return (
+          <div data-server-status="1" style={{ margin: '0 20px 10px', padding: '7px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--fill)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
+            <span style={{ color: 'var(--good)', fontWeight: 700 }}>● 服务端已推进</span>
+            <span> · 第 {wd.week} 周第 {wd.dayIndex}/7 天</span>
+            <span> · 本周决策 {doneCount}/18</span>
+            <span>（≥{阈} 才结算{!已结算 && doneCount < 阈 ? ` · 还差 ${阈 - doneCount} 项` : ''}）</span>
+            {已结算 && <span style={{ color: 'var(--good)' }}> · 本周已结算</span>}
+            {!已结算 && doneCount >= 阈 && <span style={{ color: 'var(--good)' }}> · 已达结算门槛（第 7 天自动出周报）</span>}
+          </div>
+        )
+      })()}
+      {结算提示 && (
+        <div style={{ margin: '0 20px 10px', padding: '7px 12px', borderRadius: 8, background: 'var(--good-bg)', border: '1px solid var(--good-border)', color: 'var(--good)', fontSize: 12, fontWeight: 700 }}>{结算提示}</div>
+      )}
+
+      {/* ★ V141 §1：首屏第一眼 = 累计 GOP / 本周 vs 上周 / 12 周曲线 + 周策略归因 */}
+      <ProfitStory history={history} />
+
       {/* 酒店状态面板（RPG属性）
           ★ §26.3（P0b）：dayFlows = 本周【预览结算】的引擎日快照（7 天）· dayIndex = 本周第几天
           ⇒ 面板"今日流水/本周累计"与周报/结算同源（Σ7天 === 周值 由引擎恒等式保证），面板不再自记金额。
@@ -572,6 +610,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
 
       {/* ★ V128-#3 批2：今日委托（每天 1–2 个 · 3 选 1 · 只记录） */}
       <DailyQuests 委托们={委托们} 记录={委托记录} 反思={每日委托反思} 本周={week} on确认={on确认委托} />
+
+      {/* ★ V141 §2：经营页直达「实训游戏」入口卡（底部 tab 仍保留列表） */}
+      <div className="card" data-game-entry="1" style={{ borderColor: 'var(--primary-border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>客房实训 · 摆放小游戏</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>2–5 分钟 · 7 个房型 · 随便玩，不影响成绩</div>
+          </div>
+          <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 16px', minHeight: 44, flexShrink: 0 }} onClick={() => onPlayGame && onPlayGame()}>去玩 →</button>
+        </div>
+      </div>
 
       {/* 本周决策进度（★ V125-#2：整块可点 ⇒ 滚到决策区；待做数直接写在行上） */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -1064,16 +1113,17 @@ function Report({ report, week, history, brand, property, location }) {
       </div>
 
       <div className="card">
-        <div className="card-title">累计利润 · 盈亏平衡</div>
+        <div className="card-title">累计净利润（含一次性开办费）· 盈亏平衡</div>
         {history.length > 0 ? (
           <BreakEvenChart history={history} />
         ) : (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>完成结算后查看累计利润走势</div>
         )}
       </div>
-        {/* ★ V95（2026-10-09 用户点名）：开业后「投资回报」——纯展示 · 单源 */}
-        <div className='card'>
-          <div className='card-title'>投资回报（开业后）</div>
+        {/* ★ V95 / V141：投资回收 = 参考项，默认折叠，不进首屏、不进成绩 */}
+        <details className='card' data-payback-report="1" style={{ display: 'block' }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', minHeight: 44, lineHeight: '44px' }}>展开：投资回收（参考 · 默认收起 · 课程内不要求回本）</summary>
+          <div className='card-title'>投资回收（开业后 · 净利润口径）</div>
           {(() => {
             const ledger = property ? onePageLedger({ brand, property, districtAttrs: location?.attrs }) : null
             const r = 投资回报({ ledger, history })
@@ -1087,18 +1137,18 @@ function Report({ report, week, history, brand, property, location }) {
             return (
               <>
                 {行('投资总额（估算）', r.总投资 == null ? r.状态 : 万元回报(r.总投资), r.总投资 == null ? '' : '报价单估算 · 不进资金流')}
-                {行('已回收（累计利润）', r.累计利润 == null ? '待补（尚无结算）' : 万元回报(r.累计利润), 周数文案)}
+                {行('已回收（累计净利润）', r.累计利润 == null ? '待补（尚无结算）' : 万元回报(r.累计利润), '含一次性开办费 · ' + 周数文案)}
                 {行('回收进度', 百分比(r.进度), r.进度 == null ? '' : '累计利润 ÷ 投资总额')}
                 {行('ROI', 百分比(r.roi), r.roi == null ? '' : '累计利润 ÷ 投资总额（可为负）')}
                 {行('回本周期（外推）', r.外推回本年 == null ? '待补（缺来源数据）' : '约 ' + r.外推回本年.toFixed(1) + ' 年', '按基准单周年化 · 非实际发生')}
                 {行('状态', r.状态)}
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
-                  口径：投资总额取自「一页钱账」（报价单估算）· 累计利润与上方盈亏平衡图同源（同一份周报历史）· 回本判定同款（累计由负转正）· 缺来源一律显示「待补（缺来源数据）」，不参与计算、不编造。
+                  口径：投资总额取自「一页钱账」（报价单估算）· 累计净利润含一次性开办费 · 与上方盈亏平衡图同源 · 回本判定为累计由负转正 · **课程内不要求回本**，本块只是参考，不进成绩。
                 </div>
               </>
             )
           })()}
-        </div>
+        </details>
 
       <div className="card">
         <div className="card-title">历史周报</div>
@@ -1563,6 +1613,7 @@ function HelpPage({ onBack }) {
   const [tasksOpen, setTasksOpen] = useState(false)   // §33-V80 · 12 周任务书覆盖层
   const sections = [
     { icon: 'campaign', title: '游戏目标', body: '从选址到开业经营一家酒店 12 周。最终按四维加权评分：利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%，S 到 D 五个等级。' },
+    { icon: 'event.holiday', title: '实训游戏', body: '底部「实训游戏」里有客房摆放小游戏（2–5 分钟，7 个房型）。经营页也有直达入口卡，随便玩，不影响成绩。' },
     { icon: 'date.week', title: '每周节奏', body: '每周做 18 项决策（做完自动沉底，可点击修改）→ 【第 7 个游戏日自动出周报】（不用点结算）→ 去口碑页处理差评 → 进入下一周。决策不足 9 项会被扣口碑（不作为也是决策）。' },
     { icon: 'status.crisis', title: '事件系统', body: '共 22 种事件（含 4 类危机/资金预警），全是你的经营状态招来的：差评拖欠会发酵、高出租率+少人手会挨投诉、口碑好会来网红探店。危机事件（橙框）要在 30 秒内选应对方案，超时按最差处理。' },
     { icon: 'achv.title', title: '酒店称号', body: '普通旅社 → 舒适旅店 → 精品酒店 → 人气名店 → 标杆酒店。出租率、好评率、品质分加权决定，每周结算后可能晋升或降级。' },
@@ -1847,7 +1898,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
                 {st && st.occ > 0 && (
                   <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--text-sub)', marginTop: 6, paddingLeft: 52 }}>
                     <span>平均出租率 <b style={{ color: 'var(--text)' }}>{st.occ}%</b></span>
-                    <span>累计利润 <b style={{ color: st.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{st.profit >= 0 ? '+' : ''}{(st.profit / 10000).toFixed(2)}万</b></span>
+                    <span>累计净利润（含开办费） <b style={{ color: st.profit >= 0 ? 'var(--good)' : 'var(--bad)' }}>{st.profit >= 0 ? '+' : ''}{(st.profit / 10000).toFixed(2)}万</b></span>
                   </div>
                 )}
               </div>
@@ -2395,7 +2446,7 @@ export default function App() {
     { key: 'report', icon: 'nav.report', label: '报表' },
     { key: 'reputation', icon: 'nav.review', label: '口碑', badge: true },
     { key: 'profile', icon: 'nav.me', label: '我的' },
-    { key: 'games', icon: 'event.holiday', label: '游戏' },   // ★ V133：第 5 项
+    { key: 'games', icon: 'event.holiday', label: '实训游戏' },   // ★ V133：第 5 项 · V141 改名
   ]
 
   function open(title, icon, key) {
@@ -3225,7 +3276,7 @@ export default function App() {
           : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
-      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} classDay={权威日} onPlayGame={() => set游戏进行中(游戏库[0])} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
       reputation: <Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,

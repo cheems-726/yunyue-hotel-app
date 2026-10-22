@@ -37,7 +37,7 @@ console.log('\n[②] 移动端 44px（只改按钮尺寸）')
 console.log('\n[③] App 接线：第5项「游戏」· 列表 · 全屏播放器 · 播放时隐藏 tabbar')
 {
   const app = src('App.jsx')
-  ok(/\{ key: 'games', icon: 'event\.holiday', label: '游戏' \}/.test(app), 'tabs 有第 5 项「游戏」')
+  ok(/\{ key: 'games', icon: 'event\.holiday', label: '实训游戏' \}/.test(app), 'tabs 有第 5 项「实训游戏」')
   ok(/games: <GamesLibrary onPlay=\{set游戏进行中\} \/>/.test(app), 'pages 有 games 列表页')
   ok(/游戏进行中 && <GamePlayer 游戏=\{游戏进行中\} onClose|游戏进行中 && <GamePlayer 游戏=\{游戏进行中\} onBack/.test(app), '游戏进行中渲染全屏播放器')
   ok(/\{!游戏进行中 && \(/.test(app), '播放时隐藏 tabbar')

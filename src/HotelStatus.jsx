@@ -7,7 +7,7 @@ import { rollLiveReview } from './liveReview.js'
 import { guestsRng } from './guests.js'
 import { teachingDayKey, teachingDayOfMonth, nowMinutes, nowClockTag } from './teachingClock.mjs'
 import { decisions as DEC_CATALOG } from './decisions.js'
-import { sumNet } from './metricDefs.mjs'
+import { sumGop } from './metricDefs.mjs'
 
 // 酒店状态面板：RPG 属性面板 + 模拟日历 + 按真实作息驱动的实时运营动态 + 房型结构
 // 真实规则：退房 12:00 前 / 入住 14:00 后；运营事件按真实作息的时段权重推进
@@ -354,10 +354,8 @@ function LiveFeed({ occupiedRooms, price, week, rooms, brandLevel, attrs, decisi
 export default function HotelStatus({ report, brand, property, week, history, attrs, attrFlash, decisions, dayFlows, dayIndex, daySource, hotelName = '' }) {
   const occupancy = report ? report.occupancy : (history.length ? history[history.length - 1].occupancy : 0)
   const goodRate = report ? report.finalGoodRate : (history.length ? history[history.length - 1].finalGoodRate : 85)
-  // 🔴 E1（二期 · 唯一账本）：累计利润改走 metricDefs.sumNet —— 原自算 `Σ h.profit` 与
-  //   FinalResult/TeacherDashboard 的 sumNet 是【两套】口径（旧档缺 netProfit 字段时数值会不同，
-  //   同一屏上的"累计利润"可能各说各话）。数值语义零变化（新档 netProfit === profit）。
-  const profit = sumNet(history).value
+  // ★ V141 §1：主展示口径改为【累计经营利润 GOP】（不含一次性开办费）；净利润在报表页折叠项里。
+  const gopSum = sumGop(history).value
   // RPG 属性池（品质/声誉/士气）：唯一数据源 = state.attrs
   // 旧档无 attrs / 脏数据一律经 normalizeAttrs 兜底（初值 60/70/65），绝不 NaN
   const A = useMemo(() => normalizeAttrs(attrs), [attrs?.quality, attrs?.reputation, attrs?.morale])
@@ -533,7 +531,7 @@ export default function HotelStatus({ report, brand, property, week, history, at
           <Icon name="prop.hotel" size={18} /> 酒店状态
         </div>
         <span style={{ fontSize: 12, color: 'var(--warn)', fontWeight: 600 }}>
-          累计利润 {profit >= 0 ? '+' : ''}{(profit / 10000).toFixed(2)}万
+          累计经营利润 {gopSum >= 0 ? '+' : ''}{(gopSum / 10000).toFixed(2)}万
         </span>
       </div>
 

@@ -127,4 +127,5 @@ export const prevScore = (history) => {
 
 export const pct = (v, d = 1) => (Number.isFinite(v) ? (v * 100).toFixed(d) + '%' : '—')
 export const wan2 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(2) + '万' : '—')
+export const wan1 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + '万' : '—')
 export const yuanFmt = (v) => (Number.isFinite(v) ? v.toLocaleString() + ' 元' : '—')
