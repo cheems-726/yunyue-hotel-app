@@ -16,12 +16,19 @@
 //   SSH 失败>200 次/日 · 当前封禁>10 个
 // ═══════════════════════════════════════════════════════════════════════════
 import { execSync, spawnSync } from 'node:child_process'
+import https from 'node:https'
 import { appendFileSync, existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 
 const JSONL = '/var/log/yunyue-monitor.jsonl'
 const HUMAN = '/var/log/yunyue-monitor.log'
 const ALERTS = '/var/log/yunyue-alerts.log'
+// ★ V138 §1.3：每日登录探针（真拿 token，不信"页面 200/健康检查 200"）
+const PROBE_CONF = process.env.YUNYUE_PROBE_ACCOUNTS || '/opt/yunyue/etc/probe-accounts.json'
+const PROBE_LOG = '/var/log/yunyue-login-probe.jsonl'
+const PROBE_STAMP = '/var/lib/yunyue-login-probe-day'
+const DOMAIN = process.env.YUNYUE_DOMAIN || 'test.2026911301.xyz'
+const NO_MAIL = process.env.YUNYUE_NO_MAIL === '1'
 
 const sh = (cmd, def = '') => {
   try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000 }).trim() } catch { return def }
@@ -91,6 +98,60 @@ const backupAgeH = newestDump ? Math.round((Date.now() / 1000 - Number(sh(`stat 
 const certEnd = sh("openssl x509 -enddate -noout -in /etc/letsencrypt/live/test.2026911301.xyz/cert.pem 2>/dev/null | cut -d= -f2-")
 const certDays = certEnd ? Math.floor((Date.parse(certEnd) - Date.now()) / 86400e3) : -1
 
+// ── V138 §1.3 登录探针 ────────────────────────────────────────────────────
+function probeLogin(role, account, password, anonKey) {
+  const started = Date.now()
+  return new Promise((resolve) => {
+    const body = JSON.stringify({ email: `${String(account).toLowerCase()}@yunyue.study`, password })
+    const req = https.request({
+      host: '127.0.0.1', port: 443, path: '/auth/v1/token?grant_type=password', method: 'POST',
+      servername: DOMAIN, rejectUnauthorized: false, timeout: 15000,
+      headers: { Host: DOMAIN, 'Content-Type': 'application/json', apikey: anonKey },
+    }, (res) => {
+      let data = ''
+      res.on('data', c => { data += c })
+      res.on('end', () => {
+        let j = {}; try { j = JSON.parse(data) } catch { /* 静默理由：非 JSON 响应按失败处理，下面用状态码与片段 */ }
+        const ok = res.statusCode === 200 && typeof j.access_token === 'string' && j.access_token.length > 20
+        resolve({ ok, status: res.statusCode, ms: Date.now() - started, err: ok ? '' : String(j.error_code || j.msg || data).slice(0, 120) })
+      })
+    })
+    req.on('timeout', () => { req.destroy(new Error('timeout')) })
+    req.on('error', (e) => resolve({ ok: false, status: 0, ms: Date.now() - started, err: e.message }))
+    req.write(body); req.end()
+  })
+}
+
+async function runLoginProbe(force) {
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
+  let last = ''
+  try { last = readFileSync(PROBE_STAMP, 'utf8').trim() } catch { /* 首次 */ }
+  if (!force && last === today) return null
+  let conf = null
+  try { conf = JSON.parse(readFileSync(PROBE_CONF, 'utf8')) } catch { /* 下面按"未配置"告警 */ }
+  if (!conf || !Array.isArray(conf.accounts) || !conf.accounts.length) {
+    return { alarms: [`登录探针未配置或为空（${PROBE_CONF}）`], line: '登录探针 未配置', rows: [] }
+  }
+  let anonKey = ''
+  try { anonKey = JSON.parse(readFileSync('/opt/yunyue/etc/keys.json', 'utf8')).anon || '' } catch { /* 下面按失败处理 */ }
+  if (!anonKey) return { alarms: ['登录探针失败：取不到 anon key（/opt/yunyue/etc/keys.json）'], line: '登录探针 anon-key 缺失', rows: [] }
+  const 学生 = conf.accounts.filter(a => a.role === 'student')
+  const 教师 = conf.accounts.filter(a => a.role === 'teacher')
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
+  const 目标 = [pick(学生), pick(教师)].filter(Boolean)
+  const rows = [], al = []
+  for (const a of 目标) {
+    const r = await probeLogin(a.role, a.account, a.password, anonKey)
+    rows.push({ ts, role: a.role, account: a.account, ok: r.ok, status: r.status, ms: r.ms, ...(r.ok ? {} : { error: r.err }) })
+    if (!r.ok) al.push(`登录探针失败：${a.role} ${a.account} HTTP ${r.status || '无'} ${r.err}`)
+  }
+  try {
+    for (const r of rows) appendFileSync(PROBE_LOG, JSON.stringify(r) + '\n')
+    if (!force) writeFileSync(PROBE_STAMP, today)
+  } catch { /* 静默理由：探针写盘失败不改变登录结论，告警里仍有结果 */ }
+  return { alarms: al, line: `登录探针 ${rows.map(r => `${r.account}:${r.ok ? 'OK' : 'FAIL'}`).join('/')}`, rows }
+}
+
 const alarms = []
 if (diskUsedPct > 80) alarms.push(`磁盘已用 ${diskUsedPct}% > 80%`)
 if (memAvailMB < 150) alarms.push(`可用内存 ${memAvailMB}MB < 150MB`)
@@ -101,6 +162,10 @@ else if (backupAgeH > 48) alarms.push(`备份已 ${backupAgeH}h > 48h`)
 if (certDays >= 0 && certDays < 15) alarms.push(`证书仅剩 ${certDays} 天`)
 if (sshFail > 200) alarms.push(`SSH 失败 ${sshFail} 次/日 > 200`)
 if (banned > 10) alarms.push(`当前封禁 ${banned} 个 IP > 10`)
+
+// 每日登录探针（--probe-now 强制；结果并入 alarms）
+const 探针 = await runLoginProbe(args.includes('--probe-now'))
+if (探针 && 探针.alarms && 探针.alarms.length) alarms.push(...探针.alarms)
 
 const row = {
   ts, host: os.hostname(), load1, diskUsedPct, memAvailMB, swapUsedMB,
@@ -118,7 +183,7 @@ const 本地时间 = now.toLocaleString('sv-SE').slice(0, 16)
 const line = `[${本地时间}] 负载 ${load1} · 磁盘 ${diskUsedPct}% · 可用内存 ${memAvailMB}MB · ` +
   `SSH 失败 ${sshFail}/成功 ${sshOk} · 封禁 ${banned}(累计 ${bannedTotal}) · 今日请求 ${nginxReqToday}(5xx ${nginx5xxToday}, IP ${nginxUniqIpToday}) · ` +
   `今日登录 ${loginsToday}/活跃 ${activeUsers24h} 人 · 今日决策 ${decisionsToday} · 教学日 ${classDay} · 快照 ${preSettleRows} 行 · ` +
-  `tick ${tickAgeMin} 分钟前 · 备份 ${backupAgeH}h 前 · 证书 ${certDays} 天`
+  `tick ${tickAgeMin} 分钟前 · 备份 ${backupAgeH}h 前 · 证书 ${certDays} 天 · ${探针 && 探针.line ? 探针.line : '登录探针 今日已跑'}`
 appendFileSync(HUMAN, line + '\n')
 
 if (alarms.length) {
@@ -127,6 +192,7 @@ if (alarms.length) {
   console.error('⚠ 告警：' + alarms.join(' | '))
   // ★ 邮件推送（1 小时内只发一次，防刷屏；未配置授权码时 notify.sh 自己退出 2，不影响监测）
   try {
+    if (NO_MAIL) { console.error('  （YUNYUE_NO_MAIL=1：跳过邮件，仅写 alerts）'); throw new Error('no-mail') }
     const STAMP = '/var/lib/yunyue-notify-last'
     let prev = 0
     try { prev = Number(readFileSync(STAMP, 'utf8').trim()) || 0 } catch { /* 首次 */ }

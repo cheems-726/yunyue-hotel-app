@@ -70,6 +70,10 @@ try {
   const 恢复登录 = await page.waitForFunction(() => /工号或密码不对|账号或密码错误/.test(document.body.innerText), null, { timeout: 25000 }).then(() => true).catch(() => false)
   ok(恢复登录, '恢复网络后登录请求到达服务器（返回口令校验结果，不再被拦）', (await text(page)).slice(0, 160).replace(/\n/g, ' | '))
 
+  // ★ V138 §2 夹具：把班级日钉在第 6 天（周 1）。否则本地 preview 代理到测试机后
+  //   class_day_now()=87 会成为“权威日”，新开局（week=1）的“今日委托”列表为空 ⇒ 假失败
+  await page.route('**/rest/v1/rpc/class_day_now', r => r.fulfill({ status: 200, contentType: 'application/json', body: '6' }))
+
   // ② 种入一份"已开业"存档（离线演示），专测一周闭环
   await page.evaluate(() => {
     const st = {
@@ -116,9 +120,29 @@ try {
   shots.push(await page.screenshot({ path: 'tests/_v134-e2e-2-18done.png' }))
 
   // ⑤ 今日委托（完成一个）
-  const 委托前 = await page.evaluate(() => { const c = [...document.querySelectorAll('.card')].find(x => x.textContent.includes('今日委托')); if (!c) return false; const d = c.querySelector('.district-card'); if (d) d.click(); return true })
-  await sleep(300)
-  await page.evaluate(() => { const c = [...document.querySelectorAll('.card')].find(x => x.textContent.includes('今日委托')); if (!c) return; const b = [...c.querySelectorAll('button')].find(x => /确认决策，保存/.test(x.textContent)); b && b.click() })
+  // 门禁并发时页面渲染可能慢半拍：等到委托卡出现再点（不是放宽断言，完成+落库仍要真发生）
+  let 委托前 = false
+  for (let i = 0; i < 12 && !委托前; i++) {
+    委托前 = await page.evaluate(() => { const c = [...document.querySelectorAll('.card')].find(x => x.textContent.includes('今日委托')); if (!c) return false; const d = c.querySelector('.district-card'); if (d) { d.click(); return true } return false })
+    if (!委托前) await sleep(400)
+  }
+  await sleep(400)
+  // 委托若“需写一句”（每 3 天一次），不填写按钮会保持 disabled ⇒ 先按页面同款方式填一句
+  await page.evaluate(() => {
+    const c = [...document.querySelectorAll('.card')].find(x => x.textContent.includes('今日委托'))
+    // 需写一句的输入框 placeholder 是示例文案（不是“今天请写一句”）⇒ 取委托卡里第一个输入框
+    const i = c && c.querySelector('input')
+    if (!i) return
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    setter.call(i, '今天先保住好评，别再激化')
+    i.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await sleep(250)
+  for (let i = 0; i < 6; i++) {
+    const 已点 = await page.evaluate(() => { const c = [...document.querySelectorAll('.card')].find(x => x.textContent.includes('今日委托')); if (!c) return false; const b = [...c.querySelectorAll('button')].find(x => /确认决策，保存/.test(x.textContent)); if (b) { b.click(); return true } return false })
+    if (已点) break
+    await sleep(300)
+  }
   await sleep(500)
   ok(委托前, '今日委托完成一个')
   shots.push(await page.screenshot({ path: 'tests/_v134-e2e-3-quest.png' }))

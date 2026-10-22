@@ -1,15 +1,15 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
-# V130 §2 · 云悦酒店测试机 · 九项只读巡检（opscheck）
+# V130 §2 / V138 §1.2 · 云悦酒店测试机 · 十项只读巡检（opscheck）
 #
 # 只读契约：本脚本**不改任何状态**（不写文件、不重启服务、不碰库）
 # 用法：
 #   ① 服务器上直接跑     bash opscheck.sh --local
 #   ② 本机（Linux/mac）  YUNYUE_SSH_KEY=<私钥> sh opscheck.sh        # 自动 SSH 过去
 #   ③ Windows（本项目）  node tests/opscheck.test.mjs               # 同一份脚本经 ssh 送入
-# 输出：九项各一行 ✓/✗（子检查用 · 前缀列出）+ 末尾**标准尾行** `结果: N 通过 / M 失败`
-#       N = **项数**（九项），不是断言数 —— run-all 只认尾行。
-# 退出码：0 = 九项全绿 · 1 = 有失败 · 2 = 无法执行（非 root）
+# 输出：十项各一行 ✓/✗（子检查用 · 前缀列出）+ 末尾**标准尾行** `结果: N 通过 / M 失败`
+#       N = **项数**（十项），不是断言数 —— run-all 只认尾行。
+# 退出码：0 = 十项全绿 · 1 = 有失败 · 2 = 无法执行（非 root）
 # 主机/域名/目录可用环境变量覆盖：YUNYUE_HOST / YUNYUE_DOMAIN / YUNYUE_SSH_KEY /
 #                                  YUNYUE_BAK_DIR / YUNYUE_WEB_DIR
 # ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +62,7 @@ Q() { sudo -u postgres psql -d yunyue -At -c "$1" 2>/dev/null; }
 now_s=$(date +%s)
 
 echo "══ V130 只读巡检 · $(hostname) · $(date '+%F %T %Z') · 目标 ${DOMAIN} (${HOST_IP}) ══"
-echo "   （只读：不改任何状态；九项里任一项 ✗ 即 exit=1）"
+echo "   （只读：不改任何状态；十项里任一项 ✗ 即 exit=1）"
 
 # ── ① 服务 ──────────────────────────────────────────────────────────────
 item "① 服务（4 个 systemd + 1 个容器）"
@@ -195,6 +195,16 @@ n=$(find "${WEB_DIR}/assets" -maxdepth 1 -type f 2>/dev/null | wc -l)
 if [ "$n" -le 12 ]; then sub "assets 文件数 ${n}（≤12）"; else sub_bad "assets 文件数 ${n}（>12 ⇒ 旧包堆积）"; fi
 old=$(find "${BAK_DIR}" -maxdepth 1 -name '*.tgz' 2>/dev/null | wc -l)
 if [ "$old" -le 3 ]; then sub "引擎包 ${old} 份（≤3）"; else sub_bad "引擎包 ${old} 份（>3 ⇒ 按 §6-② 只留最近 3 版）"; fi
+item_end
+
+# ── ⑩ 前端包指向（V138：2026-10-22 事故 —— 包指回旧云端 supabase.co）────
+item "⑩ 前端包指向（不得残留旧云端地址）"
+old_cloud=$(grep -h -c 'jgytwxaeeezmdbxfsyvs' "${WEB_DIR}"/assets/index-*.js 2>/dev/null | awk '{s+=$1} END{print s+0}')
+if [ "${old_cloud:-0}" = "0" ]; then
+  sub "入口包旧云端地址 0 处"
+else
+  sub_bad "入口包残留旧云端地址 ${old_cloud} 处 ⇒ 学生登录会全失败"
+fi
 item_end
 
 # ── 标准尾行 ────────────────────────────────────────────────────────────

@@ -9,10 +9,11 @@ let 复用常驻 = false   // ★ §27：是否复用常驻服务（复用 ⇒ �
 import { spawn, execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { TEST_TEACHER, TEST_STUDENT } from './testEnv.mjs'
+import { 是当前构建 } from './_previewFresh.mjs'   // ★ V138 §2：旧构建 preview 不复用
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const PORT = 4173
-const BASE = `http://localhost:${PORT}/`
+let PORT = 4173
+let BASE = `http://localhost:${PORT}/`
 const results = []
 let browser, server, lastText = ''
 async function refreshText(page) { try { lastText = await page.evaluate(() => document.body.innerText) } catch (e) {} }
@@ -149,12 +150,22 @@ async function assertLayout(pg, label) {
 
 const page = await (async () => {
   if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build'); process.exit(1) }
-  // ★ 复用优先：端口已在监听 ⇒ 直接用常驻服务（**不 spawn、不清杀** —— 避免起停抖动/窗口闪烁）
-复用常驻 = await fetch(BASE).then(r => r.ok).catch(() => false)
-if (!复用常驻) {
-  server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
-} else {
-  console.log('▶ 检测到 ' + PORT + ' 已有常驻预览服务 ⇒ 直接复用（不起新进程）')
+  // ★ 复用优先，但**只复用当前构建**（V138 §2：旧构建 preview ⇒ 对着旧包跑出 19 条假失败）
+{
+  const 有服务 = await fetch(BASE).then(r => r.ok).catch(() => false)
+  复用常驻 = 有服务 && await 是当前构建(BASE)
+  if (有服务 && !复用常驻) {
+    console.log('▶ ' + PORT + ' 在跑但服务的是旧构建 ⇒ 换空闲端口自起（防查旧包）')
+    for (let p = 4174; p <= 4205; p++) {
+      const 占 = await fetch(`http://localhost:${p}/`).then(() => true).catch(() => false)
+      if (!占) { PORT = p; BASE = `http://localhost:${p}/`; break }
+    }
+  }
+  if (!复用常驻) {
+    server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+  } else {
+    console.log('▶ 检测到 ' + PORT + ' 已有**当前构建**的常驻预览 ⇒ 直接复用（不起新进程）')
+  }
 }
   for (let i = 0; i < 30; i++) {
     try { const r = await fetch(BASE); if (r.ok) break } catch (e) {}

@@ -252,7 +252,9 @@ const SUITES = [
         + '★ 修法待决策 V12-⑤：MockDate 基准设为最近教学日或 app 暴露测试钩子；教学日复绿 37/0 后移除本条。',
       since: '2026-10-04', decision: 'V12-⑤（待决策队列）', owner: '决策端',
     } },
-  { name: 'ui-smoke（已并入 npm run test:ui）', file: null, npm: 'test:ui', browser: true, note: '含 build' },
+  // ★ V138：原条目走 `npm run test:ui`（内含 build）⇒ 会无视 --no-build 把 dist 重新 build 成
+  //   "未同源改写"的包，紧跟在 deployParity 之后把它撞红。现在直接跑脚本，build 由本文件的 build 步负责。
+  { name: 'ui-smoke（UI 冒烟）', file: 'tests/ui-smoke.mjs', browser: true, note: 'build 由 run-all / deploy.mjs 负责' },
 ]
 
 const rows = []

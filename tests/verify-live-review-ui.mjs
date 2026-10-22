@@ -16,6 +16,7 @@ import { 走完认领 } from './claimWalk.mjs'   // ★ V132 §1：认领 6 步�
 import { 过周报闸门 } from './weekGate.mjs'   // ★ V132：三问+押注闸门
 import { 过预算闸 } from './_v113-budget.mjs'   // ★ V113-1.1
 import { 过两道闸门 } from './_v109-site.mjs'
+import { 是当前构建 } from './_previewFresh.mjs'   // ★ V138 §2：旧构建 preview 不复用
 let 复用常驻 = false
 import { spawn, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -97,7 +98,7 @@ if (!existsSync('dist/index.html')) { console.error('✗ 请先 npm run build');
 }
 复用常驻 = false
 // ★ V113（用户令 2026-10-17）：优先复用常驻 4173 —— 反复起停会弹窗，影响用户打游戏。
-if (await fetch('http://localhost:4173/').then(r => r.ok).catch(() => false)) { PORT = 4173; BASE = 'http://localhost:4173/'; 复用常驻 = true }
+if (await fetch('http://localhost:4173/').then(r => r.ok).catch(() => false) && await 是当前构建('http://localhost:4173/')) { PORT = 4173; BASE = 'http://localhost:4173/'; 复用常驻 = true }
 if (!复用常驻) server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
 if (复用常驻) console.log('▶ 复用常驻预览：端口 ' + PORT + '（不起新进程 · 收尾不清杀）')
 else console.log('▶ 本次自起预览：端口 ' + PORT + '（★ V96 不复用既有服务）')
