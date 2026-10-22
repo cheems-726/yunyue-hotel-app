@@ -56,7 +56,7 @@ try {
   const t = await page.evaluate(() => document.body.innerText)
   ok(t.includes('云悦V141店') && t.includes('经营表现'), '进入经营页且首屏有「经营表现」')
   ok(t.includes('+12.2万') && t.includes('累计经营利润'), '累计经营利润 = +12.2万（GOP 四周和）')
-  ok(t.includes('本周 +3.2万'), '本周经营利润 = +3.2万')
+  ok(t.includes('本周 -3.0万'), '本周经营净利 = -3.0万')
   ok(t.includes('第 1 周') && t.includes('第 2 周') && t.includes('第 3 周') && t.includes('第 4 周'), '12 周清单含已结算的 4 周')
   ok(t.includes('首周策略：') && t.includes('调整：') && t.includes('归因：') && /动态调价|排班策略/.test(t), '每周有「策略/调整 → 归因」且来自决策目录')
   const pay = await page.evaluate(() => { const d = document.querySelector('details[data-payback="1"]'); return d ? { open: d.open, text: d.textContent } : null })

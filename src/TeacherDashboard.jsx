@@ -24,7 +24,8 @@ import { progressLag } from './serverTick.mjs'
 import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标记   // W1-5（T3.7）：服务端 classDay vs 该组进度
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { 扫描错误操作, parseBrandBase } from './errorOps.mjs'
-import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
+import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2
+import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
@@ -70,6 +71,7 @@ function summarize(gs, profile, classDay = 0) {
   const score = S.finalScore
   const totalRev = totalRevenue(history)
   const 一次性 = (history || []).reduce((a, h) => a + (Number(h && h.oneTimeFees && h.oneTimeFees.合计) || 0), 0)
+  const 经营净利和 = (history || []).reduce((a, h) => a + 周经营净利(h), 0)
   // 🔴 W2-3（W10 正名）：教师端与学生端同口径 —— 净利润（评分基准，= 既有 profit）+ GOP（经营毛利，不含租金）
   //   旧档周无 gop 字段 ⇒ sumGop 只累加有字段的周，并回报覆盖度（教师端要能判断"这组 GOP 是否完整"）
   const gopTotal = sumGop(history)
@@ -102,7 +104,7 @@ function summarize(gs, profile, classDay = 0) {
     hotel: s.brand?.name && s.property?.name ? `${s.brand.name}·${s.property.name}` : (s.brand?.name || '未开业'),
     city: s.location ? `${s.location.city}·${s.location.district}` : '未选址',
     occ: avgOcc, revenue: +(totalRev / 10000).toFixed(1), profit: +(totalProfit / 10000).toFixed(1),
-    gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete, oneTime: +(一次性 / 10000).toFixed(1),
+    gop: +(gopTotal.value / 10000).toFixed(1), gopComplete: gopTotal.complete, oneTime: +(一次性 / 10000).toFixed(1), netOp: +(经营净利和 / 10000).toFixed(1),
     rating: avgGood ? +(avgGood / 20).toFixed(1) : 0,
     score: 无结算 ? null : score, scorePrev: 无结算 ? null : scorePrev, week: gs.week || s.week || 0, finished: gs.finished,
     historyCount: history.length,

@@ -1,7 +1,7 @@
 // V141 §1 · 经营利润（GOP）口径的唯一派生：
 //   · 主展示只看 GOP（经营赚的），不把一次性开办费混进"本周赚了多少"
 //   · 每周策略 → 归因只引用既有「决策代价表」（decisionRisk）与 history.decisions，不现编
-import { sumGop, gopOf } from './metricDefs.mjs'
+import { sumGop, sumNet, gopOf, wan1 } from './metricDefs.mjs'
 import { decisions as 决策目录 } from './decisions.js'
 import { 选项键, 选项代价 } from './decisionRisk.mjs'
 
@@ -57,6 +57,50 @@ export function 周归因(h, prev = null) {
   const 变 = 变化项(h, prev)
   if (!变.length) return '本周未调整决策，利润变化来自外部（出租率/事件/淡旺季）'
   return 变.map(x => `${x.name}：${x.旧} → ${x.新}${x.代价 ? `（${x.代价}）` : ''}`).join('；')
+}
+
+/** 单周经营净利 = 净利润 + 一次性开业费用 − 保证金退还（去掉一次性，保留租金/装修/加盟费） */
+export function 周经营净利(h) {
+  const 净 = h && Number.isFinite(Number(h.netProfit)) ? Number(h.netProfit) : (h && Number(h.profit)) || 0
+  const ot = (h && h.oneTimeFees) || {}
+  return 净 + (Number(ot.开业费用) || 0) - (Number(ot.保证金退还) || 0)
+}
+
+/** 12 周经营口径（全部来自 history 既有字段；三行对账的单源） */
+export function 经营口径(history) {
+  const hs = history || []
+  const 营收 = hs.reduce((a, h) => a + (Number(h && h.revenue) || 0), 0)
+  const gop = sumGop(hs).value
+  const 净 = sumNet(hs).value
+  let 开业 = 0, 退还 = 0, 保证金 = 0
+  for (const h of hs) {
+    const ot = (h && h.oneTimeFees) || {}
+    开业 += Number(ot.开业费用) || 0
+    退还 += Number(ot.保证金退还) || 0
+    保证金 += Number(ot.保证金) || 0
+  }
+  const 经营净利 = 净 + 开业 - 退还
+  const 成本 = gop - 经营净利
+  const 租金 = hs.reduce((a, h) => a + (Number(h && h.rentCost) || 0), 0)
+  const 加盟费 = hs.reduce((a, h) => a + (Number(h && h.franchiseFees && h.franchiseFees.合计) || 0), 0)
+  const 其他 = 成本 - 租金 - 加盟费
+  return { 周数: hs.length, 营收, gop, 净, 开业, 退还, 保证金, 经营净利, 成本, 租金, 加盟费, 其他, 一次性净额: 退还 - 开业 }
+}
+
+/** 两页共用文案（同一套数、同一段话；主指标 = 经营净利） */
+export function 经营口径文案(history, capital) {
+  const c = 经营口径(history)
+  const sign = (v) => (v >= 0 ? '+' : '−') + wan1(Math.abs(v))
+  const 初始 = Number.isFinite(capital) ? capital - c.净 : null
+  return {
+    c,
+    主: `${c.周数} 周经营净利 ${sign(c.经营净利)}`,
+    副: `营收 ${wan1(c.营收)} · GOP ${sign(c.gop)}（未扣租金） · 租金 −${wan1(c.租金)} · 加盟费 −${wan1(c.加盟费)} · 装修/其他 −${wan1(c.其他)}`,
+    一次性: c.开业 > 0
+      ? `一次性开业 ${wan1(c.开业)}（含保证金 ${wan1(c.保证金)}，${c.退还 > 0 ? '第 12 周已退还' : '期末未退'}）${初始 != null ? `⇒ 账面 ${wan1(初始)} → ${wan1(capital)}` : ''}`
+      : '一次性开业 待补（缺来源数据）',
+    一句话: `这 ${c.周数} 周经营上是${c.经营净利 >= 0 ? '赚的' : '亏的'}；账面变化 ${sign(c.净)} = 经营 ${sign(c.经营净利)} + 一次性净额 ${sign(c.一次性净额)}`,
+  }
 }
 
 /** 最近 4 周平均 GOP（回本外推只许用最近 4 周，不许整段平均） */

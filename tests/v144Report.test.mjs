@@ -29,7 +29,7 @@ try {
     const 周 = (week, gop) => ({
       week, gop, profit: week === 1 ? gop - 608000 : gop,
       occupancy: 70 + (week % 20), revenue: 100000, totalCost: 70000, finalGoodRate: 85, negativeCount: 0,
-      events: [], generatedReviews: [], decisions: {}, ...(week === 1 ? { oneTimeFees: { 合计: 608000 } } : {}),
+      events: [], generatedReviews: [], decisions: {}, ...(week === 1 ? { oneTimeFees: { 开业费用: 338000, 保证金: 100000, 保证金退还: 0 } } : (week === 12 ? { oneTimeFees: { 开业费用: 0, 保证金: 0, 保证金退还: 100000 } } : {})),
     })
     const history = []
     for (let w = 1; w <= 11; w++) history.push(周(w, 23400))
@@ -51,16 +51,16 @@ try {
 
   const t = await page.evaluate(() => document.body.innerText)
   const ans = await page.locator('[data-report-answer="1"]').innerText().catch(() => '')
-  ok(/12 周经营利润/.test(ans) && /\+28\.1 万/.test(ans), `首屏主视觉 = 12 周经营利润 +28.1 万（${ans.split('\n')[0] || ''}）`)
-  ok(/一次性投入 −60\.8 万/.test(ans), '小字含一次性投入 60.8 万')
-  ok(/149\.0 万 → 116\.3 万/.test(ans), '小字含账面 149.0 → 116.3 万')
+  ok(/12 周经营净利/.test(ans) && /−8\.9万/.test(ans), `首屏主视觉 = 12 周经营净利 −8.9 万（${ans.split('\n')[0] || ''}）`)
+  ok(/GOP/.test(ans) && /未扣租金/.test(ans) && /租金/.test(ans) && /加盟费/.test(ans) && /装修\/其他/.test(ans), '副行拆开：营收/GOP/租金/加盟费/装修其他')
+  ok(/一次性开业 33\.8万/.test(ans) && /149\.0万 → 116\.3万/.test(ans), '一次性行含开业 33.8 与账面 149.0→116.3')
 
   const cash = await page.evaluate(() => { const d = document.querySelector('details[data-cash-details="1"]'); return d ? { open: d.open, text: d.textContent } : null })
   ok(!!cash && cash.open === false, '累计净利润/盈亏平衡折叠且默认收起')
   ok(!/尚未回本/.test(t), '首屏正文不出现「尚未回本」')
   ok(!!cash && /尚未回本/.test(cash.text), '「尚未回本」只在折叠内容里')
 
-  ok(/经营利润/.test(t) && /含开办费净利/.test(t), '历史周报每行标「经营利润 / 含开办费净利」')
+  ok(/经营净利/.test(t) && /含开办费净利/.test(t), '历史周报每行标「经营净利 / 含开办费净利」')
 } finally {
   await browser.close()
   try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}

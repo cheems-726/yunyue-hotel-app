@@ -36,6 +36,7 @@ import FinalResult from './FinalResult.jsx'
 import Reputation from './Reputation.jsx'
 import HotelStatus from './HotelStatus.jsx'
 import ProfitStory from './ProfitStory.jsx'   // ★ V141 §1：经营表现（GOP）+ 周策略归因 + 回本折叠
+import { 经营口径文案, 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径单源
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
@@ -48,7 +49,7 @@ import { TITLES } from './hotelTitle.js'
 import { ATTR_INIT, normalizeAttrs, applyDecisionToAttrs, formatAttrDelta, qualityOf } from './attrs.js'
 // 🔴 E1（二期 · 唯一账本）：聚合量与四维评分一律走 metricDefs 单源
 //   （本文件原有三处自算：组员概况 Σocc/Σprofit、积分明细页的【第三套评分副本】）
-import { scoreOf, sumNet, sumGop, avgOccupancy } from './metricDefs.mjs'
+import { scoreOf, sumNet, sumGop, avgOccupancy, wan1 } from './metricDefs.mjs'
 // 🔴 E3（N-3）：三档节奏（实时/周期/一次性）在界面上必须可辨 —— 档位口径来自 decisionCadence（单源）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionCadence.mjs'
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）单源 —— 与服务端补算共用同一派生函数
@@ -611,7 +612,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       )}
 
       {/* ★ V141 §1：首屏第一眼 = 累计 GOP / 本周 vs 上周 / 12 周曲线 + 周策略归因 */}
-      <ProfitStory history={history} />
+      <ProfitStory history={history} capital={capital} />
 
       {/* 酒店状态面板（RPG属性）
           ★ §26.3（P0b）：dayFlows = 本周【预览结算】的引擎日快照（7 天）· dayIndex = 本周第几天
@@ -1057,21 +1058,15 @@ function Report({ report, week, history, brand, property, location, capital }) {
 
       {/* ★ V144 §1：报表页第一眼回答「12 周到底赚了多少」——GOP 口径，与经营页同一套数据 */}
       {history.length > 0 && (() => {
-        const 周数 = history.length
-        const gop = sumGop(history).value
-        const 净 = sumNet(history).value
-        const 一次性 = history.reduce((a, h) => a + (Number(h && h.oneTimeFees && h.oneTimeFees.合计) || 0), 0)
-        const 初始 = Number.isFinite(capital) ? capital - 净 : null
-        const w1 = (v) => (v / 10000).toFixed(1)
+        const 文案 = 经营口径文案(history, capital)
+        const c = 文案.c
         return (
           <div className="card" data-report-answer="1" style={{ borderColor: 'var(--primary-border)' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{周数} 周经营利润（GOP · 不含一次性开办费）</div>
-            <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.15, color: gop >= 0 ? 'var(--good)' : 'var(--bad)' }}>{gop >= 0 ? '+' : ''}{w1(gop)} 万</div>
-            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6, lineHeight: 1.7 }}>
-              开店一次性投入 −{w1(一次性)} 万
-              {初始 != null && Number.isFinite(capital) && <span> · 账面 {w1(初始)} 万 → {w1(capital)} 万</span>}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>这是经营赚的钱；一次性开办费只发生一次，回本参考见下方折叠。</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{c.周数} 周经营净利（扣租金/装修/加盟费，不含一次性）</div>
+            <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.15, color: c.经营净利 >= 0 ? 'var(--good)' : 'var(--bad)' }}>{c.经营净利 >= 0 ? '+' : '−'}{wan1(Math.abs(c.经营净利))}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 6, lineHeight: 1.8 }}>{文案.副}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2, lineHeight: 1.8 }}>{文案.一次性}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.8 }}>{文案.一句话}</div>
           </div>
         )
       })()}
@@ -1198,7 +1193,7 @@ function Report({ report, week, history, brand, property, location, capital }) {
               <span style={{ fontSize: 16, fontWeight: 600 }}>第 {h.week} 周</span>
               <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-sub)' }}>
                 <span>出租率 {h.occupancy}%</span>
-                <span>经营利润 <b style={{ color: (Number.isFinite(h.gop) ? h.gop : 0) >= 0 ? 'var(--good)' : 'var(--bad)' }}>{Number.isFinite(h.gop) ? (h.gop >= 0 ? '+' : '') + h.gop : '—'}</b></span>
+                <span>经营净利 <b style={{ color: 周经营净利(h) >= 0 ? 'var(--good)' : 'var(--bad)' }}>{周经营净利(h) >= 0 ? '+' : ''}{周经营净利(h)}</b></span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>含开办费净利 {Number.isFinite(h.profit) ? (h.profit >= 0 ? '+' : '') + h.profit : '—'}</span>
               </div>
             </div>
