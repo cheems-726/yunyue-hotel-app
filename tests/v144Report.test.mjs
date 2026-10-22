@@ -37,7 +37,7 @@ try {
     const st = {
       user: { role: 'student', id: '20240101', name: 'V144 学生', cloud: false },
       location: { city: '成都', district: '锦江区', attrs: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 } },
-      brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.5 },
+      brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.30 },
       property: { name: '交通枢纽物业' }, established: true, hotelName: '云悦V144店', welcomed: true,
       week: 13, capital: 1163000, attrs: { quality: 60, reputation: 70, morale: 65 },
       bizMode: 'direct', scaleVersion: 3, openDayNo: null, report: null, finished: false,

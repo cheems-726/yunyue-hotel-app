@@ -19,7 +19,7 @@ try {
     localStorage.setItem('hotel-sim-state', JSON.stringify({
       user: { role: 'student', id: '20240109', name: '空态学生', cloud: false },
       location: { city: '成都', district: '锦江区', attrs: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 } },
-      brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.5 },
+      brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.30 },
       property: { name: '交通枢纽物业' }, established: true, hotelName: '空态店', welcomed: true,
       week: 1, history: [], doneDecisions: {}, capital: 1490000, attrs: { quality: 60, reputation: 70, morale: 65 },
       bizMode: 'direct', scaleVersion: 3, openDayNo: null, report: null, finished: false, decisionChanges: [], __autoSettled: [], operatorLogs: [], estChoices: {},

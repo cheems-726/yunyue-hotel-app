@@ -30,11 +30,11 @@ function 跑(brand) {
 
 console.log('▶ V134 §1 · 经济型可经营')
 
-console.log('\n[①] 品牌配置：汉庭 ADR 210–310 · 租金系数 0.5；全季未动')
+console.log('\n[①] 品牌配置：汉庭 ADR 210–310 · 租金系数 0.30；全季 0.79（V146）')
 {
   ok(H && H.price === '210-310元', `汉庭价格带 = 210–310 元（实得 ${H && H.price}）`)
-  ok(H && H.rentFactor === 0.5, `汉庭 rentFactor = 0.5（实得 ${H && H.rentFactor}）`)
-  ok(JI && JI.price === '280-400元' && JI.rentFactor === undefined, '全季价格/租金系数未动（不一起改）')
+  ok(H && H.rentFactor === 0.30, `汉庭 rentFactor = 0.30（V146 · 实得 ${H && H.rentFactor}）`)
+  ok(JI && JI.price === '280-400元' && JI.rentFactor === 0.79, '全季价格 280–400 元 · 租金系数 0.79（V146 保持定位）')
 }
 
 console.log('\n[②] 46 组合：重亏 ≤6（≤15%）· 汉庭 ≥3 区位净利 ≥0')
@@ -51,15 +51,15 @@ console.log('\n[②] 46 组合：重亏 ≤6（≤15%）· 汉庭 ≥3 区位净
   ok(jRows.filter(x => x.profit < -20000).length <= 1, `全季仍只有 ≤1 个重亏（实得 ${jRows.filter(x => x.profit < -20000).length}）`)
 }
 
-console.log('\n[③] 全季不变：去掉 rentFactor 与不去掉，结果逐字节相同')
+console.log('\n[③] 全季定位：租金系数 0.79，锦江 12 周经营净利仍高于汉庭 ≥5 万')
 {
-  const a = settle({ site: { ...districts['成都'].find(d => d.name === '锦江区').attrs, district: '锦江区' }, brand: JI, decisions: DILIGENT, week: 1, prevGoodRate: null })
-  const b = settle({ site: { ...districts['成都'].find(d => d.name === '锦江区').attrs, district: '锦江区' }, brand: { ...JI }, decisions: DILIGENT, week: 1, prevGoodRate: null })
-  ok(JSON.stringify(a) === JSON.stringify(b), '全季同输入 ⇒ 逐字节一致（rentFactor 默认 1）')
-  // 汉庭的租金必须真的降了（否则杠杆没生效）
+  const hRows = 跑(H), jRows = 跑(JI)
+  const jIn = jRows.find(x => x.loc === '锦江区'), hIn = hRows.find(x => x.loc === '锦江区')
+  const gap = jIn && hIn ? jIn.profit - hIn.profit : null
+  ok(gap != null && gap >= 50000, `锦江：全季 ${jIn && jIn.profit} − 汉庭 ${hIn && hIn.profit} = ${gap}（≥5 万）`)
   const h = settle({ site: { ...districts['成都'].find(d => d.name === '锦江区').attrs, district: '锦江区' }, brand: H, decisions: DILIGENT, week: 1, prevGoodRate: null })
   const 单房租金 = h.rentCost / (h.rooms * 7)
-  ok(单房租金 <= 25.1, `汉庭单房租金 = 区位租金×0.5（实得 ${单房租金} 元/间·天）`)
+  ok(单房租金 <= 15.1, `汉庭单房租金 = 区位租金×0.30（实得 ${单房租金} 元/间·天）`)
 }
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败')

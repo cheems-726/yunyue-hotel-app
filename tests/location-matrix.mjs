@@ -3,8 +3,8 @@ import { settle } from '../src/settlement.js'
 import { districts } from '../src/siteLocations.mjs'
 
 const BRANDS = [
-  { name: '汉庭', price: '210-310元', standard: '客房70间起', level: '经济型 · 国民', rentFactor: 0.5 },   // ★ V134：同步 brands.mjs（阈值/判据未动）
-  { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档' },
+  { name: '汉庭', price: '210-310元', standard: '客房70间起', level: '经济型 · 国民', rentFactor: 0.30 },   // ★ V134：同步 brands.mjs（阈值/判据未动）
+  { name: '全季', price: '280-400元', standard: '客房80间起', level: '中档', rentFactor: 0.79 },
 ]
 
 const DILIGENT = { pricing: '不跟降', shifts: '满编保服务', hygiene: '停房深清洁', linen: '自洗', 'member-convert': '强调品质', corporate: '让利签约', 'member-threshold': 5, energy: 23, overbook: 2, ota: {}, reputation: '道歉+赔偿', 'hr-optimize': '全员培训' }
