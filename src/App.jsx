@@ -29,16 +29,15 @@ import { 判分 as 归因判分 } from './attribution.mjs'   // ★ V117：归�
 import { 提示 } from './notice.mjs'   // ★ V115 §3-⑤：页内提示替代 alert
 import HotelNaming from './HotelNaming.jsx'   // ★ V114-P1：酒店命名页（一次承诺）
 import { 已有名字 } from './hotelName.mjs'
-// ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— FinalResult/Reputation 出现在流程后段，React.lazy 切独立 chunk
-//   ★ 只懒【后段页面】（首屏 Welcome/登录/经营主链不动 —— 拆首屏反而多一次请求）· fallback 用同风格提示。
-import { lazy as lazyPage, Suspense as SuspenseR } from 'react'
-const FinalResult = lazyPage(() => import('./FinalResult.jsx'))
-const Reputation = lazyPage(() => import('./Reputation.jsx'))
+// ★ V140 §1：原为 React.lazy（会产 import() 动态导入语法，Chromium<63 解析失败）。
+//   旧 X5 兼容优先 ⇒ 改静态导入（后段页面一次性进主包，产物变大可接受；不改业务逻辑）。
+import FinalResult from './FinalResult.jsx'
+import Reputation from './Reputation.jsx'
 import HotelStatus from './HotelStatus.jsx'
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog } from './supabaseClient.js'
+import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog, setGroupRole } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
@@ -70,7 +69,7 @@ import { 应对选项Of, 应对可执行Of } from './teacherEvents.mjs'
 //   注意：settle（引擎）不引用本模块（一期边界有守门断言）—— 记录在 App 层生成后挂到 result。
 import { 生效授权, 领班决策, 代管率 } from './aiSupervisor.mjs'
 import { DEMO_REVIEWS } from './Reputation.jsx'   // V55 · 演示种子（仅离线注入）
-import { 校验工号, 分类登录错误, 登录预检, 错误类型 } from './loginReliability.mjs'   // ★ V129：登录可靠性（预检/分级）
+import { 校验工号, 分类登录错误, 登录预检, 错误类型, 规范化账号, 密码问题提示, base是旧云端, 内核文本 } from './loginReliability.mjs'   // ★ V129：登录可靠性（预检/分级）· V139：规范化/诊断
 
 // ===== 登录页（真实 Supabase 认证 + 离线演示模式） =====
 // ★ V129-R109-1：连通预检横幅（挂载即跑；只作建议，不阻塞离线演示）
@@ -109,6 +108,11 @@ function LoginPage({ onLogin }) {
   const [errorKind, setErrorKind] = useState('')
   const [busy, setBusy] = useState(false)
   const [显示密码, set显示密码] = useState(false)   // ★ V135 §1-2：显示/隐藏密码（R3 唯一缺口）
+  // ★ V139 §1：登录诊断面板（构建号 / 接口地址 / 健康 / 最近一次 / 复制 / 强制更新）
+  const [构建号, set构建号] = useState('')
+  const [健康, set健康] = useState(null)
+  const [最近尝试, set最近尝试] = useState(null)
+  const [复制提示, set复制提示] = useState('')
   // ★ V129-R109-1：登录页挂载即做连通预检（不等用户点登录）
   const [预检, set预检] = useState({ 状态: '探测中', 说明: '正在检查连接…', 可用入口: null, 入口s: [] })
   const accountRef = useRef(null)
@@ -121,6 +125,57 @@ function LoginPage({ onLogin }) {
       .catch(() => { if (!停) set预检({ 状态: '全不通', supabaseOk: false, 可用入口: null, 入口s: [], 说明: '三个入口都不通（不是密码问题）' }) })
     return () => { 停 = true }
   }, [])
+
+  useEffect(() => {
+    try {
+      const src = [...document.querySelectorAll('script[src]')].map(x => x.src).find(u => /assets\/index-[^/]+\.js/.test(u))
+      set构建号(src ? src.split('/').pop().replace(/\.js$/, '') : '开发模式（无构建号）')
+    } catch (e) { set构建号('未知') }
+    try { const s = localStorage.getItem('hotel-login-last'); if (s) set最近尝试(JSON.parse(s)) } catch (e) { /* 静默理由：坏档不影响登录 */ }
+  }, [])
+
+  async function 检查健康() {
+    const t = Date.now()
+    set健康({ status: '检测中' })
+    try {
+      const ctl = new AbortController()
+      const tmr = setTimeout(() => { try { ctl.abort() } catch (e) { /* 静默理由：请求已完成时 abort 会抛，忽略 */ } }, 3000)
+      const r = await fetch(`${String(SUPABASE_URL).replace(/\/+$/, '')}/auth/v1/health`, { signal: ctl.signal, cache: 'no-store' })
+      clearTimeout(tmr)
+      set健康({ status: r.status, ms: Date.now() - t })
+    } catch (e) { set健康({ status: '失败', ms: Date.now() - t }) }
+  }
+
+  function 记录尝试(info) {
+    const 打码 = (v) => { const x = String(v || ''); return x.length <= 4 ? '***' : x.slice(0, 2) + '***' + x.slice(-2) }
+    const row = { ts: new Date().toISOString(), 账号: 打码(account), ...info }
+    set最近尝试(row)
+    try { localStorage.setItem('hotel-login-last', JSON.stringify(row)) } catch (e) { /* 静默理由：本机写盘失败不影响登录结论 */ }
+  }
+
+  async function 复制诊断() {
+    const 文本 = [
+      `构建号：${构建号 || '未知'}`,
+      `接口地址：${SUPABASE_URL}`,
+      `健康检查：${健康 ? (健康.status === '失败' ? '失败' : `HTTP ${健康.status} · ${健康.ms}ms`) : '未检测'}`,
+      `最近一次：${最近尝试 ? `${最近尝试.ts} · ${最近尝试.账号} · ${最近尝试.status || '无状态'} ${最近尝试.code || ''}` : '无'}`,
+      `浏览器：${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`,
+      `时间：${new Date().toISOString()}`,
+    ].join('\n')
+    try { await navigator.clipboard.writeText(文本); set复制提示('已复制') } catch (e) {
+      try {
+        const ta = document.createElement('textarea'); ta.value = 文本; ta.style.position = 'fixed'; ta.style.opacity = '0'
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); set复制提示('已复制')
+      } catch (e2) { set复制提示('复制失败，请截图') }
+    }
+    setTimeout(() => set复制提示(''), 2500)
+  }
+
+  async function 强制更新() {
+    try { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r => r.unregister())) } catch (e) { /* 静默理由：无 SW 也要能刷新 */ }
+    try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))) } catch (e) { /* 静默理由：无 cache API 也要能刷新 */ }
+    if (typeof window !== 'undefined') window.location.reload()
+  }
 
   function 清错误() { setError(''); setErrorNext(''); setErrorKind('') }
   function 报错(类) { setError(类.文案); setErrorNext(类.下一步); setErrorKind(类.类型) }
@@ -136,17 +191,20 @@ function LoginPage({ onLogin }) {
 
   // ★ V129-R109-2：登录错误分级 + 服务器故障自动重试（账号密码内容保留）
   async function handleLogin() {
-    if (!account || !password) { setError('请输入账号和密码'); setErrorNext(''); setErrorKind(''); return }
-    const vErr = validateAccount(account)
+    // ★ V139 §2：只在登录时规范化（不回显）——全角数字/误输邮箱后缀/首尾空白是手机端高频
+    const 账号 = 规范化账号(account)
+    const 密码 = String(password || '').trim()
+    if (!账号 || !密码) { setError('请输入账号和密码'); setErrorNext(''); setErrorKind(''); return }
+    const vErr = validateAccount(账号)
     if (vErr) { setError(vErr); setErrorNext('请修改后重试（老师：T+数字；学生：纯数字）'); setErrorKind(错误类型.工号格式); accountRef.current && accountRef.current.focus(); return }
     setBusy(true)
     清错误()
     const 入口 = (预检 && 预检.可用入口) || (typeof window !== 'undefined' ? window.location.origin : '当前入口')
     try {
-      const email = emailFor(account)
+      const email = emailFor(账号)
       let authErr = null, data = null, 重试 = 0
       for (let i = 0; i < 3; i++) {
-        const r = await supabase.auth.signInWithPassword({ email, password: String(password).trim() })   // ★ V106-D2④：trim 首尾空格（不许回退）
+        const r = await supabase.auth.signInWithPassword({ email, password: 密码 })   // ★ V106-D2④：trim 首尾空格（不许回退）
         authErr = r.error; data = r.data
         if (!authErr) break
         const 类 = 分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口, 重试次数: 重试 })
@@ -155,12 +213,19 @@ function LoginPage({ onLogin }) {
         await new Promise(res => setTimeout(res, 400 * (i + 1)))
       }
       if (authErr) {
-        报错(分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口, 重试次数: 重试 }))
+        const 类 = 分类登录错误({ message: authErr.message, status: authErr.status || 0, name: authErr.name, 入口, 重试次数: 重试 })
+        报错(类)
+        记录尝试({ status: authErr.status || 0, code: authErr.code || authErr.message || '', 类型: 类.类型 })
+        const 提示 = 密码问题提示(password)
+        if (提示) setErrorNext(prev => prev ? `${prev}；${提示}` : 提示)
         return
       }
-      await completeLogin(data.user, account)
+      记录尝试({ status: 200, code: 'ok', 类型: '成功' })
+      await completeLogin(data.user, 账号)
     } catch (e) {
-      报错(分类登录错误({ message: e.message || String(e), name: e.name, status: e.status || 0, 入口 }))
+      const 类 = 分类登录错误({ message: e.message || String(e), name: e.name, status: e.status || 0, 入口 })
+      报错(类)
+      记录尝试({ status: e.status || 0, code: e.message || String(e), 类型: 类.类型 })
     } finally {
       setBusy(false)
     }
@@ -321,6 +386,29 @@ function LoginPage({ onLogin }) {
         <span style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setStep('choose')}>‹ 返回选择身份</span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setStep('demo')}>无网络？离线演示 ›</span>
       </div>
+
+      {/* ★ V139 §1：诊断面板（只读 · 不显示任何密钥） */}
+      <details data-login-diag="1" style={{ marginTop: 14, textAlign: 'left' }}
+        onToggle={e => { if (e.target.open) 检查健康() }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', minHeight: 44, lineHeight: '44px' }}>登录不上？点这里</summary>
+        <div style={{ marginTop: 6, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', fontSize: 12, lineHeight: 1.7, wordBreak: 'break-all' }}>
+          <div>构建号：<code data-diag-build="1">{构建号 || '读取中'}</code></div>
+          <div style={{ color: (base是旧云端(SUPABASE_URL) && typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) ? 'var(--bad)' : 'inherit' }}>
+            接口地址：<code data-diag-base="1">{SUPABASE_URL || '未知'}</code>
+            {base是旧云端(SUPABASE_URL) && typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && <b> ← 包指回旧云端，请点“强制更新”</b>}
+          </div>
+          <div>健康检查：{健康 ? (健康.status === '失败' ? '失败（连不上）' : 健康.status === '检测中' ? '检测中…' : `HTTP ${健康.status} · ${健康.ms}ms`) : '展开后自动检测'}</div>
+          <div>最近一次：{最近尝试 ? `${new Date(最近尝试.ts).toLocaleString()} · ${最近尝试.账号} · ${最近尝试.status || '无状态'} ${最近尝试.code || ''}` : '无'}</div>
+          <div><b>UA：</b>{typeof navigator !== 'undefined' ? navigator.userAgent : '未知'}</div>
+          <div><b>内核：</b>{内核文本(typeof navigator !== 'undefined' ? navigator.userAgent : '')}</div>
+          <div><b>Service Worker：</b>{typeof navigator !== 'undefined' && 'serviceWorker' in navigator ? (navigator.serviceWorker.controller ? '已接管' : '未接管') : '不支持'}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            <button type="button" className="btn btn-ghost" style={{ width: 'auto', padding: '6px 10px', fontSize: 12, minHeight: 44 }} onClick={复制诊断}>复制诊断信息</button>
+            <button type="button" className="btn btn-ghost" style={{ width: 'auto', padding: '6px 10px', fontSize: 12, minHeight: 44 }} onClick={强制更新}>强制更新（清缓存）</button>
+            {复制提示 && <span style={{ alignSelf: 'center', color: 'var(--text-muted)' }}>{复制提示}</span>}
+          </div>
+        </div>
+      </details>
     </div>
   )
 }
@@ -1676,7 +1764,7 @@ function GroupMembersPage({ user, onBack, onGoDecision }) {
               { role: 'hr', icon: 'role.hr', label: '人事专员', desc: '招聘/排班' },
             ].map(r => (
               <button key={r.role}
-                onClick={() => { import('./supabaseClient.js').then(m => m.setGroupRole(user.uid, r.role)); setMyRole(r.role) }}
+                onClick={() => { Promise.resolve(setGroupRole(user.uid, r.role)); setMyRole(r.role) }}
                 style={{
                   flex: '1 1 30%', minWidth: 90, padding: '10px 8px', borderRadius: 10,
                   border: myRole === r.role ? '2px solid var(--primary)' : '1px solid var(--border)',
@@ -2995,7 +3083,7 @@ export default function App() {
         </div>
         <DemoPill user={user} />
         // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
-        <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} /></SuspenseR>
+        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
       </div>
     )
   }
@@ -3139,7 +3227,7 @@ export default function App() {
     const pages = {
       business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} />,
-      reputation: <SuspenseR fallback={<div style={{ padding: 40, textAlign: 'center', fontSize: 16, color: 'var(--text-muted)' }}>加载中…</div>}><Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} /></SuspenseR>,   // ★ §32-U4-R4：带上职务
+      reputation: <Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,
       games: <GamesLibrary onPlay={set游戏进行中} />,   // ★ V133：游戏列表
     }

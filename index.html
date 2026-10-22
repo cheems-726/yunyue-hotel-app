@@ -15,7 +15,89 @@
     <title>云悦酒店 · 经营模拟</title>
   </head>
   <body>
+    <!-- ★ V140 §2：静态骨架（不依赖 JS）。JS 没跑起来/内核解析失败时，用户至少看到文字而不是白屏。 -->
+    <div id="boot" role="status" aria-live="polite" style="padding:48px 20px;font:16px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#333;text-align:center">
+      <div style="font-size:22px;font-weight:700;margin-bottom:10px">云悦酒店 · 正在加载…</div>
+      <div style="font-size:13px;color:#777">若 10 秒后仍停留在此，请点下面的「诊断」（断网或浏览器内核过旧都会显示诊断信息）</div>
+      <button id="boot-diag" type="button" style="margin-top:16px;padding:12px 18px;font-size:15px;border:1px solid #ccc;border-radius:10px;background:#fff;color:#333">诊断</button>
+    </div>
+    <noscript>
+      <div style="padding:32px 20px;font:16px/1.7 sans-serif;color:#b00;text-align:center">请开启 JavaScript 后再试（浏览器设置 → 网站设置 → JavaScript）。</div>
+    </noscript>
     <div id="root"></div>
+
+    <!-- ★ V140 §2：全局兜底（ES5 写法！旧 X5 内核也必须能执行）。捕获脚本错误/未处理 Promise，显示可复制的面板。 -->
+    <script>
+      (function () {
+        function buildNo() {
+          try {
+            var s = document.querySelector('script[type=module]');
+            var m = s && s.src ? String(s.src).match(/index-[A-Za-z0-9_-]+\.js/) : null;
+            return m ? m[0] : '开发/未知';
+          } catch (e) { return '未知'; }
+        }
+        function kernel(ua) {
+          ua = String(ua || '');
+          var c = /Chrome\/(\d+)/.exec(ua);
+          var x5 = /X5|XWeb/i.test(ua) || (/MicroMessenger/i.test(ua) && /Android/i.test(ua));
+          var ios = /iPhone|iPad|iPod/i.test(ua);
+          var base = c ? 'Chrome/' + c[1] : (ios ? 'iOS WebKit' : '未知内核');
+          return base + (x5 ? ' · X5/XWeb' : '');
+        }
+        function swText() {
+          try { return ('serviceWorker' in navigator) && navigator.serviceWorker.controller ? '已接管' : '未接管'; } catch (e) { return '未知'; }
+        }
+        function show(msg) {
+          if (document.getElementById('boot-error')) return;
+          var box = document.createElement('div');
+          box.id = 'boot-error';
+          box.style.cssText = 'position:fixed;left:0;right:0;top:0;bottom:0;z-index:99999;background:#fff;color:#111;padding:16px;overflow:auto;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+          var h = document.createElement('div');
+          h.style.cssText = 'font-size:18px;font-weight:700;margin-bottom:8px';
+          h.appendChild(document.createTextNode('页面启动失败（不是账号问题）'));
+          box.appendChild(h);
+          var p = document.createElement('div');
+          p.style.cssText = 'font-size:13px;color:#555;margin-bottom:10px';
+          p.appendChild(document.createTextNode('请把下面内容截图/复制发给老师；点「重试」可再试一次。'));
+          box.appendChild(p);
+          var ta = document.createElement('textarea');
+          ta.readOnly = true;
+          ta.style.cssText = 'width:100%;height:230px;font:12px/1.5 monospace;box-sizing:border-box';
+          ta.value = '错误：' + msg + '\n构建号：' + buildNo() + '\nUA：' + navigator.userAgent +
+            '\n内核：' + kernel(navigator.userAgent) + '\nSW：' + swText() +
+            '\n地址：' + location.href + '\n时间：' + new Date().toISOString();
+          box.appendChild(ta);
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.style.cssText = 'margin-top:10px;padding:10px 14px;font-size:14px;border:1px solid #ccc;border-radius:10px;background:#fff';
+          btn.appendChild(document.createTextNode('重试'));
+          btn.onclick = function () { location.reload(); };
+          box.appendChild(btn);
+          (document.body || document.documentElement).appendChild(box);
+        }
+        function ignore(msg) {
+          var s = String(msg || '');
+          return /plugin is not implemented/i.test(s) || /ResizeObserver loop/i.test(s) || /^Script error\.?$/i.test(s);
+        }
+        window.addEventListener('error', function (e) {
+          var msg = (e && (e.message || e.type)) || 'script error';
+          if (!ignore(msg)) show(msg);
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e && e.reason;
+          var msg = (r && (r.message || String(r))) || 'unhandledrejection';
+          if (!ignore(msg)) show(msg);
+        });
+        var d = document.getElementById('boot-diag');
+        if (d) { d.onclick = function () { show('用户主动点诊断'); }; }
+        setTimeout(function () {
+          var b = document.getElementById('boot');
+          var r = document.getElementById('root');
+          if (b && (!r || !r.firstChild)) { show('脚本 10 秒内未启动（可能是断网，或浏览器内核过旧）'); }
+        }, 10000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
     <script>
       if ('serviceWorker' in navigator) {

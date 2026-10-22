@@ -44,6 +44,15 @@ export function 分类登录错误({ message = '', status = 0, name = '', 入口
       可重试: false,
     }
   }
+  // ①-1 限流：429 / GoTrue 的 rate limit 文案（旧代码会并进 400 凭证错 ⇒ 误导"密码不对"）
+  if (st === 429 || /rate.?limit|too many requests|请求过多|尝试太频繁|email.?send.?rate/i.test(msg)) {
+    return {
+      类型: 错误类型.服务器故障,
+      文案: '尝试太频繁，请 60 秒后再试',
+      下一步: '停 1 分钟再登录；连续点 10 次会触发服务端限流',
+      可重试: true,
+    }
+  }
   // ② 凭证错误：Supabase 400 invalid_credentials（必须在服务器故障之前判，避免 4xx 被并进网络错）
   if (st === 400 || /invalid.?login|invalid.?credentials|账号或密码错误/i.test(msg)) {
     return {
@@ -68,6 +77,40 @@ export function 分类登录错误({ message = '', status = 0, name = '', 入口
     下一步: '重试一次；仍失败请联系老师（附上这条提示）',
     可重试: true,
   }
+}
+
+/** 学号/工号输入规范化（只在登录时用，不回显）：去空白 → 全角转半角 → 去误输的邮箱后缀 */
+export function 规范化账号(v) {
+  let s = String(v == null ? '' : v).trim()
+  s = s.replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+  s = s.replace(/[　]/g, ' ')
+  s = s.replace(/@yunyue\.study$/i, '').trim()
+  return s
+}
+
+/** 密码里容易被手机键盘带进来的字符（只提示，不改密码）：全角字符 / 内部空格 */
+export function 密码问题提示(pw) {
+  const s = String(pw == null ? '' : pw)
+  const 有全角 = /[！-～　]/.test(s)
+  const 内部空格 = /\S\s+\S/.test(s.trim())
+  if (有全角) return '密码里含全角字符，确认键盘是英文状态'
+  if (内部空格) return '密码中间有空格，确认没有多打'
+  return ''
+}
+
+/** 内核文本（诊断面板/错误面板共用）：Chrome/xx · X5/XWeb · iOS WebKit */
+export function 内核文本(ua) {
+  const s = String(ua || '')
+  const c = /Chrome\/(\d+)/.exec(s)
+  const x5 = /X5|XWeb/i.test(s) || (/MicroMessenger/i.test(s) && /Android/i.test(s))
+  const ios = /iPhone|iPad|iPod/i.test(s)
+  const base = c ? `Chrome/${c[1]}` : (ios ? 'iOS WebKit' : '未知内核')
+  return base + (x5 ? ' · X5/XWeb' : '')
+}
+
+/** 诊断面板的 base 判定：含旧云端 supabase.co ⇒ 旧包（红字） */
+export function base是旧云端(base) {
+  return /supabase\.co/i.test(String(base || ''))
 }
 
 /** 工号/学号格式（前端校验 · 与登录页同口径） */

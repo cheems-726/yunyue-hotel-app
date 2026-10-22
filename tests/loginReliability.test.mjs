@@ -1,7 +1,7 @@
 // V129-R109 · 登录可靠性：连通预检 / 入口建议 / 四类错误分级 / 工号校验
 // 运行：node tests/loginReliability.test.mjs   （挂 run-all fast）
 import { readFileSync } from 'node:fs'
-import { 分类登录错误, 校验工号, 登录预检, 探测地址, 错误类型, 入口候选 } from '../src/loginReliability.mjs'
+import { 分类登录错误, 校验工号, 登录预检, 探测地址, 错误类型, 入口候选, 规范化账号, 密码问题提示, 内核文本, base是旧云端 } from '../src/loginReliability.mjs'
 
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
@@ -26,6 +26,11 @@ console.log('\n[①] 四类错误：文案 + 下一步 都在')
   ok(服务器.类型 === 错误类型.服务器故障, '5xx ⇒ 服务器故障')
   ok(/服务器忙或故障/.test(服务器.文案) && /已重试 2 次/.test(服务器.文案), '服务器文案含"已重试 N 次"')
   ok(/重试/.test(服务器.下一步), '服务器：下一步含"重试"')
+
+  // ★ V139/V140：429 必须单独成类，不能并进"密码错"
+  const 限流 = 分类登录错误({ message: 'email rate limit exceeded', status: 429 })
+  ok(限流.类型 === 错误类型.服务器故障 && /尝试太频繁/.test(限流.文案), '429/rate limit ⇒ 「尝试太频繁」而不是密码错')
+  ok(!/密码|口令/.test(限流.文案), '限流文案不含「密码/口令」')
 
   const 格式 = 校验工号('teacher', '2024')
   ok(格式 === '教师工号应为 T+数字（如 T2024）', `工号格式：老师必须 T+数字（实得 ${格式}）`)
@@ -68,12 +73,25 @@ console.log('\n[③] 登录页接线（静态）：挂载即预检 · 错误带�
   ok(/<预检横幅 预检=\{预检\}/.test(app), '选择身份页也显示预检横幅（点登录之前）')
   ok(/setStep\('demo'\)/.test(app) && /离线演示/.test(app), '离线演示入口仍在（预检失败不阻塞）')
   // ★ 密码首尾空格仍能登录（V106-D2④ 不回退）：两处都必须 trim
-  const 登录trim = (app.match(/signInWithPassword\(\{ email, password: String\(password\)\.trim\(\) \}\)/g) || []).length
+  // ★ V139：登录改为先规范化 `const 密码 = String(password || '').trim()`，然后 `password: 密码`
+  const 登录trim = (/const 密码 = String\(password \|\| ''\)\.trim\(\)/.test(app) && /password: 密码/.test(app)) ? 1 : 0
   const 注册trim = (app.match(/signUp\(\{ email, password: String\(password\)\.trim\(\) \}\)/g) || []).length
   ok(登录trim === 1 && 注册trim === 1, `登录/注册都保留 trim（实得 ${登录trim}/${注册trim}）`)
   ok(/校验工号\(role, id\)/.test(app), '工号校验走 loginReliability 单源')
   // ★ V135 §1-2：R3 显示/隐藏密码
   ok(/data-pwd-toggle="1"/.test(app) && /type=\{显示密码 \? 'text' : 'password'\}/.test(app), '密码显示/隐藏切换在位（R3）')
+}
+
+console.log('\n[⑦] V139/V140：输入规范化 / 密码提示 / 内核 / 旧云端判定')
+{
+  ok(规范化账号(' ２０２４０１０１@yunyue.study ') === '20240101', '全角学号 + 误输邮箱后缀 + 首尾空白 ⇒ 20240101')
+  ok(规范化账号('Ｔ２０２４') === 'T2024', '全角教师工号 ⇒ T2024')
+  ok(规范化账号('20240101') === '20240101', '正常学号不被改动')
+  ok(/全角/.test(密码问题提示('abc１２３')), '密码含全角字符 ⇒ 提示全角')
+  ok(/空格/.test(密码问题提示('ab c')), '密码中间有空格 ⇒ 提示空格')
+  ok(密码问题提示(' test123 ') === '', '仅首尾空白 ⇒ 不提示（登录时 trim）')
+  ok(内核文本('Mozilla/5.0 (Linux; Android 14) Chrome/77.0 Mobile MicroMessenger/8.0') === 'Chrome/77 · X5/XWeb', '内核：微信 Android ⇒ Chrome/77 · X5/XWeb')
+  ok(base是旧云端('https://jgytwxaeeezmdbxfsyvs.supabase.co') === true && base是旧云端('https://test.2026911301.xyz') === false, '旧云端判定：supabase.co 红 / 同源不红')
 }
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败')

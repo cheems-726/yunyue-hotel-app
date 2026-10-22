@@ -12,7 +12,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { 创建导航栈, 造返回处理器 } from './navStack.mjs'
 import Icon from './Icon.jsx'
 import { decisions, OWNER_LABELS } from './decisions.js'
-import { saveGameStateNow, advanceClassOffset } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）· V131：推进教学日
+import { supabase, saveGameStateNow, advanceClassOffset } from './supabaseClient.js' // §32-U1 R3：老师裁量写回学生存档（override）· V131：推进教学日
 import { 推进目标, 本周第几天 } from './advanceWeek.mjs'   // ★ V131 §2：不跳周
 import { hotCrisisActive } from './hotReview.mjs' // R3：危机期是否仍生效（与引擎同一判定）
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
@@ -32,10 +32,8 @@ import { 注入事件库, 构建注入事件, 构建自定义事件, 校验注�
 // ★ §32-U8-补 §2④：AI 领班全班默认授权页 —— 授权形状与规则单源（aiSupervisor）
 import { 默认授权, 领班规则 } from './aiSupervisor.mjs'
 import { groupKeyOf } from './supabaseClient.js'
-// ★ §33-V4-E①（2026-10-01）：Bundle 拆分 —— TeacherReport 只在老师点「📄 经营报告」时才需要，
-//   改 React.lazy（Vite 自动切独立 chunk）；挂载点包 Suspense fallback（全屏覆盖层，加载提示即可）。
-import { lazy, Suspense } from 'react'
-const TeacherReport = lazy(() => import('./TeacherReport.jsx')) // §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
+// ★ V140 §1：原 React.lazy 会产 import()（Chromium<63 解析失败）⇒ 改静态导入（兼容优先）
+import TeacherReport from './TeacherReport.jsx' // §32-U2：一键图文经营报告（只读汇总 · 打印/另存 PDF）
 import SemesterTasks from './SemesterTasks.jsx' // §33-V80：12 周任务书（打印版 · 全班发）
 
 import { GOP_SHORT, GOP_DEF, NET_LABEL, NET_DEF, sumGop, sumNet, netOf, scoreOf, prevScore, totalRevenue, avgOccupancy, avgGoodRate } from './metricDefs.mjs'
@@ -398,7 +396,7 @@ function TeacherNoteForm({ uid, name, week = 0, onSaved, editNote, onEditCancel 
     if (!note.trim() && !score) return
     setSaving(true)
     // 获取教师uid
-    const session = await import('./supabaseClient.js').then(m => m.supabase.auth.getSession())
+    const session = await supabase.auth.getSession()
     const teacherUid = session.data?.session?.user?.id
     if (!teacherUid) return
     const ok = await saveTeacherNote(teacherUid, uid, week, note.trim(), score ? Number(score) : null, editNote ? editNote.id : null)
@@ -848,7 +846,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [notedUids, setNotedUids] = useState(new Set())
   const [allNotes, setAllNotes] = useState([]) // 全部批注（GroupDetail 时间线用）
   const handleDeleteNote = async (noteId) => {
-    const okk = await import('./supabaseClient.js').then(m => m.deleteTeacherNote(noteId))
+    const okk = await deleteTeacherNote(noteId)
     if (okk) { setAllNotes(ns => ns.filter(n => n.id !== noteId)); loadAll() }
   }
   const [profiles, setProfiles] = useState([]) // 全部学生档案（分组管理用）
@@ -1916,14 +1914,14 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       const g = (groups || []).find(x => x.uid === reportUid)
       const gs = rawStates.find(x => x.user_id === reportUid)
       return (
-        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--text-muted)' }}>报告生成中…</div>}>
+        <>
           <TeacherReport
             gs={gs}
             组名={g ? g.name : ''}
             批注={allNotes.filter(n => n.student_uid === reportUid)}
             onClose={() => setReportUid(null)}
           />
-        </Suspense>
+        </>
       )
     })()}
     {/* §33-V80：12 周任务书（全屏覆盖层 · 只读 · 可打印） */}

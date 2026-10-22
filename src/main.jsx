@@ -17,3 +17,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 )
+
+// ★ V140 §2：React 真正挂载后才撤掉静态骨架；脚本没跑起来时骨架会一直显示（不是白屏）
+const bootEl = document.getElementById('boot')
+if (bootEl) {
+  setTimeout(() => {
+    try { if (document.getElementById('root').firstChild) bootEl.remove() } catch (e) { /* 静默理由：骨架撤不掉不影响页面 */ }
+  }, 0)
+}

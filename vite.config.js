@@ -16,6 +16,9 @@ const swBuildVersion = () => ({
 
 export default defineConfig({
   plugins: [react(), swBuildVersion()],
+  // ★ V140 §1：旧微信 X5（Chromium 53/66/77）解析不了 ?. / ?? ⇒ 白屏。
+  //   es2017 会让 esbuild 把可选链/空值合并降级成等价写法（不改业务逻辑，产物变大可接受）。
+  build: { target: 'es2017' },
   server: {
     host: true,
     port: 5173
