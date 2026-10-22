@@ -348,7 +348,9 @@ await clickText(page, '确认选址'); await sleep(700)
     }
     const card = (await reviews(page)).filter(r => weekOf(r) === week)
     console.log('    [本周卡片明细] ' + card.map(r => `${r.id}/${r.live ? 'live' : 'settle'}/⭐${r.stars}/${r.status}`).join('  '))
-    const negCards = card.filter(r => Number(r.stars) <= 3).length
+    // ★ V137（D337 后续）：差评口径必须与产品一致 —— `src/Reputation.jsx` 差评固定 2 星、好评 5 星；
+    //   结算卡是 3 星（中性/pending），旧口径 `<=3` 把它算成差评 ⇒ 恒差 N 张（实测 3 张 vs 周报 0）
+    const negCards = card.filter(r => Number(r.stars) <= 2).length
     const settleCards = card.filter(r => !r.live)
     // ⚠️ 新增（2026-09-22）：证明"结算差额卡片确实入库了"——旧断言在差评数为 0 时空转通过（假绿），
     //    曾让"结算卡片从未入库"的越界 bug 潜伏至今
