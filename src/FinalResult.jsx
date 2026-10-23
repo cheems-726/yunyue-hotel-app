@@ -78,6 +78,7 @@ export default function FinalResult({ history, onRestart, user, attrs }) {
         <div style={{ fontSize: 56, fontWeight: 700, color: 'var(--primary)' }}>{finalScore}</div>
         <div style={{ fontSize: 16, color: 'var(--warn)', fontWeight: 600, marginTop: 4 }}>{grade}</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>满分 100 · 按四维加权评分</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.7 }}>总评 = 利润 40% + 口碑 25% + 出租率 20% + 差评处理 15%；<b>过程分仅课堂记录，不进入总评</b>。</div>
       </div>
 
       {/* 四维评分 */}

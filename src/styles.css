@@ -507,3 +507,15 @@ input[type="range"]::-webkit-slider-thumb {
   button, .city-tab, .district-card { min-height: 44px; }
   button { min-width: 44px; }
 }
+
+
+/* ★ V149 §1：手机登录页上部对齐（桌面保持居中）—— 高度<700 或宽<500 时不再垂直居中 */
+@media (max-width: 500px), (max-height: 700px) {
+  .login-page {
+    justify-content: flex-start !important;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+}

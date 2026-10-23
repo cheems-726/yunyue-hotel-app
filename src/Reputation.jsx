@@ -5,6 +5,7 @@ import { scoreNegativeReply, scoreGoodReply } from './replyScoring.js'
 import { guestsRng, makeReview } from './guests.js'
 import { decisions as DEC_CATALOG } from './decisions.js'
 import { 建议职务文案 } from './roleBonus.mjs' // §32-U4-R4：职务加成提示（单源文案）
+import { 差评处理率 } from './reviewStats.mjs'   // ★ V149 §2：处理率单源（无差评周回退）
 
 // 差评数据（含处理状态）
 // ★ V55（用户"人都还没住进去，差评怎么就出来了"）：初始评价必须为空 —— 0 入住 ⇒ 0 评价（settlement.js:38 口径同源）。
@@ -105,8 +106,10 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
   const resolved = reviews.filter(r => r.status === 'resolved')
   const good = reviews.filter(r => r.status === 'good')
   const ignoredCount = reviews.filter(r => r.status === 'ignored').length
-  // 处理率口径：已忽略的差评也算"没处理"（不作为不是免罚）
-  const handleRate = Math.round((resolved.length / (pending.length + resolved.length + ignoredCount || 1)) * 100)
+  // 处理率口径：已忽略的差评也算"没处理"（不作为不是免罚）；无差评周回退 history.handleStats（无则 null）
+  const 统计 = 差评处理率(reviews, history)
+  const handleRate = 统计.rate
+  const handleRatePct = handleRate == null ? '—' : handleRate + '%'
   // 今日已处理数：resolvedAt 为今天的已解决差评
   const todayStr = new Date().toDateString()
   const todayResolved = resolved.filter(r => r.resolvedAt && new Date(r.resolvedAt).toDateString() === todayStr).length
@@ -213,7 +216,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       <div className="header">
         <div className="row1"><span className="hotel-name">口碑</span></div>
         <div className="sub">
-          {goodRatePct != null ? `好评率 ${goodRatePct}% · ` : ''}差评处理率 {handleRate}%
+          {goodRatePct != null ? `好评率 ${goodRatePct}% · ` : ''}差评处理率 {handleRatePct}
         </div>
       </div>
 
@@ -226,7 +229,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           ? Math.min(100, Math.round(goodRatePct + (Number(attrs?.morale) || 65) / 4))
           : null
         const goodColor = goodRatePct == null ? 'var(--text-muted)' : goodRatePct >= 80 ? 'var(--good)' : goodRatePct >= 60 ? 'var(--primary)' : 'var(--bad)'
-        const handleColor = handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'
+        const handleColor = handleRate == null ? 'var(--text-muted)' : handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)'
         const box = (label, val, color) => (
           <div style={{ flex: 1, background: 'var(--card)', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color }}>{val}</div>
@@ -237,7 +240,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
           <div className="card" style={{ background: 'var(--bg)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)', marginBottom: 8 }}>口碑构成拆解（三个指标怎么互相影响）</div>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
-              {box('差评处理率', handleRate + '%', handleColor)}
+              {box('差评处理率', handleRatePct, handleColor)}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'var(--warn)' }}>→</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>拖后腿</span>
@@ -259,12 +262,19 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
       {/* 差评处理率进度条（评分权重15%的可视化） */}
       <div style={{ padding: '0 20px 12px' }}>
         <div style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: handleRate + '%', background: handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)', borderRadius: 3, transition: 'width 0.5s' }}></div>
+          <div style={{ height: '100%', width: (handleRate || 0) + '%', background: handleRate == null ? 'var(--fill)' : handleRate >= 80 ? 'var(--good)' : handleRate >= 50 ? 'var(--primary)' : 'var(--bad)', borderRadius: 3, transition: 'width 0.5s' }}></div>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-          差评控制占最终评分 15% 权重 · {handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
+          差评控制占最终评分 15% 权重 · {handleRate == null ? '暂无待处理差评（无差评周不计 0%）' : handleRate >= 80 ? '处理很及时，继续保持' : '及时回复/整改差评可以提升处理率'}
  {todayResolved > 0 && <b style={{ color: 'var(--good)' }}> · 今天已处理 {todayResolved} 条 </b>}
         </div>
+        <details data-handle-detail="1" style={{ marginTop: 6 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', minHeight: 44, lineHeight: '44px' }}>处理率明细（分子/分母）</summary>
+          <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.8 }}>
+            已解决 {统计.resolved} · 待处理 {统计.pending} · 忽略 {统计.ignored} ⇒ 处理率 {handleRatePct}
+            {统计.noReviews && <span>（本周无差评，按历史 handleStats 回退；无历史则显示「—」）</span>}
+          </div>
+        </details>
         {/* 发酵预警：欠2条以上差评会触发危机事件（与引擎 minPending:2 对应） */}
         {pending.length === 1 && (
           <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 8, padding: '6px 10px' }}>
@@ -337,7 +347,7 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
  {Number.isFinite(goodRatePct) ? ''.repeat(Math.max(1, Math.round(goodRatePct / 20))) + ''.repeat(5 - Math.max(1, Math.round(goodRatePct / 20))) : ''}
         </div>
         <div style={{fontSize:12,color:'var(--warn)',marginTop:6}}>
-          {goodRatePct != null ? `${goodRatePct}% 好评率` : '完成首次结算后显示好评率'} · 差评处理率 {handleRate}%
+          {goodRatePct != null ? `${goodRatePct}% 好评率` : '完成首次结算后显示好评率'} · 差评处理率 {handleRatePct}
         </div>
       </div>
 

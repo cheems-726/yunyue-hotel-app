@@ -201,7 +201,7 @@ function SupervisorCard({ result }) {
 }
 
 // 周报组件：展示结算结果（决策→结果→复盘）
-export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null, 复盘历史 = [], on复盘提交 = null, 认领取舍 = null, 认领取舍理由 = null }) {
+export default function WeeklyReport({ result, onClose, onLater, history = [], brand = {}, attrs, userId = null, groupKey = null, hotelName = '', 押注 = null, 押注历史 = [], on押注 = null, 复盘历史 = [], on复盘提交 = null, 认领取舍 = null, 认领取舍理由 = null, operatorLogs = [] }) {
   // ★ V113-1.4：第 1 周「我忽略了什么信号」不填 ⇒ 进不了下一周（客户端闸 · 不进服务端推进链）
   // ★ V131 §1-D：三问复盘（所有周都要，每题 ≥20 字）
   const 记录复盘 = 复盘Of(复盘历史, result && result.week)
@@ -654,6 +654,21 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
         }}>一键复制成绩单（发群里）</button>
         {copied && <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 6 }}>已复制，去微信粘贴吧</div>}
       </div>
+
+ {/* V149 §3：本周移交/代提交（数据来自 operatorLog，只渲染不重算） */}
+      {(() => {
+        const logs = (operatorLogs || []).filter(l => Number(l.week) === Number(result.week) && (l.type === 'handover' || l.type === 'proxy'))
+        if (!logs.length) return null
+        return (
+          <div className="card" data-handover-log="1">
+            <div className="card-title">本周移交 / 代提交</div>
+            <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.9 }}>
+              {logs.map((l, i) => <div key={i}>· {l.type === 'handover' ? `移交：${l.decisionId} → ${String(l.to_uid || '').replace('role:', '')}` : `代提交：${l.decisionId}（代提交人 ${l.by_uid || '你'} / 责任人 ${String(l.owner_uid || '').replace('role:', '')}）`}</div>)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>只记录协作留痕，不改结算数值；撤销后本条从周报消失。</div>
+          </div>
+        )
+      })()}
 
  {/* E2：本周变更记录（第几天改了什么 + 次日生效）—— 与 E3 的「次日生效」互为证据 */}
       {Array.isArray(result.changeLogLines) && result.changeLogLines.length > 0 && (

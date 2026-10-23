@@ -310,7 +310,7 @@ function LoginPage({ onLogin }) {
 
   if (step === 'choose') {
     return (
-      <div className="content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}>
+      <div className="content login-page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}>
         {域名横幅}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{ width: 80, height: 80, borderRadius: 24, background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, margin: '0 auto 16px' }}><Icon name="prop.hotel" size={44} /></div>
@@ -327,7 +327,7 @@ function LoginPage({ onLogin }) {
 
   if (step === 'demo') {
     return (
-      <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
+      <div className="content login-page" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 700 }}>离线演示模式</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>不连服务器，数据只存在本机 · 【演示数据 · 非真实经营】（{role === 'student' ? '演示学生 陈小明' : '演示教师 王老师'}）</div>
@@ -341,7 +341,7 @@ function LoginPage({ onLogin }) {
   }
 
   return (
-    <div className="content" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
+    <div className="content login-page" style={{ display: 'flex', flexDirection: 'column', padding: '40px 20px' }}>
       {域名横幅}
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>{role === 'student' ? '学生登录' : '教师登录'}</div>
@@ -523,7 +523,7 @@ function InjectedEventsCard({ 事件s, week }) {
   )
 }
 
-function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托, 押注 = null, on押注, onPlayGame, classDay = 0 }) {
+function Business({ user, toast, onOpen, location, brand, property, onDecision, doneDecisions, onSettle, report, week, history, pendingReviewCount, onGoTab, onGoRecords, attrs, attrFlash, capital, onGoReport, classDayIndex, dayFlows, daySource, 本周注入 = [], onOperatorLog, hotelName = '', 委托们 = [], 委托记录 = [], 每日委托反思 = [], on确认委托, 押注 = null, on押注, onPlayGame, classDay = 0, operatorLogs = [], on撤销操作记录 }) {
   const modules = ['部门运营', '会员推广', '门店经营']
   const [settling, setSettling] = useState(false)
   const [expandedDesc, setExpandedDesc] = useState({})
@@ -552,6 +552,10 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   }, [doneDecisions])
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
+  // ★ V149 §3：本周移交/代提交（operatorLog 单源；同一决策可再点撤销）
+  const 本周操作 = (operatorLogs || []).filter(l => Number(l.week) === Number(week))
+  const 本周移交 = new Set(本周操作.filter(l => l.type === 'handover').map(l => l.decisionId))
+  const 本周代交 = new Set(本周操作.filter(l => l.type === 'proxy').map(l => l.decisionId))
   // ★ V141 §2.5：结算发生的那一刻提示 3 秒（history 增长 = 刚结算）
   const [结算提示, set结算提示] = useState('')
   const 上次数 = useRef(history.length)
@@ -898,6 +902,8 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                           return <span title={c.说明} style={{ fontSize: 12, borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 600, ...style }}>{c.名}</span> })()}{d.owner && OWNER_LABELS[d.owner] && (d.owner === user?.groupRole
   ? <span title="这是你的职责决策" style={{ fontSize: 12, color: '#fff', background: 'var(--primary)', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 700 }}>我的职责</span>
   : <span title="建议负责职业" style={{ fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', borderRadius: 4, padding: '1px 5px', marginLeft: 5 }}><Icon name={OWNER_LABELS[d.owner].icon} size={11} style={{ display: 'inline-block', verticalAlign: '-1px' }} /> {OWNER_LABELS[d.owner].label}</span>)}
+                        {本周移交.has(d.id) && <span style={{ fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 4, padding: '1px 5px' }}>已移交：{OWNER_LABELS[d.owner]?.label || d.owner}</span>}
+                        {本周代交.has(d.id) && <span style={{ fontSize: 12, color: 'var(--warn)', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 4, padding: '1px 5px' }}>已代提交</span>}
                       </div>
                       <div className="desc" style={expandedDesc[d.id] ? { whiteSpace: 'normal', fontSize: 12, lineHeight: 1.6, color: 'var(--text-sub)', padding: '3px 0 2px' } : { whiteSpace: 'nowrap' }}>
                         {isDone
@@ -913,12 +919,18 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                       {!isDone && d.owner && d.owner !== user?.groupRole && (
                       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '3px 0 2px' }}>
                       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>⚠️ 本项由 {OWNER_LABELS[d.owner]?.label || d.owner} 负责</span>
-                      <button title="记录移交：本项交由责任职务处理（留痕 operatorLog · 不改数值）"
-                      onClick={() => onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 'var(--primary-bg)', color: 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>移交给他</button>
-                      <button title="代提交：责任人当周未操作该项时，由我代为提交（留痕区分 代提交人/责任人 · 不改数值）"
-                      onClick={() => onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString() })}
-                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>代提交</button>
+                      <button title={本周移交.has(d.id) ? '再点一次撤销移交' : '记录移交：本项交由责任职务处理（留痕 · 不改数值）'}
+                      onClick={() => {
+                        if (本周移交.has(d.id)) { on撤销操作记录 && on撤销操作记录({ type: 'handover', decisionId: d.id, week }); toast && toast('已撤销移交') }
+                        else { onOperatorLog({ type: 'handover', decisionId: d.id, from_uid: user?.uid || 'me', to_uid: 'role:' + d.owner, at: new Date().toISOString(), week }); toast && toast(`已记录移交 → ${OWNER_LABELS[d.owner]?.label || d.owner}`) }
+                      }}
+                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--primary-border)', background: 本周移交.has(d.id) ? 'var(--primary)' : 'var(--primary-bg)', color: 本周移交.has(d.id) ? '#fff' : 'var(--info)', cursor: 'pointer', fontFamily: 'inherit' }}>{本周移交.has(d.id) ? '已移交 ✓（撤销）' : '移交给他'}</button>
+                      <button title={本周代交.has(d.id) ? '再点一次撤销代提交' : '代提交：责任人当周未操作该项时，由我代为提交（留痕 · 不改数值）'}
+                      onClick={() => {
+                        if (本周代交.has(d.id)) { on撤销操作记录 && on撤销操作记录({ type: 'proxy', decisionId: d.id, week }); toast && toast('已撤销代提交') }
+                        else { onOperatorLog({ type: 'proxy', decisionId: d.id, by_uid: user?.uid || 'me', owner_uid: 'role:' + d.owner, at: new Date().toISOString(), week }); toast && toast(`已代提交（代提交人：你 / 责任人：${OWNER_LABELS[d.owner]?.label || d.owner}）`) }
+                      }}
+                      style={{ fontSize: 12, padding: '2px 6px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 本周代交.has(d.id) ? 'var(--warn)' : 'var(--card)', color: 本周代交.has(d.id) ? '#fff' : 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>{本周代交.has(d.id) ? '已代提交 ✓（撤销）' : '代提交'}</button>
                       </div>
                       )}
                     </div>
@@ -1287,6 +1299,9 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         const t = 过程分台账({ 承诺书, 归因, 理由, 委托, 押注校准: 押, 押注迟押: !!(押注条目 && 押注条目.迟押), 关键理由: 关键 })
         return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
       })()} />
+      <div data-process-note="1" style={{ margin: '0 20px 12px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+        过程分（承诺书 / 归因 / 理由 / 委托 / 押注）仅课堂记录与复盘，<b>不进入综合总评</b>；总评 = 四维 40/25/20/15。
+      </div>
 
       <div style={{display:'flex',alignItems:'center',gap:14,margin:'0 20px 16px'}}>
         <div style={{width:56,height:56,borderRadius:'50%',background:(() => {
@@ -2376,7 +2391,7 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由])
+  }, [user, location, brand, property, established, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由])
 
   // ★ V128-#3 批2：切周后重新读本周委托记录（记录按周存）
   useEffect(() => { set委托记录(读委托记录(week)) }, [week])
@@ -3184,7 +3199,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} 押注={本周押注} 押注历史={押注历史} on押注={提交押注} 复盘历史={复盘} on复盘提交={提交复盘} 认领取舍={认领取舍} 认领取舍理由={认领取舍理由} />
+        <WeeklyReport result={reportView} onClose={handleNextWeek} onLater={() => setReportOpen(false)} history={history} brand={brand} attrs={attrs} userId={user?.uid} groupKey={groupKeyOf(user?.className, user?.groupNo)} hotelName={hotelName} 押注={本周押注} 押注历史={押注历史} on押注={提交押注} 复盘历史={复盘} on复盘提交={提交复盘} 认领取舍={认领取舍} 认领取舍理由={认领取舍理由} operatorLogs={operatorLogs} />
       </div>
     )
   }
@@ -3312,7 +3327,7 @@ export default function App() {
           : <HelpPage onBack={close} />   // ★ V74：help=终态页（原 PlaceholderPage 兜底为不可达死分支 · 四个菜单 key 全有真页）
   } else {
     const pages = {
-      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} classDay={权威日} onPlayGame={() => set游戏进行中(游戏库[0])} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
+      business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} classDay={权威日} operatorLogs={operatorLogs} on撤销操作记录={({type,decisionId,week:wk}) => setOperatorLogs(logs => (logs||[]).filter(x => !(x.type===type && x.decisionId===decisionId && Number(x.week)===Number(wk))))} onPlayGame={() => set游戏进行中(游戏库[0])} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} capital={capital} />,
       reputation: <Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
       profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,
