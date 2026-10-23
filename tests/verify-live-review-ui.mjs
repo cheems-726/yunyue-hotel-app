@@ -129,7 +129,7 @@ page.on('console', m => {
     if (瞬时放行数 > 瞬时放行上限) ok('瞬时连接重置 ' + 瞬时放行数 + ' 条 > 上限 ' + 瞬时放行上限 + ' ⇒ 判失败（防白名单掩盖真故障）', false)
     return
   }
-  ok('控制台报错: ' + txt.slice(0, 90), false)
+  ok('控制台报错: ' + txt.slice(0, 90) + ' @ ' + String((m.location && m.location().url) || '?'), false)
 })
 
 try {

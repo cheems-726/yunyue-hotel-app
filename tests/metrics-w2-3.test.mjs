@@ -29,9 +29,11 @@ console.log('\n[1] 引擎层：恒等式（六组 × 12 周 = 72 周）')
     for (const r of g.weeksList) {
     // §14.3：加盟两费也进净利链（GOP 口径不含它，但净利润含）—— 恒等式随口径同步
     // ★ §22.2-B2：开业一次性费用（week1）/保证金退还（week12）也进净利链（GOP 仍不含）⇒ 恒等式再加两项
+    // ★ V150 §1：未决策成本进净利链（GOP 不含）——它是治理成本，不是经营毛利
     const expectNet = r.gop - r.rentCost - (r.overbookCompensation || 0) - (r.renovationCost || 0) - (r.eventFine || 0)
         - (r.franchiseFees ? r.franchiseFees.合计 : 0)
         - (r.oneTimeFees ? r.oneTimeFees.开业费用 : 0) + (r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
+        - (r.weeklyExpenses.未决策成本 || 0)
       if (r.netProfit !== expectNet) idBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.gopRate - (r.revenue > 0 ? r.gop / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week}`)
       if (Math.abs(r.netProfitRate - (r.revenue > 0 ? r.netProfit / r.revenue : 0)) > 1e-12) rateBad.push(`${g.name} w${r.week} net`)

@@ -80,7 +80,8 @@ export function settleInputsFrom({ reviews, week, crisis = null, eventResponse =
   const 流水 = Array.isArray(reviews) ? reviews : []
   const w = Number(week)
   // ① 结算卡（跨周累计）—— 欠账/整改只认它们（确定性；实证见文件头 ①）
-  const 结算卡 = 流水.filter(r => /^w\d+-/.test(String(r && r.id)))
+  // ★ V150 §3：页面侧“差评保底”卡 id=floor-w<week>，也必须进处理率（否则处理了总分不变）
+  const 结算卡 = 流水.filter(r => /^(w\d+-|floor-w\d+)/.test(String(r && r.id)))
   const pendingNegatives = 结算卡.filter(r => r.status === 'pending' || r.status === 'ignored').length
   const resolvedCount = 结算卡.filter(r => r.status === 'resolved').length
   // ★ §32-U4-R4：有效处理权重（已处理卡的 Σ 权重；匹配职务 ×1.3）

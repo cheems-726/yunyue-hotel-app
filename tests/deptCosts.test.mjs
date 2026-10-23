@@ -38,9 +38,10 @@ function run12(dec) {
     const r = settle({ site: SITE, brand: BRAND, decisions: d, week: w, attrs: a, prevGoodRate: pg, prevCapital: cap, pendingNegatives: pn, resolvedCount: rs })
     // 零变化断言用：结构量 + 不应被本次改动影响的成本项
     acc.occ.push(r.occupancy); acc.good.push(r.finalGoodRate); acc.reviews.push(r.reviewCount)
-    acc.rent += r.rentCost; acc.variable += (r.totalCost - r.rentCost - r.deptCost - 两费(r) - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款)
+    acc.rent += r.rentCost; acc.variable += (r.totalCost - r.rentCost - r.deptCost - 两费(r) - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款 - (r.weeklyExpenses.未决策成本 || 0))
     // ★ 完整部门成本 = 变动（随入住量）+ 固定（按可售房）——W14 的 45% 是【完整口径】
-    const varC = r.totalCost - r.rentCost - r.deptCost - 两费(r) - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
+    //   V150 §1：未决策成本是治理成本，不是部门成本 ⇒ 反推变动成本时必须剔除
+    const varC = r.totalCost - r.rentCost - r.deptCost - 两费(r) - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0) - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金 - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款 - (r.weeklyExpenses.未决策成本 || 0)
     acc.dept += r.deptCost + varC; acc.rev += r.revenue; acc.cost += r.totalCost; acc.profit += r.profit; acc.gop += r.gop
     pg = r.finalGoodRate; cap = r.capital
     const neg = r.generatedReviews.filter(x => Number(x.stars) <= 3).length

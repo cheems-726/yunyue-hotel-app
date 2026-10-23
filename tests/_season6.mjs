@@ -32,11 +32,14 @@ export const SEASON_GROUPS = {
 //   六组赛季的部门成本率被污染（实测 42–48% 带 → 52.45%），W2-4 华住对拍跟着失真。
 // 🔴 §22.2-B2 修正（2026-09-29）：开业一次性费用/保证金退还【同样必须剔除】——
 //   它们是筹建期一次性/资产回冲项，混进"可变成本"会把部门成本率从 45% 污染到 68.6%（实测）。
+// ★ V150 §1：未决策成本（0–5 项分级）是治理成本，不是部门/变动成本 ⇒ 同样剔除，
+//   否则它会被反推成"变动成本"⇒ 部门成本率虚增（实测 48.9%，误判成本结构恶化）。
 export const variableOf = (r) => r.totalCost - r.rentCost - r.deptCost
   - (r.franchiseFees ? r.franchiseFees.合计 : 0)
   - (r.oneTimeFees ? r.oneTimeFees.开业费用 - r.oneTimeFees.保证金退还 : 0)
   - r.weeklyExpenses.营销推广 - r.weeklyExpenses.OTA佣金
   - r.weeklyExpenses.超售赔偿 - r.weeklyExpenses.改造投资 - r.weeklyExpenses.事件罚款
+  - (r.weeklyExpenses.未决策成本 || 0)
 
 // 跑一个赛季（默认 6 组 × 12 周）。weeks 可选 1..N，用于单周场景。
 export function runSeason6({ weeks = 12, brand = SEASON_BRAND, site = SEASON_SITE, groups = SEASON_GROUPS } = {}) {

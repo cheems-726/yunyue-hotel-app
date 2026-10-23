@@ -52,8 +52,10 @@ const 开业费 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 : 0)
 const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     // ① GOP 恒等式（本批决策均不含 renovation ⇒ 无需扣改造费）
     // W10 口径：GOP = 营收 −（变动成本 + 固定部门成本 + 营销 + OTA）；
-    //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款 − 两费 − 开业费 + 退还)
-    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0) - 两费(n) - 开业费(n) + 退还(n))
+    //   这里用可观测字段表达：GOP = 营收 − (总成本 − 租金 − 超售赔偿 − 改造投资 − 事件罚款 − 两费 − 开业费 + 退还 − 未决策成本)
+    //   ★ V150 §1：未决策成本进 totalCost 但不进 GOP ⇒ 恒等式必须扣掉它（否则 5 项决策的用例差 3333）
+    const 未决策 = (x) => (x && x.weeklyExpenses && x.weeklyExpenses.未决策成本) || 0
+    const expectGop = n.revenue - (n.totalCost - n.rentCost - (n.overbookCompensation || 0) - (n.renovationCost || 0) - (n.eventFine || 0) - 两费(n) - 开业费(n) + 退还(n) - 未决策(n))
     if (n.gop !== expectGop) { idOK = false; rows.push(`w${w} gop=${n.gop} 期望=${expectGop}`) }
     // ③ gopRate
     const expectRate = n.revenue > 0 ? n.gop / n.revenue : 0
@@ -71,7 +73,7 @@ const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
     const Δ开业 = 开业费(n), Δ退还 = 退还(n)
     const 世界中性 = 天气客流系数(w) === 1 && 季节因子(w) === 1
-    if (世界中性 && !V48非中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还)) {
+    if (世界中性 && !V48非中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 + 未决策(n) || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还 - 未决策(n))) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
     }
     pg = n.finalGoodRate; cap = n.capital

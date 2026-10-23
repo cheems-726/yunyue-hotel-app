@@ -817,8 +817,8 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // ★ V148-H：无人管理成本（整周 0 条决策才收，1.8 万/周）——
   //   固定成本对勤奋/懒惰同额发生、无法拉开差距（V147 实测）；要让躺平必亏，只能收一笔
   //   **只随“整周没人做决策”发生**的成本。部分决策（≥1 项）不罚，避免误伤正常进度。
-  // 分级：整周 0 决策 1.75 万/周；只做 1–5 项 0.9 万/周（不能“只做 1 项白拿”）；≥6 项不罚（结算门槛内）
-  const 未决策成本 = doneCount === 0 ? 17500 : (doneCount === 1 ? 9000 : 0)
+  // 分级（V150 §1）：不足 6 项按缺口线性计费，上限 2 万/周（n=0）——1 项也不再“白拿”
+  const 未决策成本 = doneCount >= 6 ? 0 : Math.round((6 - doneCount) / 6 * 20000)
   const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还 + 未决策成本
 
   // 10. 利润
