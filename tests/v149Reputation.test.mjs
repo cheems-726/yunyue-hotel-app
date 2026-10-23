@@ -17,9 +17,9 @@ const browser = await chromium.launch({ executablePath: EDGE, headless: true })
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
   await page.route('**/rest/v1/rpc/class_day_now', r => r.fulfill({ status: 200, contentType: 'application/json', body: '7' }))
-  const seed = async (reviews) => {
+  const seed = async (reviews, rate = 50) => {
     await page.goto(BASE)
-    await page.evaluate((rv) => {
+    await page.evaluate(({ reviews: rv, rate }) => {
       const st = {
         user: { role: 'student', id: '20240101', name: 'V149', cloud: false },
         location: { city: '成都', district: '锦江区', attrs: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 } },
@@ -27,11 +27,12 @@ try {
         property: { name: '交通枢纽物业' }, established: true, hotelName: '云悦V149店', welcomed: true,
         week: 2, capital: 1490000, attrs: { quality: 60, reputation: 70, morale: 65 }, bizMode: 'direct', scaleVersion: 3,
         openDayNo: null, report: null, finished: false, decisionChanges: [], __autoSettled: [], operatorLogs: [], estChoices: {}, doneDecisions: {},
-        history: [{ week: 1, occupancy: 70, revenue: 100000, profit: 1000, gop: 5000, finalGoodRate: 50, negativeCount: 1, events: [], generatedReviews: [], decisions: {} }],
+        history: [{ week: 1, occupancy: 70, revenue: 100000, profit: 1000, gop: 5000, finalGoodRate: rate, negativeCount: rate >= 90 ? 0 : 1, events: [], generatedReviews: [], decisions: {} }],
       }
       localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+      for (const k of Object.keys(localStorage)) if (k.startsWith('hotel-sim-floor-')) localStorage.removeItem(k)
       localStorage.setItem('hotel-sim-reviews', JSON.stringify(rv))
-    }, reviews)
+    }, { reviews, rate })
     await page.reload(); await sleep(1500)
     await page.evaluate(() => { const b = [...document.querySelectorAll('.tabbar button')].find(x => x.textContent.includes('口碑')); b && b.click() })
     await sleep(700)
@@ -60,14 +61,20 @@ try {
   ok(ls2.find(x => x.id === 'r1')?.status === 'ignored', '「不处理」状态 = ignored')
   ok(/差评处理率 0%/.test(t2), '「不处理」不提升处理率（仍 0%）')
 
-  await seed([])
+  await seed([], 95)
   const t3 = await page.evaluate(() => document.body.innerText)
   ok(/差评处理率 —/.test(t3) && /暂无待处理差评/.test(t3), '无差评周 ⇒ 处理率「—」+ 暂无待处理（不显示 0%）')
   ok(!/差评处理率 0%/.test(t3), '无差评周不出现「0%」讥讽')
 
+  // 好评率<90 且页面无待处理 ⇒ 必须生成 1 条可处理差评（回执 §3）
+  await seed([], 50)
+  const tf = await page.evaluate(() => document.body.innerText)
+  const ids = await page.evaluate(() => JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]').filter(x => String(x.id).startsWith('floor-w')).length)
+  ok(ids === 1 && /差评处理率 0%/.test(tf), '好评率 50% 且无待处理 ⇒ 自动生成 1 条可处理差评（处理率 0%）')
+
   await page.getByText('处理率明细（分子/分母）').click().catch(() => {})
   const t4 = await page.evaluate(() => document.body.innerText)
-  ok(/已解决 0 · 待处理 0 · 忽略 0/.test(t4), '点开可见处理率分子/分母')
+  ok(/已解决 0 · 待处理 1 · 忽略 0/.test(t4), '点开可见处理率分子/分母')
 } finally {
   await browser.close()
   try { if (server?.pid) { if (process.platform === 'win32') execSync('taskkill /PID ' + server.pid + ' /T /F', { stdio: 'ignore', windowsHide: true }); else server.kill('SIGTERM') } } catch (e) {}

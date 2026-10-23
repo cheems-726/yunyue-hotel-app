@@ -102,6 +102,29 @@ export default function Reputation({ report, history, week, attrs, decisions, gr
   const latest = report || (history.length ? history[history.length - 1] : null)
   const goodRatePct = latest ? latest.finalGoodRate : null
 
+  // ★ V149 回执 §3：好评率 <90% 且页面没有可处理差评 ⇒ 生成 1 条“保证差评”（页面侧兜底，不改引擎卡片）
+  useEffect(() => {
+    const l = report || (history.length ? history[history.length - 1] : null)
+    if (!l || l.finalGoodRate == null || l.finalGoodRate >= 90) return
+    const id = `floor-w${l.week || week}`
+    const flag = `hotel-sim-floor-${l.week || week}`
+    // 本周已有待处理差评 ⇒ 记为已覆盖，处理完不再补；本页/本周只补一次
+    if (reviews.some(r => r.status === 'pending')) { try { localStorage.setItem(flag, '1') } catch (e) { /* 静默理由：本机写盘失败不影响页面 */ } return }
+    if (reviews.some(r => r.id === id)) return
+    try { if (localStorage.getItem(flag)) return } catch (e) { /* 静默理由：读不到按未覆盖处理 */ }
+    const rnd = guestsRng(((Number(l.week) || Number(week) || 1) * 7919) >>> 0)
+    const rv = makeReview({
+      decisions: decisions || {}, state: { attrs: attrs || {}, occupancy: l.occupancy || 70, price: l.price || 230 },
+      week: l.week || week, stars: 2, rnd, recent: reviews.map(x => String(x.text || '').replace(/^「|」$/g, '')).slice(-10),
+    })
+    try { localStorage.setItem(flag, '1') } catch (e) { /* 静默理由：本机写盘失败不影响页面 */ }
+    setReviews(prev => [...prev, {
+      id, avatar: rv.guest.avatar, bg: 'blue', name: rv.guest.card, date: `第${l.week || week}周 · 结算差评`,
+      stars: 2, text: `「${rv.text}」`, status: 'pending', guest: rv.guest, cause: rv.cause,
+      roomType: rv.roomType, nights: rv.nights, relatedDecision: rv.relatedDecision, source: 'floor',
+    }])
+  }, [reviews, history, report, week, decisions, attrs])
+
   const pending = reviews.filter(r => r.status === 'pending')
   const resolved = reviews.filter(r => r.status === 'resolved')
   const good = reviews.filter(r => r.status === 'good')
