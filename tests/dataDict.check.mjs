@@ -166,12 +166,12 @@ const eNotes = []
   if (!(CPOR > 0 && CPOR < ADR)) termFindings.push({ rule: 'E2(CPOR)', file: 'src/settlement.js', line: 0, ctx: `CPOR ${CPOR.toFixed(1)} 不在 (0, ADR ${ADR.toFixed(1)}) 区间内`, expect: '每卖一间房的运营成本应低于房价（缺口表 B6 · B2 起按经营口径剔一次性项）' })
   else eNotes.push(`E2 CPOR：${CPOR.toFixed(1)} 元/间夜 < ADR ${ADR.toFixed(1)} 元/间夜 ⇒ 单房经济性成立（缺口表 B6 · 剔一次性项）`)
 
-  // E3 · B8 OTA 佣金率：登记在案的 15%（平台合作）/ 11%（自营投放）必须在源码里以该形态存在
+  // E3 · B8 OTA 佣金率：登记在案的 15%（平台合作）/ 5.99%（自营投放）必须在源码里以该形态存在
   const st = codeOnly(readFileSync('src/settlement.js', 'utf8'))
   const 有15 = /otaCommissionRate = 0\.15/.test(st)
-  const 有11 = /revenue \* 0\.11/.test(st)
-  if (有15 && 有11) eNotes.push('E3 OTA 佣金率：平台合作 15% / 自营投放 11% 与登记值一致（缺口表 B8）')
-  if (!(有15 && 有11)) termFindings.push({ rule: 'E3(OTA佣金率)', file: 'src/settlement.js', line: 0, ctx: `15% 或 11% 的佣金率写法未找到（15%: ${有15} / 11%: ${有11}）`, expect: '平台合作 15% · 自营投放 11%（缺口表 B8 登记值）' })
+  const 有599 = /revenue \* 0\.0599/.test(st)
+  if (有15 && 有599) eNotes.push('E3 OTA 佣金率：平台合作 15% / 自营投放 5.99% 与登记值一致（缺口表 B8）')
+  if (!(有15 && 有599)) termFindings.push({ rule: 'E3(OTA佣金率)', file: 'src/settlement.js', line: 0, ctx: `15% 或 5.99% 的佣金率写法未找到（15%: ${有15} / 5.99%: ${有599}）`, expect: '平台合作 15% · 自营投放 5.99%（缺口表 B8 登记值）' })
 
   // E4 · B9/B10 参考费率【在册】+ 引擎实装边界（🔴 §14.3 重基线 · D53）
   //   旧判据（P3 未开工时代）：引擎里【不得】出现加盟费率 —— 防"半接一半"（接了展示忘改结算，或反过来）。
@@ -187,7 +187,7 @@ const eNotes = []
   const 月度费率已接 = /from '\.\/franchiseFees\.mjs'/.test(st) && /franchiseFees\(/.test(st)
   const 一次性已接单源 = /一次性费用清单\(/.test(st) && /from '\.\/franchiseFees\.mjs'/.test(st)
   const capex未接 = !/单房造价/.test(st)                                   // ★ B2 后只禁 capex（造价），其余已合法接入
-  const 费率无字面量 = !/revenue \* 0\.0(5|8|24|74)/.test(st)
+  const 费率无字面量 = !/revenue \* 0\.0(5|8|24|74)\b/.test(st)
   if (!费率在册) termFindings.push({ rule: 'E4(费率在册)', file: 'src/franchiseModel.mjs', line: 0, ctx: '管理费 5% / CRS 8% / 官方渠道上限 3.5% 三者未同时存在', expect: '缺口表 B9/B10 的参考费率必须登记在册' })
   if (!月度费率已接) termFindings.push({ rule: 'E4(月度费率未接)', file: 'src/settlement.js', line: 0, ctx: '未从 franchiseFees.mjs 单源计费', expect: 'D53-b：管理费+CRS 必须经单源进结算（不许只在展示层）' })
   if (!一次性已接单源) termFindings.push({ rule: 'E4(一次性未经单源)', file: 'src/settlement.js', line: 0, ctx: '引擎用了一次性费用但未经 一次性费用清单() 单源', expect: '§22.2-B2：一次性费用必须经单源进结算（不许在引擎另写一份清单）' })
@@ -259,7 +259,7 @@ const hzFindings = [], hzNotes = []
     hzFindings.push({ rule: '华住B(引擎侧恒等式)', ctx: '跑 settle 失败：' + e.message, expect: '引擎可运行' })
   }
   // C · 费率常量登记（不对拍：引擎的 OTA 佣金是【平台抽成】，与"官方渠道上限 3.5%"不是同一科目）
-  hzNotes.push(`C 费率常量：管理费 5% / CRS 8% / 官方渠道上限 3.5% ✅ 已登记；引擎侧 OTA 佣金（平台合作 15% / 直营投放 11%）是 OTA 平台抽成，不同科目 → 不对拍`)
+  hzNotes.push(`C 费率常量：管理费 5% / CRS 8% / 官方渠道上限 3.5% ✅ 已登记；引擎侧 OTA 佣金（平台合作 15% / 直营投放 5.99%）是 OTA 平台抽成，不同科目 → 不对拍`)
   // D · 特许费 = 营收 × 5%
   const franchise = H.参考值.年营收 * H.费率常量.管理费
   if (franchise !== H.参考值.特许费) hzFindings.push({ rule: '华住D(特许费)', ctx: `${H.参考值.年营收} × 5% = ${franchise} ≠ ${H.参考值.特许费}`, expect: '657 万 × 5% = 32.85 万' })

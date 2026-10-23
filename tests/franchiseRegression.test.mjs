@@ -66,15 +66,15 @@ console.log('\n[A2] 零变化（数值）：自营 / OTA 两模式的输出锚�
   // 🔴 §22.2 重基线（B2）：week1 结算含【开业一次性费用】（全季 80 间 = 349,000）
   //    ⇒ totalCost 81087+349000=430087 · netProfit 45053−349000=−303947 · 营收不变
   // ★ §33-V4-A8 重基线：房价档 4 接线 ⇒ 锚点前进
-  ok(direct.revenue === 128520 && direct.totalCost === 430753 && direct.netProfit === -302233,
-    `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（§22.2 锚点：含开业一次性费用 349,000）`)
+  ok(direct.revenue === 128520 && direct.totalCost === 422437 && direct.netProfit === -293917,
+    `自营（direct）：revenue ${direct.revenue} / totalCost ${direct.totalCost} / netProfit ${direct.netProfit}（V151 重基线：§22.2 开业一次性费用 349,000）`)
   ok(direct.oneTimeFees?.开业费用 === 349000, `开业一次性费用明细随行（${direct.oneTimeFees?.开业费用}）`)
   ok(JSON.stringify(direct) === JSON.stringify(未给), '不传 bizMode 与传 direct 完全等价（同一默认路径）')
   // 🔴 §22.2 重基线：OTA 同受 B2 影响 ⇒ 118425+349000=467425 · 50555−349000=−298445 · 营收不变
   // ★ §32-U3 重基线（世界层 · OTA 渠道系数）：w1 天气/季节中性，但 OTA 渠道系数 = 1.126（平台评分 4.7）
   //   ⇒ OTA 锚点整体上移；direct 锚点**逐项不变**（上面那条即是水位线证据）。归因见批次报告-unit3「产物数字变动表」。
-  ok(ota.revenue === 185640 && ota.totalCost === 474586 && ota.netProfit === -288946,
-    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（§32-U3 新锚点）`)
+  ok(ota.revenue === 185640 && ota.totalCost === 462574 && ota.netProfit === -276934,
+    `OTA：revenue ${ota.revenue} / totalCost ${ota.totalCost} / netProfit ${ota.netProfit}（V151 重基线）`)
   ok(ota.weeklyExpenses['OTA佣金'] === Math.round(ota.revenue * 0.15),
     `OTA 佣金 = 营收 × 15% = ${ota.weeklyExpenses['OTA佣金']}`)
   ok(direct.weeklyExpenses['OTA佣金'] === 0, '自营模式不收 OTA 佣金')

@@ -66,10 +66,12 @@ console.log('\n[3] 与 shadow-reviews 基线口径比对')
   //    ⇒ 48480 − 349000 = −300520（occ 仍 68% —— 改动仍只碰钱、没碰经营结构）
   const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   const 开业费 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 : 0)
-  ok(r.occupancy === 68 && r.profit === -300520,
-    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/−300520 = 58167 − 两费 9687 − 开业费 349000）`)
-  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)) - 两费(r) - 开业费(r),
-    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)}) − 加盟两费 ${两费(r)} − 开业费 ${开业费(r)}`)
+  // ★ V151 重基线：满编保服务 单间变动成本 +18 → −4 ⇒ 相对 T1.1 基线多 −22 × 在店间数 × 7
+  const Δshifts = -22 * r.occupiedRooms * 7
+  ok(r.occupancy === 68 && r.profit === -292050,
+    `与 shadow-reviews 勤奋型第 1 周基线一致（occ=${r.occupancy} profit=${r.profit}，期望 68/−292050 = −300520 + V151满编降本 ${-Δshifts}）`)
+  ok(r.profit === 67550 - r.deptCost - (r.rentCost - 旧租周(r)) - 两费(r) - 开业费(r) - Δshifts,
+    `差额恒等式：profit ${r.profit} === 67550(T1.1 基线) − deptCost ${r.deptCost} − (新租 ${r.rentCost} − 旧租周 ${旧租周(r)}) − 加盟两费 ${两费(r)} − 开业费 ${开业费(r)} − Δshifts ${Δshifts}（V151）`)
 }
 
 // ── 步骤4 · dayEngine 的 Node 可运行性（C2 前置）──

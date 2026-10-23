@@ -45,6 +45,8 @@ const 跑 = (名, week = 1, prevCapital = null, bizMode = 'direct') =>
   settle({ site: { ...场地 }, brand: 品牌[名], decisions: { ...决策 }, week, attrs: { ...属性 }, prevCapital, bizMode })
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/settle-baseline-14.3.json', import.meta.url), 'utf8'))
+// ★ V151：满编保服务 +18 → −4 ⇒ 与冻结基线的货币/GOP 差额含 Δshifts（fixture 决策含满编 · 人力档3 ⇒ 系数=1）
+const ΔshiftsOf = (base) => -22 * (base.occupiedRooms || 0) * 7
 
 // ★ §32-U4-§1② / §32-U4c-R6：**全中性化**（世界层 ×1 + 决策代价清零）—— 模块级，供各段复用。
 //   为什么提到模块级：水位线判据在 [2] 与 [4] 两段都要用（原先只在 [2] 块内定义 ⇒ [4] 引用 ReferenceError）。
@@ -168,6 +170,17 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
     if (Array.isArray(c.insights)) c.insights = c.insights.filter(x => x && x.kind !== 'world')
     return c
   }
+  // ★ V151 重基线（数值改动卡）：满编保服务 +18 → −4 ⇒ 所有品牌的货币派生字段整体平移（与费用无关）。
+  //   水位线的本意是「费用不泄漏进未接入品牌」⇒ 货币派生字段改由下方【差额对拍】专门钉
+  //   （未接入 ⇒ Δ = Δshifts；已接入 ⇒ Δ = 两费+一次性+Δshifts），逐字节只比非货币核心。
+  const V151货币键 = ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'insights', 'gop', 'gopRate']   // gop/gopRate 含变动成本（V151 满编 −22/间夜）⇒ 一并剥，由差额对拍钉
+  const 剥货币V151 = (o) => {
+    if (!o || typeof o !== 'object') return o
+    const c = JSON.parse(JSON.stringify(o))
+    for (const k of V151货币键) delete c[k]
+    return c
+  }
+  const 逐字节V151 = (a, b) => JSON.stringify(剥世界层(剥日入住退房(剥货币V151(a)))) === JSON.stringify(剥世界层(剥日入住退房(剥货币V151(b))))
 
   // ★★ §32-U4-§1②（水位线加固 · 比"资金恒等式"更强）：**临时把世界层改成中性**（天气/季节表全 1 ·
   //   OTA trafficK=0 ⇒ 渠道系数 1），此时引擎应与"U3 之前冻结的基线"**逐字节**相同 ——
@@ -190,8 +203,8 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
       // ★ §32-U4-§1①（D90 尾巴 · 原注释承诺了逐字节却没调用 ⇒ 说做了没做）：**真补上逐字节比** ——
       //   口径 = 世界层强制中性（此时 OTA 的渠道系数也被压成 1）⇒ 必须与冻结基线逐字节相同。
       //   ★ 必须在【中性包装内】跑 settle —— 否则拿到的是非中性结果（实测踩过：先说"跑在中性外"）
-      if (!世界层中性(() => 逐字节(跑(名, 1, null, mode), fixture.用例[k]))) ota中性坏.push(k)
-    } else if (!世界层中性(() => 逐字节(跑(名, 1, null, mode), fixture.用例[k]))) bad.push(k)
+      if (!世界层中性(() => 逐字节V151(跑(名, 1, null, mode), fixture.用例[k]))) ota中性坏.push(k)
+    } else if (!世界层中性(() => 逐字节V151(跑(名, 1, null, mode), fixture.用例[k]))) bad.push(k)
   }
   ok(bad.length === 0, '★ 零变化：未接入品牌【直营】用例**中性化后（世界层 ×1 + R6 代价清零）**输出逐字节不变（除 dailySnapshots 逐日入住/退房 §26.3 + world/世界层 insight §32-U3 两处有意新增）', bad.join(','))
   ok(ota归因坏.length === 0, '★ OTA 模式用例：营收差 === 平台渠道系数（可归因 · 不是悄悄扣费）', ota归因坏.join(','))
@@ -222,14 +235,14 @@ console.log('\n[2] 零变化层：未接入品牌 / 无品牌 ⇒ 与接线前�
   for (const 名 of ['你好', '无品牌']) {
     // ★ §32-U4c-R6：首跳也必须取自【中性轨迹】（否则 cap 是非中性值 ⇒ 后面每跳必然不同）
     const r1 = 世界层中性(() => 跑(名, 1, null))
-    if (!逐字节(r1, fixture.用例[`${名}|链3周`][0])) 链坏.push(`${名}w1`)
+    if (!逐字节V151(r1, fixture.用例[`${名}|链3周`][0])) 链坏.push(`${名}w1`)
     let cap = r1.capital
     // ★ §32-U4-§1②：三周链**恢复逐字节**（世界层中性口径）—— 比 U3 时的"资金恒等式"强一个量级。
     //   ★★ 整条链都必须在【中性轨迹】里走：capital 只能取自中性周的结果 —— 否则 w3 的 prevCapital
     //      来自非中性 w2 ⇒ 逐字节必然不同（实测踩过这一次）。
     for (const [i, w] of [[1, 2], [2, 3]]) {
       const r = 世界层中性(() => 跑(名, w, cap))
-      if (!逐字节(r, fixture.用例[`${名}|链3周`][i])) 链坏.push(`${名}w${w}中性逐字节`)
+      if (!逐字节V151(r, fixture.用例[`${名}|链3周`][i])) 链坏.push(`${名}w${w}中性逐字节`)
       if ('franchiseFees' in r) 链坏.push(`${名}w${w}混入两费`)
       cap = r.capital
     }
@@ -306,7 +319,7 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
     // ★ §22.2 重基线：oneTimeFees 也是【货币字段】（B2 开业费用/保证金退还）⇒ 一并剥掉再比非货币
     // ★ insights 也是【货币派生展示】（文案按本周盈/亏分支；实测 diff 仅此一处且正是 盈利→亏损）——
     //   随机序列是否被扰动由 events/generatedReviews/goodRate/attrsAfter 等 rand 驱动字段兜住。
-    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees', 'oneTimeFees', 'insights', 'world']) delete c[k]   // ★ §32-U3：world 是新增的【环境展示键】，非随机驱动、非货币
+    for (const k of ['totalCost', 'netProfit', 'netProfitRate', 'profit', 'capital', 'weeklyExpenses', 'totalExpenses', 'dailySnapshots', 'franchiseFees', 'oneTimeFees', 'insights', 'world', 'gop', 'gopRate']) delete c[k]   // ★ V151：gop/gopRate 含变动成本（满编 −22/间夜）⇒ 非货币比对也要剥   // ★ §32-U3：world 是新增的【环境展示键】，非随机驱动、非货币
     return c
   }
   const bad = []
@@ -326,7 +339,8 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
       const now = 世界层中性(() => 跑(名, 1, null, mode)), base = fixture.用例[`${名}|${mode}|w1`]   // ★ §33-V4-A8：A8 两维也要中性（原裸调在 U3 时恰好=中性，A8 后不再成立）
       const f = franchiseFees(名, base.revenue)
       const 一次性 = 一次性费用清单(品牌[名])
-      const 期望合计 = Math.round(base.revenue * 0.05) + Math.round(base.revenue * 0.024) + 一次性.合计
+      // ★ V151 重基线：fixture 决策含满编 ⇒ 货币差额还要加 Δshifts（−22 × 在店间数 × 7）
+      const 期望合计 = Math.round(base.revenue * 0.05) + Math.round(base.revenue * 0.024) + 一次性.合计 + ΔshiftsOf(base)
       if (now.totalCost - base.totalCost !== 期望合计) 差坏.push(`${名}·${mode} 成本差 ${now.totalCost - base.totalCost}≠${期望合计}`)
       if (base.netProfit - now.netProfit !== 期望合计) 差坏.push(`${名}·${mode} 净利差`)
       if (base.capital - now.capital !== 期望合计) 差坏.push(`${名}·${mode} 资金差`)
@@ -335,7 +349,22 @@ console.log('\n[4] 纯算术层：加入费用不影响任何非货币结果（�
       if (now.oneTimeFees?.开业费用 !== 一次性.合计) 差坏.push(`${名}·${mode} oneTimeFees 与单源不一致`)
     }
   }
-  ok(差坏.length === 0, '★ 差量对拍：成本/净利/资金 差额 === 两费+开业一次性费用 · 营收不变（direct 三个品牌逐一 · 世界中性周）', 差坏.join(' '))
+  ok(差坏.length === 0, '★ 差量对拍：成本/净利/资金 差额 === 两费+开业一次性费用+Δshifts · 营收不变（direct 三个品牌逐一 · 世界中性周）', 差坏.join(' '))
+  // ★ V151 专项：未接入品牌的货币差额必须【恰好】= Δshifts（无两费/一次性 ⇒ 证明费用零泄漏仍成立）
+  const 泄漏坏 = []
+  const 未接入单周 = Object.keys(fixture.用例).filter(k => /^(汉庭快捷|你好|桔子|无品牌)\|/.test(k) && !k.endsWith('链3周'))
+  for (const k of 未接入单周.filter(k => !k.includes('链'))) {
+    const [名, mode] = k.split('|')
+    if (mode !== 'direct') continue
+    const now = 世界层中性(() => 跑(名, 1, null, mode)), base = fixture.用例[k]
+    const 应 = ΔshiftsOf(base)
+    if (now.totalCost - base.totalCost !== 应) 泄漏坏.push(`${k} 成本差 ${now.totalCost - base.totalCost}≠${应}`)
+    if (base.netProfit - now.netProfit !== 应) 泄漏坏.push(`${k} 净利差`)
+    if (now.gop - base.gop !== -应) 泄漏坏.push(`${k} GOP差 ${now.gop - base.gop}≠${-应}`)
+    if (now.revenue !== base.revenue) 泄漏坏.push(`${k} 营收被改`)
+    if ('franchiseFees' in now || 'oneTimeFees' in now) 泄漏坏.push(`${k} 混入费用键`)
+  }
+  ok(泄漏坏.length === 0, '★ V151 未接入品牌货币差额 === Δshifts（费用零泄漏专项钉）', 泄漏坏.join(' '))
   // ★ §32-U3 新增：OTA 模式的营收差必须【恰好由平台渠道系数解释】（可归因，不是凭空多了钱）
   const 渠道坏 = []
   for (const 名 of 已接入品牌) {
@@ -360,7 +389,7 @@ console.log('\n[5] 单源纪律：引擎里不许出现第二份加盟费率公�
 {
   const engine = strip(src('settlement.js'))
   ok(/import\s*\{[^}]*franchiseFees[^}]*一次性费用清单[^}]*\}\s*from\s*'\.\/franchiseFees\.mjs'/.test(engine), '引擎从 franchiseFees.mjs 引入计费（单一计算点 · B2 起含一次性费用清单）')
-  ok(!/revenue\s*\*\s*0\.0(5|08|24|74)/.test(engine), '引擎里没有任何"营收 × 费率"字面量（费率只许来自 franchiseFees）')
+  ok(!/revenue\s*\*\s*0\.0(5|08|24|74)/.test(engine), '引擎里没有任何"营收 × 费率"字面量（费率只许来自 franchiseFees；V151 直营佣金 5.99% 另登记）')
   // ★ §22.2：引擎新增「开业一次性费用/保证金退还」两个显示键 —— 金额全部来自单源 一次性费用清单()，
   //   本处禁列不含『保证金』（退还键是资产回冲的展示名，不是第二份费率公式）；费率类科目名仍禁。
   ok(!/管理费|筹备费|单房造价/.test(engine), '引擎里不出现加盟【费率类】科目名（科目名只许来自单源；B2 的退还键已核不计入）')

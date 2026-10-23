@@ -93,12 +93,14 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
   const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
     if (V48非中性) return !(r.new.revenue < 7 * r.old.revenue)
+    // ★ V151 重基线：满编保服务 +18 → −4（SITE 人力=3 ⇒ 系数=1）⇒ 恒等式加 Δshifts（成本降 ⇒ 利润升）
+    const Δshifts151 = dec.shifts === '满编保服务' ? -22 * r.new.occupiedRooms * 7 : 0
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
     // 🔴 A-1 重基线：租金曲线改了（35+档×10 → 25+档×5）⇒ ×7 恒等式再加一项 −(新租 − 旧租周)。
   //   旧租周 = 旧公式的历史值（旧引擎把租金并进 fixedCost，返回值里没有 rentCost）—— 与 SCALE_STEPS 记历史跳同法。
-  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new)
+  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new) - Δshifts151
   })
   ok(moneyBad.length === 0,
     `${name}：×7 精确算式在世界层中性周成立（w${中性周.join("/w")} · 收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,
@@ -117,8 +119,11 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   const pairs = rows.flatMap(r => r.old.generatedReviews.map((x, i) => [x, r.new.generatedReviews[i]]))
   const sameStar = pairs.filter(([o, n]) => o && n && o.stars === n.stars)
   const starChanged = pairs.filter(([o, n]) => o && n && o.stars !== n.stars)
-  ok(sameStar.length === 0 || sameStar.every(([o, n]) => o.text === n.text),
-    `${name}：同星级卡片文本逐字一致（${sameStar.length}/${pairs.length} 条同星级）`)
+  // ★ V151 重基线：超售赔偿公式改变（8%/0.4 → 1%/0.3）⇒ no_room 因果卡与 forceNoRoom 路径合法变化
+  //   ⇒ 含超售的场景豁免"同星级逐字一致"（流位置由上方钱/结构断言钉）；不含超售的场景保留原判据。
+  const V151内容变 = (dec.overbook || 0) > 0
+  ok(V151内容变 || sameStar.length === 0 || sameStar.every(([o, n]) => o.text === n.text),
+    `${name}：同星级卡片文本逐字一致（${sameStar.length}/${pairs.length} 条同星级）${V151内容变 ? '（V151 超售内容变 · 豁免）' : ''}`)
   ok(pairs.length === rows.reduce((a, r) => a + r.old.generatedReviews.length, 0) && starChanged.length > 0,
     `${name}：卡片总数不变、${starChanged.length} 条星级被状态改写`)
 

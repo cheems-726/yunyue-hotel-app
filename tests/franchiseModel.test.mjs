@@ -82,9 +82,11 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   const STRUCT = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount', 'negativeCount', 'goodRate', 'finalGoodRate']
   const drifted = STRUCT.filter(k => r[k] !== o[k])
   const Δrent = r.rentCost - o.rentCost   // 🔴 A-1：由实测值推导，不写死
-  const money = r.totalCost - o.totalCost === r.deptCost + Δrent + 两费(r) + 一次性净额(r) && r.profit === o.profit - r.deptCost - Δrent - 两费(r) - 一次性净额(r)
+  // ★ V151 重基线：满编保服务的单间变动成本 +18 → −4（差 −22/间夜；SITE 人力=3 ⇒ 系数=1 无取整差）
+  const Δshifts = -22 * r.occupiedRooms * 7
+  const money = r.totalCost - o.totalCost === r.deptCost + Δrent + 两费(r) + 一次性净额(r) + Δshifts && r.profit === o.profit - r.deptCost - Δrent - 两费(r) - 一次性净额(r) - Δshifts
   ok(drifted.length === 0 && money,
-    `结构字段零漂移（${STRUCT.length} 项）且 Δcost === deptCost+两费+开业费（§22.2 重基线）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
+    `结构字段零漂移（${STRUCT.length} 项）且 Δcost === deptCost+两费+开业费+Δshifts（V151 重基线）${drifted.length ? ' → 漂移：' + drifted.join(',') : ''}`)
   // 同时钉住 T1.1 的口径恒等式（收入 = 在店间数 × 房价 × 7）
   ok(r.revenue === Math.round(r.occupiedRooms * r.price) * 7, `收入口径恒等式成立（${r.occupiedRooms} 间 × ${r.price} 元 × 7 = ${r.revenue}）`)
   // ── 零影响保证（🔴 W3-2 重基线 D38-B：从"零引用"升级为"引用也不进结算"）──────

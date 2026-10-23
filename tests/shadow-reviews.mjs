@@ -116,12 +116,14 @@ const 一次性净额 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.开业费用 
   const RENOVATION = 2000   // settlement.js:221「投150万改造」→ renovationCost=2000（未进 weeklyExpenses，故单列）
   const moneyBad = rows.filter(r => 中性(r.w)).filter(r => {
     if (V48非中性) return !(r.new.revenue < 7 * r.old.revenue)
+    // ★ V151 重基线：满编保服务 +18 → −4（SITE 人力=3 ⇒ 系数=1）⇒ 恒等式加 Δshifts（成本降 ⇒ 利润升）
+    const Δshifts151 = dec.shifts === '满编保服务' ? -22 * r.new.occupiedRooms * 7 : 0
     const otherOld = OTHER_KEYS.reduce((s, k) => s + (r.old.weeklyExpenses?.[k] || 0), 0) +
       (dec.renovation === '投150万改造' ? RENOVATION : 0)
     // 🔴 W2 重基线（D38-B）：W2-1 增了部门成本 ⇒ 恒等式加一项 −deptCost_new
     // 🔴 A-1 重基线：租金曲线改了（35+档×10 → 25+档×5）⇒ ×7 恒等式再加一项 −(新租 − 旧租周)。
   //   旧租周 = 旧公式的历史值（旧引擎把租金并进 fixedCost，返回值里没有 rentCost）—— 与 SCALE_STEPS 记历史跳同法。
-  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new)
+  return r.new.revenue !== 7 * r.old.revenue || r.new.profit - 7 * r.old.profit !== 6 * otherOld - r.new.deptCost - (r.new.rentCost - 旧租周(r.new, r.decisions)) - 两费(r.new) - 一次性净额(r.new) - Δshifts151
   })
   ok(moneyBad.length === 0,
     `${name}：×7 精确算式在世界层中性周成立（w${中性周.join('/w')} · 收入=7×旧收入 且 利润−7×旧利润=6×未缩放科目−部门成本）`,

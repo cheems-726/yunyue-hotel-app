@@ -425,7 +425,7 @@ if (bizMode === 'ota') {
   // 4. 促销/营销加成（OTA投放/活动/会员转化）
   let marketingBonus = 0
   if (decisions.campaign) marketingBonus += 0.15
-  if (decisions.ota) marketingBonus += 0.08
+  if (decisions.ota) marketingBonus += 0.12
   if (decisions['member-convert'] === '强调优惠') marketingBonus += 0.05
 
   // 5. 市场波动（固定种子 0.85-1.15，选址"波动"属性影响波动幅度）
@@ -737,7 +737,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   if (decisions.linen === '自洗') perRoomVariable = 52
   if (decisions.linen === '外包') perRoomVariable = 66
   // 排班人力跟入住量走（满编多派人手服务到位，精简省人力但服务质量风险由事件体现）
-  if (decisions.shifts === '满编保服务') perRoomVariable += 18
+  if (decisions.shifts === '满编保服务') perRoomVariable -= 4
   else if (decisions.shifts === '精简省成本') perRoomVariable -= 12
   // ★ §33-V4-A8：选址【人力】维接线 —— 成本链：区县用工环境 1–5 档 → 弹性人力单价。
   //   ── 口径（与 ① 房价维同一张叠加表）─────────────────────────────
@@ -753,9 +753,9 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const 人力环境 = (Number.isFinite(Number(s.人力)) ? Number(s.人力) : 3)
   const 人力系数 = 1 + (人力环境 - 3) * 0.04
   {
-    // 只作用于【人力类】变动部分：shifts 的加减项（+18 / −12）先剥离再乘（布草与能耗不乘）
-    // ★ 乘完 Math.round：成本链保持整数口径（人力系数 ±16% × 18 最多 ±2.9 元，取整误差 ≤1 元/间·天）
-    const shifts加减 = (decisions.shifts === '满编保服务' ? 18 : decisions.shifts === '精简省成本' ? -12 : 0)
+    // 只作用于【人力类】变动部分：shifts 的加减项（−4 / −12）先剥离再乘（布草与能耗不乘）
+    // ★ 乘完 Math.round：成本链保持整数口径（人力系数 ±16% × 4 最多 ±0.6 元，取整误差 ≤1 元/间·天）
+    const shifts加减 = (decisions.shifts === '满编保服务' ? -4 : decisions.shifts === '精简省成本' ? -12 : 0)
     const 其余 = perRoomVariable - shifts加减
     perRoomVariable = 其余 + Math.round(shifts加减 * 人力系数)
   }
@@ -773,8 +773,8 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // 营销成本 = 做活动才有额外支出
   // R0：声誉 → 获客成本（声誉高→同样营销支出更便宜；中性值 = ×1.0）
   let marketingCost = decisions.campaign ? Math.round(5000 * fCac) : 0
-  // OTA 佣金：平台合作模式全营收抽成15%，直营只有投放OTA时才有11%佣金
-  const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.11) : 0)
+  // OTA 佣金：平台合作模式全营收抽成15%，直营只有投放OTA时才有5.99%佣金
+  const otaCommission = bizMode === 'ota' ? Math.round(revenue * otaCommissionRate) : (decisions.ota ? Math.round(revenue * 0.0599) : 0)
   // §14.3（D53-a/b）加盟两费：管理费 + CRS，按【营收百分比】计提。
   //   ① 只有 3 个品牌有完整费率来源 ⇒ 其余品牌返 null（不拿别家费率冒充）
   //   ② 纯算术、不消耗 rand() ⇒ 事件/差评/竞品的随机序列不受影响（公平性红线）
@@ -784,7 +784,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   // 超售赔偿：到店无房按间赔偿（每间赔一晚房价）
   let overbookCompensation = 0
   if (overbook > 0) {
-    const walkIn = rand() < overbook * 0.08 ? overbook : Math.max(0, Math.round(overbook * 0.4 * rand()))
+    const walkIn = rand() < overbook * 0.01 ? overbook : Math.max(0, Math.round(overbook * 0.3 * rand()))
     overbookCompensation = walkIn * Math.round(price)
   }
   // ★ §22.2-B2（2026-09-29）· 一次性费用进资金流（开业收 · 保证金期末退）

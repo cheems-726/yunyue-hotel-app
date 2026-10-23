@@ -254,6 +254,7 @@ const SUITES = [
   { name: 'v149Handover（移交/代提交·V149）', file: 'tests/v149Handover.test.mjs', browser: true },
   { name: 'v150HandleStats（差评进评分·V150）', file: 'tests/v150HandleStats.test.mjs' },
   { name: 'v150Roi（决策 ROI 单调性·V150）', file: 'tests/v150Roi.test.mjs' },
+  { name: 'v151Roi（四项边际转正·V151）', file: 'tests/v151Roi.test.mjs' },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

@@ -120,8 +120,12 @@ const 两费 = (r) => (r && r.franchiseFees ? r.franchiseFees.合计 : 0)
   // 🔴 V48 重基线（2026-10-06）：精简/不停房 自 V48 起有直接行为 ⇒ 含两决策场景与旧结构【决策层非中性】
   //   （新旧 ds 模型不同 ⇒ 恒等式前提"两侧只差结构"不成立）⇒ 豁免；勤奋型保留；V48 行为 v48Gaps 专守。
   const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
-  ok(V48非中性 || direct9.profit === preW29.profit - direct9.deptCost - (direct9.rentCost - preW29.rentCost) - 两费(direct9),   // 🔴 A-1：加租金项
-    `${name}：差额恒等式（世界中性周 w${中性周}）新周利润 ${direct9.profit} === 旧结构利润 ${preW29.profit} − 部门成本 ${direct9.deptCost} − 租金差 − 两费${V48非中性 ? '（V48 决策层非中性 · 豁免）' : ''}`)
+  // ★ V151 重基线：满编/超售 自 V151 起参数改变（+18→−4 · 赔偿 1%/0.3）⇒ 勤奋型夹具（含满编+超售2）
+  //   与旧结构【决策层非中性】（在店间数本身漂移 ⇒ "两侧只差结构"前提不成立）⇒ 同 V48 先例豁免；
+  //   新引擎自洽由上方"继续经营周 === 直接新引擎逐字节"钉死，V151 行为由 v151Roi 专守。
+  const V151非中性 = dec.shifts === '满编保服务' || !!dec.ota || (dec.overbook || 0) > 0
+  ok(V48非中性 || V151非中性 || direct9.profit === preW29.profit - direct9.deptCost - (direct9.rentCost - preW29.rentCost) - 两费(direct9),   // 🔴 A-1：加租金项
+    `${name}：差额恒等式（世界中性周 w${中性周}）新周利润 ${direct9.profit} === 旧结构利润 ${preW29.profit} − 部门成本 ${direct9.deptCost} − 租金差 − 两费${V48非中性 ? '（V48 决策层非中性 · 豁免）' : V151非中性 ? '（V151 决策层非中性 · 豁免）' : ''}`)
 
   // ② 反证：不迁移就继续经营 → 混口径悬崖（量化）
   const rowsNo = continueWeeks({ ...legacy, capital: legacy.capital }, dec, 3)

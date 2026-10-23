@@ -69,12 +69,23 @@ const 退还 = (r) => (r && r.oneTimeFees ? r.oneTimeFees.保证金退还 : 0)
     //   决策层非中性场景**豁免跨引擎零漂移断言**：勤奋型保留全严锚（原判据），V48 行为由 tests/v48Gaps.test.mjs
     //   在新引擎内做同输入对照精确钉死（-6%/下沉矩阵/W1 水位），GOP 内部恒等式（①项）对所有场景仍然全检。
     const V48非中性 = dec.shifts === '精简省成本' || dec.hygiene !== '停房深清洁'
+    // ★ V151 重基线：满编/OTA投放/超售 自 V151 起参数改变（满编 −4 vs 旧 +18 · 直营佣金 5.99% vs 11% ·
+    //   赔偿 1%/0.3 vs 8%/0.4 · OTA营销加成 0.12 vs 0.08）⇒ 与冻结 W2 快照【决策层非中性】：
+    //   含 OTA 的用例营收/出租率合法漂移（加成↑）；满编/超售只动成本科目 ⇒ 零漂移保留，差额恒等式加三项。
+    const V151非中性 = !!dec.ota
     const drifted = ['revenue', 'price', 'rooms', 'occupancy', 'occupiedRooms', 'reviewCount'].filter(k => n[k] !== o[k])
     const Δrent = n.rentCost - o.rentCost   // 🔴 A-1：租金曲线改了 ⇒ 差额恒等式加租金项（由实测值推导）
     const Δ开业 = 开业费(n), Δ退还 = 退还(n)
+    // ★ V151 三项决策层成本差（SITE 人力=3 ⇒ 人力系数=1，取整误差 0）
+    const Δshifts = (dec.shifts === '满编保服务' ? -4 * n.occupiedRooms * 7 - 18 * o.occupiedRooms * 7 : 0)
+    const Δota费 = (n.weeklyExpenses.OTA佣金 || 0) - (o.weeklyExpenses.OTA佣金 || 0)
+    const Δ超售 = (n.overbookCompensation || 0) - (o.overbookCompensation || 0)
     const 世界中性 = 天气客流系数(w) === 1 && 季节因子(w) === 1
-    if (世界中性 && !V48非中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 + 未决策(n) || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还 - 未决策(n))) {
+    if (世界中性 && !V48非中性 && !V151非中性 && (drifted.length || n.totalCost - o.totalCost !== n.deptCost + Δrent + 两费(n) + Δ开业 - Δ退还 + 未决策(n) + Δshifts + Δota费 + Δ超售 || n.profit !== o.profit - n.deptCost - Δrent - 两费(n) - Δ开业 + Δ退还 - 未决策(n) - Δshifts - Δota费 - Δ超售)) {
       zeroOK = false; rows.push(`w${w} 漂移 ${drifted.join(',')} | Δcost ${n.totalCost - o.totalCost} vs deptCost ${n.deptCost}`)
+    }
+    if (世界中性 && V151非中性 && !(n.revenue >= o.revenue)) {
+      zeroOK = false; rows.push(`w${w} OTA加成提高后营收反而下降（${n.revenue} < ${o.revenue}）`)
     }
     pg = n.finalGoodRate; cap = n.capital
     const negCards = n.generatedReviews.filter(x => Number(x.stars) <= 3).length
