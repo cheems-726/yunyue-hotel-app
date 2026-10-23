@@ -246,6 +246,7 @@ const SUITES = [
   { name: 'teacherSixLines（六组一句话·V144）', file: 'tests/teacherSixLines.test.mjs' },
   { name: 'v144Report（报表口径对齐·V144）', file: 'tests/v144Report.test.mjs', browser: true },
   { name: 'loginSelfCheckV145（登录自检 5/5·V145）', file: 'tests/loginSelfCheckV145.test.mjs' },
+  { name: 'v148Cost（躺平必亏·V148-H）', file: 'tests/v148Cost.test.mjs' },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

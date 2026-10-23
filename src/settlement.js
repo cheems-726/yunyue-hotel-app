@@ -814,7 +814,11 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   if (ota后果.罚款) eventFine += ota后果.罚款
   if (注入消防罚款) eventFine += 注入消防罚款
   if (注入v8罚款) eventFine += 注入v8罚款   // ★ §33-V8：E9+/自定义事件的罚款/一次性支出（唯一入账点同纪律）
-  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还
+  // ★ V148-H：无人管理成本（整周 0 条决策才收，1.8 万/周）——
+  //   固定成本对勤奋/懒惰同额发生、无法拉开差距（V147 实测）；要让躺平必亏，只能收一笔
+  //   **只随“整周没人做决策”发生**的成本。部分决策（≥1 项）不罚，避免误伤正常进度。
+  const 未决策成本 = doneCount === 0 ? 17500 : 0
+  const totalCost = fixedCost + rentCostWeekly + variableCost + deptCost + marketingCost + otaCommission + overbookCompensation + renovationCost + eventFine + 加盟两费 + 开业费用 - 保证金退还 + 未决策成本
 
   // 10. 利润
   const profit = revenue - totalCost
@@ -825,7 +829,7 @@ if (pendingNegatives >= 1 && rand() < 0.15) {
   const gopDeptCost = variableCost + deptCost
   const gop = revenue - (gopDeptCost + marketingCost + otaCommission)   // gopDeptCost = 变动+固定部门成本（勿再叠加 variableCost）
   const gopRate = revenue > 0 ? gop / revenue : 0
-  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine - 加盟两费 - 开业费用 + 保证金退还
+  const netProfit = gop - rentCostWeekly - overbookCompensation - renovationCost - eventFine - 加盟两费 - 开业费用 + 保证金退还 - 未决策成本
   const netProfitRate = revenue > 0 ? netProfit / revenue : 0
 
 // [10.5] 资金真实扣减 + 破产判定
@@ -1055,6 +1059,7 @@ for (let i = 0; i < reviewCount; i++) {
     // ★ §22.2-B2：开业一次性费用 / 保证金退还（负成本）—— 未接入品牌同样不加键（水位线）
     ...(开业费用 ? { 开业一次性费用: 开业费用 } : {}),
     ...(保证金退还 ? { 保证金退还: -保证金退还 } : {}),
+    ...(未决策成本 ? { 未决策成本 } : {}),
   }
   const totalExpenses = Object.values(weeklyExpenses).reduce((a, b) => a + b, 0)
 
