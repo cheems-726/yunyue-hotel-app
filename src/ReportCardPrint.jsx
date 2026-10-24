@@ -3,6 +3,7 @@
 import React from 'react'
 import { SCORE_WEIGHTS, wan2 } from './metricDefs.mjs'
 import { 成绩单CSV } from './reportCard.mjs'
+import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc 关打印层
 
 const PCT = (v) => (v == null || v === '' ? '—' : Math.round(v * 100) + '%')
 const 万 = (v) => wan2(v)   // 金额→万 展示换算单源（metricDefs · stale-scale R6）
@@ -18,6 +19,7 @@ export function 下载CSV(rows, 文件名) {
 }
 
 export default function ReportCardPrint({ rows = [], 班级 = '', onClose, 下载CSV: 下载 }) {
+  useEscClose(true, onClose)   // ★ V154 批1：Esc 可关
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--fill)', zIndex: 9000, overflowY: 'auto' }}>
       <style>{`

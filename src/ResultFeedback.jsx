@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
+import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc 关弹层
 import Icon from './Icon.jsx'
 import RadarChart from './RadarChart.jsx'
 
 // 通用结果反馈卡片：展示"你的选择会带来什么结果"（6秒自动收起，点击立即关）
 // result.attrs 存在时（选址场景）额外展示六维画像小雷达
 export default function ResultFeedback({ result, onClose }) {
+  useEscClose(true, onClose)   // ★ V154 批1：Esc 可关
   useEffect(() => {
     const t = setTimeout(onClose, 6000)
     return () => clearTimeout(t)

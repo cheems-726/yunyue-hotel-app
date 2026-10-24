@@ -5,10 +5,12 @@ import ResultFeedback from './ResultFeedback.jsx'
 // 🔴 E3（N-3）：档位与'次日生效'口径来自 decisionCadence（单源；本文件不另写一份）
 import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG, 归属日 } from './decisionCadence.mjs'
 import { 理由合格 } from './keyReasons.mjs'   // ★ V131 §1-B：关键决策必填一句理由
+import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc = 返回（面板整页替换经营页 ⇒ Esc 应能退出）
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
 export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [], 要求理由 = false, 初始理由 = '' }) {
+  useEscClose(true, onBack)   // ★ V154 批1：Esc 可退出决策面板
   const [feedback, setFeedback] = useState(null)
   const [sliderVal, setSliderVal] = useState(() =>
     decision.type === 'slider' && initial != null ? initial : (decision.min ?? 0)

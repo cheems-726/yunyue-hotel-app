@@ -7,6 +7,7 @@ import { TOTAL_WEEKS, 学期口径说明 } from './semester.mjs'
 import { wan1 } from './metricDefs.mjs'
 import { getTitle } from './hotelTitle.js'
 import { qualityOf } from './attrs.js'
+import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc 关成果页
 
 const 万元 = (v) => (v == null || !Number.isFinite(v)) ? '—' : wan1(v)
 const 率 = (v) => (v == null || !Number.isFinite(v)) ? '—' : (v * 100).toFixed(1) + '%'
@@ -128,6 +129,7 @@ function PaybackRef({ 投入, GOP累计 }) {
 
 /** 学生端全屏覆盖层 */
 export default function SemesterResult({ history, attrs, 续营开关 = false, 已续营 = false, on续营, onBack, 班级行 = null }) {
+  useEscClose(true, onBack)   // ★ V154 批1：Esc 可关
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 9000, overflowY: 'auto' }}>
       <div className="content">

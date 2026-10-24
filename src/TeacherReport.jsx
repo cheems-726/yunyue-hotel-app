@@ -6,6 +6,7 @@ import React, { useState } from 'react'
 import Icon from './Icon.jsx'
 import { 报告口径注, 周标签, 构建经营报告, 周序列 } from './teacherReport.mjs'
 import { pct, wan2, yuanFmt, NET_LABEL, GOP_SHORT } from './metricDefs.mjs'
+import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc 关报告层
 
 const 卡片 = { background: '#fff', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }
 const 小标 = { fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }
@@ -54,6 +55,7 @@ function 迷你柱({ 报告 }) {
 }
 
 export default function TeacherReport({ gs, 组名 = '', 批注 = [], onClose }) {
+  useEscClose(true, onClose)   // ★ V154 批1：Esc 可关
   const [展开周, set展开周] = useState(null)
   const 报告 = 构建经营报告(gs, { 组名, 批注 })
   // 静默理由：离线降级：失败走默认值，不阻塞主流程
