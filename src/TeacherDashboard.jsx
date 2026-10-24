@@ -25,9 +25,11 @@ import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { 扫描错误操作, parseBrandBase } from './errorOps.mjs'
 import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2
-import { 班级并排 } from './semesterResult.mjs'   // ★ V152 §1：学期成果并排（不排名）
+import { 班级并排, 学期切片 as 学期切片12 } from './semesterResult.mjs'   // ★ V152 §1：学期成果并排（不排名）· V153：前12周切片
 import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共用渲染
 import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
+import { 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153：期末成绩单 + 归档快照
+import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPrint.jsx'   // ★ V153 §1：打印页
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
@@ -830,6 +832,9 @@ export default function TeacherDashboard({ user, onLogout }) {
   // ★ V152 §2：续营开关（班级级 · class_state.continue_enabled · 默认关）
   const [续营开关, set续营开关] = useState(false)
   const [续营态, set续营态] = useState('')   // 保存反馈
+  // ★ V153：期末成绩单打印层 + 归档快照列表（本机 localStorage · 只读留档，不参与任何计算）
+  const [成绩单开, set成绩单开] = useState(false)
+  const [归档列表, set归档列表] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-archives') || '[]') } catch (e) { return [] } })
   useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) set续营开关(cs.续营开关 === true) }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
@@ -981,6 +986,42 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       setWeekSaved(true)
       setTimeout(() => setWeekSaved(false), 2000)
     }
+  }
+
+  // ★ V153：期末成绩单行（六组 · 口径 A · 与 scoreOf 零差）+ 归档快照
+  function 成绩单数据() {
+    const pMap2 = Object.fromEntries(profiles.map(p => [p.user_id, p]))
+    const vis = filterClass ? groups.filter(g => classByUid[g.uid] === filterClass) : groups
+    const { rows, histBy组号 } = 成绩单(vis.map(g => {
+      const p = pMap2[g.uid] || {}
+      const gs = rawStates.find(x => x.user_id === g.uid) || {}
+      return { 组号: p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : g.name, 班级: p.class_name || '', 酒店名: g.hotel || '', history: (gs.state && gs.state.history) || [] }
+    }))
+    return { rows, histBy组号 }
+  }
+  function 生成成绩单行() { return 成绩单数据().rows }
+  function 归档本学期() {
+    const rows = 生成成绩单行()
+    const 摘要 = vis摘()
+    const 快照 = 归档快照({ 班级: filterClass || (profiles[0] && profiles[0].class_name) || '', 生成人: user?.name || '教师', rows, 摘要 })
+    快照.生成时间 = new Date().toLocaleString('zh-CN', { hour12: false })
+    const json = JSON.stringify(快照, null, 1)
+    const 日期 = new Date().toISOString().slice(0, 10)
+    const blob = new Blob([json], { type: 'application/json' })
+    const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob); a2.download = `学期归档-${快照.班级}-${日期}.json`; a2.click(); URL.revokeObjectURL(a2.href)
+    const blob2 = new Blob(['﻿' + 归档CSV(快照)], { type: 'text/csv;charset=utf-8' })
+    const a3 = document.createElement('a'); a3.href = URL.createObjectURL(blob2); a3.download = `学期归档-${快照.班级}-${日期}.csv`; a3.click(); URL.revokeObjectURL(a3.href)
+    const 列表 = [{ 时间: 快照.生成时间, 生成人: 快照.生成人, 班级: 快照.班级, 条数: 快照.条数, json }, ...(归档列表 || [])].slice(0, 20)
+    set归档列表(列表)
+    try { localStorage.setItem('hotel-sim-archives', JSON.stringify(列表)) } catch (e) {}   // 静默理由：本机留档失败不影响下载文件
+  }
+  function vis摘() {
+    const vis = filterClass ? groups.filter(g => classByUid[g.uid] === filterClass) : groups
+    return vis.map(g => {
+      const gs = rawStates.find(x => x.user_id === g.uid) || {}
+      const hist = 学期切片12((gs.state && gs.state.history) || [])
+      return { 组: g.name, 周数: hist.length, 经营净利: hist.reduce((a2, h) => a2 + 周经营净利(h), 0), 资金: (gs.state && gs.state.capital) ?? null }
+    })
   }
 
   // 导出全班周报 CSV（汇总 + 每周明细，带 BOM 防 Excel 中文乱码；跟随当前班级筛选）
@@ -1190,6 +1231,39 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               <div className="card" data-semester-overview="1" style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>学期成果（并排 · 不排名 · 前 12 周口径）</div>
                 <班级并排表 行={行} />
+              </div>
+            )
+          })()}
+
+          {/* ★ V153：期末成绩单 + 归档快照 */}
+          {(() => {
+            const { rows: 行, histBy组号 } = 成绩单数据()
+            const 零差 = 与scoreOf零差(行, histBy组号)
+            return (
+              <div className="card" data-report-card="1" style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>期末成绩单（口径 A · 四维 40/25/20/15 · 过程分不进总表）</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button data-open-report-card onClick={() => set成绩单开(true)} style={{ minHeight: 44, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>打印成绩单（A4）</button>
+                  <button data-export-report-card onClick={() => 下载成绩单CSV(行, `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} style={{ minHeight: 44, border: '1px solid var(--primary-border)', background: 'var(--card)', color: 'var(--info)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>下载成绩单 CSV</button>
+                  <button data-archive-semester onClick={归档本学期} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>归档本学期（冻结快照）</button>
+                </div>
+                {零差.length === 0
+                  ? <div style={{ fontSize: 11, color: 'var(--good)', marginTop: 6 }}>✓ 成绩单与 scoreOf 逐格零差（自检通过）</div>
+                  : <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 6 }}>✗ 成绩单与 scoreOf 不一致：{零差.join(' | ')}</div>}
+                {(归档列表 || []).length > 0 && (
+                  <div data-archive-list style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>已归档（本机留档 · 只读 · 可下载）</div>
+                    {归档列表.map((a2, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '4px 0' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{a2.时间} · {a2.班级 || '全班'} · {a2.条数} 组 · {a2.生成人}</span>
+                        <button onClick={() => {
+                          const blob = new Blob([a2.json], { type: 'application/json' })
+                          const a3 = document.createElement('a'); a3.href = URL.createObjectURL(blob); a3.download = `学期归档-${a2.班级 || '全班'}-${a2.时间.replace(/[/: ]/g, '-')}.json`; a3.click(); URL.revokeObjectURL(a3.href)
+                        }} style={{ marginLeft: 'auto', minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>下载快照</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })()}
@@ -1955,6 +2029,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     </div>
        </div>
     {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} classWeek={classWeek} /></aside>}
+    {成绩单开 && <ReportCardPrint rows={生成成绩单行()} 班级={filterClass || (profiles[0] && profiles[0].class_name) || ''} onClose={() => set成绩单开(false)} 下载={() => 下载成绩单CSV(生成成绩单行(), `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} />}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     {/* ★ V97 用户要求：导航栏上方左右各一个 —— 左「‹ 返回」（弹栈回上一处）· 右「上一页 ›」（同 popstate 语义） */}
