@@ -261,6 +261,7 @@ const SUITES = [
   { name: 'reportCard（期末成绩单+归档·V153）', file: 'tests/reportCard.test.mjs' },
   { name: 'interactionV154（交互保真·V154批1）', file: 'tests/interactionV154.test.mjs', browser: true },
   { name: 'opsCloseV154（运维收口·V154批4）', file: 'tests/opsCloseV154.test.mjs' },
+  { name: 'classroomPack（课堂包·V154批3）', file: 'tests/classroomPack.test.mjs' },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

@@ -519,3 +519,29 @@ input[type="range"]::-webkit-slider-thumb {
     overflow-y: auto;
   }
 }
+
+/* ── V154 批3 · 课堂投屏视图（深色底 · 固定不随主题；色值集中在这里 ⇒ jsx 无硬编码色值） ── */
+.classroom-screen {
+  position: fixed; inset: 0; background: #101114; color: #e8eaf0;
+  z-index: 9100; overflow: auto; padding: 24px 32px;
+}
+.classroom-screen .cs-exit {
+  background: transparent; border: 1px solid #444; color: #e8eaf0;
+  font-size: 16px; min-height: 44px; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit;
+}
+.classroom-screen .cs-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.classroom-screen .cs-title { font-size: 20px; font-weight: 700; }
+.classroom-screen .cs-sub { font-size: 16px; color: #9aa0ab; }
+.classroom-screen .cs-grid { display: grid; gap: 20px; }
+.classroom-screen .cs-tile { background: #191c22; border: 1px solid #2c313a; border-radius: 16px; padding: 20px 24px; }
+.classroom-screen .cs-tile-head { display: flex; justify-content: space-between; align-items: baseline; }
+.classroom-screen .cs-name { font-size: 26px; font-weight: 700; }
+.classroom-screen .cs-hotel { font-size: 20px; color: #9aa0ab; }
+.classroom-screen .cs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-top: 14px; }
+.classroom-screen .cs-label { font-size: 16px; color: #9aa0ab; }
+.classroom-screen .cs-big { font-size: 30px; font-weight: 700; }
+.classroom-screen .cs-kv { font-size: 22px; }
+.classroom-screen .cs-pos { color: #5ad07a; }
+.classroom-screen .cs-neg { color: #ff7a7a; }
+.classroom-screen .cs-note { font-size: 16px; color: #9aa0ab; margin-top: 8px; }
+.classroom-screen .cs-empty { font-size: 22px; color: #9aa0ab; }

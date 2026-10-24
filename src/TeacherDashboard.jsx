@@ -28,8 +28,11 @@ import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2
 import { 班级并排, 学期切片 as 学期切片12 } from './semesterResult.mjs'   // ★ V152 §1：学期成果并排（不排名）· V153：前12周切片
 import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共用渲染
 import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
+import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
+import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
 import { 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153：期末成绩单 + 归档快照
 import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPrint.jsx'   // ★ V153 §1：打印页
+// （V154 批3：归档快照/归档CSV 自 reportCard 复用，不重复 import）
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
@@ -835,6 +838,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   // ★ V153：期末成绩单打印层 + 归档快照列表（本机 localStorage · 只读留档，不参与任何计算）
   const [成绩单开, set成绩单开] = useState(false)
   const [归档列表, set归档列表] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-archives') || '[]') } catch (e) { return [] } })
+  const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) set续营开关(cs.续营开关 === true) }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
@@ -1116,6 +1120,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           { k: 'live', icon: 'nav.live', t: '实时决策' },
           { k: 'ranking', icon: 'nav.rank', t: '排名' },
           { k: 'overview', icon: 'nav.report', t: '班级总览' },
+          { k: 'screen', icon: 'teach.point', t: '课堂投屏' },
           { k: 'inject', icon: 'note.caliber', t: '事件注入' },
           { k: 'supervisor', icon: 'role.manager', t: 'AI 领班' },
           { k: 'groups', icon: 'nav.group', t: '分组管理' },
@@ -1250,6 +1255,16 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 {零差.length === 0
                   ? <div style={{ fontSize: 11, color: 'var(--good)', marginTop: 6 }}>✓ 成绩单与 scoreOf 逐格零差（自检通过）</div>
                   : <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 6 }}>✗ 成绩单与 scoreOf 不一致：{零差.join(' | ')}</div>}
+                {/* ★ V154 批3：班级对比（不排名）+ 学期版一键报告 */}
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                  <button data-open-screen onClick={() => set投屏开(true)} style={{ minHeight: 44, border: 'none', background: 'var(--warn)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', marginRight: 8 }}>投屏视图（1920 一屏）</button>
+                  <button data-export-semester-report onClick={() => 下载学期报告({ 班级: filterClass || (profiles[0] && profiles[0].class_name) || '', rows: 生成成绩单行(), 摘要: vis摘(), 生成人: user?.name || '教师' })} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', marginRight: 8 }}>学期报告（HTML · 可打印）</button>
+                  <button data-export-card-csv2 onClick={() => 导出成绩单CSV2(生成成绩单行(), `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>成绩单 CSV（副本）</button>
+                </div>
+                {(() => {
+                  const { rows: 行2, histBy组号 } = 组装课堂行({ groups, rawStates, classByUid, filterClass })
+                  return <ClassroomCompare rows={行2} histBy组号={histBy组号} />
+                })()}
                 {(归档列表 || []).length > 0 && (
                   <div data-archive-list style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>已归档（本机留档 · 只读 · 可下载）</div>
@@ -2029,7 +2044,8 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     </div>
        </div>
     {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} classWeek={classWeek} /></aside>}
-    {成绩单开 && <ReportCardPrint rows={生成成绩单行()} 班级={filterClass || (profiles[0] && profiles[0].class_name) || ''} onClose={() => set成绩单开(false)} 下载={() => 下载成绩单CSV(生成成绩单行(), `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} />}
+    {投屏开 && <ClassroomScreen groups={groups} rawStates={rawStates} classByUid={classByUid} filterClass={filterClass} onExit={() => set投屏开(false)} />}
+        {成绩单开 && <ReportCardPrint rows={生成成绩单行()} 班级={filterClass || (profiles[0] && profiles[0].class_name) || ''} onClose={() => set成绩单开(false)} 下载={() => 下载成绩单CSV(生成成绩单行(), `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} />}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     {/* ★ V97 用户要求：导航栏上方左右各一个 —— 左「‹ 返回」（弹栈回上一处）· 右「上一页 ›」（同 popstate 语义） */}
