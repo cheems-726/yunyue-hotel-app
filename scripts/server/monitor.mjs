@@ -163,6 +163,25 @@ if (certDays >= 0 && certDays < 15) alarms.push(`证书仅剩 ${certDays} 天`)
 if (sshFail > 200) alarms.push(`SSH 失败 ${sshFail} 次/日 > 200`)
 if (banned > 10) alarms.push(`当前封禁 ${banned} 个 IP > 10`)
 
+// ★ V154 批4 ④：opscheck ⑩（前端包不得残留旧云端地址）进每日监控 —— 与巡检同一判据，机器日日盯
+const OLD_HOST = 'jgytwxaeeezmdbxfsyvs'
+{
+  const 残留 = Number(sh(`grep -h -c '${OLD_HOST}' /var/www/html/assets/index-*.js 2>/dev/null | awk '{s+=$1} END{print s+0}'`)) || 0
+  if (残留 > 0) alarms.push(`前端包残留旧云端地址 ${残留} 处 ⇒ 学生登录会全失败（opscheck ⑩）`)
+}
+
+// ★ V154 批4 ①：OSS 异地备份状态进监控（未配置 ⇒ 如实记 SKIP；桶空 ⇒ 告警；有对象 ⇒ 记最新一份）
+let OSS状态 = '未配置（SKIP · 本地备份 48h 告警兜底）'
+{
+  const BUCKET = process.env.OSS_BUCKET || ''
+  const UTIL = process.env.OSS_UTIL || 'ossutil'
+  if (BUCKET) {
+    const out = sh(`${UTIL} ls oss://${BUCKET}/yunyue/db/ 2>/dev/null | grep -oE 'yunyue/db/[0-9]+\.dump\.gz' | sort | tail -1`)
+    if (!out) alarms.push('OSS 桶里没有任何 dump（异地备份断链）')
+    else OSS状态 = `最新 ${out.trim()}（对账：bash drill-from-oss.sh）`
+  }
+}
+
 // 每日登录探针（--probe-now 强制；结果并入 alarms）
 const 探针 = await runLoginProbe(args.includes('--probe-now'))
 if (探针 && 探针.alarms && 探针.alarms.length) alarms.push(...探针.alarms)
@@ -176,6 +195,7 @@ if (探针 && 探针.rows) {
 }
 
 const row = {
+  oss: OSS状态,   // ★ V154 批4 ①
   ts, host: os.hostname(), load1, diskUsedPct, memAvailMB, swapUsedMB,
   sshFail, sshOk, banned, bannedTotal,
   nginxReqToday, nginx5xxToday, nginxUniqIpToday, topPath,

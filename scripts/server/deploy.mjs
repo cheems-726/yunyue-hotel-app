@@ -18,7 +18,7 @@
 //   YUNYUE_WEB_DIR              默认 /var/www/html
 //
 // 红线（V138）：任何一步失败 ⇒ 非 0 退出；成功必须打印「入口包名 / 云端残留 0 / sha256 一致」三行。
-import { spawnSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -97,6 +97,9 @@ try {
   run('scp', ['-i', KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', tgz, `root@${HOST}:/tmp/yunyue-deploy.tgz`])
   run('ssh', ['-i', KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', `root@${HOST}`,
     `set -e; mkdir -p ${WEB}; tar -xzf /tmp/yunyue-deploy.tgz -C ${WEB}; rm -f /tmp/yunyue-deploy.tgz`])
+  // ★ V154 批4 ③：旧包清理接进部署（第 ④ 步解包后跑 prune-assets，assets 只留在用 + 最近两批）
+  run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
+    `bash /opt/yunyue/scripts/prune-assets.sh 2>&1 | tail -3 || echo '（prune-assets 跳过：脚本未装）'`], { stdio: 'inherit' })
 
   const 远端sha = run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
     `sha256sum ${WEB}/assets/${entry} | awk '{print $1}'`])
@@ -113,10 +116,17 @@ try {
   step('⑤', '登录自检 5/5（/opt/yunyue/scripts/loginSelfCheck.mjs）')
   run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`, 'node /opt/yunyue/scripts/loginSelfCheck.mjs'], { stdio: 'inherit' })
 
+  // ★ V154 批4 ②：VERSIONS.md 台账（包名/sha256/时间/来源 · 服务器侧追加，verify-versions.sh 可核对）
+  const 来源 = execSync('git rev-parse --short HEAD', { cwd: APP, encoding: 'utf8' }).trim()
+  const 时间 = new Date().toISOString().replace('T', ' ').slice(0, 16)
+  run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
+    `printf '%s | frontend | ${WEB}/assets/${entry} | ${sha} | 来源 ${来源} | DSH\n' >> /opt/yunyue/VERSIONS.md; tail -1 /opt/yunyue/VERSIONS.md`])
+
   console.log(`✓ 入口包：${entry}`)
   console.log('✓ 云端残留：0')
   console.log(`✓ sha256：线上=本地（${sha.slice(0, 12)}…）`)
   console.log('✓ 登录自检：5/5')
+  console.log(`✓ VERSIONS.md 已登记（${时间} · 来源 ${来源}）`)
 } finally {
   try { rmSync(tgz, { force: true }) } catch { /* 静默理由：临时包清理失败不影响部署结论 */ }
 }

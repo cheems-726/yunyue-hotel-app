@@ -45,6 +45,17 @@ else
 fi
 rm -f "$ERR"
 
+# ── ①b 异地（OSS）—— V154 批4：dump 成功后即传 OSS（未配置 ⇒ exit 2 跳过，不影响本地备份成败）
+if [ -f "$DBF" ]; then
+  if bash /opt/yunyue/scripts/offsite-backup.sh "$DBF" >>"$LOG" 2>&1; then
+    log "OK   offsite 链上"
+  else
+    RC=$?
+    if [ "$RC" = "2" ]; then log "SKIP offsite 未配置（OSS_BUCKET 空）—— 本地备份不受影响"
+    else log "FAIL offsite 上传/校验失败（exit $RC）"; fi
+  fi
+fi
+
 # ── ② 配置（含密钥 ⇒ 0600 + 目录 0700；日志里只写大小，不写内容）────────
 ETCF="$ETCD/etc-$D.tgz"
 if [ -d /opt/yunyue/etc ] && tar czf "$ETCF" -C /opt/yunyue etc 2>/dev/null; then
