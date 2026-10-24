@@ -18,7 +18,22 @@ export default defineConfig({
   plugins: [react(), swBuildVersion()],
   // ★ V140 §1：旧微信 X5（Chromium 53/66/77）解析不了 ?. / ?? ⇒ 白屏。
   //   es2017 会让 esbuild 把可选链/空值合并降级成等价写法（不改业务逻辑，产物变大可接受）。
-  build: { target: 'es2017' },
+  build: {
+    target: 'es2017',
+    // ★ V154 批5：vendor 拆包 —— supabase/react 移出主包（多文件并行下载，主包 ≤800KB）。
+    //   ⚠ 兼容性边界（与 V140 同页备注）：多 chunk ⇒ index.html 变 <script type="module">，
+    //   Chromium 61+ 才支持模块脚本；V140 的 ①判据（?.=0 且 ??=0 = es2017 语法降级）不变，
+    //   且产物中无 import() 动态导入语法（tests/perfV154 钉死）。老内核风险如实登记批次报告。
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@supabase')) return 'vendor-supabase'
+          if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'vendor-react'
+          if (/[\/]src[\/](TeacherDashboard|TeacherReport|ClassroomPack|ReportCardPrint|ReportCard|SemesterTasks|TeacherDiagnosis)\./.test(id)) return 'page-teacher'
+        },
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173
