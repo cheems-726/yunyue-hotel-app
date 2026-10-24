@@ -38,7 +38,7 @@ console.log('\n[③] App 接线：第5项「游戏」· 列表 · 全屏播放�
 {
   const app = src('App.jsx')
   ok(/\{ key: 'games', icon: 'event\.holiday', label: '实训游戏' \}/.test(app), 'tabs 有第 5 项「实训游戏」')
-  ok(/games: <GamesLibrary onPlay=\{set游戏进行中\} \/>/.test(app), 'pages 有 games 列表页')
+  ok(/games: <GamesLibrary onPlay=\{set游戏进行中\}( 已玩=\{游戏记录\})? ?\/>/.test(app), 'pages 有 games 列表页（V152 可带已玩记录）')
   ok(/游戏进行中 && <GamePlayer 游戏=\{游戏进行中\} onClose|游戏进行中 && <GamePlayer 游戏=\{游戏进行中\} onBack/.test(app), '游戏进行中渲染全屏播放器')
   ok(/\{!游戏进行中 && \(/.test(app), '播放时隐藏 tabbar')
   const lib = src('GamesLibrary.jsx')

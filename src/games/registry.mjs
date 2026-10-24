@@ -9,4 +9,11 @@ export const 游戏库 = [
     形态: 'iframe',                       // iframe | native
     入口: '/games/room-arrange/index.html', // iframe 必填
   },
+  {
+    id: 'price-elastic',
+    名称: '价格弹性猜数',
+    一句话: '再涨 10% 出租率会掉到多少？交决策前 2 分钟的热身题',
+    时长: '1–2 分钟',
+    形态: 'native',                       // native = 组件内玩（断网可玩）
+  },
 ]

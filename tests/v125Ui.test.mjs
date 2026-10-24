@@ -88,12 +88,12 @@ console.log('\n[#4] 「进入下一周」：入口在学生端周报（不是教
   const wr = src('WeeklyReport.jsx')
   const td = src('TeacherDashboard.jsx')
   // ★ V127-#4：口径抽到 weekRollover.下一周状态；这里只验 App 接上了它（行为断言在 weekRollover.test）
-  ok(/下一周状态\(\{ history, report, week \}\)/.test(app) && /setWeek\(下一步\.week\)/.test(app), '学生端周报确认 ⇒ week + 1 且清空本周决策（V127 纯函数单源）')
+  ok(/下一周状态\(\{ history, report, week, 总周数: \(班级续营开关 && 续营\) \? 24 : 12 \}\)/.test(app) && /setWeek\(下一步\.week\)/.test(app), '学生端周报确认 ⇒ week + 1 且清空本周决策（V127 纯函数单源 · V152 续营经总周数入参）')
   ok(/进入第 \$\{result\.week \+ 1\} 周/.test(wr), '周报按钮文案 =「进入第 N+1 周」')
   // ★ V132 §3：V131 已加教师端推进按钮 —— 旧断言改为两条并存
   ok(/推进到本周结束/.test(td) && /进入下一周（第 7 天可用）/.test(td), '教师端有「推进到本周结束 / 进入下一周」')
   ok(/advanceClassOffset\(t\.增量\)/.test(td) && /teacher_offset_days/.test(readFileSync(new URL('../src/supabaseClient.js', import.meta.url), 'utf8')), '教师端推进走 advanceClassOffset（只写 teacher_offset_days）')
-  ok(/下一周状态\(\{ history, report, week \}\)/.test(app), '学生端周报仍是 week+1（不写 classDay）')
+  ok(/下一周状态\(\{ history, report, week, 总周数: \(班级续营开关 && 续营\) \? 24 : 12 \}\)/.test(app), '学生端周报仍是 week+1（不写 classDay · V152 续营经总周数入参）')
 }
 
 console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败')

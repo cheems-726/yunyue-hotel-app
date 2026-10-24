@@ -25,6 +25,9 @@ import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标
 import { 按人聚合 } from './operatorLog.mjs'     // §22.3-C4：按人查（数据面单源）
 import { 扫描错误操作, parseBrandBase } from './errorOps.mjs'
 import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2
+import { 班级并排 } from './semesterResult.mjs'   // ★ V152 §1：学期成果并排（不排名）
+import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共用渲染
+import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
@@ -824,6 +827,10 @@ function SupervisorPanel({ rawStates, profiles }) {
 
 export default function TeacherDashboard({ user, onLogout }) {
   const [view, setView] = useState('live')
+  // ★ V152 §2：续营开关（班级级 · class_state.continue_enabled · 默认关）
+  const [续营开关, set续营开关] = useState(false)
+  const [续营态, set续营态] = useState('')   // 保存反馈
+  useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) set续营开关(cs.续营开关 === true) }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
   const 栈 = useRef(null); if (!栈.current) 栈.current = 创建导航栈('live')
@@ -1169,6 +1176,20 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 </div>
                 {copySix && <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 4 }}>{copySix}</div>}
                 <div style={{ fontSize: 12, whiteSpace: 'pre-wrap', lineHeight: 1.9, marginTop: 6, color: 'var(--text-sub)' }}>{文本 || '暂无已结算的组'}</div>
+              </div>
+            )
+          })()}
+
+          {/* ★ V152 §1：学期成果（班级并排 · 不排名不打分；学期口径 = 前 12 周） */}
+          {(() => {
+            const 行 = 班级并排((groups || []).map(g => ({
+              name: g.name, hotel: g.hotel,
+              history: ((rawStates.find(x => x.user_id === g.uid) || {}).state || {}).history || [],
+            })))
+            return (
+              <div className="card" data-semester-overview="1" style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>学期成果（并排 · 不排名 · 前 12 周口径）</div>
+                <班级并排表 行={行} />
               </div>
             )
           })()}
@@ -1868,6 +1889,20 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
  <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--warn-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 10px' }}>‍</div>
             <div style={{ fontSize: 17, fontWeight: 700 }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>教师账号 · {cloudOk ? '云端已连接' : '云端不可用'}</div>
+            {/* ★ V152 §2：续营开关（班级级 · 默认关 · 判据：关 ⇒ 学生无入口） */}
+            <div data-continue-toggle="1" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', textAlign: 'left' }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>续营 12 周（可选）· 班级开关：<b style={{ color: 续营开关 ? 'var(--good)' : 'var(--text-muted)' }}>{续营开关 ? '开' : '关（默认）'}</b></div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.7 }}>
+                开启后：已跑满 12 周的组在「我的经营成果」页出现「继续经营第 13–24 周」入口；学期成果仍以<b>前 12 周</b>为准，不被覆盖。
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={async () => { const ok2 = await setClassContinue(true); if (ok2) { set续营开关(true); set续营态('已开启（全班可见）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
+                  style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--good)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>开启续营</button>
+                <button onClick={async () => { const ok2 = await setClassContinue(false); if (ok2) { set续营开关(false); set续营态('已关闭（学生无入口）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
+                  style={{ flex: 1, minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>关闭续营</button>
+              </div>
+              {续营态 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{续营态}</div>}
+            </div>
             {/* 本班统计摘要 */}
             {groups && groups.length > 0 && (() => {
               const withData = groups.filter(g => g.historyCount > 0)

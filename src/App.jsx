@@ -33,6 +33,7 @@ import { 已有名字 } from './hotelName.mjs'
 // ★ V140 §1：原为 React.lazy（会产 import() 动态导入语法，Chromium<63 解析失败）。
 //   旧 X5 兼容优先 ⇒ 改静态导入（后段页面一次性进主包，产物变大可接受；不改业务逻辑）。
 import FinalResult from './FinalResult.jsx'
+import SemesterResult from './SemesterResult.jsx'   // ★ V152 §1：学期成果页（只读重排前 12 周）
 import Reputation from './Reputation.jsx'
 import HotelStatus from './HotelStatus.jsx'
 import ProfitStory from './ProfitStory.jsx'   // ★ V141 §1：经营表现（GOP）+ 周策略归因 + 回本折叠
@@ -1219,7 +1220,7 @@ function Report({ report, week, history, brand, property, location, capital }) {
 }
 
 // ===== 我的页 =====
-function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename, attrs, 选址承诺书 = null, 委托记录 = [], 本周天数 = 0, 押注历史 = [], 决策理由 = {} }) {
+function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisions, week, history, report, onRename, attrs, 选址承诺书 = null, 委托记录 = [], 本周天数 = 0, 押注历史 = [], 决策理由 = {}, on成果 = null }) {   // ★ V152：成果页入口（history ≥12 周时显示）
   // B2/B3 修复：改名弹窗的 state 与 JSX 必须和入口（下方 ✏️）在同一组件。
   // 原实现弹窗在 Business、入口在 Profile → 两边都 ReferenceError（真机表现"点了没反应"）
   const [renameOpen, setRenameOpen] = useState(false)
@@ -1299,6 +1300,13 @@ function Profile({ onOpen, user, location, brand, property, onLogout, doneDecisi
         const t = 过程分台账({ 承诺书, 归因, 理由, 委托, 押注校准: 押, 押注迟押: !!(押注条目 && 押注条目.迟押), 关键理由: 关键 })
         return [{ 组: "本组", 酒店名: (() => { try { return JSON.parse(localStorage.getItem("hotel-sim-state") || "{}").hotelName || "" } catch (e) { return "" } })(), 台账: t }]
       })()} />
+      {on成果 && history.length >= 12 && (
+        <div style={{ margin: '0 20px 12px' }}>
+          <button className="btn btn-primary" data-semester-result-entry style={{ width: '100%', minHeight: 44 }} onClick={on成果}>
+            查看我的经营成果（第 1–12 周 · 投屏版）
+          </button>
+        </div>
+      )}
       <div data-process-note="1" style={{ margin: '0 20px 12px', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
         过程分（承诺书 / 归因 / 理由 / 委托 / 押注）仅课堂记录与复盘，<b>不进入综合总评</b>；总评 = 四维 40/25/20/15。
       </div>
@@ -2336,6 +2344,11 @@ export default function App() {
   const [云端恢复中, set云端恢复中] = useState(false)
   const [classWeek, setClassWeek] = useState(0) // 老师设定的全班统一周（0=不限）
   const [游戏进行中, set游戏进行中] = useState(null)   // ★ V133：正在玩的小游戏（null=不在玩）
+  // ★ V152：第二游戏只写 游戏记录（V133 契约：不进结算、不进台账）；续营 = 学生已选择继续经营第 13–24 周
+  const [游戏记录, set游戏记录] = useState(saved.游戏记录 || {})
+  const [续营, set续营] = useState(!!saved.续营)
+  const [成果页开, set成果页开] = useState(false)
+  const [班级续营开关, set班级续营开关] = useState(false)   // 班级级（class_state.continue_enabled · 默认关）
   // 🔴 E2：自动周报相关状态（全部进存档）
   //   openDayNo    = 首次进入经营时的【教学日历日序号】—— 用来把本地日期换算成 classDay（T9：客户端只做本地等效显示，不判定归属）
   //   decisionChanges = 本周决策改动流水（第几天改了什么）⇒ 周报「本周变更记录」
@@ -2388,10 +2401,10 @@ export default function App() {
   //   这个缺陷是本批自己引入的，被批末全门禁的 verify-capital 抓到（结算后资金 50,507,418）。
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(withScaleVersion({ user, location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, 游戏记录, 续营, ...(pendingPenalty ? { pendingPenalty } : {}) })))   // ★ V152：游戏记录（V133 契约键）与续营标记随存档   // ★ V113-1.4：补存选址预言/承诺书（此前只在内存，刷新即丢）· V128：委托反思随存档
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     } catch (e) {}
-  }, [user, location, brand, property, established, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由])
+  }, [user, location, brand, property, established, doneDecisions, operatorLogs, report, week, history, finished, welcomed, attrs, capital, bizMode, hotCrisis, pendingPenalty, 选址预言, 选址承诺书, hotelName, 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, 游戏记录, 续营])
 
   // ★ V128-#3 批2：切周后重新读本周委托记录（记录按周存）
   useEffect(() => { set委托记录(读委托记录(week)) }, [week])
@@ -2409,7 +2422,7 @@ export default function App() {
   //   服务端补算只有存档、看不到 localStorage（评价流水 / 危机选择都不在存档里），
   //   原来这 5 个输入一个都传不上去 ⇒ 含实时评价的周"补算 === 在线"不成立。
   //   这里连同周号一起上传；服务端只在 week 匹配时采用（见 src/weekInputs.mjs 的 weekInputsOf）。
-  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, weekInputs: (() => {
+  const cloudState = withScaleVersion({ location, brand, property, established, estChoices, doneDecisions, operatorLogs, report, hotelName, week, history, finished, welcomed, attrs, capital, bizMode, openDayNo, decisionChanges, __autoSettled: autoSettled, hotReviewCrisis: hotCrisis, ...(pendingPenalty ? { pendingPenalty } : {}), 游戏记录, 续营, 选址承诺书, 取舍理由: (() => { try { return 合格理由键() } catch (e) { return null } })(), 每日委托反思, 本周押注, 押注历史, 决策理由, 复盘, 认领取舍, 认领取舍理由, weekInputs: (() => {
     try {
       const rv = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
       const cr = JSON.parse(localStorage.getItem('hotel-sim-crisis-response') || 'null')
@@ -2536,6 +2549,8 @@ export default function App() {
           setDoneDecisions(cloudSaved.doneDecisions || {})
           if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
           if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
+          set游戏记录(cloudSaved.游戏记录 || {})   // ★ V152：换设备后游戏记录跟档走（不丢）
+          set续营(!!cloudSaved.续营)
         setOperatorLogs(Array.isArray(cloudSaved.operatorLogs) ? cloudSaved.operatorLogs : [])
           setReport(cloudSaved.report || null)
           // ★ V125-#11：必须回填酒店名 —— 原先登录不恢复 hotelName ⇒ 云端有名字也照样弹补命名页，
@@ -2630,6 +2645,7 @@ export default function App() {
       if (!活) return
       setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : [])
       setClassSupAuth(cs.supervisor_auth || null)
+      set班级续营开关(cs.续营开关 === true)   // ★ V152 §2：班级续营开关随同一通道刷新（默认关）
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     }).catch(() => {})
     拉()
@@ -2941,7 +2957,8 @@ export default function App() {
   // ★ V127-#4：口径抽成纯函数（可断言）—— week+1 · doneDecisions 清空 · history 追加 ·
   //   **不碰 classDay / teacher_offset_days**（D326：旧判据 classDay+7 与实现不符）。
   function handleNextWeek() {
-    const 下一步 = 下一周状态({ history, report, week })
+    // ★ V152 §2：续营周上限 —— 班级开关开 + 学生已选续营 ⇒ 24 周结业；否则 12 周（学期口径不变）
+    const 下一步 = 下一周状态({ history, report, week, 总周数: (班级续营开关 && 续营) ? 24 : 12 })
     setHistory(下一步.history)
     setDecisionChanges([])          // E2：本周流水已进周报 ⇒ 清空，下周重新记
     prevDecisionsRef.current = {}   // 新一周：首次填写不算"改动"
@@ -3185,7 +3202,13 @@ export default function App() {
         </div>
         <DemoPill user={user} />
         // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
-        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} }} />
+        <div style={{ padding: '0 20px' }}>
+          {history.length >= 12 && (
+            <button className="btn btn-primary" data-semester-result-entry style={{ width: '100%', minHeight: 44, marginBottom: 10 }}
+              onClick={() => set成果页开(true)}>查看我的经营成果（投屏版）</button>
+          )}
+        </div>
+        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} /* 静默理由：重开经营清评价流水，失败不阻塞重置 */ }} />
       </div>
     )
   }
@@ -3330,8 +3353,8 @@ export default function App() {
       business: <Business hotelName={hotelName} user={user} toast={toast} onOpen={open} location={location} brand={brand} property={property} onDecision={开决策} doneDecisions={doneDecisions} onSettle={handleSettle} report={reportView} week={week} history={history} pendingReviewCount={pendingReviewCount} attrs={attrs} attrFlash={attrFlash} capital={capital} classDay={权威日} operatorLogs={operatorLogs} on撤销操作记录={({type,decisionId,week:wk}) => setOperatorLogs(logs => (logs||[]).filter(x => !(x.type===type && x.decisionId===decisionId && Number(x.week)===Number(wk))))} onPlayGame={() => set游戏进行中(游戏库[0])} onGoReport={() => setReportOpen(true)} classDayIndex={dayToWeekDay(权威日).dayIndex} dayFlows={weekPreview?.dailySnapshots} daySource={日来源} 本周注入={本周注入} 押注={本周押注} on押注={提交押注} 委托们={委托们} 委托记录={委托记录} 每日委托反思={每日委托反思} on确认委托={确认委托} onOperatorLog={(entry) => setOperatorLogs(logs => [...(logs || []), entry])} onGoTab={(t2) => { setTab(t2); close() }} onGoRecords={() => { setOpenPage({ title: '经营操作记录', icon: 'log.ops', key: 'records' }) }} />,
       report: <Report report={reportView} week={week} history={history} brand={brand} property={property} location={location} capital={capital} />,
       reputation: <Reputation report={reportView} history={history} week={week} attrs={attrs} decisions={doneDecisions} groupRole={user?.groupRole || null} />,   // ★ §32-U4-R4：带上职务
-      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} />,
-      games: <GamesLibrary onPlay={set游戏进行中} />,   // ★ V133：游戏列表
+      profile: <Profile onOpen={open} user={user} location={location} brand={brand} property={property} onLogout={handleLogout} doneDecisions={doneDecisions} week={week} history={history} report={report} onRename={handleRename} attrs={attrs} 选址承诺书={选址承诺书} 委托记录={委托记录} 本周天数={dayToWeekDay(权威日).dayIndex} 押注历史={押注历史} 决策理由={决策理由} on成果={() => set成果页开(true)} />,
+      games: <GamesLibrary onPlay={set游戏进行中} 已玩={游戏记录} />,   // ★ V133：游戏列表（V152：显示已玩次数）
     }
     mainPage = pages[tab]
   }
@@ -3367,7 +3390,12 @@ export default function App() {
       {anyLayerOpen && <div ref={edgeGuardRef} className="edge-guard" aria-hidden="true" />}
 
       {/* ★ V133：全屏游戏（覆盖 tabbar） */}
-      {游戏进行中 && <GamePlayer 游戏={游戏进行中} onBack={() => set游戏进行中(null)} />}
+      {游戏进行中 && <GamePlayer 游戏={游戏进行中} onBack={() => set游戏进行中(null)} 上周出租率={(history[history.length - 1] || {}).finalGoodRate || null} onRecord={(id) => set游戏记录(r => ({ ...r, [id]: (Number(r && r[id]) || 0) + 1 }))} />}
+      {成果页开 && (
+        <SemesterResult history={history} attrs={attrs} 续营开关={班级续营开关} 已续营={续营 || week > 12}
+          onBack={() => set成果页开(false)}
+          on续营={() => { set续营(true); setFinished(false); setWeek(13); setDoneDecisions({}); setReport(null); set成果页开(false) }} />
+      )}
       {!游戏进行中 && (
       <div className="tabbar">
         {tabs.map(t => (

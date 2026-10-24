@@ -223,6 +223,8 @@ export async function fetchClassState() {
       current_week: data.current_week || 0,
       injected_events: Array.isArray(data.injected_events) ? data.injected_events : [],
       supervisor_auth: (data.supervisor_auth && typeof data.supervisor_auth === 'object') ? data.supervisor_auth : null,
+      // ★ V152 §2：续营开关（班级级 · 默认关）。迁移未应用 ⇒ undefined ⇒ false（如实回退，不谎报开）
+      续营开关: data.continue_enabled === true,
       通道就绪: true,
     }
   }
@@ -231,7 +233,17 @@ export async function fetchClassState() {
     .select('*')
     .eq('id', 1)
     .maybeSingle()
-  return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 通道就绪: false }
+  return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 续营开关: false, 通道就绪: false }
+}
+
+// ★ V152 §2：老师开/关「续营 12 周」（班级级 · class_state.continue_enabled · RLS 限教师）
+//   迁移未应用 ⇒ update 报错 ⇒ 返回 false（调用方 toast 提示，不静默假成功）
+export async function setClassContinue(on) {
+  const { error } = await supabase
+    .from('class_state')
+    .update({ continue_enabled: on === true, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  return !error
 }
 
 // ★ V131 §2：老师推进教学日 —— 只写 class_state.teacher_offset_days（RLS 限教师；学生 JWT 应 403/42501）

@@ -32,7 +32,7 @@ console.log('\n[零变化] 该路径不写 classDay / teacher_offset_days')
   ok(!/class_day|classDay|teacher_offset/.test(mod), '纯函数模块不引用 classDay / teacher_offset_days')
   const app = src('App.jsx')
   const 片段 = (app.match(/function handleNextWeek\(\)[\s\S]{0,700}?\n  \}/) || [''])[0]
-  ok(/下一周状态\(\{ history, report, week \}\)/.test(片段), 'App.handleNextWeek 走纯函数（单一口径）')
+  ok(/下一周状态\(\{ history, report, week, 总周数: \(班级续营开关 && 续营\) \? 24 : 12 \}\)/.test(片段), 'App.handleNextWeek 走纯函数（单一口径 · V152 续营经总周数入参）')
   ok(/setWeek\(下一步\.week\)/.test(片段) && /setDoneDecisions\(\{\}\)/.test(片段), '应用侧仍执行 week+1 与清决策')
   ok(!/classDay|teacher_offset|saveGameState/.test(片段), '★ 进入下一周不碰 classDay、不写库（class_day_now 0 变化）')
 }
