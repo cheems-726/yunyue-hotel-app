@@ -263,6 +263,9 @@ const SUITES = [
   { name: 'opsCloseV154（运维收口·V154批4）', file: 'tests/opsCloseV154.test.mjs' },
   { name: 'perfV154（性能与包体·V154批5）', file: 'tests/perfV154.test.mjs', browser: true },
   { name: 'classroomPack（课堂包·V154批3）', file: 'tests/classroomPack.test.mjs' },
+  { name: 'migrationCheckV155（迁移检查·V155）', file: 'tests/migrationCheckV155.test.mjs' },
+  { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
+  { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
   // ★ V130 §2：服务器九项只读巡检（ssh 送到测试机跑同一份 opscheck.sh）
   //   连不上 ⇒ 打印 SKIP 且 exit 0（**不是绿**，上机前必须复跑）· --fast 档跳过（网络类）

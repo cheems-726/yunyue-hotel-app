@@ -19,6 +19,7 @@
 //
 // 红线（V138）：任何一步失败 ⇒ 非 0 退出；成功必须打印「入口包名 / 云端残留 0 / sha256 一致」三行。
 import { execSync, spawnSync } from 'node:child_process'
+import { 扫描声明, checkMigrations, 结论文本 } from './migrationCheck.mjs'   // ★ V155 §1：第⑥步迁移检查（纯层）
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -116,16 +117,49 @@ try {
   step('⑤', '登录自检 5/5（/opt/yunyue/scripts/loginSelfCheck.mjs）')
   run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`, 'node /opt/yunyue/scripts/loginSelfCheck.mjs'], { stdio: 'inherit' })
 
+  // ★ V155 §1：第 ⑥ 步迁移检查 —— 扫 supabase-migration-*.sql 声明 ⇒ 查库 ⇒ 缺失即部署非 0 退出
+  //   （D344：v152-continue.sql 随卡提交但列没建 ⇒ 续营开关静默走退化分支，测试全绿 = "绿着的坏"）
+  step('⑥', '迁移检查（supabase-migration-*.sql ⇒ information_schema）')
+  const MIG_ALLOW = process.env.MIGRATIONS_ALLOW_MISSING === '1'
+  const 声明们 = (() => {
+    const 迁移文件 = readdirSync(APP).filter(f => /^supabase-migration-.*\.sql$/.test(f)).sort()
+    return 迁移文件.flatMap(f => 扫描声明(f, readFileSync(join(APP, f), 'utf8')))
+  })()
+  const 实况 = (() => {
+    const sql = [
+      "select 'col|'||table_name||'.'||column_name from information_schema.columns where table_schema='public'",
+      "select 'tab|'||tablename from pg_tables where schemaname='public'",
+      "select 'pol|'||schemaname||'.'||polname from pg_catalog.pg_policies where schemaname='public'",
+    ].join(' union all ')
+    const out = run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
+      `sudo -u postgres psql -d yunyue -Atc "${sql}"`])
+    const sets = { columns: new Set(), tables: new Set(), policies: new Set() }
+    for (const l of String(out).split('\n')) {
+      const [k, v] = l.trim().split('|')
+      if (!v) continue
+      if (k === 'col') sets.columns.add(v)
+      else if (k === 'tab') sets.tables.add(v)
+      else if (k === 'pol') sets.policies.add(v)
+    }
+    return sets
+  })()
+  const 结论 = checkMigrations(声明们, 实况)
+  console.log('  ' + 结论文本(结论, 声明们.length).split('\n').join('\n  '))
+  if (结论.missing.length && !MIG_ALLOW) {
+    die(`迁移未应用（先在库上执行对应 .sql，或 MIGRATIONS_ALLOW_MISSING=1 紧急放行）`)
+  }
+  const 迁移注 = `${结论.applied}/${声明们.length} 已应用${结论.missing.length ? '（缺失 ' + 结论.missing.length + ' · 放行）' : ''}`
   // ★ V154 批4 ②：VERSIONS.md 台账（包名/sha256/时间/来源 · 服务器侧追加，verify-versions.sh 可核对）
   const 来源 = execSync('git rev-parse --short HEAD', { cwd: APP, encoding: 'utf8' }).trim()
   const 时间 = new Date().toISOString().replace('T', ' ').slice(0, 16)
   run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
-    `printf '%s | frontend | ${WEB}/assets/${entry} | ${sha} | 来源 ${来源} | DSH\n' >> /opt/yunyue/VERSIONS.md; tail -1 /opt/yunyue/VERSIONS.md`])
+    `printf '%s | frontend | ${WEB}/assets/${entry} | ${sha} | 来源 ${来源} | 迁移 ${迁移注} | DSH\n' >> /opt/yunyue/VERSIONS.md; tail -1 /opt/yunyue/VERSIONS.md`])
 
   console.log(`✓ 入口包：${entry}`)
   console.log('✓ 云端残留：0')
   console.log(`✓ sha256：线上=本地（${sha.slice(0, 12)}…）`)
   console.log('✓ 登录自检：5/5')
+  console.log(`✓ 迁移：${迁移注}`)
   console.log(`✓ VERSIONS.md 已登记（${时间} · 来源 ${来源}）`)
 } finally {
   try { rmSync(tgz, { force: true }) } catch { /* 静默理由：临时包清理失败不影响部署结论 */ }

@@ -1,7 +1,8 @@
 // V154 批3 · 教师端课堂包 —— 投屏视图（1920×1080 一屏六组 · 深色底 · 字大）+ 班级对比（不排名）
 // 数据全部来自 semesterResult.mjs / reportCard.mjs 的纯重排层；本组件不自算一分。
 import React, { useMemo, useState } from 'react'
-import { 学期报告HTML, 成绩单CSV } from './classroomPack.mjs'
+import { 学期报告HTML, 成绩单CSV, 与scoreOf零差, 组装课堂行 } from './classroomPack.mjs'   // ★ V155：组装课堂行 漏 import ⇒ 运行时 ReferenceError（D344"绿着的坏"·v155Verify 实测）
+import { 班级并排 } from './semesterResult.mjs'   // ★ V155：同理漏 import（投屏 tile 数据源）
 import { SCORE_WEIGHTS } from './metricDefs.mjs'
 import { TOTAL_WEEKS } from './semester.mjs'
 

@@ -106,14 +106,23 @@ export function 点评生成(history) {
       依据: { 周次: 差周.week, 经营净利: 周经营净利(差周), decisions: 差周.decisions || null, 事件: (差周.events || []).map(e => e.name) },
     })
   }
-  // ③ 口碑线：好评率最高/最低差
-  const 好评最高 = hs.reduce((a, h) => ((Number(h.finalGoodRate) || 0) > (Number(a.finalGoodRate) || 0) ? h : a), hs[0])
-  const 好评最低 = hs.reduce((a, h) => ((Number(h.finalGoodRate) || 0) < (Number(a.finalGoodRate) || 0) ? h : a), hs[0])
-  if (好评最高.week !== 好评最低.week) {
-    claims.push({
-      文本: `口碑从第 ${好评最低.week} 周的 ${Math.round(好评最低.finalGoodRate)}% 到第 ${好评最高.week} 周的 ${Math.round(好评最高.finalGoodRate)}%`,
-      依据: [好评最低, 好评最高].map(h => ({ 周次: h.week, finalGoodRate: h.finalGoodRate, 差评数: h.negativeCount ?? null })),
-    })
+  // ③ 口碑线：按时间从早到晚（首周 → 末周）+ 明确升/降（V155 §2：线上曾出现"从第 6 周的 50% 到第 1 周的 80%"方向反了）
+  const 首 = hs[0], 末 = hs[hs.length - 1]
+  const 首值 = Math.round(Number(首.finalGoodRate) || 0)
+  const 末值 = Math.round(Number(末.finalGoodRate) || 0)
+  if (首.week !== 末.week) {
+    const 动词 = 末值 > 首值 ? '升到' : 末值 < 首值 ? '降到' : null
+    if (动词) {
+      claims.push({
+        文本: `口碑从第 ${首.week} 周的 ${首值}% ${动词}第 ${末.week} 周的 ${末值}%`,
+        依据: [首, 末].map(h => ({ 周次: h.week, finalGoodRate: h.finalGoodRate, 差评数: h.negativeCount ?? null })),
+      })
+    } else {
+      claims.push({
+        文本: `口碑基本持平（${首值}%）`,
+        依据: [首, 末].map(h => ({ 周次: h.week, finalGoodRate: h.finalGoodRate, 差评数: h.negativeCount ?? null })),
+      })
+    }
   }
   return claims
 }
