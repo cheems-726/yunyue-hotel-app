@@ -30,7 +30,7 @@ import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共�
 import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
-import { 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153：期末成绩单 + 归档快照
+import { 成绩单, 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153 + V154批3（成绩单 批量入口）
 import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPrint.jsx'   // ★ V153 §1：打印页
 // （V154 批3：归档快照/归档CSV 自 reportCard 复用，不重复 import）
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）

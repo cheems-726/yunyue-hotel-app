@@ -27,7 +27,8 @@ export default function ReportCardPrint({ rows = [], 班级 = '', onClose, 下�
           .rc-noprint { display: none !important; }
           .rc-page { position: static !important; background: #fff !important; overflow: visible !important; }
           body { background: #fff; }
-          .rc-table { font-size: 11pt; }
+          /* ★ V155 §3：打印字号 ≥11pt（td/th 内联 12px 会盖掉 .rc-table 的字号 ⇒ 必须 !important 逐格提） */
+          .rc-table, .rc-table td, .rc-table th { font-size: 11pt !important; }
         }
       `}</style>
       <div className="rc-noprint" style={{ position: 'sticky', top: 0, background: '#fff', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>

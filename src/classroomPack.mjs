@@ -9,7 +9,7 @@ export const 万元 = (v) => (Number.isFinite(v) ? (v >= 0 ? '+' : '−') + wan1
 export const 率 = (v) => (v == null || !Number.isFinite(v)) ? '—' : Math.round(v * 100) + '%'
 export const pctInt = (v) => (v == null || v === '' ? '—' : Math.round(v) + '%')
 
-export { 成绩单CSV, 归档快照, 归档CSV } from './reportCard.mjs'   // ★ 供 ClassroomPack.jsx 下载层复用（单源 reportCard）
+export { 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ 供 ClassroomPack.jsx 复用（单源 reportCard）
 
 /** 从教师端 rawStates/groups 组装并排行 + 每组 history 索引（单一入口，给投屏/对比/学期报告共用） */
 export function 组装课堂行({ groups = [], rawStates = [], classByUid = {}, filterClass = '' }) {
