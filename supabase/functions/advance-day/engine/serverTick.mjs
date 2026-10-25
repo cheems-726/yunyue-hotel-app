@@ -17,6 +17,8 @@
 // 不再结算（advanced=false）⇒ 结果逐字节相同。
 import { settle, DAYS_PER_WEEK, buildDailyReport } from './index.js'
 import { settleWeekSegmented, 同决策集 } from './weekSegments.mjs'   // §19.1 单元1·B4 · §21.1-A-1 base 交叉核对
+import { withIdempotent } from './settleIdempotent.mjs'   // ★ V156 阶段2：(group, week) 幂等闸（advanceGroupOneDay 的 history 闸之前的第二道）
+const settleWeekSegmented幂等 = withIdempotent(settleWeekSegmented)
 import { decisionsByDayFrom } from './weeklyAuto.mjs'
 import { dayToWeekDay } from './weeklyAuto.mjs'   // E2：周↔天换算唯一来源（本文件不再自己算）
 // §16.2-B7：周内输入（欠账/整改/实时评价/危机）与客户端【同一派生点】——补算 === 在线 的前置
@@ -222,7 +224,8 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   const 变更前决策 = 上传base || 反推base
   const baseSource = 上传base ? 'save' : 'derived'
   const baseMismatch = !!上传base && !同决策集(上传base, 反推base)
-  const result = settleWeekSegmented({
+  const result = settleWeekSegmented幂等({ history,   // ★ V156 阶段2：同周已结算 ⇒ 幂等命中
+
     site: src.location,
     brand: src.brand,
     decisions: 生效决策,   // ★ §33-V3：学生决策 + 领班代管填空位（未授权 ⇒ === decisions）

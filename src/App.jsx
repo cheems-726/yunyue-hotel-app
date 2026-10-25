@@ -57,6 +57,8 @@ import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionC
 import { settleInputsFrom } from './weekInputs.mjs'
 import { 记录一条 } from './operatorLog.mjs'                       // §22.3-C3：操作者记录单源
 import { settleWeekSegmented } from './weekSegments.mjs'          // §19.1 单元1·B4：引擎级分段
+import { withIdempotent } from './settleIdempotent.mjs'   // ★ V156 阶段2：(group, week) 结算幂等闸
+const settleWeekSegmented幂等 = withIdempotent(settleWeekSegmented)   // ★ V156 阶段2：同一周重复结算 ⇒ 返回既有周报
 import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：变更记录 → 按天生效的决策
 // §16.2-B5：投资项档位 → 品质联动（系数单源在该模块）
 import { 投资测算 } from './establishmentInvest.mjs'
@@ -2699,8 +2701,9 @@ export default function App() {
       const 变更前决策 = (() => { const b = { ...doneDecisions }; (Array.isArray(decisionChanges) ? decisionChanges : []).forEach(c => { if (c && c.key && c.from !== undefined) b[c.key] = c.from }); return b })()
       const decisionsByDay = decisionsByDayFrom({ base: 变更前决策, changes: decisionChanges, week })
       const prevGoodRate = history.length ? history[history.length - 1].finalGoodRate : null
-      return settleWeekSegmented({
-        site, brand, decisions: doneDecisions, decisionsByDay, week,
+      return settleWeekSegmented幂等({
+        history, week,   // ★ V156 阶段2：预览路径同幂等闸（同周已结算 ⇒ 预览既有周报，不再进引擎）
+        site, brand, decisions: doneDecisions, decisionsByDay,
         pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
         liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount, crisisResponse: 输入.crisisResponse,
         // ★ §32-U8-补：注入事件 + 应对 + 补算 —— 与 doSettle【同一批入参】（面板与结算同源，§26.3 纪律）
@@ -2799,7 +2802,7 @@ export default function App() {
     let result
     try {
       // ★ §33-V3：decisions 用【本周生效决策】（学生决策 + 领班代管填空位）—— 未授权 ⇒ 代管空 ⇒ === doneDecisions
-      result = settleWeekSegmented({ site, brand, decisions: 本周生效决策, decisionsByDay, week, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty, injectedEvents: 本周注入用, eventResponses: 输入.注入应对, 补算 })
+      result = settleWeekSegmented幂等({ history, week, site, brand, decisions: 本周生效决策, decisionsByDay, pendingNegatives, prevGoodRate, crisisResponse, resolvedCount, attrs, liveNegCount, livePosCount, prevCapital: capital, bizMode, hotState: hotCrisis, penaltyState: pendingPenalty, injectedEvents: 本周注入用, eventResponses: 输入.注入应对, 补算 })   // ★ V156 阶段2：带 history ⇒ 幂等闸（同周已结算 ⇒ 返回既有）
     } catch (e) {
       if (!/等级限制/.test(String(e && e.message))) throw e
       const 区 = location?.district ?? '本区域'

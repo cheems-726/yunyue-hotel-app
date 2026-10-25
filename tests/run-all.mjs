@@ -261,6 +261,7 @@ const SUITES = [
   { name: 'reportCard（期末成绩单+归档·V153）', file: 'tests/reportCard.test.mjs' },
   { name: 'interactionV154（交互保真·V154批1）', file: 'tests/interactionV154.test.mjs', browser: true },
   { name: 'uiMatrix（真打开回归矩阵·V156阶段1）', file: 'tests/uiMatrix.mjs', browser: true },   // ★ 全量默认包含（卡 §1①③）
+  { name: 'settleIdempotent（结算幂等·V156阶段2）', file: 'tests/settleIdempotent.test.mjs' },
   { name: 'opsCloseV154（运维收口·V154批4）', file: 'tests/opsCloseV154.test.mjs' },
   { name: 'perfV154（性能与包体·V154批5）', file: 'tests/perfV154.test.mjs', browser: true },
   { name: 'classroomPack（课堂包·V154批3）', file: 'tests/classroomPack.test.mjs' },
