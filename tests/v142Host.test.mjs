@@ -19,7 +19,10 @@ for (let i = 0; i < 40; i++) { if (await fetch(`http://localhost:${PORT}/`).then
 
 const browser = await chromium.launch({
   executablePath: EDGE, headless: true,
-  args: ['--host-resolver-rules=MAP www.2026911301.xyz 127.0.0.1'],
+  // ★ 2026-10-29 审计端：本机开了系统代理（VPN）后，Chromium 会把 www…:4212 交给代理
+  //   ⇒ 代理返回非 2xx ⇒ page.goto 报 ERR_HTTP_RESPONSE_CODE_FAILURE（本套件误红）
+  //   `--no-proxy-server` 实测可解；`--proxy-bypass-list=*` 不够（PAC 仍生效）
+  args: ['--host-resolver-rules=MAP www.2026911301.xyz 127.0.0.1', '--no-proxy-server'],
 })
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
