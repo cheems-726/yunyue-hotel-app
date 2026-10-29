@@ -23,7 +23,7 @@ console.log('▶ V157 · 学期生命周期')
   // ③ 重置语义：只清当前班 + 不删归档
   const reset = readFileSync(new URL('../src/supabaseClient.js', import.meta.url), 'utf8')
   ok(/export async function resetClassGameStates/.test(reset), 'resetClassGameStates 在位')
-  ok(/startsWith\(classCode \+ '\|'\)/.test(reset), '重置只命中 group_key 前缀 = 当前班（酒管2401|…）——其他班行不动')
+  ok(/startsWith\(CODE \+ '\|'\)/.test(reset), '重置只命中 group_key 前缀 = 当前班（CODE=定位(classCode) · 其他班行不动）')
   const resetBody = reset.split('export async function resetClassGameStates')[1] || ''
   const resetFn = (resetBody.split('export async function setClassContinue')[0] || '')   // 只扫本函数体（文件后段 teacher_notes.delete 是无关函数）
   ok(!/\.delete\(|delete from/.test(resetFn), '重置用 update 置空档（不 delete —— 绝不删数据红线）')

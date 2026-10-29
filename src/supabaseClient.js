@@ -197,13 +197,11 @@ export async function updateProfileByTeacher(userId, fields) {
 }
 
 // 全班教学周同步（0 = 不限制，各组自选节奏；>0 = 全班统一当前周）
-export async function fetchClassWeek() {
-  const { data, error } = await supabase
-    .from('class_state')
-    .select('*')
-    .eq('id', 1)
-    .maybeSingle()
-  if (error || !data) return 0
+export async function fetchClassWeek(classCode) {
+  const cc = 定位(classCode)
+  let { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  if (!data) data = await supabase.from('class_state').select('*').eq('id', 1).maybeSingle().then(r => r.data)
+  if (!data) return 0
   return data.current_week || 0
 }
 
@@ -213,11 +211,11 @@ export async function fetchClassWeek() {
 //     class_state 是老师专属写通道（RLS: is_teacher 才可 update）+ 全班可读 ⇒ 天然无覆盖、天然全班同步。
 //   · 迁移未应用（新列不存在）⇒ 回退只读 current_week，通道字段返回空（不阻塞；用「通道就绪」如实标，不谎报）。
 //   · 需执行 supabase-migration-u8-class-events.sql（幂等）。
-export async function fetchClassState() {
+export async function fetchClassState(classCode) {
   const { data, error } = await supabase
     .from('class_state')
     .select('*')
-    .eq('id', 1)
+    .eq('class_code', 定位(classCode))
     .maybeSingle()
   if (!error && data) {
     return {
@@ -242,23 +240,27 @@ export async function fetchClassState() {
 // ★ V152 §2：老师开/关「续营 12 周」（班级级 · class_state.continue_enabled · RLS 限教师）
 //   迁移未应用 ⇒ update 报错 ⇒ 返回 false（调用方 toast 提示，不静默假成功）
 // ★ V157 阶段1：学期状态机（教师写 semester_status；RLS 限教师 · 迁移未应用 ⇒ false）
-export async function setSemesterStatus(status) {
+export async function setSemesterStatus(status, classCode) {
   if (!['draft', 'running', 'finished', 'archived'].includes(status)) return false
+  const cc = 定位(classCode)
+  const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')
     .update({ semester_status: status, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .eq(Object.keys(eq)[0], Object.values(eq)[0])
   return !error
 }
 
 // ★ V157 阶段1：新学期重置 —— 只清【当前班】game_states 行（整包置空档 · 不删行不碰其他班）。
 //   红线：归档文件与 bak/ 一律不动（重置不删任何归档）。
 //   ⚠ 全局教学日 teacher_offset_days 不在此清（多班共用，属阶段2 范围）。
-export async function resetClassGameStates(classCode = '酒管2401') {
+export async function resetClassGameStates(classCode) {
+  const CODE = 定位(classCode)
   // 读出本班全部组（profiles 有归属 + game_states group_key 前缀匹配）
   const { data: states, error: e1 } = await supabase.from('game_states').select('*').order('updated_at', { ascending: false })   // ★ V157：整行取（selectColumns 禁手写列清单）
   if (e1) return { ok: false, error: e1.message }
-  const 本班 = (states || []).filter(g => String(g.group_key || '').startsWith(classCode + '|'))
+  const 本班 = (states || []).filter(g => String(g.group_key || '').startsWith(CODE + '|'))
   for (const g of 本班) {
     const 空档 = { week: 1, finished: false, history: [], state: { week: 1, finished: false, history: [], capital: null }, updated_at: new Date().toISOString() }
     const { error } = await supabase.from('game_states').update(空档).eq('group_key', g.group_key)
@@ -267,43 +269,92 @@ export async function resetClassGameStates(classCode = '酒管2401') {
   return { ok: true, count: 本班.length }
 }
 
-export async function setClassContinue(on) {
+// ★ V158 阶段1：建班 —— class_state 新增一行（semester_status='draft'）。class_code 重复 ⇒ 报错（不覆盖）。
+export async function createClass(classCode) {
+  const { data: dup } = await supabase.from('class_state').select('*').eq('class_code', classCode).maybeSingle()
+  if (dup) return { ok: false, error: `班级「${classCode}」已存在（不可重复建班）` }
+  const { error } = await supabase
+    .from('class_state')
+    .insert({ class_code: classCode, semester_status: 'draft', current_week: 0, teacher_offset_days: 0, injected_events: [], updated_at: new Date().toISOString() })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+// ★ V158 阶段1：列出全部班级（班级切换器数据源）
+export async function fetchAllClasses() {
+  const { data, error } = await supabase.from('class_state').select('*').order('class_code')
+  if (error) return []
+  return (data || []).filter(d => d.class_code)
+}
+
+// ★ V158 阶段1：学生注册（signUp + 写 profiles）。已存在学号 ⇒ 返回 {exists:true} 不覆盖密码/进度
+export async function signUpStudent(学号, 姓名, classCode, groupNo) {
+  const email = 学号 + '@yunyue.study'
+  const password = String(学号).slice(-6).padStart(6, '0')   // 默认口令 = 学号后 6 位
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if (error) {
+    // 已注册 ⇒ 幂等跳过（不覆盖密码/进度）
+    if (/already|registered|User already/i.test(error.message)) return { exists: true }
+    return { ok: false, error: error.message }
+  }
+  if (!data.user) return { ok: false, error: '注册返回无用户' }
+  const { error: pe } = await supabase.from('profiles').upsert({
+    user_id: data.user.id, role: 'student', class_name: classCode, group_no: groupNo,
+    display_name: 姓名 || ('学生' + 学号.slice(-4)),
+  }, { onConflict: 'user_id' })
+  if (pe) return { ok: false, error: pe.message }
+  return { ok: true, uid: data.user.id }
+}
+
+export async function setClassContinue(on, classCode) {
+  const cc = 定位(classCode)
+  const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')
     .update({ continue_enabled: on === true, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .eq(Object.keys(eq)[0], Object.values(eq)[0])
   return !error
 }
 
 // ★ V131 §2：老师推进教学日 —— 只写 class_state.teacher_offset_days（RLS 限教师；学生 JWT 应 403/42501）
 //   增量由调用方按"不跳周"规则算好（见 src/advanceWeek.mjs），本函数只做读-加-写。
-export async function advanceClassOffset(delta) {
+export async function advanceClassOffset(delta, classCode) {
   const 增 = Number(delta)
   if (!Number.isFinite(增) || 增 === 0) return { ok: false, error: '增量无效' }
-  const { data, error } = await supabase.from('class_state').select('*').eq('id', 1).maybeSingle()   // ★ 数据入口禁手写列清单（守门）
+  const cc = 定位(classCode)
+  let { data, error } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  if (!data) { const r = await supabase.from('class_state').select('*').eq('id', 1).maybeSingle(); data = r.data; error = r.error }
   if (error) return { ok: false, error: error.message, code: error.code }
   const cur = Number(data && data.teacher_offset_days) || 0
   const next = Math.max(0, cur + Math.round(增))
-  const { error: e2 } = await supabase.from('class_state').update({ teacher_offset_days: next }).eq('id', 1)
+  const eq = data.class_code ? { class_code: data.class_code } : { id: 1 }
+  const { error: e2 } = await supabase.from('class_state').update({ teacher_offset_days: next }).eq(Object.keys(eq)[0], Object.values(eq)[0])
   if (e2) return { ok: false, error: e2.message, code: e2.code }
   return { ok: true, offset: next }
 }
 
 // 老师：覆盖写【注入事件表】（调用方负责 append 后传全量 —— 服务端不做读改写）
-export async function setClassInjections(events) {
+export async function setClassInjections(events, classCode) {
+  const cc = 定位(classCode)
+  const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')
     .update({ injected_events: Array.isArray(events) ? events : [], updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .eq(Object.keys(eq)[0], Object.values(eq)[0])
   return !error
 }
 
 // 老师：写【AI 领班全班默认授权】（null = 默认全关；形状 { price_adj:{ok}, overbook:{ok}, ... }）
-export async function setClassSupervisorAuth(auth) {
+export async function setClassSupervisorAuth(auth, classCode) {
+  const cc = 定位(classCode)
+  const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
+  const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')
     .update({ supervisor_auth: auth && typeof auth === 'object' ? auth : null, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .eq(Object.keys(eq)[0], Object.values(eq)[0])
   return !error
 }
 
@@ -320,7 +371,7 @@ export async function fetchClassDay() {
 export async function setClassWeek(week, classCode) {
   // ★ V157 阶段2：按班锁周
   const cc = 定位(classCode)
-  const { data } = await supabase.from('class_state').select('class_code').eq('class_code', cc).maybeSingle()
+  const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
   const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')

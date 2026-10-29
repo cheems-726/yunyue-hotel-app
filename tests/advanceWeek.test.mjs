@@ -54,7 +54,7 @@ console.log('\n[⑤] 接线（静态）：两个按钮 + 只写 teacher_offset_d
   const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
   ok(/推进到本周结束（结算）/.test(td) && /进入下一周（第 7 天可用）/.test(td), '教师端两个按钮在位')
   ok(/推进目标\(classDay, '本周结束'\)/.test(td) && /推进目标\(classDay, '下一周'\)/.test(td), '按钮用纯函数算目标（不直接 +7）')
-  ok(/advanceClassOffset\(t\.增量\)/.test(td), '写库走 advanceClassOffset')
+  ok(/advanceClassOffset\(t\.增量(, filterClass \|\| undefined)?\)/.test(td), '写库走 advanceClassOffset（V157 阶段2 可带班级定位）')
   const sc = readFileSync('src/supabaseClient.js', 'utf8')
   ok(/update\(\{ teacher_offset_days: next \}\)/.test(sc), '只写 teacher_offset_days')
   ok(/RLS 限教师/.test(sc), '注释写明 RLS（学生 JWT 应 403/42501）')

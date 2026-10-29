@@ -92,7 +92,7 @@ console.log('\n[#4] 「进入下一周」：入口在学生端周报（不是教
   ok(/进入第 \$\{result\.week \+ 1\} 周/.test(wr), '周报按钮文案 =「进入第 N+1 周」')
   // ★ V132 §3：V131 已加教师端推进按钮 —— 旧断言改为两条并存
   ok(/推进到本周结束/.test(td) && /进入下一周（第 7 天可用）/.test(td), '教师端有「推进到本周结束 / 进入下一周」')
-  ok(/advanceClassOffset\(t\.增量\)/.test(td) && /teacher_offset_days/.test(readFileSync(new URL('../src/supabaseClient.js', import.meta.url), 'utf8')), '教师端推进走 advanceClassOffset（只写 teacher_offset_days）')
+  ok(/advanceClassOffset\(t\.增量(, filterClass \|\| undefined)?\)/.test(td) && /teacher_offset_days/.test(readFileSync(new URL('../src/supabaseClient.js', import.meta.url), 'utf8')), '教师端推进走 advanceClassOffset（只写 teacher_offset_days · V157 阶段2 可带班级定位）')
   ok(/下一周状态\(\{ history, report, week, 总周数: \(班级续营开关 && 续营\) \? 24 : 12 \}\)/.test(app), '学生端周报仍是 week+1（不写 classDay · V152 续营经总周数入参）')
 }
 
