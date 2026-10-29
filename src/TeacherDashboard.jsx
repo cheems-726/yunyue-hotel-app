@@ -554,7 +554,7 @@ function InjectionPanel({ rawStates, profiles, user, classDay = 0, classWeek = 0
     const 重叠 = (库 || []).some(x => x && x.来源事件 === 事件id && Number(x.week) === 周n && (x.targets == null || targets == null || x.targets.some(t => targets.includes(t))))
     if (重叠) { set提示({ type: 'err', text: `第 ${周n} 周已注入过「${事件id}」（目标重叠）—— 同一事件同周不重复注入（防双卡）` }); return }
     set忙(true)
-    const ok = await setClassInjections([...(库 || []), { ...新事件, targets }])
+    const ok = await setClassInjections([...(库 || []), { ...新事件, targets }], filterClass || undefined)
     set忙(false)
     if (ok) {
       set库(prev => [...(prev || []), { ...新事件, targets }])
@@ -572,7 +572,7 @@ function InjectionPanel({ rawStates, profiles, user, classDay = 0, classWeek = 0
     if (有已结算) { set提示({ type: 'err', text: `第 ${条目.week} 周已有目标组结算过 ⇒ 不再撤销（只影响未来）` }); return }
     const 新表 = (库 || []).filter(x => !(x && x.id === 条目.id))
     set忙(true)
-    const ok = await setClassInjections(新表)
+    const ok = await setClassInjections(新表, filterClass || undefined)
     set忙(false)
     if (ok) { set库(新表); set提示({ type: 'ok', text: `已撤销：${条目.week} 周「${(条目.name || '').replace(/^[\u{1F4CC}]?\s*老师注入 · /u, '')}」` }) }
     else set提示({ type: 'err', text: '撤销失败：云端不可用' })
@@ -771,7 +771,7 @@ function SupervisorPanel({ rawStates, profiles }) {
     if (开(k)) delete 新[k]
     else 新[k] = { ok: true }
     set忙(true)
-    const ok = await setClassSupervisorAuth(Object.keys(新).length ? 新 : null)
+    const ok = await setClassSupervisorAuth(Object.keys(新).length ? 新 : null, filterClass || undefined)
     set忙(false)
     if (ok) { setAuth(Object.keys(新).length ? 新 : null); set保留(`已更新全班默认授权（${Object.keys(新).length ? Object.keys(新).join('、') : '全部关闭'}）—— 学生端下次结算生效`) }
     else set保留('写入失败：云端不可用或迁移未应用')
@@ -843,7 +843,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
   const [学期态提示, set学期态提示] = useState('')   // 结课/重置反馈
-  useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
+  useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
   const 栈 = useRef(null); if (!栈.current) 栈.current = 创建导航栈('live')
@@ -977,7 +977,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     const t = 推进目标(classDay, 模式)
     if (!t.可执行) { 提示(t.原因); return }
     set推进中(true)
-    const r = await advanceClassOffset(t.增量)
+    const r = await advanceClassOffset(t.增量, filterClass || undefined)
     set推进中(false)
     if (!r.ok) {
       提示((r.code === '42501' || /permission|权限|row-level|policy/i.test(String(r.error))) ? '无权限：只有教师账号能推进（RLS）' : '推进失败：' + r.error)
@@ -988,7 +988,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
   }
   async function saveClassWeek() {
     const w = Math.max(0, Math.min(12, Number(weekInput) || 0))
-    if (await setClassWeek(w)) {
+    if (await setClassWeek(w, filterClass || undefined)) {
       setClassWeekState(w)
       setWeekInput(String(w))
       setWeekSaved(true)
@@ -1989,9 +1989,9 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 开启后：已跑满 12 周的组在「我的经营成果」页出现「继续经营第 13–24 周」入口；学期成果仍以<b>前 12 周</b>为准，不被覆盖。
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <button onClick={async () => { const ok2 = await setClassContinue(true); if (ok2) { set续营开关(true); set续营态('已开启（全班可见）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
+                <button onClick={async () => { const ok2 = await setClassContinue(true, filterClass || undefined); if (ok2) { set续营开关(true); set续营态('已开启（全班可见）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
                   style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--good)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>开启续营</button>
-                <button onClick={async () => { const ok2 = await setClassContinue(false); if (ok2) { set续营开关(false); set续营态('已关闭（学生无入口）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
+                <button onClick={async () => { const ok2 = await setClassContinue(false, filterClass || undefined); if (ok2) { set续营开关(false); set续营态('已关闭（学生无入口）') } else set续营态('保存失败（迁移未应用或权限不足）') }}
                   style={{ flex: 1, minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>关闭续营</button>
               </div>
               {续营态 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{续营态}</div>}
@@ -2014,15 +2014,15 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   const blob2 = new Blob(['﻿' + 归档CSV(快照)], { type: 'text/csv;charset=utf-8' })
                   const a3 = document.createElement('a'); a3.href = URL.createObjectURL(blob2); a3.download = `学期归档-${快照.班级}-${日期}.csv`; a3.click(); URL.revokeObjectURL(a3.href)
                   // ② 置 finished（服务器侧写 semester_status；应用层不删任何数据）
-                  const ok2 = await setSemesterStatus('finished')
+                  const ok2 = await setSemesterStatus('finished', filterClass || undefined)
                   if (ok2) { set班级学期状态2('finished'); set学期态提示('已结课（finished）· 快照已下载 · 学生端只读') }
                   else set学期态提示('置状态失败（迁移未应用或权限不足）——快照文件仍有效')
                 }} style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--info)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>结课归档（生成快照 + finished）</button>
                 <button data-semester-reset disabled={班级学期状态 !== 'archived'} onClick={async () => {
                   if (!window.confirm('新学期重置：将清空【当前班】全部组的经营进度（game_states 整包重置为空档）并回 draft；归档文件与 bak/ 一律不动。此操作不可恢复，确定？')) return
                   // 红线：绝不删数据文件；只把本班 game_states 置为空档 + 状态回 draft
-                  const ok2 = await resetClassGameStates()
-                  const ok3 = ok2 ? await setSemesterStatus('draft') : false
+                  const ok2 = await resetClassGameStates(filterClass || (profiles[0] && profiles[0].class_name) || undefined)
+                  const ok3 = ok2 ? await setSemesterStatus('draft', filterClass || undefined) : false
                   if (ok3) { set班级学期状态2('draft'); set学期态提示('新学期重置完成（回 draft · 仅当前班）') }
                   else set学期态提示('重置失败（权限/迁移）——数据未动')
                 }} style={{ flex: 1, minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', opacity: 班级学期状态 === 'archived' ? 1 : 0.5 }}>新学期重置（仅 archived 后可用）</button>

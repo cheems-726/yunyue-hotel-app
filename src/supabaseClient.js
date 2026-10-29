@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { 定位 } from './classStateLocator.mjs'   // ★ V157 阶段2：多班行定位（class_code · 单源）
 
 // 云悦酒店教学系统 · Supabase 云端配置（2026-09-08）
 // 项目：yunyue-hotel（东京区） 组织：云悦酒店教学
@@ -316,11 +317,15 @@ export async function fetchClassDay() {
   } catch (e) { return 0 }
 }
 
-export async function setClassWeek(week) {
+export async function setClassWeek(week, classCode) {
+  // ★ V157 阶段2：按班锁周
+  const cc = 定位(classCode)
+  const { data } = await supabase.from('class_state').select('class_code').eq('class_code', cc).maybeSingle()
+  const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
   const { error } = await supabase
     .from('class_state')
     .update({ current_week: week, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+    .eq(Object.keys(eq)[0], Object.values(eq)[0])
   return !error
 }
 
