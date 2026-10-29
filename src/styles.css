@@ -502,11 +502,10 @@ input[type="range"]::-webkit-slider-thumb {
   .t-flow [style*="font-size: 13px"] { font-size: 18px !important; }
 }
 
-/* ★ V131 §3：触屏可点元素 ≥44px（手机宽度下生效；不改桌面密度） */
-@media (max-width: 520px) {
-  button, .city-tab, .district-card { min-height: 44px; }
-  button { min-width: 44px; }
-}
+/* ★ V131 §3 + V157 阶段4：触屏可点元素 ≥44px（原限手机宽度；现全宽度生效——桌面小按钮同样要可点）
+   #211：桌面宽度下决策卡按钮 37px < 44px ⇒ 本条从 @media(max-width:520px) 提升为全局 */
+button, .city-tab, .district-card { min-height: 44px; }
+button { min-width: 44px; }
 
 
 /* ★ V149 §1：手机登录页上部对齐（桌面保持居中）—— 高度<700 或宽<500 时不再垂直居中 */

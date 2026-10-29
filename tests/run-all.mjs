@@ -265,6 +265,7 @@ const SUITES = [
   { name: 'opsCloseV154（运维收口·V154批4）', file: 'tests/opsCloseV154.test.mjs' },
   { name: 'perfV154（性能与包体·V154批5）', file: 'tests/perfV154.test.mjs', browser: true },
   { name: 'resetClassGameStates（学期生命周期·V157阶段1）', file: 'tests/resetClassGameStates.test.mjs' },
+  { name: 'accessV157（可访问性·V157阶段4）', file: 'tests/accessV157.test.mjs', browser: true },
   { name: 'classroomPack（课堂包·V154批3）', file: 'tests/classroomPack.test.mjs' },
   { name: 'migrationCheckV155（迁移检查·V155）', file: 'tests/migrationCheckV155.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
