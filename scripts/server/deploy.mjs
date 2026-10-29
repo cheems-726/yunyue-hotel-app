@@ -129,7 +129,8 @@ try {
     const sql = [
       "select 'col|'||table_name||'.'||column_name from information_schema.columns where table_schema='public'",
       "select 'tab|'||tablename from pg_tables where schemaname='public'",
-      "select 'pol|'||schemaname||'.'||polname from pg_catalog.pg_policies where schemaname='public'",
+      // ★ D345 修复：列名真名是 policyname（不是 polname）；键必须「表名.策略名」（不是 schemaname）
+      "select 'pol|'||tablename||'.'||policyname from pg_catalog.pg_policies where schemaname='public'",
     ].join(' union all ')
     const out = run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
       `sudo -u postgres psql -d yunyue -Atc "${sql}"`])
