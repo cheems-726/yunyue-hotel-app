@@ -2351,6 +2351,7 @@ export default function App() {
   const [续营, set续营] = useState(!!saved.续营)
   const [成果页开, set成果页开] = useState(false)
   const [班级续营开关, set班级续营开关] = useState(false)   // 班级级（class_state.continue_enabled · 默认关）
+  const [班级学期状态, set班级学期状态] = useState('running')   // ★ V157 阶段1：学期状态机（draft/running/finished/archived）
   // 🔴 E2：自动周报相关状态（全部进存档）
   //   openDayNo    = 首次进入经营时的【教学日历日序号】—— 用来把本地日期换算成 classDay（T9：客户端只做本地等效显示，不判定归属）
   //   decisionChanges = 本周决策改动流水（第几天改了什么）⇒ 周报「本周变更记录」
@@ -2607,6 +2608,11 @@ export default function App() {
     try { localStorage.removeItem(STORAGE_KEY) } catch (e) {}
   }
   function handleSettle() {
+    // ★ V157 阶段1：学期状态机 —— finished/archived ⇒ 学生端只读（不能再结算推进）
+    if (班级学期状态 === 'finished' || 班级学期状态 === 'archived') {
+      toast(班级学期状态 === 'finished' ? '本学期已结课（成绩单由老师导出）——不能继续结算' : '本学期已归档——等待新学期')
+      return
+    }
     const doneCount = Object.keys(doneDecisions).length
     if (doneCount === 0) {
       const go = window.confirm('本周还没有做任何决策（0/18），未决策将按默认情况结算。确定直接结算吗？')
@@ -2648,6 +2654,7 @@ export default function App() {
       setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : [])
       setClassSupAuth(cs.supervisor_auth || null)
       set班级续营开关(cs.续营开关 === true)   // ★ V152 §2：班级续营开关随同一通道刷新（默认关）
+      set班级学期状态(cs.学期状态 || 'running')   // ★ V157 阶段1
     // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
     }).catch(() => {})
     拉()
@@ -2917,7 +2924,9 @@ export default function App() {
   //   （理由：注入事件的「补算」判定与周预览都要用 权威日 ⇒ 必须先声明，避免 TDZ）
   const autoInfo = !established || !brand || finished
     ? { due: false, reason: '未进入经营' }
-    : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, 权威日, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
+    : (班级学期状态 === 'finished' || 班级学期状态 === 'archived')
+      ? { due: false, reason: `学期${班级学期状态 === 'finished' ? '已结课' : '已归档'}（V157 阶段1：学生端只读）` }   // ★ V157 阶段1
+      : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, 权威日, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
 
   // 🔴 E2：决策改动 → 本周流水（第几天改了什么）。只记【改动】，不记首次填写（首次填写不算"改"）
   const prevDecisionsRef = React.useRef(null)

@@ -225,6 +225,8 @@ export async function fetchClassState() {
       supervisor_auth: (data.supervisor_auth && typeof data.supervisor_auth === 'object') ? data.supervisor_auth : null,
       // ★ V152 §2：续营开关（班级级 · 默认关）。迁移未应用 ⇒ undefined ⇒ false（如实回退，不谎报开）
       续营开关: data.continue_enabled === true,
+      // ★ V157 阶段1：学期状态机（draft/running/finished/archived）。迁移未应用 ⇒ undefined ⇒ 'running'（等价改动前行为）
+      学期状态: ['draft', 'running', 'finished', 'archived'].includes(data.semester_status) ? data.semester_status : 'running',
       通道就绪: true,
     }
   }
@@ -233,11 +235,37 @@ export async function fetchClassState() {
     .select('*')
     .eq('id', 1)
     .maybeSingle()
-  return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 续营开关: false, 通道就绪: false }
+  return { current_week: (d2 && d2.current_week) || 0, injected_events: [], supervisor_auth: null, 续营开关: false, 学期状态: 'running', 通道就绪: false }
 }
 
 // ★ V152 §2：老师开/关「续营 12 周」（班级级 · class_state.continue_enabled · RLS 限教师）
 //   迁移未应用 ⇒ update 报错 ⇒ 返回 false（调用方 toast 提示，不静默假成功）
+// ★ V157 阶段1：学期状态机（教师写 semester_status；RLS 限教师 · 迁移未应用 ⇒ false）
+export async function setSemesterStatus(status) {
+  if (!['draft', 'running', 'finished', 'archived'].includes(status)) return false
+  const { error } = await supabase
+    .from('class_state')
+    .update({ semester_status: status, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  return !error
+}
+
+// ★ V157 阶段1：新学期重置 —— 只清【当前班】game_states 行（整包置空档 · 不删行不碰其他班）。
+//   红线：归档文件与 bak/ 一律不动（重置不删任何归档）。
+//   ⚠ 全局教学日 teacher_offset_days 不在此清（多班共用，属阶段2 范围）。
+export async function resetClassGameStates(classCode = '酒管2401') {
+  // 读出本班全部组（profiles 有归属 + game_states group_key 前缀匹配）
+  const { data: states, error: e1 } = await supabase.from('game_states').select('*').order('updated_at', { ascending: false })   // ★ V157：整行取（selectColumns 禁手写列清单）
+  if (e1) return { ok: false, error: e1.message }
+  const 本班 = (states || []).filter(g => String(g.group_key || '').startsWith(classCode + '|'))
+  for (const g of 本班) {
+    const 空档 = { week: 1, finished: false, history: [], state: { week: 1, finished: false, history: [], capital: null }, updated_at: new Date().toISOString() }
+    const { error } = await supabase.from('game_states').update(空档).eq('group_key', g.group_key)
+    if (error) return { ok: false, error: error.message }
+  }
+  return { ok: true, count: 本班.length }
+}
+
 export async function setClassContinue(on) {
   const { error } = await supabase
     .from('class_state')

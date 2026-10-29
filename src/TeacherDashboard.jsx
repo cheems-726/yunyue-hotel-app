@@ -28,6 +28,8 @@ import { 六组一句话 } from './teacherSixLines.mjs'   // ★ V144 §2
 import { 班级并排, 学期切片 as 学期切片12 } from './semesterResult.mjs'   // ★ V152 §1：学期成果并排（不排名）· V153：前12周切片
 import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共用渲染
 import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
+import { setSemesterStatus, resetClassGameStates } from './supabaseClient.js'   // ★ V157 阶段1：学期状态机 + 新学期重置（只清当前班）
+import { 成绩单CSV as 生成CSV文本 } from './reportCard.mjs'   // ★ V157：结课快照 CSV（快照 = JSON+CSV 双件）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
 import { 成绩单, 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153 + V154批3（成绩单 批量入口）
@@ -839,7 +841,9 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [成绩单开, set成绩单开] = useState(false)
   const [归档列表, set归档列表] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-archives') || '[]') } catch (e) { return [] } })
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
-  useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) set续营开关(cs.续营开关 === true) }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
+  const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
+  const [学期态提示, set学期态提示] = useState('')   // 结课/重置反馈
+  useEffect(() => { let 活 = true; fetchClassState().then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
   const 栈 = useRef(null); if (!栈.current) 栈.current = 创建导航栈('live')
@@ -1991,6 +1995,39 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   style={{ flex: 1, minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>关闭续营</button>
               </div>
               {续营态 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{续营态}</div>}
+            </div>
+            {/* ★ V157 阶段1：学期生命周期 —— 结课归档（不删数据）+ 新学期重置（archived 后可用） */}
+            <div data-semester-lifecycle="1" style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', textAlign: 'left' }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>学期生命周期：当前 = <b style={{ color: 'var(--info)' }}>{班级学期状态}</b>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>（draft 未开课 / running 上课 / finished 已结课 / archived 已归档）</span></div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button data-semester-finish onClick={async () => {
+                  if (!window.confirm('结课归档：将生成快照文件（六组 history + 成绩单），并把学期置为 finished（学生端只读，不能继续结算）。不删除任何数据。继续？')) return
+                  // ① 快照（值拷贝冻结 · 含六组 history + 成绩单 + 口径版本 + 时间）
+                  const rows = 生成成绩单行()
+                  const 快照 = 归档快照({ 班级: filterClass || (profiles[0] && profiles[0].class_name) || '', 生成人: user?.name || '教师', rows, 摘要: vis摘() })
+                  快照.生成时间 = new Date().toLocaleString('zh-CN', { hour12: false })
+                  快照.学期状态 = 'finished'
+                  const 日期 = new Date().toISOString().slice(0, 10)
+                  const blob = new Blob([JSON.stringify(快照, null, 1)], { type: 'application/json' })
+                  const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob); a2.download = `学期快照-${快照.班级}-${日期}.json`; a2.click(); URL.revokeObjectURL(a2.href)
+                  const blob2 = new Blob(['﻿' + 归档CSV(快照)], { type: 'text/csv;charset=utf-8' })
+                  const a3 = document.createElement('a'); a3.href = URL.createObjectURL(blob2); a3.download = `学期归档-${快照.班级}-${日期}.csv`; a3.click(); URL.revokeObjectURL(a3.href)
+                  // ② 置 finished（服务器侧写 semester_status；应用层不删任何数据）
+                  const ok2 = await setSemesterStatus('finished')
+                  if (ok2) { set班级学期状态2('finished'); set学期态提示('已结课（finished）· 快照已下载 · 学生端只读') }
+                  else set学期态提示('置状态失败（迁移未应用或权限不足）——快照文件仍有效')
+                }} style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--info)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>结课归档（生成快照 + finished）</button>
+                <button data-semester-reset disabled={班级学期状态 !== 'archived'} onClick={async () => {
+                  if (!window.confirm('新学期重置：将清空【当前班】全部组的经营进度（game_states 整包重置为空档）并回 draft；归档文件与 bak/ 一律不动。此操作不可恢复，确定？')) return
+                  // 红线：绝不删数据文件；只把本班 game_states 置为空档 + 状态回 draft
+                  const ok2 = await resetClassGameStates()
+                  const ok3 = ok2 ? await setSemesterStatus('draft') : false
+                  if (ok3) { set班级学期状态2('draft'); set学期态提示('新学期重置完成（回 draft · 仅当前班）') }
+                  else set学期态提示('重置失败（权限/迁移）——数据未动')
+                }} style={{ flex: 1, minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', opacity: 班级学期状态 === 'archived' ? 1 : 0.5 }}>新学期重置（仅 archived 后可用）</button>
+              </div>
+              {学期态提示 && <div data-semester-status-msg style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{学期态提示}</div>}
             </div>
             {/* 本班统计摘要 */}
             {groups && groups.length > 0 && (() => {
