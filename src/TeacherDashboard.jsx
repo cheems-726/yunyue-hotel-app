@@ -31,6 +31,7 @@ import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续�
 import { setSemesterStatus, resetClassGameStates } from './supabaseClient.js'   // ★ V157 阶段1：学期状态机 + 新学期重置（只清当前班）
 import { fetchSemesterCloseout, saveSemesterCloseout, fetchSemesterCloseoutsAll, sha256Hex } from './supabaseClient.js'   // ★ V163：收口状态服务端持久层
 import { normalizeSteps, runOneTouch, STEPS as 收口步序, STEP_LABELS as 收口步名, 收口报告, 校验冷备 } from './oneTouchCloseout.mjs'   // ★ V163：四步纯层（失败停步/幂等/断点续跑）
+import { 复盘报告, 教学建议, 未决策阈值 } from './semesterReview.mjs'   // ★ V164：学期教学复盘纯层（只读 · 零网络 · 规则驱动）
 import { 成绩单CSV as 生成CSV文本 } from './reportCard.mjs'   // ★ V157：结课快照 CSV（快照 = JSON+CSV 双件）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
@@ -834,6 +835,102 @@ function SupervisorPanel({ rawStates, profiles }) {
   )
 }
 
+// ★ V164 · 学期教学复盘覆盖层（只读 · 每次渲染现算 ⇒ 改库必跟着变 · 判据④）
+//   A4 竖版一页（@media print 隐藏其余 · 字号 ≥10pt）· 归因用 <details> 展开字段来源 · 建议规则驱动零网络
+function SemesterReviewOverlay({ rows, 组数据, 班级学期状态, filterClass, onClose }) {
+  const [归档, set归档] = useState(null)
+  const [校验果, set校验果] = useState(null)
+  useEffect(() => {
+    let 活 = true
+    fetchSemesterCloseout(filterClass || undefined).then(async ({ row }) => {
+      if (!活) return
+      if (!row) { set归档({ 状态: '（无服务端归档记录）' }); return }
+      const v = await 校验冷备(row.files || {}, sha256Hex)
+      set归档({ 状态: row.semester_status || '—', 学期: row.label || '（未标学期）', 文件: Object.keys(row.files || {}).join('、') || '（无清单）' })
+      set校验果(v)
+    }).catch(() => { if (活) set归档({ 状态: '（归档记录不可读）' }) })
+    return () => { 活 = false }
+  }, [filterClass])
+  const 报告 = 复盘报告({ rows, 组数据 })   // 每次渲染现算（不写库不缓存）
+  const 建议 = 教学建议({ rows, 未决策: 报告.未决策 })
+  const 导出复盘CSV = () => {
+    const 行 = [['段', '组号', '指标', '数值', '来源']]
+    for (const m of 报告.指标并排) for (const k of ['累计营收', '经营净利', '净利率', '平均出租率', '平均好评率', '差评处理率', '期末资金']) 行.push(['指标并排', m.组号, k, m[k] ?? '', m.来源])
+    for (const e of 报告.极值) 行.push(['极值', '—', e.指标, `最好${e.最好组} / 最差${e.最差组} / 差距${e.差距}`, e.来源])
+    报告.归因.forEach((a, i) => 行.push(['归因' + (i + 1), '—', a.文案, '', a.来源]))
+    for (const u of 报告.未决策) 行.push(['未决策', u.组号, '未决策周数/最长连续', `${u.周数}/${u.最长连续}`, u.来源])
+    for (const p of 报告.画像) 行.push(['决策画像', p.组号, '改动次数/最常改/未决策周', `${p.改动次数}/${p.最常改}/${p.未决策周数}`, p.改动口径])
+    for (const b of 建议.建议) 行.push(['教学建议', '—', typeof b === 'string' ? b : `${b.规则} ${b.文本}`, typeof b === 'object' ? b.命中 : '', '规则表驱动（零网络）'])
+    const csv = '\uFEFF' + 行.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `学期复盘明细-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href)
+  }
+  const fmt元 = v => v == null ? '—' : Math.round(v).toLocaleString() + ' 元'
+  const fmt率 = v => v == null ? '—' : Number(v).toFixed(1) + '%'
+  const fmt率01 = v => v == null ? '—' : (v * 100).toFixed(1) + '%'
+  return (
+    <div data-review-overlay className="review-print" style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 300, overflow: 'auto', padding: '20px 24px', color: '#111', fontFamily: 'inherit' }}>
+      <style>{`@media print { body > *:not(.review-print) { display: none !important } .review-print { position: static !important; overflow: visible !important; padding: 0 !important } .no-print { display: none !important } .review-print table { page-break-inside: avoid } }`}</style>
+      <div className="no-print" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button onClick={() => window.print()} style={{ minHeight: 40, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontFamily: 'inherit' }}>打印（A4 竖版一页）</button>
+        <button data-review-csv onClick={导出复盘CSV} style={{ minHeight: 40, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--info)', fontSize: 12, borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontFamily: 'inherit' }}>导出复盘明细 CSV</button>
+        <button onClick={onClose} style={{ minHeight: 40, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 8, padding: '0 14px', cursor: 'pointer', fontFamily: 'inherit' }}>关闭</button>
+      </div>
+      <h2 style={{ fontSize: 16, margin: '0 0 4px' }}>学期教学复盘 · {filterClass || '全班'} · 学期状态 {班级学期状态 || '—'}</h2>
+      <div style={{ fontSize: 10, color: '#666', marginBottom: 10 }}>只读分析 · 数字与期末成绩单同一单源（scoreOf）· 生成时点 {new Date().toLocaleString('zh-CN', { hour12: false })}</div>
+      {/* ① 六组关键指标并排 */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10.5 + 'pt' }}>
+        <thead><tr>{['组号', '累计营收', '经营净利', '净利率', '平均出租率', '平均好评率', '差评处理率', '期末资金'].map(h => <th key={h} style={{ border: '1px solid #999', padding: '3px 5px', background: '#f3f4f6', textAlign: 'left', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+        <tbody>{报告.指标并排.map(m => (
+          <tr key={m.组号}>{[m.组号, fmt元(m.累计营收), fmt元(m.经营净利), fmt率01(m.净利率), fmt率(m.平均出租率), fmt率(m.平均好评率), fmt率(m.差评处理率), fmt元(m.期末资金)].map((c, i) => <td key={i} style={{ border: '1px solid #999', padding: '3px 5px' }}>{c}</td>)}</tr>
+        ))}</tbody>
+      </table>
+      {/* ② 极值与差距 */}
+      <div style={{ fontSize: 10.5 + 'pt', marginTop: 8, lineHeight: 1.6 }}>
+        <b>极值与差距：</b>{报告.极值.map(e => `${e.指标} 最好 ${e.最好组} / 最差 ${e.最差组} / 差距 ${e.差距}`).join(' · ')}
+      </div>
+      {/* ③ 组间差异前 3（自动归因 · details 展开字段来源） */}
+      <div style={{ marginTop: 8 }}>
+        <b style={{ fontSize: 10.5 + 'pt' }}>组间差异前 3（自动归因 · 数据说数据）：</b>
+        {报告.归因.length === 0 && <div style={{ fontSize: 10.5 + 'pt', marginTop: 4 }}>（各组指标一致或差异不足 —— 无可归因差异）</div>}
+        {报告.归因.map((a, i) => (
+          <details key={i} style={{ fontSize: 10.5 + 'pt', marginTop: 3 }}>
+            <summary style={{ cursor: 'pointer' }}>{i + 1}. {a.文案}</summary>
+            <div style={{ color: '#555', fontSize: 9.5 + 'pt', marginTop: 2 }}>字段来源：{a.来源}</div>
+          </details>
+        ))}
+      </div>
+      {/* ④ 未决策统计 */}
+      <div style={{ fontSize: 10.5 + 'pt', marginTop: 8 }}>
+        <b>未决策统计（决策不足 {未决策阈值} 项的周数）：</b>
+        {报告.未决策.map(u => `${u.组号} ${u.周数} 周（最长连续 ${u.最长连续}）`).join(' · ')}
+        <span style={{ color: '#555' }}>　来源：history[].决策数 &lt; {未决策阈值}</span>
+      </div>
+      {/* ⑤ 结课状态与归档信息 */}
+      <div style={{ fontSize: 10.5 + 'pt', marginTop: 8 }}>
+        <b>结课与归档：</b>学期状态 {归档 ? (归档.状态 === '—' || !归档.状态 ? '—' : 归档.状态) : '…'} · 归档学期 {归档 && 归档.学期 || '—'} · 归档文件 {归档 && 归档.文件 || '—'} · 校验 {校验果 ? `${校验果.通过}/${校验果.总数} ${校验果.全过 ? '通过' : '✗ ' + 校验果.明细.filter(x => !x.ok).map(x => x.名).join('、')}` : '—'}
+      </div>
+      {/* ⑥ 决策画像（事实 · 不做价值判断） */}
+      <div style={{ marginTop: 8 }}>
+        <b style={{ fontSize: 10.5 + 'pt' }}>决策画像（事实陈述 · 不含行动建议）：</b>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {报告.画像.map(p => (
+            <div key={p.组号} style={{ border: '1px solid #999', borderRadius: 6, padding: '4px 8px', fontSize: 9.5 + 'pt', lineHeight: 1.5, flex: '1 1 30%' }}>
+              <b>{p.组号}</b><br />改动 {p.改动次数} 处（当周流水口径）· 最常改：{p.最常改}<br />未决策 {p.未决策周数} 周（最长连续 {p.最长连续未决策}）<br />净利 {fmt元(p.结果.经营净利)} · 出租率 {fmt率(p.结果.平均出租率)} · 好评率 {fmt率(p.结果.平均好评率)}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* ⑦ 教学建议（规则驱动 · 零网络 · 每条带规则编号与命中数字） */}
+      <div style={{ marginTop: 8 }}>
+        <b style={{ fontSize: 10.5 + 'pt' }}>教学建议（规则表驱动 · 零网络 · 命中规则 {建议.规则数} 条）：</b>
+        <ul style={{ fontSize: 10.5 + 'pt', margin: '4px 0 0', paddingLeft: 20 }}>
+          {建议.建议.map((b, i) => <li key={i}>{typeof b === 'string' ? b : `${b.规则}：${b.文本}（命中：${b.命中}）`}</li>)}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 // ★ V163 · 一键收口四步向导（§1）+ 冷备状态卡（§2）+ 归档管理（§3）
 //   进度/文件清单存服务端 semester_closeouts（断点续跑 · 每班一行 upsert 幂等）· 执行走纯层 runOneTouch（失败停步不许跳步）
 function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek, executors, onDone }) {
@@ -954,6 +1051,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [续营态, set续营态] = useState('')   // 保存反馈
   // ★ V153：期末成绩单打印层 + 归档快照列表（本机 localStorage · 只读留档，不参与任何计算）
   const [成绩单开, set成绩单开] = useState(false)
+  const [复盘开, set复盘开] = useState(false)   // ★ V164：学期教学复盘覆盖层（只读 · 每次打开现算不缓存）
   const [归档列表, set归档列表] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-archives') || '[]') } catch (e) { return [] } })
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
@@ -1369,6 +1467,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   <button data-open-report-card onClick={() => set成绩单开(true)} style={{ minHeight: 44, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>打印成绩单（A4）</button>
                   <button data-export-report-card onClick={() => 下载成绩单CSV(行, `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} style={{ minHeight: 44, border: '1px solid var(--primary-border)', background: 'var(--card)', color: 'var(--info)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>下载成绩单 CSV</button>
+                  <button data-semester-review onClick={() => set复盘开(true)} style={{ minHeight: 44, border: 'none', background: 'var(--info)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>生成学期复盘（A4 一页 · 只读）</button>
                   <button data-archive-semester onClick={归档本学期} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>归档本学期（冻结快照）</button>
                 </div>
                 {零差.length === 0
@@ -2263,6 +2362,17 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     {大屏 && view !== 'inject' && <aside className="t-side"><InjectionPanel rawStates={rawStates} profiles={profiles} user={user} classDay={classDay} classWeek={classWeek} /></aside>}
     {投屏开 && <ClassroomScreen groups={groups} rawStates={rawStates} classByUid={classByUid} filterClass={filterClass} onExit={() => set投屏开(false)} />}
         {成绩单开 && <ReportCardPrint rows={生成成绩单行()} 班级={filterClass || (profiles[0] && profiles[0].class_name) || ''} onClose={() => set成绩单开(false)} 下载={() => 下载成绩单CSV(生成成绩单行(), `期末成绩单-${filterClass || '全班'}-${new Date().toISOString().slice(0, 10)}.csv`)} />}
+        {复盘开 && (() => {
+          const pMap3 = Object.fromEntries(profiles.map(p => [p.user_id, p]))
+          const 组数据 = {}
+          for (const g of (filterClass ? groups.filter(g => classByUid[g.uid] === filterClass) : groups)) {
+            const gs = rawStates.find(x => x.user_id === g.uid) || {}
+            const p = pMap3[g.uid] || {}
+            const 组号 = p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : g.name
+            组数据[组号] = { capital: gs.state && gs.state.capital, history: (gs.state && gs.state.history) || [], decisionChanges: (gs.state && gs.state.decisionChanges) || [] }
+          }
+          return <SemesterReviewOverlay rows={生成成绩单行()} 组数据={组数据} 班级学期状态={班级学期状态} filterClass={filterClass} onClose={() => set复盘开(false)} />
+        })()}
     </div>
  {/* 底部三导航：排名 / 实时决策 / 我的（移出滚动容器，作为 .app 的兄弟常驻底部，与学生端同构） */}
     {/* ★ V97 用户要求：导航栏上方左右各一个 —— 左「‹ 返回」（弹栈回上一处）· 右「上一页 ›」（同 popstate 语义） */}
