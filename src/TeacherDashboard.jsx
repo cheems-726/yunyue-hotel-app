@@ -2043,6 +2043,12 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                   if (ok2) { set班级学期状态2('finished'); set学期态提示('已结课（finished）· 快照已下载 · 学生端只读') }
                   else set学期态提示('置状态失败（迁移未应用或权限不足）——快照文件仍有效')
                 }} style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--info)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>结课归档（生成快照 + finished）</button>
+                <button data-semester-archive disabled={班级学期状态 !== 'finished'} onClick={async () => {
+                  if (!window.confirm('归档：本学期置为 archived（数据只读冻结，一个字节不删不改）。归档后学生端与教师端均不可再结算，新学期需点「新学期重置」。继续？')) return
+                  const ok2 = await setSemesterStatus('archived', filterClass || undefined)
+                  if (ok2) { set班级学期状态2('archived'); set学期态提示('已归档（archived）· 数据只读冻结 · 快照用结课时下载的文件') }
+                  else set学期态提示('置归档失败（权限不足）——状态未变')
+                }} style={{ flex: 1, minHeight: 44, border: 'none', background: 'var(--warn)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', opacity: 班级学期状态 === 'finished' ? 1 : 0.5 }}>归档（finished 后数据只读冻结）</button>
                 <button data-semester-reset disabled={班级学期状态 !== 'archived'} onClick={async () => {
                   if (!window.confirm('新学期重置：将清空【当前班】全部组的经营进度（game_states 整包重置为空档）并回 draft；归档文件与 bak/ 一律不动。此操作不可恢复，确定？')) return
                   // 红线：绝不删数据文件；只把本班 game_states 置为空档 + 状态回 draft
