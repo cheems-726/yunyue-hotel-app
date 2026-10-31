@@ -25,6 +25,15 @@ console.log('▶ V154 批4 · 运维收口（OSS 备份链 / VERSIONS / 旧包�
   const deploy = rd('scripts/server/deploy.mjs')
   ok(/VERSIONS\.md 已登记|VERSIONS\.md; tail -1/.test(deploy), 'deploy：第⑥步登记 /opt/yunyue/VERSIONS.md（包名/sha256/来源）')
   ok(/来源 \$\{来源\}/.test(deploy) || /来源 \$SOURCE/.test(deploy) || /来源 \$\{来源\}|来源 \$\{GIT\}/.test(deploy) || /git rev-parse --short HEAD/.test(deploy), 'VERSIONS 行带来源 commit（verify-versions.sh 可核对）')
+  // #217：追加行必须带「| 日期 时分」前缀（verify 只认 ^\|\s*YYYY-MM-DD 的行，否则写了不参与判定）
+  ok(/printf '\| \$\{时间\} \| frontend \|/.test(deploy), 'deploy 追加台账行带「| 日期时分」前缀（#217 · 落进 verify 的取行范围）')
+  ok(!/printf '%s \| frontend/.test(deploy), '无参 %s 写法已清除（曾产出无日期行 ⇒ verify 全跳过）')
+  // 判据等价自检：本机实测 deploy 产出行能被 verify 的取行正则命中（把 verify 里的正则原样抽出来跑）
+  const verify = rd('scripts/server/verify-versions.sh')
+  const 取行m = /grep -E '([^']+)'/ .exec(verify)
+  ok(!!取行m && /\^\\\|/.test(取行m[1]), 'verify-versions 取行正则仍在（^\\|+日期）')
+  const 样例 = `| ${new Date().toISOString().replace('T', ' ').slice(0, 16)} | frontend | /var/www/html/assets/index-x.js | abc | 来源 b3e8ed7 | 迁移 12/12 已应用 | DSH`
+  ok(!!取行m && new RegExp(取行m[1]).test(样例), 'deploy 产出格式的样例行能被 verify 取行正则命中（两端同源）')
 
   // ③ 旧包清理接部署（第④步解包后）
   ok(/prune-assets\.sh/.test(deploy), 'deploy：解包后跑 prune-assets（assets 只留在用 + 最近两批）')

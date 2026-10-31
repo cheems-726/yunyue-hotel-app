@@ -154,7 +154,7 @@ try {
   const 来源 = execSync('git rev-parse --short HEAD', { cwd: APP, encoding: 'utf8' }).trim()
   const 时间 = new Date().toISOString().replace('T', ' ').slice(0, 16)
   run('ssh', ['-i', KEY, '-o', 'BatchMode=yes', `root@${HOST}`,
-    `printf '%s | frontend | ${WEB}/assets/${entry} | ${sha} | 来源 ${来源} | 迁移 ${迁移注} | DSH\n' >> /opt/yunyue/VERSIONS.md; tail -1 /opt/yunyue/VERSIONS.md`])
+    `printf '| ${时间} | frontend | ${WEB}/assets/${entry} | ${sha} | 来源 ${来源} | 迁移 ${迁移注} | DSH\n' >> /opt/yunyue/VERSIONS.md; tail -1 /opt/yunyue/VERSIONS.md`])
 
   console.log(`✓ 入口包：${entry}`)
   console.log('✓ 云端残留：0')

@@ -1,7 +1,7 @@
 #!/bin/bash
 # V130 §5 · 版本台账核对（/opt/yunyue/VERSIONS.md ↔ 线上实际文件 sha256）
-# 台账行格式（| 分隔，脚本只认"以日期开头"的行）：
-#   2026-10-20 12:38 | frontend | /var/www/html/assets/index-XXXX.js | <sha256> | 来源 a02fdc6 | DSH
+# 台账行格式（| 分隔，脚本只认"以 | + 日期开头"的行）：
+#   | 2026-10-20 12:38 | frontend | /var/www/html/assets/index-XXXX.js | <sha256> | 来源 a02fdc6 | DSH
 # 目录按"排序后逐文件 sha256 再取 sha256"算（与建档时同一算法）
 # 判据：每行都能在线上复算出同值；抽 2 条一致即可（本脚本核全部）
 # 退出码：0 = 全部一致；1 = 有不一致/文件缺失
