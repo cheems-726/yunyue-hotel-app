@@ -18,6 +18,29 @@ console.log('▶ V155 · 部署第⑥步迁移检查')
   // 注释里的 drop column 不算声明（剥注释）
   ok(v152.length === 1, '注释里的 `drop column` 不被当声明（剥注释后 0 命中）')
 
+  // ①b 单行写法（#216）：alter table public.T add column if not exists C; —— 上一版被整行吞掉 ⇒ 护栏假绿
+  const 单行探针 = 'alter table public.class_state add column if not exists __probe_single_line__ text;'
+  const 单行声明 = 扫描声明('supabase-migration-zzz-oneline-probe.sql', 单行探针)
+  ok(单行声明.length === 1 && 单行声明[0].table === 'class_state' && 单行声明[0].name === '__probe_single_line__' && 单行声明[0].level === 'block',
+    '单行 alter table…add column if not exists ⇒ 抽出 1 条声明（不再被吞）', JSON.stringify(单行声明))
+  const 单行缺失 = checkMigrations(单行声明, { columns: new Set(['class_state.class_code']), tables: new Set(), policies: new Set() })
+  ok(单行缺失.missing.length === 1, '单行写法 + 库内无此列 ⇒ missing 恰 1（deploy 第⑥步会非 0 退出）')
+
+  // RV（#216 可证伪）：摘掉单行分支 ⇒ 单行探针重新蒸发为 0 条（复现 D350）⇒ 还原后复绿
+  {
+    const P = new URL('../scripts/server/migrationCheck.mjs', import.meta.url)
+    const { copyFileSync, unlinkSync } = await import('node:fs')
+    const BAK = new URL('../scripts/_rv216.bak', import.meta.url)
+    copyFileSync(P, BAK)
+    const 原文 = readFileSync(P, 'utf8')
+    writeFileSync(new URL(P), 原文.replace('if (单行) {', 'if (false && 单行) {'), 'utf8')
+    const 破 = await import(`${P.href}?rv216`)
+    ok(破.扫描声明('p.sql', 单行探针).length === 0, 'RV-1 摘掉单行分支 ⇒ 单行探针蒸发为 0 条（D350 复现）')
+    copyFileSync(BAK, P); unlinkSync(BAK)
+    const 复 = await import(`${P.href}?rv216b`)
+    ok(复.扫描声明('p.sql', 单行探针).length === 1, 'RV-2 还原后复绿（单行探针 1 条）')
+  }
+
   // ② 全部存在 ⇒ 「迁移 ✓ 已应用 N/N 项」
   const 全库 = new Set()
   for (const d of 声明们) 全库.add(`${d.table}.${d.name}`)

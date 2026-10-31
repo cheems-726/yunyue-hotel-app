@@ -20,6 +20,9 @@ export function 扫描声明(file, text) {
   let 最近表 = null
   for (const raw of 剥注释.split('\n')) {
     const l = raw.trim()
+    // 单行写法（#216）：alter table public.T add column if not exists C; —— 一行内同时取表与列，直接记 T.C
+    const 单行 = /alter table\s+(?:public\.)?([a-zA-Z_][\w]*)\s+[^;]*add column\s+if not exists\s+([a-zA-Z_][\w]*)/i.exec(l)
+    if (单行) { 最近表 = 单行[1]; 声明.push({ file, kind: 'column', table: 单行[1], name: 单行[2], level: 'block' }); continue }
     const 表命中 = /(?:alter table|create table if not exists|create table)\s+(?:public\.)?([a-zA-Z_][\w]*)/i.exec(l)
     if (表命中 && !/add column/i.test(l)) 最近表 = 表命中[1]
     let m = /add column\s+if not exists\s+([a-zA-Z_][\w]*)/i.exec(l)
