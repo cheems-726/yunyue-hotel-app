@@ -57,7 +57,8 @@ Deno.serve(async (req) => {
       const gk = g.group_key || g.user_id
       const injections = allInjections.filter((e: any) => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
       // ② 调逻辑（本文件不含任何计算）
-      const r = advanceGroupOneDay(save, classDay, { groupKey: gk, injectedEvents: injections.length ? injections : null })
+      // ★ V160：学期闸 —— 把 class_state 的 semester_status 传给引擎（引擎侧统一判定）
+      const r = advanceGroupOneDay(save, classDay, { groupKey: gk, semesterStatus: (cls as any)?.semester_status || 'running', injectedEvents: injections.length ? injections : null })
       out.push({ group: gk, advanced: r.advanced, gated: r.gated || false, gate: r.gate || null, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, violations: r.violations })
 
       // 数值合理性不过 → 记录但不静默覆盖（③ 只存结果，不改数）

@@ -130,6 +130,7 @@ export function 决策计数(d) {
 // 🔴 E2（N-2 夜跑）：实现搬到 src/weeklyAuto.mjs（客户端自动周报与服务端逐日推进【同一份口径】），
 //   本处只 re-export —— 否则"客户端第几天"与"服务端第几天"迟早各写一份（BL-7 同族）。
 export { dayToWeekDay } from './weeklyAuto.mjs'
+import { 学期闸 } from './semesterGate.mjs'   // ★ V160：学期闸（running + week≤TOTAL_WEEKS 才推进）
 
 
 
@@ -152,6 +153,16 @@ export function advanceGroupOneDay(save, classDay, opts = {}) {
   const src = save && typeof save === 'object' ? save : {}
   const key = tickKey(classDay, src.__groupKey || opts.groupKey)
   const { week, dayIndex } = dayToWeekDay(classDay)
+  // ★ V160：学期闸 —— 非 running 或 week > TOTAL_WEEKS ⇒ 不推进（不写 history）
+  //   class_state 字段由调用方传入（opts.semesterStatus 缺省 = running ⇒ 零变化水位线）
+  const 学期闸结果 = 学期闸({ semester_status: opts.semesterStatus || 'running' }, week)
+  if (!学期闸结果.allowed) {
+    return {
+      tickKey: key, classDay: Number(classDay), week, dayIndex,
+      advanced: false, blockedBy: 'semester', reason: 学期闸结果.reason,
+      snapshot: null, save: src, violations: [], engineVersion: TICK_VERSION,
+    }
+  }
   const history = Array.isArray(src.history) ? src.history : []
 
   const already = history.find(h => Number(h && h.week) === week)
