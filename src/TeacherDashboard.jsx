@@ -1485,7 +1485,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
             background: 'var(--warn-bg)', border: '1px solid var(--warn-border)',
             fontSize: 13, lineHeight: 1.7,
           }}>
-            ⚠ 学期已满 12 周，tick 已停止推进。请到「我的 → 学期生命周期」点【结课归档】生成成绩单。
+            <Icon name="status.warn" size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 学期已满 12 周，tick 已停止推进。请到「我的 → 学期生命周期」点【结课归档】生成成绩单。
           </div>
         ) : null
       })()}
@@ -1495,9 +1495,9 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           background: 班级学期状态 === 'finished' ? 'var(--warn-bg)' : 'var(--fill)',
           border: '1px solid var(--warn-border)', fontSize: 13, lineHeight: 1.7,
         }}>
-          {班级学期状态 === 'finished' && <span>📋 本学期已结课（finished）—— tick 已停止推进。请到「我的 → 学期生命周期」下载成绩单并归档。</span>}
-          {班级学期状态 === 'archived' && <span>📦 本学期已归档——数据只读。新学期请点「新学期重置」。</span>}
-          {班级学期状态 === 'draft' && <span>⏳ 学期未开课（draft）—— 请在「教学进度控制」设定教学日或点「开课」。</span>}
+          {班级学期状态 === 'finished' && <span><Icon name="log.ops" size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 本学期已结课（finished）—— tick 已停止推进。请到「我的 → 学期生命周期」下载成绩单并归档。</span>}
+          {班级学期状态 === 'archived' && <span><Icon name="report.history" size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 本学期已归档——数据只读。新学期请点「新学期重置」。</span>}
+          {班级学期状态 === 'draft' && <span><Icon name="date.week" size={13} style={{ display: 'inline-block', verticalAlign: '-2px' }} /> 学期未开课（draft）—— 请在「教学进度控制」设定教学日或点「开课」。</span>}
         </div>
       )}
       {view === 'live' && chipDetail && (
