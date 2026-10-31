@@ -1475,6 +1475,31 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       )}
 
       {/* 实时决策大屏：学生们做过/正在做的决策，实时观察动向 */}
+      {/* ★ V160：学期状态黄条 —— 满 12 周或非 running 时提示（别让人猜） */}
+      {view === 'live' && 班级学期状态 === 'running' && (() => {
+        // ★ V160：running 但最大学期周 >= 12 ⇒ 黄条提示结课
+        const maxWeek = Math.max(0, ...(rawStates || []).map(gs => Math.max(0, ...((gs.state && gs.state.history) || []).map(h => Number(h.week) || 0))))
+        return maxWeek >= 12 ? (
+          <div data-semester-banner-full style={{
+            margin: '0 20px 10px', padding: '10px 14px', borderRadius: 8,
+            background: 'var(--warn-bg)', border: '1px solid var(--warn-border)',
+            fontSize: 13, lineHeight: 1.7,
+          }}>
+            ⚠ 学期已满 12 周，tick 已停止推进。请到「我的 → 学期生命周期」点【结课归档】生成成绩单。
+          </div>
+        ) : null
+      })()}
+      {view === 'live' && 班级学期状态 !== 'running' && (
+        <div data-semester-banner style={{
+          margin: '0 20px 10px', padding: '10px 14px', borderRadius: 8,
+          background: 班级学期状态 === 'finished' ? 'var(--warn-bg)' : 'var(--fill)',
+          border: '1px solid var(--warn-border)', fontSize: 13, lineHeight: 1.7,
+        }}>
+          {班级学期状态 === 'finished' && <span>📋 本学期已结课（finished）—— tick 已停止推进。请到「我的 → 学期生命周期」下载成绩单并归档。</span>}
+          {班级学期状态 === 'archived' && <span>📦 本学期已归档——数据只读。新学期请点「新学期重置」。</span>}
+          {班级学期状态 === 'draft' && <span>⏳ 学期未开课（draft）—— 请在「教学进度控制」设定教学日或点「开课」。</span>}
+        </div>
+      )}
       {view === 'live' && chipDetail && (
         <div onClick={() => setChipDetail(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 22, width: '100%', animation: 'pageIn 0.2s ease-out' }}>
