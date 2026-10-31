@@ -1203,6 +1203,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
   const [学期态提示, set学期态提示] = useState('')   // 结课/重置反馈
+  const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [filterClass])   // ★ V165：随班级筛选刷新（多班各自的状态/续营开关）
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
@@ -1240,7 +1241,6 @@ export default function TeacherDashboard({ user, onLogout }) {
  const [reportUid, setReportUid] = useState(null) // §32-U2：正在看经营报告的组（null = 关）
 const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书（打印版）覆盖层
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
-  const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
   // 🔴 W1-5：classDay（服务端权威）。取不到（迁移未应用/离线）时保持 0，
   //   此时进度提示降级为"按教学周推算的近似值"，并在 UI 上标明是近似。
