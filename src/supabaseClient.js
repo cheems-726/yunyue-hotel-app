@@ -285,7 +285,8 @@ export async function createClass(classCode) {
 export async function fetchAllClasses() {
   const { data, error } = await supabase.from('class_state').select('*').order('class_code')
   if (error) return []
-  return (data || []).filter(d => d.class_code)
+  // ★ V167§3⑥：彩排班（class_code 以「彩排」开头）从班级列表隐藏（数据保留 · 不进成绩单/对比）
+  return (data || []).filter(d => d.class_code && !/^彩排/.test(d.class_code))
 }
 
 // ★ V158 阶段1：学生注册（signUp + 写 profiles）。已存在学号 ⇒ 返回 {exists:true} 不覆盖密码/进度

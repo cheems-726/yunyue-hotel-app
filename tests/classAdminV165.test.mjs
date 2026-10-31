@@ -54,6 +54,8 @@ console.log('▶ V165 · 开箱全流程（纯层 + 接线）')
   ok(!/班级学期状态 === 'finished' \|\| 班级学期状态 === 'archived'/.test(app), '旧的两态判断已升级为四态（不留第二份口径）')
   const 纯 = readFileSync(new URL('../src/classAdmin.mjs', import.meta.url), 'utf8')
   ok(!/fetch\(|supabase|axios|XMLHttpRequest/.test(纯), 'classAdmin.mjs 零网络')
+  // ★ V167§3⑥：彩排班隐藏规则（RV：去掉隐藏 ⇒ 本断言红）
+  ok(new RegExp('filter\\(d => d\\.class_code && !/\\^彩排/\\.test\\(d\\.class_code\\)\\)').test(client), 'fetchAllClasses 隐藏彩排班（保留数据 · 不进班级列表）')
   const reg = readFileSync(new URL('./run-all.mjs', import.meta.url), 'utf8')
   ok(/classAdminV165/.test(reg), 'run-all 已挂本套件')
 }
