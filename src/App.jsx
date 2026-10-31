@@ -41,6 +41,7 @@ import { 经营口径文案, 周经营净利 } from './weeklyProfit.mjs'   // �
 import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
+import { STUDENT_STATE_COPY } from './classAdmin.mjs'   // ★ V165：四态文案单源
 import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog, setGroupRole } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
@@ -582,6 +583,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           <span className="hotel-name">{hotelName || (property ? property.name : '云悦酒店')}</span>
           <span className="day-tag"><Icon name="date.week" size={13} /> 第 {week} 周</span>
         </div>
+        {/* ★ V165 §4：学生端班级感知 —— 顶部显示自己的班级名；学期态非 running 显示人话横幅（代替裸"去决策"） */}
+        {user?.className && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{user.className} · 第 {user?.groupNo ?? '?'} 组</div>}
+        {班级学期状态 !== 'running' && (
+          <div data-student-semester-banner style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', fontSize: 12, lineHeight: 1.7, color: 'var(--warn)', fontWeight: 600 }}>
+            {STUDENT_STATE_COPY[班级学期状态] || '学期未开课'}
+          </div>
+        )}
         <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
@@ -2608,9 +2616,9 @@ export default function App() {
     try { localStorage.removeItem(STORAGE_KEY) } catch (e) {}
   }
   function handleSettle() {
-    // ★ V157 阶段1：学期状态机 —— finished/archived ⇒ 学生端只读（不能再结算推进）
-    if (班级学期状态 === 'finished' || 班级学期状态 === 'archived') {
-      toast(班级学期状态 === 'finished' ? '本学期已结课（成绩单由老师导出）——不能继续结算' : '本学期已归档——等待新学期')
+    // ★ V157 阶段1 + V165 §3：学期状态机 —— 非 running ⇒ 学生端只读（四态文案说人话 · 单源 STUDENT_STATE_COPY）
+    if (班级学期状态 !== 'running') {
+      toast(STUDENT_STATE_COPY[班级学期状态] || '学期未开课')
       return
     }
     const doneCount = Object.keys(doneDecisions).length
@@ -2924,8 +2932,8 @@ export default function App() {
   //   （理由：注入事件的「补算」判定与周预览都要用 权威日 ⇒ 必须先声明，避免 TDZ）
   const autoInfo = !established || !brand || finished
     ? { due: false, reason: '未进入经营' }
-    : (班级学期状态 === 'finished' || 班级学期状态 === 'archived')
-      ? { due: false, reason: `学期${班级学期状态 === 'finished' ? '已结课' : '已归档'}（V157 阶段1：学生端只读）` }   // ★ V157 阶段1
+    : (班级学期状态 !== 'running')
+      ? { due: false, reason: `学期状态 ${班级学期状态}（V165 §3：非 running 不自动结算）` }   // ★ V157 + V165 四态
       : shouldAutoSettle({ brand, history, __autoSettled: autoSettled, __groupKey: groupKeyOf(user?.className, user?.groupNo) }, 权威日, { groupKey: groupKeyOf(user?.className, user?.groupNo) })
 
   // 🔴 E2：决策改动 → 本周流水（第几天改了什么）。只记【改动】，不记首次填写（首次填写不算"改"）

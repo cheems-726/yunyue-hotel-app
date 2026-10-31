@@ -272,6 +272,7 @@ const SUITES = [
   { name: 'migrationCheckV155（迁移检查·V155）', file: 'tests/migrationCheckV155.test.mjs' },
   { name: 'oneTouchCloseoutV163（一键收口·V163）', file: 'tests/oneTouchCloseoutV163.test.mjs' },
   { name: 'semesterReviewV164（教学复盘·V164）', file: 'tests/semesterReviewV164.test.mjs' },
+  { name: 'classAdminV165（开箱全流程·V165）', file: 'tests/classAdminV165.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
   { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },

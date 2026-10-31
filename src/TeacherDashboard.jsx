@@ -18,7 +18,7 @@ import { hotCrisisActive } from './hotReview.mjs' // R3：危机期是否仍生�
 import { missingWeeks, missingLabel } from './missingWeeks.mjs'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
-import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs, fetchClassState, setClassInjections, setClassSupervisorAuth } from './supabaseClient.js'
+import { fetchAllGameStates, fetchAllProfiles, fetchClassDay, updateProfileByTeacher, fetchClassWeek, setClassWeek, subscribeGameStates, saveTeacherNote, fetchTeacherNotes, deleteTeacherNote, fetchDecisionLogs, subscribeDecisionLogs, fetchClassState, setClassInjections, setClassSupervisorAuth, createClass, fetchAllClasses, signUpStudent, saveDecisionLog } from './supabaseClient.js'   // ★ V165：+createClass/fetchAllClasses/signUpStudent/saveDecisionLog/supabase（supabase 已在 §32-U1 行导入 · setSemesterStatus 已在 V157 行导入）
 import { restoreFromCloud } from './stateMigration.mjs'
 import { progressLag } from './serverTick.mjs'
 import { guideResetAll } from './GuideTip.jsx'   // V66 · 重置本机引导标记   // W1-5（T3.7）：服务端 classDay vs 该组进度
@@ -31,7 +31,8 @@ import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续�
 import { setSemesterStatus, resetClassGameStates } from './supabaseClient.js'   // ★ V157 阶段1：学期状态机 + 新学期重置（只清当前班）
 import { fetchSemesterCloseout, saveSemesterCloseout, fetchSemesterCloseoutsAll, sha256Hex } from './supabaseClient.js'   // ★ V163：收口状态服务端持久层
 import { normalizeSteps, runOneTouch, STEPS as 收口步序, STEP_LABELS as 收口步名, 收口报告, 校验冷备 } from './oneTouchCloseout.mjs'   // ★ V163：四步纯层（失败停步/幂等/断点续跑）
-import { 复盘报告, 教学建议, 未决策阈值 } from './semesterReview.mjs'   // ★ V164：学期教学复盘纯层（只读 · 零网络 · 规则驱动）
+import { 复盘报告, 教学建议, 未决策阈值 } from './semesterReview.mjs'
+import { 解析花名册, 预览分组, 口令清单, 校验班级名, STUDENT_STATE_COPY, SEMESTER_STATES, 回退审计键 } from './classAdmin.mjs'   // ★ V165：开箱全流程纯层   // ★ V164：学期教学复盘纯层（只读 · 零网络 · 规则驱动）
 import { 成绩单CSV as 生成CSV文本 } from './reportCard.mjs'   // ★ V157：结课快照 CSV（快照 = JSON+CSV 双件）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
@@ -835,6 +836,152 @@ function SupervisorPanel({ rawStates, profiles }) {
   )
 }
 
+// ★ V165 · 班级管理面板（§1 建班向导 / §2 学生导入 / §3 开课控制 + 周次回退审计）
+function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态, 当前周, onCreated }) {
+  const [班列表, set班列表] = useState([])
+  const [新班名, set新班名] = useState('')
+  const [起始日期, set起始日期] = useState(() => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d.toISOString().slice(0, 10) })
+  const [建班错, set建班错] = useState('')
+  const [建班中, set建班中] = useState(false)
+  const [粘贴, set粘贴] = useState('')
+  const [预览, set预览] = useState(null)
+  const [导入结果, set导入结果] = useState(null)
+  const [导入中, set导入中] = useState(false)
+  const [状态错, set状态错] = useState('')
+
+  const 载班 = async () => { const l = await fetchAllClasses(); set班列表(l || []) }
+  useEffect(() => { let 活 = true; if (活) 载班(); return () => { 活 = false } }, [])
+
+  // §1 建班（重名查库 + 非法字符行内提示 + 防双击）
+  const 建班 = async () => {
+    if (建班中) return   // 防双击：提交中禁用
+    const v = 校验班级名(新班名)
+    if (!v.ok) { set建班错(v.error); return }
+    if ((班列表 || []).some(c => c.class_code === v.名)) { set建班错(`该班级已存在（${v.名}）`); return }
+    set建班中(true); set建班错('')
+    const r = await createClass(v.名)
+    set建班中(false)
+    if (!r.ok) { set建班错(r.error || '建班失败'); return }
+    set新班名(''); await 载班(); if (onCreated) onCreated()
+  }
+
+  // §2 预览（已存在学号 ⇒ 查 profiles.student_no 标"已存在"；格式错行标红；默认每 6 人一组）
+  const 做预览 = async () => {
+    const rows = 预览分组(解析花名册(粘贴))
+    const 学号s = rows.filter(r => !r.错误).map(r => r.学号)
+    let 存在 = new Set()
+    if (学号s.length && filterClass) {
+      const { data } = await supabase.from('profiles').select('*').eq('role', 'student').in('student_no', 学号s)
+      存在 = new Set((data || []).map(d => d.student_no))
+    }
+    set预览(rows.map(r => r.错误 ? r : { ...r, 状态: 存在.has(r.学号) ? '已存在（跳过）' : '新建', 组号: r.组号 ?? null }))
+  }
+  const 确认导入 = async () => {
+    if (导入中 || !预览 || !filterClass) return
+    set导入中(true)
+    const 结果 = []
+    for (const r of 预览.filter(x => !x.错误)) {
+      if (r.状态 === '已存在（跳过）') { 结果.push({ ...r, 口令: String(r.学号).slice(-6).padStart(6, '0'), 结果: '已存在 · 跳过（不覆盖密码与进度）' }); continue }
+      const rr = await signUpStudent(r.学号, r.姓名, filterClass, r.组号 ?? null)
+      结果.push({ ...r, 口令: String(r.学号).slice(-6).padStart(6, '0'), 结果: rr.exists ? '已存在 · 跳过（不覆盖密码与进度）' : rr.ok ? '新建成功' : `失败：${rr.error || ''}` })
+    }
+    set导入中(false)
+    set导入结果(结果)
+    await 做预览()   // 重查重（幂等验证：再导同名单 ⇒ 全部"已存在"）
+  }
+  const 导结果CSV = () => {
+    if (!导入结果) return
+    const 行 = [['学号', '姓名', '组号', '口令', '结果'], ...导入结果.map(r => [r.学号, r.姓名 || '', r.组号 ?? '', r.口令, r.结果])]
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + 行.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })); a.download = `导入结果-${filterClass}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href)
+  }
+
+  // §3 开课控制（paused 语义 + 结课归档走 V157/V163 既有链路）
+  const 置状态 = async (s) => {
+    const ok2 = await setSemesterStatus(s, filterClass || undefined)
+    if (!ok2) set状态错(`置 ${s} 失败（迁移未应用或权限不足）`)
+    else set状态错('')
+    return ok2
+  }
+  // 周次只进不退：回退需二次确认 + 审计（操作人/原值/新值/时间 → decision_logs 单源键）
+  const 调周 = async (新周) => {
+    if (新周 > 当前周) return setClassWeek(新周, filterClass || undefined)
+    if (!window.confirm(`回退周次：${当前周} → ${新周}（只进不退 · 回退将留审计记录）。确定？`)) return false
+    const ok2 = await setClassWeek(新周, filterClass || undefined)
+    if (ok2) await saveDecisionLog({ userId: user?.id || null, groupKey: null, week: 当前周, decisionId: 回退审计键, answer: JSON.stringify({ 操作人: user?.name || '教师', 班级: filterClass || '—', 原值: 当前周, 新值: 新周, 时间: new Date().toISOString() }), feedback: '周次回退审计' })
+    return ok2
+  }
+
+  const 新建数 = (预览 || []).filter(r => r.状态 === '新建').length
+  const 跳过数 = (预览 || []).filter(r => r.状态 && r.状态 !== '新建').length
+  const 徽景色 = { draft: 'var(--text-muted)', running: 'var(--good)', paused: 'var(--warn)', finished: 'var(--info)', archived: 'var(--text-muted)' }
+  return (
+    <div data-class-admin-panel className="card" style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700 }}>班级管理（建班 / 导入 / 开课控制）</div>
+      {/* 班级切换器（常显 · 教师端专属） */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+        <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
+        {(班列表 || []).map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}</button>)}
+      </div>
+      {/* §1 建班向导 */}
+      <div data-create-class-form style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>＋ 新建班级</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
+          <input data-new-class-name value={新班名} onChange={e => { set新班名(e.target.value); set建班错('') }} placeholder="班级名（如 酒管2402）" style={{ width: 160, minHeight: 36, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: '0 8px', fontFamily: 'inherit' }} />
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>起始日期</span>
+          <input type="date" value={起始日期} onChange={e => set起始日期(e.target.value)} style={{ minHeight: 36, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: '0 8px', fontFamily: 'inherit' }} />
+          <button data-create-class onClick={建班} disabled={建班中} style={{ minHeight: 36, border: 'none', background: 建班中 ? 'var(--border)' : 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, padding: '0 14px', cursor: 建班中 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{建班中 ? '创建中…' : '新建班级（draft）'}</button>
+        </div>
+        {建班错 && <div data-create-class-error style={{ color: 'var(--bad)', fontSize: 11, marginTop: 4 }}>{建班错}</div>}
+      </div>
+      {/* §2 学生导入（选中班才可用） */}
+      <div data-import-students style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>导入学生（粘贴式 · 每行 `学号 姓名` · 默认口令 = 学号后 6 位）</div>
+        {!filterClass && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>先在上面选中一个班级（不能导到"全部班级"）。</div>}
+        {filterClass && <>
+          <textarea data-import-text value={粘贴} onChange={e => set粘贴(e.target.value)} rows={4} placeholder={'20240201 张三\n20240202 李四\n…（每行一个学号，姓名可省）'} style={{ width: '100%', marginTop: 6, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: 8, fontFamily: 'inherit' }} />
+          <button data-import-preview onClick={做预览} disabled={!粘贴.trim()} style={{ marginTop: 6, minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>生成预览</button>
+          {预览 && <div data-import-preview-table style={{ marginTop: 6, maxHeight: 180, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+              <thead><tr>{['学号', '姓名', '组号', '状态'].map(h => <th key={h} style={{ borderBottom: '1px solid var(--border)', padding: '3px 6px', textAlign: 'left' }}>{h}</th>)}</tr></thead>
+              <tbody>{预览.map((r, i) => (
+                <tr key={i} style={{ color: r.错误 ? 'var(--bad)' : 'inherit' }}>
+                  <td style={{ padding: '2px 6px' }}>{r.学号 || '—'}</td><td style={{ padding: '2px 6px' }}>{r.姓名 || '—'}</td><td style={{ padding: '2px 6px' }}>{r.组号 ?? '（自动）'}</td>
+                  <td style={{ padding: '2px 6px' }}>{r.错误 ? `格式错：${r.错误}` : r.状态}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>}
+          {预览 && <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+            <button data-import-confirm onClick={确认导入} disabled={导入中 || !预览.some(r => !r.错误)} style={{ minHeight: 36, border: 'none', background: 导入中 ? 'var(--border)' : 'var(--good)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, padding: '0 12px', cursor: 导入中 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{导入中 ? '导入中…' : `确认导入（新建 ${新建数} 人 · 跳过 ${跳过数} 人）`}</button>
+            {导入结果 && <>
+              <button data-import-copy onClick={() => { navigator.clipboard.writeText(口令清单(导入结果)).catch(() => {}) /* 静默理由：剪贴板权限被拒不影响清单已显示与 CSV 导出 */ }} style={{ minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 8, padding: '0 10px', cursor: 'pointer', fontFamily: 'inherit' }}>复制口令清单</button>
+              <button data-import-csv onClick={导结果CSV} style={{ minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 8, padding: '0 10px', cursor: 'pointer', fontFamily: 'inherit' }}>导出结果 CSV</button>
+            </>}
+          </div>}
+          {导入结果 && <div data-import-result style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)' }}>新建 {导入结果.filter(r => r.结果 === '新建成功').length} · 跳过 {导入结果.filter(r => /跳过/.test(r.结果)).length} · 失败 {导入结果.filter(r => /失败/.test(r.结果)).length}{导入中 ? '' : '（再导同名单应全部「已存在」—— 幂等）'}</div>}
+        </>}
+      </div>
+      {/* §3 开课控制（常驻卡 · 选中班才可用） */}
+      <div data-class-lifecycle-admin style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>开课与推进控制　当前：<b style={{ color: 徽景色[班级学期状态] || 'var(--text-muted)' }}>{班级学期状态 || '—'}</b> · 第 {当前周} 周</div>
+        {!filterClass && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>选中具体班级后可操作（"全部班级"只读）。</div>}
+        {filterClass && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+          {班级学期状态 === 'draft' && <button data-state-run onClick={() => 置状态('running')} style={{ minHeight: 38, border: 'none', background: 'var(--good)', color: '#fff', fontSize: 12, fontWeight: 600, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>开课（draft → running）</button>}
+          {班级学期状态 === 'running' && <button data-state-pause onClick={() => 置状态('paused')} style={{ minHeight: 38, border: '1px solid var(--warn)', background: 'var(--card)', color: 'var(--warn)', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>暂停（running → paused）</button>}
+          {班级学期状态 === 'paused' && <button data-state-resume onClick={() => 置状态('running')} style={{ minHeight: 38, border: 'none', background: 'var(--good)', color: '#fff', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>继续（paused → running）</button>}
+          {(班级学期状态 === 'running' || 班级学期状态 === 'paused') && <button data-state-finish onClick={() => 置状态('finished')} style={{ minHeight: 38, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>结课归档（→ finished · 快照走「我的 → 学期生命周期」）</button>}
+          {班级学期状态 === 'finished' && <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>已结课——「归档（archived）」在「我的 → 学期生命周期 / 一键收口」。</span>}
+        </div>}
+        {状态错 && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>{状态错}</div>}
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
+          学生端文案（四态说人话）：draft「{STUDENT_STATE_COPY.draft}」· paused「{STUDENT_STATE_COPY.paused}」· finished「{STUDENT_STATE_COPY.finished}」· archived「{STUDENT_STATE_COPY.archived}」。<br />
+          周次只进不退：回退需二次确认并留审计记录（操作人/原值/新值/时间 → decision_logs「{回退审计键}」）。教学进度控制卡里回退已走该闸。
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ★ V164 · 学期教学复盘覆盖层（只读 · 每次渲染现算 ⇒ 改库必跟着变 · 判据④）
 //   A4 竖版一页（@media print 隐藏其余 · 字号 ≥10pt）· 归因用 <details> 展开字段来源 · 建议规则驱动零网络
 function SemesterReviewOverlay({ rows, 组数据, 班级学期状态, filterClass, onClose }) {
@@ -1056,7 +1203,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
   const [学期态提示, set学期态提示] = useState('')   // 结课/重置反馈
-  useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [])
+  useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [filterClass])   // ★ V165：随班级筛选刷新（多班各自的状态/续营开关）
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
   const 栈 = useRef(null); if (!栈.current) 栈.current = 创建导航栈('live')
@@ -1201,6 +1348,15 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
   }
   async function saveClassWeek() {
     const w = Math.max(0, Math.min(12, Number(weekInput) || 0))
+    // ★ V165 §3：周次只进不退 —— 回退需二次确认 + 审计（操作人/原值/新值/时间 → decision_logs 单源键）
+    if (w < classWeek) {
+      if (!window.confirm(`回退周次：${classWeek} → ${w}（只进不退 · 回退将留审计记录）。确定？`)) return
+      if (await setClassWeek(w, filterClass || undefined)) {
+        await saveDecisionLog({ userId: user?.id || null, groupKey: null, week: classWeek, decisionId: 回退审计键, answer: JSON.stringify({ 操作人: user?.name || '教师', 班级: filterClass || '—', 原值: classWeek, 新值: w, 时间: new Date().toISOString() }), feedback: '周次回退审计' })
+        setClassWeekState(w); setWeekInput(String(w)); setWeekSaved(true); setTimeout(() => setWeekSaved(false), 2000)
+      }
+      return
+    }
     if (await setClassWeek(w, filterClass || undefined)) {
       setClassWeekState(w)
       setWeekInput(String(w))
@@ -1543,6 +1699,9 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               </div>
             </div>
           </div>
+
+          {/* ★ V165 · 班级管理面板（建班/导入/开课控制 · 常驻） */}
+          <ClassAdminPanel filterClass={filterClass} setFilterClass={setFilterClass} user={user} 班级学期状态={班级学期状态} 当前周={classWeek} onCreated={null} />
 
           {/* 班级筛选（多班时出现） */}
           {classList.length > 1 && (

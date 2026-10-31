@@ -16,9 +16,9 @@ console.log('▶ V157 · 学期生命周期')
 
   // ② 学生端只读闸
   const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
-  ok(/if \(班级学期状态 === 'finished' \|\| 班级学期状态 === 'archived'\) \{\s*\n\s*toast/.test(app), '学生端 finished/archived ⇒ 不能结算（闸在 handleSettle）')
-  ok(/学期\$\{班级学期状态 === 'finished' \? '已结课' : '已归档'\}（V157 阶段1：学生端只读）/.test(app) || /学期已结课|学期已归档/.test(app), '拒结算带可读原因（toast）')
-  ok(/学期\$\{班级学期状态 === 'finished' \? '已结课' : '已归档'\}/.test(app) || /学期\$\{班级学期状态/.test(app), '自动周报闸同源（autoInfo 分支）')
+  ok(/if \(班级学期状态 !== 'running'\) \{\s*\n\s*toast\(STUDENT_STATE_COPY\[班级学期状态\]/.test(app), '学生端 非 running ⇒ 不能结算（闸在 handleSettle · V165 四态单源）')
+  ok(/finished: '本学期已结课，等待老师归档'/.test(app) || /STUDENT_STATE_COPY\[班级学期状态\]/.test(app), '拒结算带可读原因（toast · V165 四态文案）')
+  ok(/班级学期状态 !== 'running'/.test(app), '自动周报闸同源（autoInfo 分支 · V165 四态：非 running 不自动结算）')
 
   // ③ 重置语义：只清当前班 + 不删归档
   const reset = readFileSync(new URL('../src/supabaseClient.js', import.meta.url), 'utf8')

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { 定位 } from './classStateLocator.mjs'   // ★ V157 阶段2：多班行定位（class_code · 单源）
+import { SEMESTER_STATES } from './classAdmin.mjs'   // ★ V165：学期状态集合单源（含 paused）
 
 // 云悦酒店教学系统 · Supabase 云端配置（2026-09-08）
 // 项目：yunyue-hotel（东京区） 组织：云悦酒店教学
@@ -241,7 +242,7 @@ export async function fetchClassState(classCode) {
 //   迁移未应用 ⇒ update 报错 ⇒ 返回 false（调用方 toast 提示，不静默假成功）
 // ★ V157 阶段1：学期状态机（教师写 semester_status；RLS 限教师 · 迁移未应用 ⇒ false）
 export async function setSemesterStatus(status, classCode) {
-  if (!['draft', 'running', 'finished', 'archived'].includes(status)) return false
+  if (!SEMESTER_STATES.includes(status)) return false
   const cc = 定位(classCode)
   const { data } = await supabase.from('class_state').select('*').eq('class_code', cc).maybeSingle()
   const eq = data && data.class_code ? { class_code: data.class_code } : { id: 1 }
@@ -300,7 +301,7 @@ export async function signUpStudent(学号, 姓名, classCode, groupNo) {
   if (!data.user) return { ok: false, error: '注册返回无用户' }
   const { error: pe } = await supabase.from('profiles').upsert({
     user_id: data.user.id, role: 'student', class_name: classCode, group_no: groupNo,
-    display_name: 姓名 || ('学生' + 学号.slice(-4)),
+    display_name: 姓名 || ('学生' + 学号.slice(-4)), student_no: String(学号),   // ★ V165：student_no 落库（导入预览查重的单源键）
   }, { onConflict: 'user_id' })
   if (pe) return { ok: false, error: pe.message }
   return { ok: true, uid: data.user.id }
