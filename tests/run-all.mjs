@@ -491,8 +491,11 @@ if (!failed || 仅本套件失败) {
       .map(p => { const h = gitOut(['rev-parse', 'HEAD:' + p]); return h ? h.slice(0, 12) : null })
       .filter(Boolean).join('-')
     // dirty 也按【同一子树】判 —— 否则"改了文档（如 AGENTS.md）"又会把树标脏，等于没简化
-    const dirty = gitOut(['status', '--porcelain', '--', ...CODE_PATHS]).length > 0
+    const 脏行 = gitOut(['status', '--porcelain', '--', ...CODE_PATHS])
+    const dirty = 脏行.length > 0
     const fullDirty = gitOut(['status', '--porcelain']).length > 0
+    // ★ 2026-10-31：dirty 一旦为真会**每次都真**（没人知道脏在哪 ⇒ 没人敢清）⇒ 至少喊出脏文件
+    if (dirty) console.log('\n⚠ 代码子树脏（这些文件改了但没提交）：\n   ' + 脏行.split('\n').slice(0, 6).join('\n   '))
     const P = new URL('./_last-gate.json', import.meta.url)
     let prev = {}
     try { prev = JSON.parse(readFileSync(P, 'utf8')) } catch (e) { prev = {} }
