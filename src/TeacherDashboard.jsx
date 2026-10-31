@@ -29,6 +29,8 @@ import { 班级并排, 学期切片 as 学期切片12 } from './semesterResult.m
 import { 班级并排表 } from './SemesterResult.jsx'   // ★ V152 §1：共用渲染
 import { setClassContinue } from './supabaseClient.js'   // ★ V152 §2：续营开关（RLS 限教师）
 import { setSemesterStatus, resetClassGameStates } from './supabaseClient.js'   // ★ V157 阶段1：学期状态机 + 新学期重置（只清当前班）
+import { fetchSemesterCloseout, saveSemesterCloseout, fetchSemesterCloseoutsAll, sha256Hex } from './supabaseClient.js'   // ★ V163：收口状态服务端持久层
+import { normalizeSteps, runOneTouch, STEPS as 收口步序, STEP_LABELS as 收口步名, 收口报告, 校验冷备 } from './oneTouchCloseout.mjs'   // ★ V163：四步纯层（失败停步/幂等/断点续跑）
 import { 成绩单CSV as 生成CSV文本 } from './reportCard.mjs'   // ★ V157：结课快照 CSV（快照 = JSON+CSV 双件）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
@@ -825,6 +827,119 @@ function SupervisorPanel({ rawStates, profiles }) {
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 2px', borderBottom: '1px solid var(--fill)' }}>
             <span>{x.name}</span>
             <span style={{ color: 'var(--text-sub)' }}>第 {x.week} 周 · 条目 {x.n}{x.代管率 != null ? ` · 代管率 ${Math.round(x.代管率 * 100)}%` : ''}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ★ V163 · 一键收口四步向导（§1）+ 冷备状态卡（§2）+ 归档管理（§3）
+//   进度/文件清单存服务端 semester_closeouts（断点续跑 · 每班一行 upsert 幂等）· 执行走纯层 runOneTouch（失败停步不许跳步）
+function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek, executors, onDone }) {
+  const [steps, setSteps] = useState(null)
+  const [label, setLabel] = useState(() => new Date().getFullYear() + '秋')
+  const [跑中, set跑中] = useState(false)
+  const [报告, set报告] = useState('')
+  const [校验果, set校验果] = useState(null)
+  const [行校验, set行校验] = useState({})
+  const [提示, set提示] = useState('')
+  const [归档行, set归档行] = useState([])
+  const [展开, set展开] = useState(false)
+
+  const 载入 = async () => {
+    const { row, error } = await fetchSemesterCloseout(filterClass || undefined)
+    if (error) { set提示('服务端状态不可读（迁移未应用或网络）——向导不可用'); setSteps(normalizeSteps(null)); return }
+    if (row) { setSteps(normalizeSteps(row.steps)); if (row.label) setLabel(row.label) } else setSteps(normalizeSteps(null))
+    const all = await fetchSemesterCloseoutsAll()
+    if (!all.error) set归档行(all.rows)
+  }
+  useEffect(() => { let 活 = true; if (活) 载入(); return () => { 活 = false } }, [filterClass])
+
+  const persist = async (s) => {
+    const files = {}
+    for (const k of ['snapshot', 'coldbackup']) for (const [名, f] of Object.entries((s[k] && s[k].files) || {})) files[名] = f
+    const ok2 = await saveSemesterCloseout({
+      classCode: filterClass || undefined, label, steps: s, files,
+      semesterStatus: s.archive && s.archive.state === '成功' ? 'archived' : null, createdBy: user?.id || null,
+    })
+    if (!ok2) set提示('进度写服务端失败（迁移未应用或权限不足）——断点续跑不可用，步骤照常执行')
+    return ok2
+  }
+
+  const 执行 = async (only) => {
+    if (跑中 || !steps) return
+    set跑中(true); set报告(''); set校验果(null); set提示('')
+    const { steps: 新步 } = await runOneTouch({ steps, executors, persist, only })
+    setSteps(新步)
+    await 载入()
+    set跑中(false)
+    if (收口步序.every(k => 新步[k].state === '成功')) { set报告(收口报告(新步)); if (onDone) onDone() }
+  }
+
+  const 校验 = async () => {
+    const { row } = await fetchSemesterCloseout(filterClass || undefined)
+    const files = (row && row.files) || {}
+    const r = await 校验冷备(files, sha256Hex)
+    set校验果(r)
+  }
+
+  if (!steps) return null
+  const 可用 = 班级学期状态 === 'running' && maxWeek >= 12
+  const 步色 = { 待执行: 'var(--text-muted)', 执行中: 'var(--info)', 成功: 'var(--good)', 失败: 'var(--bad)' }
+  return (
+    <div data-closeout-panel style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)', textAlign: 'left' }}>
+      <div style={{ fontSize: 13, fontWeight: 700 }}>一键收口（四步 · 失败停步可重试 · 断点续跑 · 幂等）</div>
+      {!可用 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>仅「running 且最大学期周 ≥ 12」可用（当前 {班级学期状态} · 第 {maxWeek} 周）。</div>}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>学期标签</span>
+        <input value={label} onChange={e => setLabel(e.target.value)} style={{ width: 90, minHeight: 32, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: '0 8px', fontFamily: 'inherit' }} />
+        <button data-onetouch-closeout disabled={!可用 || 跑中} onClick={() => 执行(null)}
+          style={{ minHeight: 40, border: 'none', background: 可用 && !跑中 ? 'var(--bad)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '0 16px', borderRadius: 8, cursor: 可用 && !跑中 ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>{跑中 ? '执行中…' : '一键收口'}</button>
+        <button onClick={() => set展开(!展开)} style={{ minHeight: 40, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 11, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>{展开 ? '收起' : '单步重试'}</button>
+      </div>
+      {提示 && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>{提示}</div>}
+      <div style={{ marginTop: 6 }}>
+        {收口步序.map(k => (
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '3px 0' }}>
+            <span style={{ color: 步色[(steps[k] || {}).state] || 'var(--text-muted)', fontWeight: 600, minWidth: 42 }}>{(steps[k] || {}).state}</span>
+            <span style={{ color: 'var(--text-sub)' }}>{收口步名[k]}</span>
+            {(steps[k] || {}).state === '失败' && <span style={{ color: 'var(--bad)', fontSize: 11 }}>{(steps[k] || {}).reason}</span>}
+            {展开 && <button onClick={() => 执行(k)} disabled={跑中} style={{ marginLeft: 'auto', minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>重试本步</button>}
+            {(steps[k] || {}).note && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{(steps[k] || {}).note}</span>}
+          </div>
+        ))}
+      </div>
+      {报告 && <pre data-closeout-report style={{ fontSize: 11, background: 'var(--fill)', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', marginTop: 6 }}>{报告}</pre>}
+      {/* §2 冷备状态卡 */}
+      <div data-coldbackup-card style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>冷备状态卡：<b style={{ color: steps.coldbackup.state === '成功' ? 'var(--good)' : 'var(--text-muted)' }}>{steps.coldbackup.state === '成功' ? '已冷备（应用层）· ' + (steps.coldbackup.at || '').replace('T', ' ').slice(0, 16) : '尚未冷备'}</b></div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.7 }}>
+          {Object.entries({ ...(steps.snapshot.files || {}), ...(steps.coldbackup.files || {}) }).map(([名, f]) => (
+            <div key={名}>{名} · {((f.size || 0) / 1024).toFixed(1)}KB · sha256 {String(f.sha256).slice(0, 8)}{f.content == null ? '（服务器脚本产物 · 用 closeout-semester.sh 校验）' : ''}</div>
+          ))}
+          {steps.coldbackup.state !== '成功' && <div>（执行「一键收口」第②步后这里出清单）</div>}
+          <div>服务器全量冷备（pg_dump + 前端包快照）＝管理员脚本：<code>bash scripts/server/closeout-semester.sh {label}</code>（目录只增不改）</div>
+        </div>
+        <button data-coldbackup-verify onClick={校验} disabled={跑中} style={{ marginTop: 6, minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--info)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
+        {校验果 && <div style={{ fontSize: 11, color: 校验果.全过 ? 'var(--good)' : 'var(--bad)', marginTop: 4 }}>{校验果.通过}/{校验果.总数} 通过{校验果.全过 ? '' : ' · ' + 校验果.明细.filter(x => !x.ok).map(x => x.名 + '（' + x.why + '）').join('、')}</div>}
+      </div>
+      {/* §3 归档管理（服务端归档记录 · 文件名含 class_code+学期标签 · 只增不改 ⇒ 不提供删除） */}
+      <div data-archive-manage style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>归档管理（服务端 · 按时间倒序 · 归档只增不改 ⇒ 无删除）</div>
+        {(归档行 || []).length === 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>（暂无服务端归档记录）</div>}
+        {(归档行 || []).map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '3px 0', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600 }}>{r.label || '（未标学期）'}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{r.class_code} · {(r.updated_at || '').replace('T', ' ').slice(0, 16)}</span>
+            <span style={{ color: r.semester_status === 'archived' ? 'var(--good)' : 'var(--text-muted)' }}>{r.semester_status || ''}</span>
+            <button onClick={async () => { const v = await 校验冷备(r.files || {}, sha256Hex); set行校验({ ...行校验, [i]: v }) }}
+              style={{ minHeight: 28, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 10, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
+            {行校验[i] && <span style={{ color: 行校验[i].全过 ? 'var(--good)' : 'var(--bad)' }}>{行校验[i].通过}/{行校验[i].总数}{行校验[i].全过 ? '' : ' ✗ ' + 行校验[i].明细.filter(x => !x.ok).map(x => x.名).join('、')}</span>}
+            {(r.files || {})['学期快照.json'] && (r.files['学期快照.json'].content != null) && (
+              <button onClick={() => { const c = r.files['学期快照.json'].content; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], { type: 'application/json' })); a.download = `学期归档-${r.class_code}-${r.label || '学期'}.json`; a.click(); URL.revokeObjectURL(a.href) }}
+                style={{ minHeight: 28, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 10, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>下载归档</button>
+            )}
           </div>
         ))}
       </div>
@@ -2060,6 +2175,40 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               </div>
               {学期态提示 && <div data-semester-status-msg style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{学期态提示}</div>}
             </div>
+            {/* ★ V163 · 一键收口向导 + 冷备状态卡 + 归档管理（执行器闭包 = 本组件的快照/冷备/置状态实现） */}
+            <OneTouchCloseoutPanel
+              filterClass={filterClass} user={user} 班级学期状态={班级学期状态}
+              maxWeek={(() => Math.max(0, ...(rawStates || []).map(gs => Math.max(0, ...((gs.state && gs.state.history) || []).map(h => Number(h.week) || 0)))))()}
+              onDone={() => { fetchClassState(filterClass || undefined).then(cs => { set班级学期状态2(cs.学期状态 || 'running') }).catch(() => {}) /* 静默理由：刷新学期态失败不阻塞收口主流程，面板会另行报错 */ }}
+              executors={{
+                snapshot: async () => {
+                  const rows = 生成成绩单行()
+                  const 快照 = 归档快照({ 班级: filterClass || (profiles[0] && profiles[0].class_name) || '全班', 生成人: user?.name || '教师', rows, 摘要: vis摘() })
+                  快照.生成时间 = new Date().toLocaleString('zh-CN', { hour12: false })
+                  快照.学期状态 = 'finished'
+                  const 日期 = new Date().toISOString().slice(0, 10)
+                  const json文本 = JSON.stringify(快照, null, 1)
+                  const csv文本 = '﻿' + 归档CSV(快照)
+                  const files = {}
+                  for (const [名, 内容, 类型, 后缀] of [['学期快照.json', json文本, 'application/json', 'json'], ['学期归档.csv', csv文本, 'text/csv;charset=utf-8', 'csv']]) {
+                    const h = await sha256Hex(内容)
+                    files[名] = { size: 内容.length, sha256: h, content: 内容 }
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([内容], { type: 类型 })); a.download = `学期${后缀 === 'json' ? '快照' : '归档'}-${快照.班级 || '全班'}-${日期}.${后缀}`; a.click(); URL.revokeObjectURL(a.href)
+                  }
+                  return { files, note: `快照已下载（${Object.keys(files).length} 件 · 服务端已留档）` }
+                },
+                coldbackup: async () => {
+                  const cs = await fetchClassState(filterClass || undefined)
+                  const dump = { 说明: 'V163 应用层 DB 逻辑备份（第②步 · 服务器全量冷备用 closeout-semester.sh）', 班级: filterClass || '全班', 导出时间: new Date().toISOString(), class_state: cs, groups: (rawStates || []).map(gs => ({ uid: gs.uid, group_name: gs.group_name, state: gs.state })) }
+                  const content = JSON.stringify(dump)
+                  const h = await sha256Hex(content)
+                  const 名 = `db-逻辑备份-${filterClass || '全班'}.json`
+                  return { files: { [名]: { size: content.length, sha256: h, content } }, note: '应用层冷备已留档（全量 pg_dump 走管理员脚本）' }
+                },
+                finish: async () => { const ok2 = await setSemesterStatus('finished', filterClass || undefined); if (!ok2) throw new Error('置 finished 失败（迁移未应用或权限不足）'); return {} },
+                archive: async () => { const ok2 = await setSemesterStatus('archived', filterClass || undefined); if (!ok2) throw new Error('置 archived 失败（迁移未应用或权限不足）'); return {} },
+              }}
+            />
             {/* 本班统计摘要 */}
             {groups && groups.length > 0 && (() => {
               const withData = groups.filter(g => g.historyCount > 0)

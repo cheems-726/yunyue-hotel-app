@@ -497,3 +497,37 @@ export function subscribeDecisionLogs(onChange) {
     .subscribe()
   return () => supabase.removeChannel(channel)
 }
+
+// ★ V163 · 一键收口/冷备状态卡 —— semester_closeouts 服务端持久层（迁移 v163）
+//   每班一行（class_code 唯一）· steps=四步进度 · files=产物清单（size/sha256/小件内联 content）
+export async function fetchSemesterCloseout(classCode) {
+  const cc = 定位(classCode)
+  const { data, error } = await supabase
+    .from('semester_closeouts').select('*').eq('class_code', cc).maybeSingle()
+  if (error) return { row: null, error: error.message }
+  return { row: data || null, error: null }
+}
+
+export async function saveSemesterCloseout({ classCode, label, steps, files, semesterStatus, createdBy }) {
+  const cc = 定位(classCode)
+  const 载荷 = {
+    class_code: cc, label: label || null, steps: steps || {}, files: files || {},
+    semester_status: semesterStatus || null, created_by: createdBy || null,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase.from('semester_closeouts').upsert(载荷, { onConflict: 'class_code' })
+  return !error
+}
+
+export async function fetchSemesterCloseoutsAll() {
+  const { data, error } = await supabase
+    .from('semester_closeouts').select('*').order('updated_at', { ascending: false }).limit(50)
+  if (error) return { rows: [], error: error.message }
+  return { rows: data || [], error: null }
+}
+
+// sha256（客户端实算 · 供 files 清单与【校验】按钮 · 与 src/oneTouchCloseout.mjs 校验同一算法）
+export async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('')
+}

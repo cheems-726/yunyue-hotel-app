@@ -270,6 +270,7 @@ const SUITES = [
   { name: 'semesterGateV160（学期闸·V160）', file: 'tests/semesterGateV160.test.mjs' },
   { name: 'classroomPack（课堂包·V154批3）', file: 'tests/classroomPack.test.mjs' },
   { name: 'migrationCheckV155（迁移检查·V155）', file: 'tests/migrationCheckV155.test.mjs' },
+  { name: 'oneTouchCloseoutV163（一键收口·V163）', file: 'tests/oneTouchCloseoutV163.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
   { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
