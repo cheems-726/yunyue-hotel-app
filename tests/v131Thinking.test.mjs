@@ -15,7 +15,7 @@ console.log('\n[①] 关键理由：必填校验在"确认"之前')
 {
   const dp = src('DecisionPanel.jsx')
   ok(/if \(要求理由 && !理由合格\(理由\)\) \{ set理由错误/.test(dp), '★ 关键决策未写理由 ⇒ confirm 直接 return（不是提交后提示）')
-  ok(/disabled=\{!hasSelection \|\| \(要求理由 && !理由合格\(理由\)\)\}/.test(dp), '确认键在未写理由时禁用')
+  ok(/disabled=\{锁定 \|\| !hasSelection \|\| \(要求理由 && !理由合格\(理由\)\)\}/.test(dp), '确认键在未写理由时禁用（V167§1 加锁定前缀 · 原语义不变）')
   ok(/data-reason-input="1"/.test(dp), '理由输入框在位（可被 E2E 定位）')
   ok(/onDone\(decision\.id, answer, 要求理由 \? 理由\.trim\(\) : ''\)/.test(dp), '理由随 onDone 上抛')
   const app = src('App.jsx')

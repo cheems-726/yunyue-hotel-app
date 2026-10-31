@@ -9,7 +9,7 @@ import { useEscClose } from './useEscClose.mjs'   // ★ V154 批1：Esc = 返�
 
 // 决策组件：支持 5 类决策（option/slider/budget/sort/timer）
 // 交互统一原则：做一步 → 立即看到结果反馈
-export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [], 要求理由 = false, 初始理由 = '' }) {
+export default function DecisionPanel({ decision, onBack, onDone, lastReport, initial, history = [], 要求理由 = false, 初始理由 = '', 锁定 = false }) {   // ★ V167§1：锁定 = 学期只读态（确认按钮禁用 · 不许靠提交时拦）
   useEscClose(true, onBack)   // ★ V154 批1：Esc 可退出决策面板
   const [feedback, setFeedback] = useState(null)
   const [sliderVal, setSliderVal] = useState(() =>
@@ -346,7 +346,7 @@ export default function DecisionPanel({ decision, onBack, onDone, lastReport, in
 
       {/* 确认按钮 */}
       <div style={{ padding: '8px 20px 24px' }}>
-        <button className="btn-confirm" disabled={!hasSelection || (要求理由 && !理由合格(理由))} onClick={confirm}>
+        <button className="btn-confirm" data-decision-confirm disabled={锁定 || !hasSelection || (要求理由 && !理由合格(理由))} onClick={confirm}>
           {isEdit ? '修改决策，保存'
             : (selected || decision.type === 'slider' || decision.type === 'sort' || (decision.type === 'budget' && hasSelection))
               ? '确认决策，保存'

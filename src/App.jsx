@@ -597,13 +597,19 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           const t = getTitle(last ? last.occupancy : 0, last ? last.finalGoodRate : 85, q)
           return t.title
         })()}</div>
-        {/* ★ V125-#2：首屏（不滚动）就能看到"还有几项待做"，点一下直达决策区 */}
-        <button
-          onClick={滚到决策}
-          style={{ marginTop: 8, padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (doneCount === 18 ? 'var(--good-border)' : 'var(--warn-border)'), background: doneCount === 18 ? 'var(--good-bg)' : 'var(--warn-bg)', color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          {doneCount === 18 ? '本周 18 项决策已全部完成 ✓（可点回复看）' : `本周还有 ${18 - doneCount} 项决策待做 · 去决策 →`}
-        </button>
+        {/* ★ V125-#2：首屏 CTA · ★ V167§1：四态只读 ⇒ CTA 换成状态说明（不得出现「去决策」） */}
+        {班级学期状态 !== 'running' ? (
+          <div data-readonly-cta style={{ marginTop: 8, padding: '7px 12px', borderRadius: 999, border: '1px solid var(--border-strong)', background: 'var(--fill)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
+            {STUDENT_STATE_COPY[班级学期状态]}
+          </div>
+        ) : (
+          <button
+            onClick={滚到决策}
+            style={{ marginTop: 8, padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (doneCount === 18 ? 'var(--good-border)' : 'var(--warn-border)'), background: doneCount === 18 ? 'var(--good-bg)' : 'var(--warn-bg)', color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {doneCount === 18 ? '本周 18 项决策已全部完成 ✓（可点回复看）' : `本周还有 ${18 - doneCount} 项决策待做 · 去决策 →`}
+          </button>
+        )}
       </div>
 
       {/* ★ V141 §2.5：服务端在跑要看得见（classDay 来自服务端权威；决策数来自本周存档） */}
@@ -2182,7 +2188,11 @@ export default function App() {
   // ★ V97（用户点名「回到上一个决策」）：决策历史栈 —— 复用统一导航栈（纯逻辑 · src/navStack.mjs）
   //   ★ 折中（保留既有约定 App.jsx:1823-1828『手势不消费决策面板』）：**只有按钮** 回上一个决策；手势/返回键仍静默。
   const 决策导航 = React.useRef(null); if (!决策导航.current) 决策导航.current = 创建导航栈('business')
-  const 开决策 = (d) => { if (d && d.id) 决策导航.current.进入('decision:' + d.id); setCurrentDecision(d) }
+  const 开决策 = (d) => {
+    // ★ V167§1：四态只读 ⇒ 决策卡点开只给看（确认按钮在面板内禁用），不靠提交时拦
+    if (班级学期状态 !== 'running') { toast(STUDENT_STATE_COPY[班级学期状态] || '学期未开课'); return }
+    if (d && d.id) 决策导航.current.进入('decision:' + d.id); setCurrentDecision(d)
+  }
   const 回决策 = () => {
     if (!决策导航.current.可以返回()) { setCurrentDecision(null); return false }
     const id = String(决策导航.current.返回()).replace('decision:', '')
@@ -3257,6 +3267,7 @@ export default function App() {
         </div>
         <DemoPill user={user} />
         <DecisionPanel
+          锁定={班级学期状态 !== 'running'}   // ★ V167§1：只读态面板确认按钮禁用
           key={currentDecision.id}
           decision={currentDecision}
           initial={doneDecisions[currentDecision.id]}

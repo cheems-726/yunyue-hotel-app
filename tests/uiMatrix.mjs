@@ -33,16 +33,17 @@ function 挂监听(page, 桶) {
   page.on('pageerror', e => { const m = e.message || ''; if (!噪声.test(m)) 桶.push('pageerror: ' + m.split('\n')[0].slice(0, 120)) })
   page.on('console', m => { if (m.type() === 'error' && !噪声.test(m.text())) 桶.push('console: ' + String(m.text()).slice(0, 120)) })
 }
-async function 断言格(page, 桶, { 角色, 页, 特征 }) {
+async function 断言格(page, 桶, { 角色, 页, 特征, 特判 }) {
   const t = await page.evaluate(() => document.body.innerText)
   const 坏文案 = ['页面出了点问题', '页面启动失败'].filter(x => t.includes(x))
   const 脏 = [t.match(/undefined/g), t.match(/NaN/g)].filter(Boolean)
   const okErr = 桶.length === 0
   const okFeat = 特征.some(f => t.includes(f)) || 特征.length === 0
   const okPage = 坏文案.length === 0 && (脏[0] ? 脏[0].length <= 2 : true) && (脏[1] ? 脏[1].length <= 2 : true)
+  const okSpecial = 特判 ? await 特判(page) : true
   const 名 = `[${角色}] ${页}`
-  ok(okErr && okFeat && okPage, 名, [...桶.slice(0, 2), okFeat ? '' : '缺特征:' + 特征.join('/'), ...坏文案].filter(Boolean).join(' | '))
-  结果行.push({ 名, ok: okErr && okFeat && okPage })
+  ok(okErr && okFeat && okPage && okSpecial, 名, [...桶.slice(0, 2), okFeat ? '' : '缺特征:' + 特征.join('/'), ...坏文案, okSpecial ? '' : '特判失败'].filter(Boolean).join(' | '))
+  结果行.push({ 名, ok: okErr && okFeat && okPage && okSpecial })
   桶.length = 0
 }
 
@@ -226,6 +227,10 @@ try {
     await nav('分组管理', '分组管理', ['分组', '班级'])
     await nav('教学参考', '教学参考', ['四维', '事件'])
     await nav('我的', '教师我的', ['续营', '功能入口'])
+
+    // ★ V167§2：班级管理入口 —— 真点导航「班级管理」⇒ 面板出现 ⇒ 建班输入框在
+    await page.evaluate(() => { const a = document.querySelector('[data-open-class-admin]'); if (a) a.click() }); await sleep(1000)
+    await 断言格(page, 桶, { 角色: '教师', 页: '班级管理', 特征: ['班级管理（建班', '新建班级'], 特判: (page) => page.evaluate(() => !!document.querySelector('[data-class-admin-panel]') && !!document.querySelector('[data-new-class-name]')) })
 
     // 总览内嵌三块 + 两个覆盖层
     await page.evaluate(() => { const a = [...document.querySelectorAll('.t-nav a')].find(x => x.textContent.includes('班级总览')); if (a) a.click() }); await sleep(800)

@@ -1493,6 +1493,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           { k: 'live', icon: 'nav.live', t: '实时决策' },
           { k: 'ranking', icon: 'nav.rank', t: '排名' },
           { k: 'overview', icon: 'nav.report', t: '班级总览' },
+          { k: 'overview', icon: 'nav.group', t: '班级管理', 锚: 'class-admin' },   // ★ V167§2：班级面板入口（同页锚点滚动）
           { k: 'screen', icon: 'teach.point', t: '课堂投屏' },
           { k: 'inject', icon: 'note.caliber', t: '事件注入' },
           { k: 'supervisor', icon: 'role.manager', t: 'AI 领班' },
@@ -1500,7 +1501,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           { k: 'teaching', icon: 'teach.point', t: '教学参考' },
           { k: 'me', icon: 'nav.me', t: '我的' },
         ].map(x => (
-          <a key={x.k} className={view === x.k ? 'on' : ''} onClick={() => { 栈.current.进入(x.k); setView(x.k) }}   /* ★ V97：入栈后仍走原语句（保留 V50 不变量字面判据） */>
+          <a key={x.t} data-open-class-admin={x.锚 ? '' : undefined} className={view === x.k ? 'on' : ''} onClick={() => { 栈.current.进入(x.k); setView(x.k); if (x.锚) setTimeout(() => { const el = document.querySelector('[data-class-admin-panel]'); if (el) el.scrollIntoView({ block: 'start' }) }, 120) }}   /* ★ V97：入栈后仍走原语句（保留 V50 不变量字面判据）· V167§2：班级管理=overview+锚点滚动 */>
             <Icon name={x.icon} size={16} />{x.t}
           </a>
         ))}
