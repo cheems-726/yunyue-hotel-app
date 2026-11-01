@@ -21,14 +21,22 @@ digest() {  # digest <文件或目录>
 }
 
 PASS=0; FAIL=0
+OLD_DIR="${YUNYUE_OLD_DIR:-/var/www/_old}"
+#   ★ #222：prune 移动目标目录（digest 回退用）
 echo "══ VERSIONS.md 核对 · $(date '+%F %T') ══"
 while IFS='|' read -r t mod path sha owner who; do
   mod=$(echo "$mod" | xargs); path=$(echo "$path" | xargs); sha=$(echo "$sha" | xargs)
   case "$path" in /*) ;; *) continue ;; esac
   [ -n "$sha" ] || continue
   real=$(digest "$path")
+  # ★ #222：文件缺失时先查 /var/www/_old/（prune 只是移走不是删除）—— 台账行迁走前仍可核对，不算红
+  NOTE=""
+  if [ "$real" = "MISSING" ] && [ -f "$OLD_DIR/$(basename "$path")" ]; then
+    real=$(digest "$OLD_DIR/$(basename "$path")")
+    NOTE="（已prune·在_old）"
+  fi
   if [ "$real" = "$sha" ]; then
-    echo "  ✓ $mod  $(basename "$path")  ${sha:0:16}…"
+    echo "  ✓ $mod  $(basename "$path")  ${sha:0:16}…$NOTE"
     PASS=$((PASS + 1))
   else
     echo "  ✗ $mod  $path"
