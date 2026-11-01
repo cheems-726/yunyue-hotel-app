@@ -32,14 +32,16 @@ import { setSemesterStatus, resetClassGameStates } from './supabaseClient.js'   
 import { fetchSemesterCloseout, saveSemesterCloseout, fetchSemesterCloseoutsAll, sha256Hex } from './supabaseClient.js'   // ★ V163：收口状态服务端持久层
 import { normalizeSteps, runOneTouch, STEPS as 收口步序, STEP_LABELS as 收口步名, 收口报告, 校验冷备 } from './oneTouchCloseout.mjs'   // ★ V163：四步纯层（失败停步/幂等/断点续跑）
 import { 复盘报告, 教学建议, 未决策阈值 } from './semesterReview.mjs'
-import { 解析花名册, 预览分组, 口令清单, 校验班级名, STUDENT_STATE_COPY, SEMESTER_STATES, 回退审计键 } from './classAdmin.mjs'   // ★ V165：开箱全流程纯层   // ★ V164：学期教学复盘纯层（只读 · 零网络 · 规则驱动）
+import { 解析花名册, 预览分组, 口令清单, 校验班级名, STUDENT_STATE_COPY, SEMESTER_STATES, 回退审计键 } from './classAdmin.mjs'   // ★ V165：开箱全流程纯层
+import { 课堂告警, 课堂节奏, 规则表 as 预警规则表 } from './classAlerts.mjs'   // ★ V171：课堂预警纯层（只读 · 阈值集中）   // ★ V164：学期教学复盘纯层（只读 · 零网络 · 规则驱动）
 import { 成绩单CSV as 生成CSV文本 } from './reportCard.mjs'   // ★ V157：结课快照 CSV（快照 = JSON+CSV 双件）
 import ClassroomScreen, { ClassroomCompare, 下载学期报告, 导出成绩单CSV as 下载成绩单CSV2 } from './ClassroomPack.jsx'   // ★ V154 批3：投屏视图/班级对比/学期报告
 import { 组装课堂行 } from './classroomPack.mjs'   // ★ V154 批3：纯层
 import { 成绩单, 成绩单行, 成绩单CSV, 归档快照, 归档CSV, 与scoreOf零差 } from './reportCard.mjs'   // ★ V153 + V154批3（成绩单 批量入口）
 import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPrint.jsx'   // ★ V153 §1：打印页
 // （V154 批3：归档快照/归档CSV 自 reportCard 复用，不重复 import）
-import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
+import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径
+import { dayToWeekDay } from './weeklyAuto.mjs'   // ★ V171：权威日 → 周内第几天 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
@@ -832,6 +834,57 @@ function SupervisorPanel({ rawStates, profiles }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ★ V171 · 课堂预警面板（§1 卡点面板 + §2 节奏卡 + §3 告警历史 · 只读 · 阈值集中 classAlerts.mjs）
+function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGroup }) {
+  const alerts = 课堂告警({ groups: (rawStates || []).map(gs => ({ uid: gs.user_id || gs.uid, 组名: 组名映射[gs.user_id || gs.uid], state: gs.state, updated_at: gs.updated_at })), dayIndex, 当前周 })
+  const 节 = 课堂节奏({ groups: (rawStates || []).map(gs => ({ state: gs.state })), dayIndex, 当前周 })
+  const [历史, set历史] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-alert-log') || '[]') } catch (e) { return [] } })
+  const [展开, set展开] = useState(false)
+  useEffect(() => {
+    // 告警历史：同 组+规则+周 只记一次（追加 ≤ 200 行 · 只写本机 · 不写业务表）
+    if (!alerts.length) return
+    try {
+      const 旧 = JSON.parse(localStorage.getItem('hotel-sim-alert-log') || '[]')
+      const 新 = [...旧]
+      for (const a of alerts) {
+        const 键 = a.组名 + '|' + a.id + '|' + 当前周
+        if (!新.some(x => x.键 === 键)) 新.push({ 键, 组: a.组名, 规则: a.规则, 时间: new Date().toLocaleString('zh-CN', { hour12: false }) })
+      }
+      const 裁 = 新.slice(-200)
+      localStorage.setItem('hotel-sim-alert-log', JSON.stringify(裁))
+      set历史(裁)
+    } catch (e) { /* 静默理由：历史留档失败不影响当次告警显示 */ }
+  }, [alerts.length, 当前周])
+  return (
+    <div data-class-alerts className="card" style={{ margin: '0 20px 12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>课堂预警（第 {节.周} 周 · 第 {节.天}/{节.总天数} 天 · 已决策组 {节.已决策组数}/{节.总组数} · 距结算还需 {节.距结算还需} 组达标）</div>
+        <button data-alert-log-toggle onClick={() => set展开(!展开)} style={{ minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>告警历史</button>
+      </div>
+      {alerts.length === 0
+        ? <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 6 }}>✓ 六组状态正常</div>
+        : <div style={{ marginTop: 6 }}>
+            {alerts.map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '4px 0', borderTop: i ? '1px dashed var(--border)' : 'none' }}>
+                <b style={{ color: 'var(--warn)' }}>{a.组名}</b>
+                <span style={{ color: 'var(--bad)', fontWeight: 600 }}>{a.规则}</span>
+                <details style={{ flex: 1 }}><summary style={{ cursor: 'pointer', color: 'var(--text-sub)' }}>{a.详情}</summary><div style={{ color: 'var(--text-muted)', fontSize: 11 }}>依据：{a.依据}</div></details>
+                <button onClick={() => onGoGroup && onGoGroup(a.uid)} style={{ minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>去看看</button>
+              </div>
+            ))}
+          </div>}
+      {展开 && (
+        <div data-alert-log style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)', maxHeight: 220, overflow: 'auto' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>告警历史（本周谁被记过 · 只读 · 最多 200 行 · 只存本机不写业务表）</div>
+          {历史.length === 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>（暂无）</div>}
+          {历史.slice().reverse().map((h, i) => <div key={i} style={{ fontSize: 11, padding: '2px 0' }}>{h.时间} · {h.组} · {h.规则}</div>)}
+        </div>
+      )}
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>阈值与规则集中在 src/classAlerts.mjs（老师可调）；本面板只读，不改学生数据。</div>
     </div>
   )
 }
@@ -1850,6 +1903,14 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
 
       {/* 实时决策大屏：学生们做过/正在做的决策，实时观察动向 */}
       {/* ★ V160：学期状态黄条 —— 满 12 周或非 running 时提示（别让人猜） */}
+      {/* ★ V171 · 课堂预警面板（实时页顶部） */}
+      {view === 'live' && <ClassAlertsPanel
+        rawStates={rawStates}
+        组名映射={Object.fromEntries((profiles || []).map(p => [p.user_id, p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : (p.display_name || p.user_id)]))}
+        dayIndex={(() => { try { return dayToWeekDay(Number(classDay) || 0).dayIndex || 1 } catch (e) { return 1 } })()}
+        当前周={classWeek}
+        onGoGroup={() => { 跳('groups') }}
+      />}
       {view === 'live' && 班级学期状态 === 'running' && (() => {
         // ★ V160：running 但最大学期周 >= 12 ⇒ 黄条提示结课
         const maxWeek = Math.max(0, ...(rawStates || []).map(gs => Math.max(0, ...((gs.state && gs.state.history) || []).map(h => Number(h.week) || 0))))
