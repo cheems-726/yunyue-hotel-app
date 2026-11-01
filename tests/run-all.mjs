@@ -603,10 +603,16 @@ if (true) {
             改.push(`全量 ${a}/${b}→${u通过}/${u失败}`)
             return p1 + u通过 + sp + u失败 + p6
           })
-          后 = 后.replace(/(→ \*\*)(\d{3,})( 通过 \/ )(\d{1,3})( 失败)/g, (m, p1, a, sp, b, p5) => {
+          // ★ 交接卡 ⑥ 有两行（快检/全量）：按命令形态区分锚（--fast 行用 f 值；裸行用 u 值）
+          后 = 后.replace(/(run-all\.mjs --fast --no-build   → \*\*)(\d{3,})( 通过 \/ )(\d{1,3})/g, (m, p1, a, sp, b, p6) => {
             if (Number(a) === f通过 && Number(b) === f失败) return m
             改.push(`⑥快检 ${a}/${b}→${f通过}/${f失败}`)
-            return p1 + f通过 + sp + f失败 + p5
+            return p1 + f通过 + sp + f失败 + p6
+          })
+          后 = 后.replace(/(run-all\.mjs {5,}→ \*\*)(\d{3,})( 通过 \/ )(\d{1,3})/g, (m, p1, a, sp, b, p6) => {
+            if (Number(a) === u通过 && Number(b) === u失败) return m
+            改.push(`⑥全量 ${a}/${b}→${u通过}/${u失败}`)
+            return p1 + u通过 + sp + u失败 + p6
           })
           if (后 !== 前) { writeFileSync(路径, 后, 'utf8'); diff.push(名 + ' ' + 改.join(' · ')) }
         } catch (e) { console.error('  ⚠ 数字同步失败（' + 名 + '）：' + e.message) }
