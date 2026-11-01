@@ -6,7 +6,8 @@
 //       node tests/run-all.mjs --no-build 跳过 npm run build
 // 退出码：0 = 全绿；1 = 有失败；2 = 有环境性跳过
 import { spawnSync, execSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { join as fsJoin } from 'node:path'   // ★ V175：四处文档路径（node:fs 无 join）
 
 const FAST = process.argv.includes('--fast')
 const NO_BUILD = process.argv.includes('--no-build')
@@ -521,6 +522,7 @@ if (true) {
         //   下游（sync-fingerprint）只能写死或瞎猜「其中 N」⇒ 两档各存自己的，机械消费。
         原始失败: totalFail,
         failedSuites: 失败套件名,   // ★ V168§2：本轮真红套件名（knownRed 不列 · 供『账本停旧值』归因）
+        跑者: (process.env.COMPUTERNAME || 'host') + ':' + process.pid,   // ★ V175§2：并发保护元数据
       },
       // ★ V15批2-T2 + V16批1-T2真修：旧键 = 已知红明细 的【机械投影】（先算明细·再投影 · 非直接 knownReds
       //   —— knownReds 含同名重复因 SUITES 两表各一条 vlr ⇒ 直接投影带重复）。
@@ -553,9 +555,76 @@ if (true) {
       perSuite: Object.fromEntries(rows.filter(x => x.state !== '⏭ 跳过（--fast）' && (Number.isFinite(Number(x.pass)) || x.knownRed))
         .map(x => [x.name, { pass: Number(x.pass) || 0, fail: Number(x.fail) || 0 }])),
     }
+    // ★ V175§2 并发保护：心跳锁（另一端 5 分钟内在跑 ⇒ 只读不写；遗留 >30 分钟视为过期可覆盖）
+    const LOCK = new URL('./_last-gate.lock', import.meta.url)
+    const 本跑者 = (process.env.COMPUTERNAME || 'host') + ':' + process.pid
+    let 可写 = true
+    if (existsSync(LOCK)) {
+      try {
+        const 旧锁 = JSON.parse(readFileSync(LOCK, 'utf8'))
+        const 分 = (Date.now() - Number(旧锁.t || 0)) / 60000
+        if (分 < 5 && 旧锁.跑者 !== 本跑者) { console.log('🔒 另一端在跑（' + 旧锁.跑者 + ' · ' + Math.round(分) + ' 分钟前开始）⇒ 本次只读不写记录（V175§2）'); 可写 = false }
+        else if (分 >= 30) console.log('🔒 发现过期锁（' + Math.round(分) + ' 分钟）⇒ 视为崩溃遗留，覆盖')
+      } catch (e) { console.log('🔒 锁文件不可读 ⇒ 覆盖') }
+    }
+    if (可写) writeFileSync(LOCK, JSON.stringify({ 跑者: 本跑者, t: Date.now() }), 'utf8')
     writeFileSync(P, JSON.stringify(next, null, 2) + '\n', 'utf8')
     // §18.0（D59）：打印 codeTree（判据比较的那个）+ 只有【代码子树】脏才算脏
     console.log(`\n📌 本次门禁记录：${FAST ? 'fast' : 'full'} ${记通过} 通过 / ${记失败} 失败（其中原始失败 ${totalFail} · 含已知红）· head=${head || '?'} · codeTree=${(codeTree || '?').slice(0, 20)}… · ${dirty ? '⚠ 代码子树脏（数字不对应任何提交）' : '✅ 代码子树干净'}${fullDirty && !dirty ? '（整仓有未提交文档 ⇒ 按 D59 不影响判据）' : ''}`)
+    // ★ V175§1 门禁数字生成器：一处真相（本记录）→ 四处文档自动同步（只改数字 token · 打印 diff · 幂等）
+    {
+      const APP = process.cwd()   // ★ V175：run-all 恒在 hotel-app 根运行
+      const ROOT = APP.endsWith('hotel-app') ? APP.slice(0, -1 - 'hotel-app'.length) : APP + '/..'
+      const R = ROOT
+      const f通过 = Number((next.fast && next.fast.通过) ?? (prev.fast && prev.fast.通过) ?? 记通过)
+      const f失败 = Number((next.fast && next.fast.失败) ?? (prev.fast && prev.fast.失败) ?? 记失败)
+      const u通过 = Number((next.full && next.full.通过) ?? (prev.full && prev.full.通过) ?? 记通过)
+      const u失败 = Number((next.full && next.full.失败) ?? (prev.full && prev.full.失败) ?? 记失败)
+      const 目标 = [
+        ['AGENTS', fsJoin(APP, 'AGENTS.md')],
+        ['从开始', fsJoin(R, '0-从这里开始.md')],
+        ['长效总表', fsJoin(R, '1-总纲与进度', '长效任务总表（总纲·开工先读）.md')],
+        ['交接卡', fsJoin(R, '4-审计与报告', '会话交接卡.md')],
+      ]
+      const diff = []
+      for (const [名, 路径] of 目标) {
+        try {
+          if (!existsSync(路径)) continue
+          const 前 = readFileSync(路径, 'utf8')
+          let 后 = 前
+          const 改 = []
+          后 = 后.replace(/(快检 \*\*)(\d{3,})( \/ )(\d{1,3})(\*\*)/g, (m, p1, a, sp, b, p6) => {
+            if (Number(a) === f通过 && Number(b) === f失败) return m
+            改.push(`快检 ${a}/${b}→${f通过}/${f失败}`)
+            return p1 + f通过 + sp + f失败 + p6
+          })
+          后 = 后.replace(/(全量 \*\*)(\d{3,})( 通过 \/ )(\d{1,3})( 失败)/g, (m, p1, a, sp, b, p6) => {
+            if (Number(a) === u通过 && Number(b) === u失败) return m
+            改.push(`全量 ${a}/${b}→${u通过}/${u失败}`)
+            return p1 + u通过 + sp + u失败 + p6
+          })
+          后 = 后.replace(/(→ \*\*)(\d{3,})( 通过 \/ )(\d{1,3})( 失败)/g, (m, p1, a, sp, b, p5) => {
+            if (Number(a) === f通过 && Number(b) === f失败) return m
+            改.push(`⑥快检 ${a}/${b}→${f通过}/${f失败}`)
+            return p1 + f通过 + sp + f失败 + p5
+          })
+          if (后 !== 前) { writeFileSync(路径, 后, 'utf8'); diff.push(名 + ' ' + 改.join(' · ')) }
+        } catch (e) { console.error('  ⚠ 数字同步失败（' + 名 + '）：' + e.message) }
+      }
+      console.log(diff.length ? '🔢 门禁数字已同步：' + diff.join(' · ') : '🔢 门禁数字同步：四处已一致（幂等 · 无改动）')
+      // ★ V175§3 门禁日报（追加一行 · 便宜）
+      try {
+        appendFileSync(fsJoin(R, '9-夜间自动化', '门禁日报.md'), `- ${new Date().toISOString().slice(0, 16)} · head=${head || '?'} · ${FAST ? 'fast' : 'full'} ${记通过}/${记失败}（原始 ${totalFail}） · ${(失败套件名 || []).join('、') || '无失败套件'} · dirty=${dirty}
+`, 'utf8')
+      } catch (e) { console.error('  ⚠ 日报追加失败：' + e.message) }
+    }
+    // ★ V175§2：锁释放（仅本跑者持有才删 · 防误删他端锁）
+    try {
+      if (existsSync(LOCK)) {
+        const l = JSON.parse(readFileSync(LOCK, 'utf8'))
+        if (l.跑者 === 本跑者) { const { rmSync } = await import('node:fs'); rmSync(LOCK) }
+      }
+    } catch (e) { console.error('  ⚠ 锁释放失败：' + e.message) }
   } catch (e) {
     // ★ D346/#207：原先这里是空 catch ⇒ 记录写不进去也无声（_last-gate.json 停在 10-24，docs-sync 永远红）
     //   现在至少**喊出来**：记录失败不改变门禁结论，但必须可见（含栈首行）
