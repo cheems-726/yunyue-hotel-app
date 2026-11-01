@@ -273,6 +273,7 @@ const SUITES = [
   { name: 'oneTouchCloseoutV163（一键收口·V163）', file: 'tests/oneTouchCloseoutV163.test.mjs' },
   { name: 'semesterReviewV164（教学复盘·V164）', file: 'tests/semesterReviewV164.test.mjs' },
   { name: 'classAdminV165（开箱全流程·V165）', file: 'tests/classAdminV165.test.mjs' },
+  { name: 'guardrailsV168（护栏三修·V168）', file: 'tests/guardrailsV168.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
   { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },
@@ -453,9 +454,12 @@ if (knownReds.length) {
 // ★ §13（2026-09-28 晨）：本批加了 M3 判死模式后，"文档滞后"可能由【docs-sync + docs-staleness 两套件】同时报
 //   ⇒ 记录写入条件从"仅 docs-sync 失败"放宽为"唯一失败的【都是文档同步类】套件"（判据未放宽内容，只放宽套件集合）
 const 文档类 = (name) => String(name).startsWith('docs-sync') || String(name).startsWith('docs-staleness')
-const 仅文档套件失败 = failed > 0 && rows.filter(x => x.state === '✗').every(x => 文档类(x.name))
-const 仅本套件失败 = 仅文档套件失败
-if (!failed || 仅本套件失败) {
+const 失败套件名 = rows.filter(x => x.state === '✗').map(x => x.name)
+const 仅文档套件失败 = failed > 0 && 失败套件名.every(x => 文档类(x))
+// ★ V168§2（D352）：无论绿红都写记录 —— 旧条件 if (!failed || 仅本套件失败) 让任一非文档套件红时
+//   记录根本不写（无提示）⇒ 账本停旧值 ⇒ docs-sync 的 codeTree 判据永远对不上（鸡生蛋）。
+//   失败运行如实记 通过/失败/原始失败 + failedSuites；绿不绿由其他判据管，账本只负责『哪个树被 gate 过』。
+if (true) {
   // 唯一失败是 docs-sync 时：按"卡改好后应有的计数"记（本套件那些失败断言改好后即通过）。
   // 🔴 2026-09-28 夜（N-0 实测抓到的真 bug）：原式写死 `total + 1` —— 隐含假设"docs-sync 只会失败 1 条"。
   //   本次它一次失败 3 条（卡里的 HEAD / 门禁数字 / 未推 三行同时过期）⇒ 记录比真实少 2
@@ -468,8 +472,8 @@ if (!failed || 仅本套件失败) {
   //   与上方声明「`失败` = 计入门禁结论的失败（knownRed 不计）」直接矛盾。
   //   暴露条件：文档类套件全绿（此前每轮都有文档类红 ⇒ 一直走"仅文档套件失败 ⇒ 记失败 0"分支，故潜伏）。
   const 无结论失败 = failed === 0
-  const 记通过 = (无结论失败 || 仅本套件失败) ? total + totalFail : total
-  const 记失败 = (无结论失败 || 仅本套件失败) ? 0 : totalFail
+  const 记通过 = (无结论失败 || 仅文档套件失败) ? total + totalFail : total   // 仅文档类自指失败按"修好后应有值"记（防死锁 · 原语义保留）
+  const 记失败 = (无结论失败 || 仅文档套件失败) ? 0 : totalFail
   try {
     // ★ §17.1-①（2026-09-28 · D58）：记录必须能回答「**哪个树**被 gate 过」——
     //   原先只记 commit 短哈希 ⇒ 出现"报告称全量 1501/0，但全量是在【上一个提交】上跑的"
@@ -513,6 +517,7 @@ if (!failed || 仅本套件失败) {
         // ★ V17批2：原始失败【分档入记录】—— 顶层键被每轮覆盖、分不出 fast/full 各自的原始失败，
         //   下游（sync-fingerprint）只能写死或瞎猜「其中 N」⇒ 两档各存自己的，机械消费。
         原始失败: totalFail,
+        failedSuites: 失败套件名,   // ★ V168§2：本轮真红套件名（knownRed 不列 · 供『账本停旧值』归因）
       },
       // ★ V15批2-T2 + V16批1-T2真修：旧键 = 已知红明细 的【机械投影】（先算明细·再投影 · 非直接 knownReds
       //   —— knownReds 含同名重复因 SUITES 两表各一条 vlr ⇒ 直接投影带重复）。

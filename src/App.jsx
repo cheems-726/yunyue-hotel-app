@@ -2316,6 +2316,7 @@ export default function App() {
     if (!user?.cloud || !user?.uid) { setHotelName(name); return { ok: true } }
     const gk = groupKeyOf(user.className, user.groupNo)
     try {
+      if (user.role && user.role !== 'student') { toast('教师账号不写学生经营档'); return false }   // ★ V168§1
       const ok = await saveHotelName(user.uid, name, gk)
       if (!ok) { toast('酒店名未写入云端，请重试'); return { ok: false, 原因: '云端写入失败（网络或权限），请重试' } }
       const 回读 = await fetchGameState(user.uid, gk)
@@ -2463,6 +2464,7 @@ export default function App() {
   })() })
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring || 云端恢复中) return
+    if (user.role && user.role !== 'student') return   // ★ V168§1：教师不得走学生存档初始化/保存路径（孤儿行根因：教师登录触发个人档 upsert ⇒ group_key='' 行）
     const gk = groupKeyOf(user.className, user.groupNo)
     let retries = 0, pending = true, retryT = null
     const doSave = async () => {
