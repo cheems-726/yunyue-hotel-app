@@ -50,6 +50,7 @@ export const brandGroups = [
       // ★ V154 批2（品牌 30+ 补名录）：官网『关于华住』高档档点名 Jaz in the City（音乐生活方式 · 与环球音乐合资）。ADR 带/费率公开面无 ⇒ 待补 🔴（不编）
       { name: 'Jaz in the City', icon: 'prop.hotel', fee: '费率待补', cost: '待补', price: '待补', standard: '待补（以官网登记为准）', desc: '音乐生活方式酒店（华住 × 环球音乐合资 · 官网高档档点名 2026-10-24）。' },
       { name: '施柏阁', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
+      { name: '永乐半山', icon: 'prop.hotel', fee: '费率待补🔴（无公开源）', cost: '造价待补🔴（官方 API brand/29 投资明细为空）', price: '待补🔴', standard: '待补🔴', desc: '有设计感的新世代商旅生活方式酒店（官方 API brand/29 · 2026-11-01 采 · des 原文摘录）。' },   // ★ V172§2：API 唯一可得 = 定位句；其余 🔴
       { name: '诺富特', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
       // ★ V87：官方 API 枚举新增（brand/12 · brand/30 · 单房造价为官方 API pricing 原文 · 费率官方无 ⇒ 待补）
       { name: '美仑美奂', icon: 'prop.hotel', fee: '费率待补', cost: '25万~30万/间·轻改1万起·官方现行', price: '待补', standard: '待补（以官网登记为准）', desc: '华住国际高端精选酒店品牌，源自德意志酒店集团（官方 API brand/12）。' },
