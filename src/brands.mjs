@@ -37,7 +37,7 @@ export const brandGroups = [
       { name: '全季大观', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '400-550元', standard: '客房80间起', desc: '全季升级版，更高端中档。' },
       { name: '城际', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
       { name: '美居', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
-      { name: '美仑', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },
+      { name: '美仑', icon: 'prop.hotel', fee: '费率待补🔴（管理费%/会员费%/加盟费均无公开源 · 已试渠道见批次报告-v172）', cost: '15~16万/间·官方现行（翻牌 1万/间起）', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },   // ★ V172§1（2026-11-01）：造价按官方 API brand/14 现行更新（updateTime 2025-10-13 · 置信高）；费率三件无源 🔴
       // ★ V87：官方 API 枚举新增（brand/27 · 门槛/限一二线为官方 API 现行；费率官方无 ⇒ 待补）
       { name: 'CitiGO 欢阁', icon: 'prop.hotel', fee: '费率待补', cost: '14万/间·官方现行', price: '待补', standard: '客房60间起·≥2500㎡·限一二线', desc: '华住唯一以年轻人为主要客群的生活方式酒店（官方 API brand/27）。' },
     ]
