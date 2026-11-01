@@ -42,7 +42,7 @@
 技术：React + Vite（前端）· Supabase（数据）· Node 测试（**一律 .mjs，无 Python**）· 线上 https://www.2026911301.xyz
 
 ## 2. 状态快照
-**二期进行中** · 全量 **5310 通过 / 10 失败（V168§2 口径 · failedSuites：deployParity 待部署 / docs-sync+docs-staleness 文档 / migrationCheckV155=探针文件在库·⑥真跑后删）**（V14批1 M1-M3 统一口径 · knownRed 不计失败 · 含 §33 全部 + V125/V126 守门）· 快检 **4918 / 13（同口径 · failedSuites=deployParity/reportCaliber/docs-sync）** · **HEAD 与未推实测见文档仓指纹行**（已知红：location-matrix ⏳ 25/46=54.3% · vlr-ui ⏳ 教学日绿·周六红·基线0·M2 管住）
+**二期进行中** · 全量 **5310 通过 / 10 失败（V168§2 口径 @`1486cc1` · failedSuites：deployParity 待部署 / docs-sync+docs-staleness 文档 / migrationCheckV155=探针文件在库·⑥真跑后删 · knownRed 不计）** · 快检 **4927 / 15（同口径 @`95c79e7` · failedSuites=deployParity/reportCaliber/docs-sync/docs-staleness）** · **HEAD 与未推实测见文档仓指纹行**（已知红：location-matrix ⏳ 25/46=54.3% · vlr-ui ⏳ 教学日绿·周六红·基线0·M2 管住）
 已定事实 = 决策登记册 **D1–D350**（执行端**只读**，不许推翻；要改先写待决策队列）
 
 ## 3. 铁律（违反 = 返工 · 只有 5 条）

@@ -233,7 +233,7 @@ if (process.argv.includes('--gate')) {
   if (gateRec.full && gateRec.full.head) {
     const mFull = /全量 \*\*(\d{3,}) 通过/.exec(G7) || /全量 \*\*(\d{3,}) 条断言/.exec(G7)
     gok(mFull && Number(mFull[1]) === gateRec.full.通过, `A08 长效总表「全量 N」=== 门禁记录（${gateRec.full.通过}）`, mFull ? `卡内=${mFull[1]}` : '未找到全量数字行')
-    const mFast = /快检 \*\*(\d{3,})\/0\*\*/.exec(G7)
+    const mFast = /快检 \*\*(\d{3,})\/\d+\*\*/.exec(G7)   // ★ V168§2：快检失败数不再恒 0（失败运行也入账）
     gok(mFast && Number(mFast[1]) === gateRec.fast.通过, `A09 长效总表「快检 M/0」=== 门禁记录（${gateRec.fast.通过}）`, mFast ? `卡内=${mFast[1]}` : '未找到快检数字行')
   } else gok(true, '（A08/A09：尚无门禁记录 ⇒ 不判）')
   // A10 旧 D 上限不得回归
