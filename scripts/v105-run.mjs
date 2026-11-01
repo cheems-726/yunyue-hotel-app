@@ -2,7 +2,9 @@
 // 用法：node scripts/v105-run.mjs [--smoke]        # --smoke = E1 冒烟（1 组 1 周）
 // 产出：4-审计与报告/V105-引擎直调/v105-轨迹.{json,csv} + 控制台对照表
 // 判据（单元卡 §4）：① 六组轨迹互不相同 ② 无 NaN/异常 ③ 可复现（同命令同结果）
-import { settle } from '../src/settlement.js'
+import { settleWeekSegmented } from '../src/weekSegments.mjs'
+import { settleInputsFrom } from '../src/weekInputs.mjs'
+import { decisionsByDayFrom } from '../src/weeklyAuto.mjs'
 import { decisions as 决策库 } from '../src/decisions.js'
 import { districts } from '../src/siteLocations.mjs'
 import { brandGroups } from '../src/brands.mjs'
@@ -50,8 +52,14 @@ for (const { group, 性格, 规则 } of 性格规则) {
   for (let w = 1; w <= 周; w++) {
     const 上周 = history[history.length - 1] || null
     const decisions = 组决策(规则, 上周)
-    const r = settle({
-      site, brand, decisions, week: w,
+    // ★ V174§1 同源：与 UI 完全相同入口 —— settleWeekSegmented（按天生效）+ settleInputsFrom（评价/差评/注入派生）
+    //   脚本的周内无改动（decisionsByDay = base 全周）⇒ segmented 走「1 段」路径 ⇒ 与 settle 逐字节同源（水位线由构造保证）
+    const 输入 = settleInputsFrom({ reviews: [], week: w, crisis: null, eventResponse: null, decisions, dailyQuests: [] })
+    const decisionsByDay = decisionsByDayFrom({ base: decisions, changes: [], week: w })
+    const r = settleWeekSegmented({
+      site, brand, decisions, decisionsByDay, week: w,
+      pendingNegatives: 输入.pendingNegatives, resolvedCount: 输入.resolvedCount,
+      liveNegCount: 输入.liveNegCount, livePosCount: 输入.livePosCount,
       prevGoodRate, prevCapital: capital, attrs,
     })
     capital = r.capital != null ? r.capital : capital + (r.netProfit || 0)
