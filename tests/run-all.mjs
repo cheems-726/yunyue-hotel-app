@@ -274,6 +274,7 @@ const SUITES = [
   { name: 'semesterReviewV164（教学复盘·V164）', file: 'tests/semesterReviewV164.test.mjs' },
   { name: 'classAdminV165（开箱全流程·V165）', file: 'tests/classAdminV165.test.mjs' },
   { name: 'guardrailsV168（护栏三修·V168）', file: 'tests/guardrailsV168.test.mjs' },
+  { name: 'syncQueueV170（弱网离线·V170）', file: 'tests/syncQueueV170.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
   { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },

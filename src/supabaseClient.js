@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { 定位 } from './classStateLocator.mjs'   // ★ V157 阶段2：多班行定位（class_code · 单源）
 import { SEMESTER_STATES } from './classAdmin.mjs'   // ★ V165：学期状态集合单源（含 paused）
+import { 超时信号 } from './syncQueue.mjs'   // ★ V170§2：8 秒请求超时
 
 // 云悦酒店教学系统 · Supabase 云端配置（2026-09-08）
 // 项目：yunyue-hotel（东京区） 组织：云悦酒店教学
@@ -137,6 +138,7 @@ export async function saveGameState(userId, state, groupKey = null) {
 // apikey + Authorization 鉴权头 —— sendBeacon 带不了鉴权头会被 RLS 拒绝，故不用。
 // 只做更新（PATCH），不携带归属字段；行尚不存在时静默放弃，常规防抖路径会补上。
 export function saveGameStateNow(userId, state, groupKey = null) {
+  // ★ V170§2：8 秒超时信号（弱网不无限挂起 · 一次自动重试在调用方）
   try {
     const m = SUPABASE_URL.match(/https:\/\/([^.]+)\./)
     const raw = m && localStorage.getItem(`sb-${m[1]}-auth-token`)
@@ -149,6 +151,7 @@ export function saveGameStateNow(userId, state, groupKey = null) {
     return fetch(`${SUPABASE_URL}/rest/v1/game_states?${filter}`, {
       method: 'PATCH',
       keepalive: true,
+      signal: 超时信号(8000),
       headers: {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${token}`,

@@ -58,7 +58,8 @@ import { 档 as CAD, 档位 as cadenceOf, 档语 as CAD_LANG } from './decisionC
 import { settleInputsFrom } from './weekInputs.mjs'
 import { 记录一条 } from './operatorLog.mjs'                       // §22.3-C3：操作者记录单源
 import { settleWeekSegmented } from './weekSegments.mjs'          // §19.1 单元1·B4：引擎级分段
-import { withIdempotent } from './settleIdempotent.mjs'   // ★ V156 阶段2：(group, week) 结算幂等闸
+import { withIdempotent } from './settleIdempotent.mjs'
+import { 入队 as 入待交队, 补交 as 补交待交队, QUEUE_KEY as 待交队KEY, 超时信号 } from './syncQueue.mjs'   // ★ V170§1：弱网提交队列   // ★ V156 阶段2：(group, week) 结算幂等闸
 const settleWeekSegmented幂等 = withIdempotent(settleWeekSegmented)   // ★ V156 阶段2：同一周重复结算 ⇒ 返回既有周报
 import { decisionsByDayFrom } from './weeklyAuto.mjs'             // §19.1：变更记录 → 按天生效的决策
 // §16.2-B5：投资项档位 → 品质联动（系数单源在该模块）
@@ -276,6 +277,12 @@ function LoginPage({ onLogin }) {
       await supabase.auth.signOut()
       return
     }
+    // ★ V170§3：切回真实登录 ⇒ 清演示数据（演示种子评价与本地存档 · 真实数据从云端恢复）
+    try {
+      const reviews = JSON.parse(localStorage.getItem('hotel-sim-reviews') || '[]')
+      if (Array.isArray(reviews) && reviews.some(r => String(r?.by || '').includes('演示'))) localStorage.removeItem('hotel-sim-reviews')
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (e) {} /* 静默理由：切真实登录清演示痕迹失败不影响登录与云端恢复 */
     onLogin({
       role: realRole,
       id: inputId,
@@ -585,6 +592,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         </div>
         {/* ★ V165 §4：学生端班级感知 —— 顶部显示自己的班级名；学期态非 running 显示人话横幅（代替裸"去决策"） */}
         {user?.className && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{user.className} · 第 {user?.groupNo ?? '?'} 组</div>}
+        {user?.cloud && 待同步.length > 0 && (
+          <div data-sync-queue-bar style={{ marginTop: 6, padding: '6px 10px', borderRadius: 999, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>待同步 {待同步.length} 项 · 联网自动重试</span>
+            <button data-sync-retry onClick={() => 补交全部()} style={{ minHeight: 26, border: '1px solid var(--warn)', background: 'var(--card)', color: 'var(--warn)', fontSize: 12, borderRadius: 999, padding: '0 10px', cursor: 'pointer', fontFamily: 'inherit' }}>立即重试</button>
+          </div>
+        )}
+        {!user?.cloud && (
+          <div data-demo-banner style={{ marginTop: 6, padding: '6px 10px', borderRadius: 999, background: 'var(--fill)', border: '1px solid var(--border-strong)', color: 'var(--text-muted)', fontSize: 12, fontWeight: 700 }}>
+            演示模式 · 数据不上云
+          </div>
+        )}
         {班级学期状态 !== 'running' && (
           <div data-student-semester-banner style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', fontSize: 12, lineHeight: 1.7, color: 'var(--warn)', fontWeight: 600 }}>
             {STUDENT_STATE_COPY[班级学期状态] || '学期未开课'}
@@ -2471,11 +2489,12 @@ export default function App() {
       try {
         const ok = await saveGameState(user.uid, cloudState, gk)
         if (ok) return
-        if (retries < 1) { retries++; retryT = setTimeout(doSave, 3000); return }
-        toast('云端同步失败，进度已保存在本机，请检查网络')
+        if (retries < 1) { retries++; retryT = setTimeout(doSave, 超时信号 ? 1000 : 3000); return }
+        // ★ V170§1：失败 ⇒ 进本地待交队列（不弹"失败请重试"），online/15s 自动补交
+        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
       } catch (e) {
         if (retries < 1) { retries++; retryT = setTimeout(doSave, 3000); return }
-        toast('云端同步失败，进度已保存在本机，请检查网络')
+        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
       }
     }
     const t = setTimeout(() => { pending = false; doSave() }, 800)
@@ -2498,6 +2517,23 @@ export default function App() {
       window.removeEventListener('pagehide', onHide)
     }
   }, [user?.uid, JSON.stringify(cloudState), restoring, 云端恢复中])
+
+  // ★ V170§1：待交队列 —— 状态 + online/15s 自动补交 + 手动重试（幂等：保存=同 state 覆盖 · 结算走 settleIdempotent）
+  const [待同步, set待同步] = useState(() => { try { return JSON.parse(localStorage.getItem(待交队KEY) || '[]') } catch (e) { return [] } })
+  const 补交全部 = async () => {
+    const q = (() => { try { return JSON.parse(localStorage.getItem(待交队KEY) || '[]') } catch (e) { return [] } })()
+    if (!q.length) { set待同步([]); return }
+    const { 剩余 } = await 补交待交队(q.map(item => ({ ...item, exec: () => saveGameState(item.userId, item.state, item.groupKey) })),
+      (rest) => { try { localStorage.setItem(待交队KEY, JSON.stringify(rest)) } catch (e) {} /* 静默理由：补交中途暂存失败下次再存 */ /* 静默理由：同上 · 补交中途暂存失败下次再存 */ })
+    set待同步(剩余)
+  }
+  useEffect(() => {
+    if (!user?.cloud) return
+    const onOnline = () => { 补交全部() }
+    window.addEventListener('online', onOnline)
+    const t = setInterval(() => { 补交全部() }, 15000)
+    return () => { window.removeEventListener('online', onOnline); clearInterval(t) }
+  }, [user?.cloud])
 
   // 真实时间
   useEffect(() => {
