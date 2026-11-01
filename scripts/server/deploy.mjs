@@ -92,10 +92,13 @@ if (BUILD_ONLY) {
 step('④', '上传 + 校验')
 if (!existsSync(KEY)) die(`SSH 私钥不存在：${KEY}（用 YUNYUE_SSH_KEY 指定）`)
 // 用相对路径打包：Windows 的 GNU tar 会把 `C:` 当远程主机（Cannot connect to C:）
-const tgz = join(APP, '_deploy.tmp.tgz')
+// ★ 2026-11-01：scp 也必须用**相对名**——绝对路径含中文（D:\教学app\...）时 scp 会报
+//   `open local "D:/\346\225\231..." No such file or directory`（argv 编码问题，时好时坏）
+const tgzName = '_deploy.tmp.tgz'
+const tgz = join(APP, tgzName)
 try {
-  run('tar', ['-czf', '_deploy.tmp.tgz', '-C', 'dist', '.'])
-  run('scp', ['-i', KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', tgz, `root@${HOST}:/tmp/yunyue-deploy.tgz`])
+  run('tar', ['-czf', tgzName, '-C', 'dist', '.'])
+  run('scp', ['-i', KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', tgzName, `root@${HOST}:/tmp/yunyue-deploy.tgz`])
   run('ssh', ['-i', KEY, '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', `root@${HOST}`,
     `set -e; mkdir -p ${WEB}; tar -xzf /tmp/yunyue-deploy.tgz -C ${WEB}; rm -f /tmp/yunyue-deploy.tgz`])
   // ★ V154 批4 ③：旧包清理接进部署（第 ④ 步解包后跑 prune-assets，assets 只留在用 + 最近两批）
