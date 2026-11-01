@@ -28,10 +28,10 @@ console.log('▶ V168 · 护栏三修')
   // RV：把写入放回旧条件 ⇒ 上面第二断言红（机器形态 = 断言旧条件必须不存在）
 
   // §3 单行探针（#216 补验 · 本地等价验证；⑥ 真跑归审计端）
-  ok(existsSync(new URL('../supabase-migration-zzz-probe.sql', import.meta.url)), '探针文件在（单行写法 · ⑥ 真跑后删除）')
-  const probe = readFileSync(new URL('../supabase-migration-zzz-probe.sql', import.meta.url), 'utf8')
-  const d = 扫描声明('supabase-migration-zzz-probe.sql', probe)
-  ok(d.length === 1 && d[0].table === 'class_state' && d[0].name === '__probe_v168__', '单行写法 ⇒ 扫描声明恰 1 条（不再蒸发）')
+  // ★ #232§4：单行探针已由审计端真跑并删除（取证在 审查回执；本套件改为内联探针保住等价验证）
+  ok(!existsSync(new URL('../supabase-migration-zzz-probe.sql', import.meta.url)), '探针文件已删（⑥ 真跑完成 · 复跑 13/13 exit 0）')
+  const d = 扫描声明('supabase-migration-zzz-probe.sql', 'alter table public.class_state add column if not exists __probe_v168__ text;')
+  ok(d.length === 1 && d[0].table === 'class_state' && d[0].name === '__probe_v168__', '单行写法 ⇒ 扫描声明恰 1 条（内联探针 · 不再蒸发）')
   const r = checkMigrations(d, { columns: new Set(), tables: new Set(), policies: new Set() })
   ok(r.missing.length === 1, '库内无此列 ⇒ missing 恰 1 ⇒ deploy ⑥ 将非 0 退出（判据①）')
 }
