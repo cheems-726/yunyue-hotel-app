@@ -27,13 +27,44 @@ function classDayNow(cls) {
   return Math.max(1, days + (Number(cls.teacher_offset_days) || 0))
 }
 
-async function readClassState() {
-  let r = await fetch(REST + '/class_state?select=current_week,start_date,teacher_offset_days,injected_events&id=eq.1', { headers: H })
-  if (r.ok) return (await j(r))[0] || null
-  r = await fetch(REST + '/class_state?select=current_week,start_date,teacher_offset_days&id=eq.1', { headers: H })
-  if (!r.ok) throw new Error('读 class_state 失败：' + r.status)
-  return (await j(r))[0] || null
+// ★ V177§1：**按班 tick** —— class_state 多行，每班独立判定（running 且未超 12 周才推）。
+//   旧实现只读 id=1 单行 + 不传 semester_status ⇒ 归档班也会被一直推（2026-11-03 实读：三班全 archived 却都到 week 14）。
+//   现读全部班行；组按 `group_key` 前缀 `<class_code>|` 归班；单班旧数据（组键无前缀）仍归该班 ⇒ 零变化水位线。
+async function readClasses() {
+  const base = '/class_state?select=id,class_code,semester_status,current_week,start_date,teacher_offset_days,injected_events&order=id'
+  let r = await fetch(REST + base, { headers: H })
+  if (!r.ok) {
+    // 迁移未应用/列缺失 ⇒ 退到最小列集（class_code 缺失 = 单班旧路径）
+    r = await fetch(REST + '/class_state?select=id,current_week,start_date,teacher_offset_days&order=id', { headers: H })
+    if (!r.ok) throw new Error('读 class_state 失败：' + r.status)
+  }
+  return (await j(r)) || []
 }
+
+/** 组归班：group_key 前缀 > profiles.class_name > 唯一班兜底 */
+function 归班(g, classes, profileClass) {
+  const gk = String(g.group_key || '')
+  if (gk.includes('|')) {
+    const 前缀 = gk.slice(0, gk.indexOf('|'))
+    const hit = classes.find(c => c.class_code === 前缀)
+    if (hit) return hit
+  }
+  const byProfile = profileClass && g.user_id ? profileClass[g.user_id] : null
+  if (byProfile) { const hit = classes.find(c => c.class_code === byProfile); if (hit) return hit }
+  return classes.length === 1 ? classes[0] : null   // 旧单班数据（组键无前缀）⇒ 零变化水位线
+}
+
+/** profiles.user_id → class_name（仅个别无前缀个人档需要；失败不阻塞主流程） */
+async function readProfileClasses() {
+  try {
+    const r = await fetch(REST + '/profiles?select=user_id,class_name', { headers: H })
+    if (!r.ok) return {}
+    const map = {}
+    for (const p of (await j(r)) || []) if (p.user_id && p.class_name) map[p.user_id] = p.class_name
+    return map
+  } catch (e) { return {} }   // 静默理由：归班辅助信息，取不到就按前缀/唯一班兜底
+}
+
 
 /** 组档优先于个人档（与前端 groupKeyOf 同口径） */
 async function readGroups() {
@@ -97,35 +128,65 @@ async function writePreSettleSnapshot({ tick_key, group }) {
 }
 
 async function main() {
-  const cls = await readClassState()
-  const classDay = classDayNow(cls)
-  if (!classDay || classDay < 1) { console.log(JSON.stringify({ ok: true, skipped: '班级未开学（class_state.start_date 未设置）', classDay: 0 })); return }
+  const classes = await readClasses()
+  // ★ V177§1：非 running / 未开学 / 超 12 周 ⇒ 该班零推进（学期闸在引擎内，按班传 semesterStatus）
+  const 可推 = []
+  const 跳过 = []
+  for (const cls of classes) {
+    const classDay = classDayNow(cls)
+    if (!classDay || classDay < 1) { 跳过.push({ class: cls.class_code || ('#' + cls.id), why: '未开学（start_date 未设置）' }); continue }
+    if (cls.semester_status && cls.semester_status !== 'running') { 跳过.push({ class: cls.class_code || ('#' + cls.id), why: `学期状态 ${cls.semester_status}（非 running）` }); continue }
+    可推.push({ cls, classDay })
+  }
+  if (!可推.length) {
+    console.log(JSON.stringify({ ok: true, skipped: 跳过.length ? '全部班级均不可推进' : '无班级行', classes: classes.length, 跳过, advanced: 0 }))
+    return
+  }
+
   const groups = await readGroups()
-  const allInjections = Array.isArray(cls?.injected_events) ? cls.injected_events : []
+  const profileClass = groups.some(g => !String(g.group_key || '').includes('|')) ? await readProfileClasses() : {}
   const out = []
   let duplicates = 0
+  const 未归属 = []
   const 记流水 = async (args) => { const L = await writeTickLog(args); if (L && L.duplicate) duplicates++; return L }
-  for (const g of groups) {
-    const save = g.state || {}
-    const gk = g.group_key || g.user_id
-    const injections = allInjections.filter(e => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
-    const r = advanceGroupOneDay(save, classDay, { groupKey: gk, injectedEvents: injections.length ? injections : null })
-    out.push({ group: gk, advanced: r.advanced, gated: r.gated || false, gate: r.gate || null, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, violations: r.violations })
-    // ★ V127-#1：一次调用一个流水键（分钟戳）—— 旧 tickKey 已被历史轮次占满，导致日志整轮被静默吞掉
-    const logKey = tickLogKey(classDay, gk)
-    if (r.violations && r.violations.length) {
-      await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { violations: r.violations, engineVersion: TICK_VERSION }, ok: false })
-      continue
-    }
-    if (!DRY && r.advanced && r.save) {
-      await writePreSettleSnapshot({ tick_key: logKey, group: g })   // ★ V107-E3：先落不可变快照，再改档
-      await writeGroupState(g, r.save)
-    }
-    // ★ V127-#1：只在【真结算】时写流水（无推进/被前置闸拦下的日子不写）
-    if (!DRY && r.advanced) {
-      await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, 决策来源: r.决策来源, engineVersion: TICK_VERSION }, ok: true })
+
+  for (const { cls, classDay } of 可推) {
+    const 班名 = cls.class_code || ('#' + cls.id)
+    const allInjections = Array.isArray(cls.injected_events) ? cls.injected_events : []
+    for (const g of groups) {
+      if (归班(g, classes, profileClass) !== cls) continue
+      const save = g.state || {}
+      const gk = g.group_key || g.user_id
+      const injections = allInjections.filter(e => e && (!Array.isArray(e.targets) || e.targets.includes(gk)))
+      // ★ V177§1：semesterStatus 按班传入 —— 旧实现不传 ⇒ 学期闸恒 running（归档班被推过头的真因）
+      const r = advanceGroupOneDay(save, classDay, { groupKey: gk, semesterStatus: cls.semester_status || 'running', injectedEvents: injections.length ? injections : null })
+      out.push({ class: 班名, group: gk, advanced: r.advanced, gated: r.gated || false, gate: r.gate || null, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, violations: r.violations })
+      // ★ V127-#1：一次调用一个流水键（分钟戳）—— 旧 tickKey 已被历史轮次占满，导致日志整轮被静默吞掉
+      const logKey = tickLogKey(classDay, gk)
+      if (r.violations && r.violations.length) {
+        await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { class: 班名, violations: r.violations, engineVersion: TICK_VERSION }, ok: false })
+        continue
+      }
+      if (!DRY && r.advanced && r.save) {
+        await writePreSettleSnapshot({ tick_key: logKey, group: g })   // ★ V107-E3：先落不可变快照，再改档
+        await writeGroupState(g, r.save)
+      }
+      // ★ V127-#1：只在【真结算】时写流水（无推进/被前置闸拦下的日子不写）
+      if (!DRY && r.advanced) {
+        await 记流水({ tick_key: logKey, class_day: classDay, group_key: gk, result: { class: 班名, advanced: r.advanced, week: r.week, dayIndex: r.dayIndex, 决策数: r.决策数, 决策来源: r.决策来源, engineVersion: TICK_VERSION }, ok: true })
+      }
     }
   }
-  console.log(JSON.stringify({ ok: true, classDay, groups: out.length, advanced: out.filter(x => x.advanced).length, gated: out.filter(x => x.gated).length, duplicates, dry: DRY, engineVersion: TICK_VERSION, detail: out }))
+  // 归不到任何班的组：显式报出来（不静默丢）
+  for (const g of groups) if (!归班(g, classes, profileClass)) 未归属.push(g.group_key || g.user_id)
+
+  const 首班 = 可推[0]
+  console.log(JSON.stringify({
+    ok: true,
+    classDay: 可推.length === 1 ? 首班.classDay : undefined,   // 单班兼容旧口径
+    classes: 可推.map(x => ({ class: x.cls.class_code || ('#' + x.cls.id), classDay: x.classDay })),
+    跳过, 未归属, groups: out.length, advanced: out.filter(x => x.advanced).length, gated: out.filter(x => x.gated).length,
+    duplicates, dry: DRY, engineVersion: TICK_VERSION, detail: out,
+  }))
 }
 main().catch(e => { console.error(JSON.stringify({ ok: false, error: String(e && e.message || e) })); process.exit(1) })

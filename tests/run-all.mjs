@@ -278,6 +278,8 @@ const SUITES = [
   { name: 'syncQueueV170（弱网离线·V170）', file: 'tests/syncQueueV170.test.mjs' },
   { name: 'classAlertsV171（课堂预警·V171）', file: 'tests/classAlertsV171.test.mjs' },
   { name: 'v174V105Phase2（V105阶段2·V174）', file: 'tests/v174V105Phase2.test.mjs' },
+  { name: 'v177PerClassTick（按班tick·V177）', file: 'tests/v177PerClassTick.test.mjs' },
+  { name: 'v177ClassCalendar（按班徽标·V177）', file: 'tests/v177ClassCalendar.test.mjs' },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },
   { name: 'v155Verify（打印/投屏截图·V155）', file: 'tests/v155Verify.test.mjs', browser: true },
   { name: 'entryProbe（入口自检·V129）', file: 'tests/_v109_entry_probe.mjs', browser: true },

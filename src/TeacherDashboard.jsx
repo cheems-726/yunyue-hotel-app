@@ -43,6 +43,7 @@ import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPr
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径
 import { dayToWeekDay } from './weeklyAuto.mjs'   // ★ V171：权威日 → 周内第几天 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
+import { 班徽标 } from './classCalendar.mjs'   // ★ V177§3：按班「第 N 周 · D/7 天」徽标（与服务端 classDay 同口径）
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
 // ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
@@ -973,8 +974,15 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
       {/* 班级切换器（常显 · 教师端专属） */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
         <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
-        {(班列表 || []).map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}</button>)}
+        {(班列表 || []).map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${c.current_week ?? 0}周`}</button>)}
       </div>
+      {/* ★ V177§3：本班进度（一班一行 · 与服务端 tick 同一日历口径） */}
+      {filterClass && (() => {
+        const c = (班列表 || []).find(x => x.class_code === filterClass)
+        return <div data-class-progress style={{ marginTop: 6, fontSize: 11, color: 'var(--text-sub)' }}>
+          本班：<b>{filterClass}</b> · {班徽标(c)} · 学期 {c?.semester_status || '—'}
+        </div>
+      })()}
       {/* §1 建班向导 */}
       <div data-create-class-form style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
         <div style={{ fontSize: 12, fontWeight: 700 }}>＋ 新建班级</div>
