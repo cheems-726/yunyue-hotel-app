@@ -635,14 +635,18 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         const wd = (() => { try { return dayToWeekDay(Number(classDay) || 0) } catch (e) { return { week, dayIndex: 1 } } })()
         const 阈 = 6
         const 已结算 = !!report
+        // ★ V178（2026-11-04 审查端）：归档/结课后 classDay 仍在走 ⇒ 旧文案会出现「学生第 12 周 / 服务端第 15 周」的自相矛盾。
+        //   非 running 一律改成「学期已归档 · 不再推进」，不再显示周/天（周次只认学生存档里的 week）。
+        const 学期已停 = 班级学期状态 !== 'running'
         return (
-          <div data-server-status="1" style={{ margin: '0 20px 10px', padding: '7px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--fill)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
-            <span style={{ color: 'var(--good)', fontWeight: 700 }}>● 服务端已推进</span>
-            <span> · 第 {wd.week} 周第 {wd.dayIndex}/7 天</span>
+          <div data-server-status="1" data-server-archived={学期已停 ? '1' : '0'} style={{ margin: '0 20px 10px', padding: '7px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--fill)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
+            <span style={{ color: 学期已停 ? 'var(--warn)' : 'var(--good)', fontWeight: 700 }}>{学期已停 ? '● 学期已归档 · 服务端不再推进' : '● 服务端已推进'}</span>
+            {!学期已停 && <span> · 第 {wd.week} 周第 {wd.dayIndex}/7 天</span>}
             <span> · 本周决策 {doneCount}/18</span>
-            <span>（≥{阈} 才结算{!已结算 && doneCount < 阈 ? ` · 还差 ${阈 - doneCount} 项` : ''}）</span>
-            {已结算 && <span style={{ color: 'var(--good)' }}> · 本周已结算</span>}
-            {!已结算 && doneCount >= 阈 && <span style={{ color: 'var(--good)' }}> · 已达结算门槛（第 7 天自动出周报）</span>}
+            {!学期已停 && <span>（≥{阈} 才结算{!已结算 && doneCount < 阈 ? ` · 还差 ${阈 - doneCount} 项` : ''}）</span>}
+            {学期已停 && <span style={{ color: 'var(--text-muted)' }}> · 存档只读，期末成绩按已结算的 12 周计</span>}
+            {!学期已停 && 已结算 && <span style={{ color: 'var(--good)' }}> · 本周已结算</span>}
+            {!学期已停 && !已结算 && doneCount >= 阈 && <span style={{ color: 'var(--good)' }}> · 已达结算门槛（第 7 天自动出周报）</span>}
           </div>
         )
       })()}
