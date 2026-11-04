@@ -630,8 +630,10 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
         )}
       </div>
 
-      {/* ★ V141 §2.5：服务端在跑要看得见（classDay 来自服务端权威；决策数来自本周存档） */}
-      {(() => {
+      {/* ★ V141 §2.5：服务端在跑要看得见（classDay 来自服务端权威；决策数来自本周存档）
+          ★ V180（2026-11-05 审查端）：**只在真登录（cloud）时显示** —— 离线演示没有服务端，
+             却仍会拿到 classDay（线上是第 15 周）⇒ 演示模式写「第 1 周」的学生看到「服务端已推进第 15 周」，自相矛盾。 */}
+      {user?.cloud && (() => {
         const wd = (() => { try { return dayToWeekDay(Number(classDay) || 0) } catch (e) { return { week, dayIndex: 1 } } })()
         const 阈 = 6
         const 已结算 = !!report
@@ -973,7 +975,17 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                       </div>
                       )}
                     </div>
-                    <span className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}>{isDone ? '已决策·可改' : '去决策'}</span>
+                    {/* ★ V181（2026-11-05 审查端）：原来是 <span>，点击靠冒泡到卡片；但卡片正文 .task-body
+                        自己 stopPropagation（展开说明）⇒ 点卡身没反应，只有点这行小字才进得去（实证：380 人形）
+                        改为真按钮 + 44px 触控目标 + 显式 onDecision */}
+                    <button
+                      type="button"
+                      data-decision-open={d.id}
+                      aria-label={isDone ? `修改决策：${d.name}` : `去做决策：${d.name}`}
+                      onClick={e => { e.stopPropagation(); onDecision(d) }}
+                      className={`task-badge ${isDone ? 'badge-done' : 'badge-new'}`}
+                      style={{ minHeight: 44, minWidth: 44, padding: '0 10px', border: '1px solid var(--border-strong)', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}
+                    >{isDone ? '已决策·可改' : '去决策'}</button>
                   </div>
                   )
                 })}

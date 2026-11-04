@@ -80,14 +80,11 @@ async function 渲染({ 状态, classDay }) {
 }
 
 try {
-  console.log('\n[3] DOM（running）：行为零变化')
+  console.log('\n[3] DOM（cloud:false / 演示态）：不显示服务端状态条（V180）')
   {
-    const { page, 有, 文本, 归档标记 } = await 渲染({ 状态: 'running', classDay: 20 })
-    ok(有, 'running 时状态条存在')
-    ok(归档标记 === '0', `data-server-archived=0（实得 ${归档标记}）`)
-    ok(/服务端已推进/.test(文本), 'running 仍显示「服务端已推进」')
-    ok(/第\s*3\s*周第\s*6\/7\s*天/.test(文本), `仍显示周/天（实得：${文本.slice(0, 70)}）`)
-    ok(/≥6 才结算/.test(文本), '仍解释结算门槛')
+    // 演示态没有服务端；旧实现仍拿 classDay（线上第 15 周）⇒ 与存档周次矛盾。running 分支的源码断言见 [1][2]。
+    const { page, 有 } = await 渲染({ 状态: 'running', classDay: 20 })
+    ok(!有, `演示态无状态条（实得 ${有}）`)
     await page.close()
   }
 
@@ -102,6 +99,33 @@ try {
       ok(!/第\s*\d+\s*周第\s*\d+\/7\s*天/.test(文本), '不再显示服务端周/天（避免与存档 week 冲突）')
       ok(!/服务端已推进/.test(文本), '不再说「服务端已推进」')
     }
+    await page.close()
+  }
+
+  console.log('\n[5] V180 · 离线演示（cloud:false）不显示「服务端已推进」')
+  {
+    // 离线演示：数据只存本机，没有服务端；旧实现仍拿 classDay（线上第 15 周）⇒ 演示学生第 1 周却看到第 15 周
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    await page.route('**/rest/v1/rpc/class_day_now', r => r.fulfill({ status: 200, contentType: 'application/json', body: '98' }))
+    await page.goto(BASE)
+    await page.evaluate(() => {
+      const st = {
+        user: { role: 'student', id: 'offline', name: '离线', cloud: false },
+        location: { city: '成都', district: '锦江区', attrs: { 客流: 4, 房价: 4, 租金: 3, 竞争: 3, 人力: 3, 波动: 2 } },
+        brand: { name: '汉庭', level: '经济型 · 国民', price: '210-310元', standard: '客房70间起', rentFactor: 0.30 },
+        property: { name: '交通枢纽物业' }, established: true, hotelName: '云悦离线店', welcomed: true,
+        week: 1, capital: 1490000, attrs: { quality: 60, reputation: 70, morale: 65 },
+        bizMode: 'direct', scaleVersion: 3, openDayNo: null, report: null, finished: false,
+        decisionChanges: [], __autoSettled: [], operatorLogs: [], estChoices: {}, doneDecisions: {}, history: [],
+      }
+      localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+    })
+    await page.reload(); await sleep(2200)
+    const 有 = await page.locator('[data-server-status="1"]').count()
+    const t = await page.evaluate(() => document.body.innerText)
+    ok(有 === 0, `离线演示无服务端状态条（实得 ${有}）`)
+    ok(!/服务端已推进/.test(t), '离线演示不再写「服务端已推进」')
+    ok(/演示模式/.test(t), '仍标明演示模式（数据不上云）')
     await page.close()
   }
 } finally {

@@ -63,10 +63,12 @@ try {
   ok(!!pay && pay.open === false, '投资回收默认折叠')
   if (pay) ok(/一次性投入|待补/.test(pay.text) || /一次性投入/.test(t), '折叠项含一次性投入（或待补）')
 
-  console.log('\n▶ V141 · 服务端状态条')
+  console.log('\n▶ V141 · 服务端状态条（★ V180 改：离线/演示态不显示）')
   const st = await page.evaluate(() => { const e = document.querySelector('[data-server-status="1"]'); return e ? e.innerText : '' })
-  ok(/服务端已推进/.test(st) && /第 4 周第 6\/7 天/.test(st), `状态条含周/天（${st.slice(0, 80)}）`)
-  ok(/本周决策 2\/18/.test(st) && /还差 4 项/.test(st), '状态条含决策 2/18 与闸门原因')
+  // ★ V180（2026-11-05 审查端）：本地种子是 cloud:false = 演示模式，没有服务端 ⇒ 不许显示「服务端已推进 · 第 N 周」
+  //   （旧断言要求显示；实测演示模式会拿到线上 classDay，写出与存档周次矛盾的第 15 周）
+  ok(st === '', `演示模式（cloud:false）不显示服务端状态条（实得「${st.slice(0, 60)}」）`)
+  ok(/本周还有 \d+ 项决策待做/.test(t) || /去决策/.test(t), '改为由首屏 CTA 表达本周待办')
   ok(/本周未调整决策/.test(t), '第 4 周与上周决策相同 ⇒ 显示「未调整」')
 
   console.log('\n▶ V141 · 游戏入口')
