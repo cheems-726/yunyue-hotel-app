@@ -864,7 +864,7 @@ function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGr
     <div data-class-alerts className="card" style={{ margin: '0 20px 12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>课堂预警（第 {节.周} 周 · 第 {节.天}/{节.总天数} 天 · 已决策组 {节.已决策组数}/{节.总组数} · 距结算还需 {节.距结算还需} 组达标）</div>
-        <button data-alert-log-toggle onClick={() => set展开(!展开)} style={{ minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>告警历史</button>
+        <button data-alert-log-toggle onClick={() => set展开(!展开)} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>告警历史</button>
       </div>
       {alerts.length === 0
         ? <div style={{ fontSize: 12, color: 'var(--good)', marginTop: 6 }}>✓ 六组状态正常</div>
@@ -874,7 +874,8 @@ function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGr
                 <b style={{ color: 'var(--warn)' }}>{a.组名}</b>
                 <span style={{ color: 'var(--bad)', fontWeight: 600 }}>{a.规则}</span>
                 <details style={{ flex: 1 }}><summary style={{ cursor: 'pointer', color: 'var(--text-sub)' }}>{a.详情}</summary><div style={{ color: 'var(--text-muted)', fontSize: 11 }}>依据：{a.依据}</div></details>
-                <button onClick={() => onGoGroup && onGoGroup(a.uid)} style={{ minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>去看看</button>
+                {/* ★ V179（2026-11-05 审查端）：390 视口触控目标 ≥44px（原 minHeight:30 ⇒ ui-smoke 实测红） */}
+                <button onClick={() => onGoGroup && onGoGroup(a.uid)} style={{ minHeight: 44, minWidth: 44, padding: '0 10px', border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>去看看</button>
               </div>
             ))}
           </div>}
@@ -1210,7 +1211,7 @@ function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek,
             <span style={{ color: 步色[(steps[k] || {}).state] || 'var(--text-muted)', fontWeight: 600, minWidth: 42 }}>{(steps[k] || {}).state}</span>
             <span style={{ color: 'var(--text-sub)' }}>{收口步名[k]}</span>
             {(steps[k] || {}).state === '失败' && <span style={{ color: 'var(--bad)', fontSize: 11 }}>{(steps[k] || {}).reason}</span>}
-            {展开 && <button onClick={() => 执行(k)} disabled={跑中} style={{ marginLeft: 'auto', minHeight: 30, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>重试本步</button>}
+            {展开 && <button onClick={() => 执行(k)} disabled={跑中} style={{ marginLeft: 'auto', minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>重试本步</button>}
             {(steps[k] || {}).note && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{(steps[k] || {}).note}</span>}
           </div>
         ))}
