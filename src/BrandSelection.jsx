@@ -286,6 +286,8 @@ export default function BrandSelection({ location, onConfirm }) {
         </button>
         {/* V54批2 缺口3：不可逆预告（S2 品牌选定后无反悔入口属设计 · 界面须提前说明） */}
         <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>品牌确认后本学期不可更改（加盟费/价带/房量门槛按此品牌核算，认领后不设换牌入口）</div>
+        {/* ★ V186 §3.4：阶段级不可逆说明（选址已确认 · 无返回控件 · 负向断言见 v186BackNav） */}
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>上一步已不可返回：选址已确认（本学期不可更改）</div>
       </div>
 
       {feedback && <ResultFeedback result={feedback} onClose={() => setFeedback(null)} />}

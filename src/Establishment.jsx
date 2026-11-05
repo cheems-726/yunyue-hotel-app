@@ -8,6 +8,7 @@ import { 筹建账, 放弃清单, 预算口径 } from './startupBudget.mjs'   //
 import { 读宣言, 写宣言, 缺哪些 } from './choiceReasons.mjs'   // V113-1.3：开店宣言（一次生成 · 不可编辑）
 import WhyNot from './WhyNot.jsx'   // V113-1.3：每步取舍句
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
+import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（筹建 1–3 步可回改）
 import { 证照信息, 来源行, 通用免责, 未核实项 } from './premiseInfo.mjs'   // ★ V115-② B-13：未核实项要露出来   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
 // 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
@@ -97,9 +98,20 @@ export default function Establishment({ brand, property, onComplete }) {
   }
   function next() {
     if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1)
+    set跳步提示('')
   }
   function prev() {
     if (currentStep > 0) setCurrentStep(currentStep - 1)
+  }
+  // ★ V186 §3.3②：圆圈旁路堵上 —— 只许回点已完成步；向前跳未完成步被拦 + 提示（与下一步按钮同一判据）
+  const [跳步提示, set跳步提示] = useState('')
+  function 圆圈跳步(i) {
+    if (i < currentStep) { setCurrentStep(i); set跳步提示(''); return }
+    if (i > currentStep && !done[i]) {
+      set跳步提示(`先完成第 ${currentStep + 1} 步「${steps[currentStep].title}」，不能跳过（判据与下一步按钮相同）`)
+      return
+    }
+    setCurrentStep(i)   // i === currentStep，或向前跳到已完成步（恢复现场）
   }
 
   const step = steps[currentStep]
@@ -112,7 +124,14 @@ export default function Establishment({ brand, property, onComplete }) {
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>门店筹建</h1>
         <div className="sub">{brand?.name}品牌 · {property?.name} · 完成筹建后开业</div>
         <GuideTip k="setup">筹建共 4 步，现在是第 {currentStep + 1} 步：按每步内的提示完成要求（选定一项/把证照顺序排对）才能点「下一步」；不确定就点卡片看详情。</GuideTip>
+        {/* ★ V186 §3.3③/§3.4：第 0 步不可返回（认领已完成属不可逆）—— 不渲染返回控件，给一行原因 */}
+        {currentStep === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>上一步已不可返回：认领已完成（本学期不可更改）</div>
+        )}
       </div>
+
+      {/* ★ V186：顶栏「上一步」（≥1024 显示 · 与底栏同一 onBack · 第 0 步不渲染） */}
+      {currentStep > 0 && <StepBack variant="top" stepLabel={`第 ${currentStep + 1} 步 / 共 ${steps.length} 步`} onBack={prev} />}
 
       {/* 进度条 */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
@@ -130,7 +149,7 @@ export default function Establishment({ brand, property, onComplete }) {
         {steps.map((s, i) => (
           <div key={s.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
             <div
-              onClick={() => setCurrentStep(i)}
+              onClick={() => 圆圈跳步(i)}
               style={{
                 width: 38, height: 38, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -146,6 +165,11 @@ export default function Establishment({ brand, property, onComplete }) {
         ))}
       </div>
 
+      {/* ★ V186：圆圈跳步被拦时的提示（一行 · 不弹窗） */}
+      {跳步提示 && (
+        <div style={{ padding: '0 20px', marginBottom: 12, fontSize: 12, color: 'var(--bad)' }}>⚠ {跳步提示}</div>
+      )}
+
       {/* 当前步骤内容 */}
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
@@ -155,10 +179,10 @@ export default function Establishment({ brand, property, onComplete }) {
 
       {currentStep === steps.length - 1 && <开店宣言面板 />}
 
-      {/* 底部按钮 */}
+      {/* 底部按钮（★ V186：上一步统一走 StepBack · 次要按钮左/主按钮右） */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
         {currentStep > 0 && (
-          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步<span style={{ fontSize: 12, opacity: 0.75 }}>（已选内容可回改）</span></button>
+          <StepBack onBack={prev} sub="（已选内容可回改）" style={{ flex: 1 }} />
         )}
         {currentStep < steps.length - 1 ? (
           <button className="btn-confirm" style={{ flex: 2, opacity: stepSatisfied() ? 1 : 0.5 }} disabled={!stepSatisfied()} onClick={() => { markDone(); next() }}>

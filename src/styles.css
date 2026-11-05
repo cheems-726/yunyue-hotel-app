@@ -544,3 +544,7 @@ button { min-width: 44px; }
 .classroom-screen .cs-neg { color: #ff7a7a; }
 .classroom-screen .cs-note { font-size: 16px; color: #9aa0ab; margin-top: 8px; }
 .classroom-screen .cs-empty { font-size: 22px; color: #9aa0ab; }
+
+/* V186 · 顶栏「上一步」：≥1024 才显示（<1024 只保留底栏） */
+.v186-topbar { display: none; }
+@media (min-width: 1024px) { .v186-topbar { display: flex; } }

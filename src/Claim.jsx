@@ -10,6 +10,7 @@ import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（
 import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
 import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领
 import WhyNot from './WhyNot.jsx'
+import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（认领 1–5 步可回改）
 import { 认领取舍项, 取舍摘要, 本步可继续 } from './claimChoices.mjs'   // ★ V131 §1-C：6 步真取舍
 import { 理由合格 } from './keyReasons.mjs'   // ★ V113-1.3：每步一句取舍   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
@@ -110,7 +111,14 @@ export default function Claim({ brand, location, onComplete }) {
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>认领一家酒店</h1>
         <div className="sub">{brand.name}品牌 · {location?.district} · 走完加盟流程正式认领</div>
         <GuideTip k="claim">现在是第 {step + 1}/6 步：每步都要做一个有代价的取舍（选完会显示你放弃了什么），没有纯确认步；点「上一步」可回改。</GuideTip>
+        {/* ★ V186 §3.2②/§3.4：第 0 步不可返回（品牌已确认属不可逆）—— 不渲染返回控件，给一行原因 */}
+        {step === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>上一步已不可返回：品牌已确认（本学期不可更改）· 需要换品牌请老师走重置</div>
+        )}
       </div>
+
+      {/* ★ V186：顶栏「上一步」（≥1024 显示 · 与底栏同一 onBack · 第 0 步不渲染） */}
+      {step > 0 && <StepBack variant="top" stepLabel={`第 ${step + 1} 步 / 共 ${claimSteps.length} 步`} onBack={prev} />}
 
       {/* 进度条 */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
@@ -402,10 +410,10 @@ export default function Claim({ brand, location, onComplete }) {
         )}
       </div>
 
-      {/* 底部按钮 */}
+      {/* 底部按钮（★ V186：上一步统一走 StepBack · 次要按钮左/主按钮右） */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
         {step > 0 && (
-          <button className="btn btn-ghost" style={{ padding: '12px 0' }} onClick={prev}>上一步<span style={{ fontSize: 12, opacity: 0.75 }}>（已选内容可回改）</span></button>
+          <StepBack onBack={prev} sub="（已选内容可回改）" style={{ flex: 1 }} />
         )}
         <button
           className="btn-confirm"

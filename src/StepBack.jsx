@@ -28,7 +28,7 @@ export default function StepBack({ onBack, disabled = false, disabledReason = ''
   )
   if (variant !== 'top') return btn
   return (
-    <div data-step-back-bar="1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 6px' }}>
+    <div data-step-back-bar="1" className="v186-topbar" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 6px' }}>
       {btn}
       {stepLabel ? <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{stepLabel}</span> : null}
     </div>
