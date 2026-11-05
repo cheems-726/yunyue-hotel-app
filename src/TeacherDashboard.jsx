@@ -1001,7 +1001,7 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
         {!filterClass && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>先在上面选中一个班级（不能导到"全部班级"）。</div>}
         {filterClass && <>
           <textarea data-import-text value={粘贴} onChange={e => set粘贴(e.target.value)} rows={4} placeholder={'20240201 张三\n20240202 李四\n…（每行一个学号，姓名可省）'} style={{ width: '100%', marginTop: 6, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: 8, fontFamily: 'inherit' }} />
-          <button data-import-preview onClick={做预览} disabled={!粘贴.trim()} style={{ marginTop: 6, minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>生成预览</button>
+          <button data-import-preview onClick={做预览} disabled={!粘贴.trim()} style={{ marginTop: 6, minHeight: 44, minWidth: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontFamily: 'inherit' }}>生成预览</button>
           {预览 && <div data-import-preview-table style={{ marginTop: 6, maxHeight: 180, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead><tr>{['学号', '姓名', '组号', '状态'].map(h => <th key={h} style={{ borderBottom: '1px solid var(--border)', padding: '3px 6px', textAlign: 'left' }}>{h}</th>)}</tr></thead>
@@ -1201,8 +1201,8 @@ function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek,
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>学期标签</span>
         <input value={label} onChange={e => setLabel(e.target.value)} style={{ width: 90, minHeight: 32, border: '1px solid var(--border-strong)', borderRadius: 6, fontSize: 12, padding: '0 8px', fontFamily: 'inherit' }} />
         <button data-onetouch-closeout disabled={!可用 || 跑中} onClick={() => 执行(null)}
-          style={{ minHeight: 40, border: 'none', background: 可用 && !跑中 ? 'var(--bad)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '0 16px', borderRadius: 8, cursor: 可用 && !跑中 ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>{跑中 ? '执行中…' : '一键收口'}</button>
-        <button onClick={() => set展开(!展开)} style={{ minHeight: 40, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 11, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>{展开 ? '收起' : '单步重试'}</button>
+          style={{ minHeight: 44, border: 'none', background: 可用 && !跑中 ? 'var(--bad)' : 'var(--border)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '0 16px', borderRadius: 8, cursor: 可用 && !跑中 ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>{跑中 ? '执行中…' : '一键收口'}</button>
+        <button onClick={() => set展开(!展开)} style={{ minHeight: 44, minWidth: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>{展开 ? '收起' : '单步重试'}</button>
       </div>
       {提示 && <div style={{ fontSize: 11, color: 'var(--bad)', marginTop: 4 }}>{提示}</div>}
       <div style={{ marginTop: 6 }}>
@@ -1227,7 +1227,7 @@ function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek,
           {steps.coldbackup.state !== '成功' && <div>（执行「一键收口」第②步后这里出清单）</div>}
           <div>服务器全量冷备（pg_dump + 前端包快照）＝管理员脚本：<code>bash scripts/server/closeout-semester.sh {label}</code>（目录只增不改）</div>
         </div>
-        <button data-coldbackup-verify onClick={校验} disabled={跑中} style={{ marginTop: 6, minHeight: 36, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--info)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
+        <button data-coldbackup-verify onClick={校验} disabled={跑中} style={{ marginTop: 6, minHeight: 44, minWidth: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', color: 'var(--info)', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
         {校验果 && <div style={{ fontSize: 11, color: 校验果.全过 ? 'var(--good)' : 'var(--bad)', marginTop: 4 }}>{校验果.通过}/{校验果.总数} 通过{校验果.全过 ? '' : ' · ' + 校验果.明细.filter(x => !x.ok).map(x => x.名 + '（' + x.why + '）').join('、')}</div>}
       </div>
       {/* §3 归档管理（服务端归档记录 · 文件名含 class_code+学期标签 · 只增不改 ⇒ 不提供删除） */}
@@ -1240,7 +1240,7 @@ function OneTouchCloseoutPanel({ filterClass, user, 班级学期状态, maxWeek,
             <span style={{ color: 'var(--text-muted)' }}>{r.class_code} · {(r.updated_at || '').replace('T', ' ').slice(0, 16)}</span>
             <span style={{ color: r.semester_status === 'archived' ? 'var(--good)' : 'var(--text-muted)' }}>{r.semester_status || ''}</span>
             <button onClick={async () => { const v = await 校验冷备(r.files || {}, sha256Hex); set行校验({ ...行校验, [i]: v }) }}
-              style={{ minHeight: 28, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 10, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
+              style={{ minHeight: 44, minWidth: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>校验</button>
             {行校验[i] && <span style={{ color: 行校验[i].全过 ? 'var(--good)' : 'var(--bad)' }}>{行校验[i].通过}/{行校验[i].总数}{行校验[i].全过 ? '' : ' ✗ ' + 行校验[i].明细.filter(x => !x.ok).map(x => x.名).join('、')}</span>}
             {(r.files || {})['学期快照.json'] && (r.files['学期快照.json'].content != null) && (
               <button onClick={() => { const c = r.files['学期快照.json'].content; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], { type: 'application/json' })); a.download = `学期归档-${r.class_code}-${r.label || '学期'}.json`; a.click(); URL.revokeObjectURL(a.href) }}
