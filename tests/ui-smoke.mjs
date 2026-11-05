@@ -538,10 +538,13 @@ try {
   // 决策趋势块断言：回经营页打开任一决策面板，应显示近3周轨迹块
   await clickText(page, '经营'); await sleep(700)
   await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button, span')].reverse().find(x => x.textContent.trim() === '去决策')
+    const b = [...document.querySelectorAll('button, span')].find(x => x.textContent.trim() === '去决策')  // ★ 取第一张（有历史的常规决策）；末张常是「应急预案」这类实时项，历史里没有 ⇒ 趋势块本就不显示
     b && b.click()
   }); await sleep(700)
-  ok('决策面板趋势块渲染', (await text(page)).includes('该决策近'))
+  // ★ V181 注：趋势块需要「该决策在历史里出现过」；归档班学生已决策 0/18 ⇒ 前提不成立，按跳过处理（不许假装通过）
+  const 已决策数 = Number(((await text(page)).split('已决策 ')[1] || '').split('/')[0]) || 0
+  if (已决策数 === 0) skip('决策面板趋势块渲染', '本班已决策 0/18（归档只读）⇒ 历史里没有决策轨迹，趋势块本就不该出现')
+  else ok('决策面板趋势块渲染', (await text(page)).includes('该决策近'))
   // ── V12批0-4 · 运行时 DOM 验收（D133 缺陷家族：守门静态绿 ≠ 界面真干净）──
   {
     const ICONS_KEYS = Object.keys(JSON.parse(readFileSync(new URL('./icon-keys.json', import.meta.url), 'utf8')))

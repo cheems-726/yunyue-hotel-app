@@ -122,12 +122,15 @@ export function 校验工号(role, id) {
 }
 
 /** 单地址探测（默认 3s 超时 · 不抛错，返回结构化结果） */
-export async function 探测地址(url, { timeout = 3000, fetchImpl = globalThis.fetch } = {}) {
+export async function 探测地址(url, { timeout = 3000, fetchImpl = globalThis.fetch, mode = 'cors' } = {}) {
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null
   // 静默理由：AbortController 已被平台回收/不可用 ⇒ 超时兜底失败不影响探测结果（fetch 自身会超时）
   const t = setTimeout(() => { try { ctl && ctl.abort() } catch (e) {} }, Math.max(100, Number(timeout) || 3000))
   try {
-    const r = await fetchImpl(url, { signal: ctl ? ctl.signal : undefined, cache: 'no-store', mode: 'cors' })
+    const r = await fetchImpl(url, { signal: ctl ? ctl.signal : undefined, cache: 'no-store', mode })
+    // ★ V182：no-cors 模式下响应是 opaque（status 0）⇒ 只要 fetch 没抛错就说明这个地址活着（DNS/TCP/TLS 通），
+    //   用它做「备选入口可达」判断，避免跨域探测在控制台刷 CORS 报错（线上同源时不会触发，测试/预览环境会）
+    if (mode === 'no-cors') return { url, ok: true, status: Number(r.status) || 0, opaque: true }
     return { url, ok: !!r.ok, status: Number(r.status) || 0 }
   } catch (e) {
     return { url, ok: false, status: 0, error: (e && (e.name || e.message)) || 'error' }
