@@ -3,6 +3,8 @@ import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略, 区位消费行, 格式化消费水平 } from './siteLocations.mjs'   // ★ 修：V94 用了 区位消费行() 但漏 import（运行时 ReferenceError ⇒ 选址页崩）
 import RadarChart from './RadarChart.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
+import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（预言弹窗可取消）
+import { useEscClose } from './useEscClose.mjs'   // ★ V186 · Esc = 取消弹窗（与「上一步」同义）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
 import { 选址过程分 } from './processScore.mjs'   // ★ V128-#1：承诺书评分单源（学生端/教师端共用）
 
@@ -114,6 +116,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
   const [预言s, set预言s] = useState({})        // { 区名: { 竞品档, 租金档, 置信度, 证据 } }
   const [预言弹, set预言弹] = useState(null)     // 待预言的区名（不填 ⇒ 数据卡不解锁 · 可证伪 RV）
   const [草稿, set草稿] = useState({ 竞品档: '', 租金档: '', 置信度: '' })
+  const [草稿区, set草稿区] = useState(null)   // ★ V186：草稿归属区 —— 返回后再点同一区恢复草稿，换区才清空
   const [承诺书, set承诺书] = useState(null)     // { 假设, 为何不是, 打脸维, 反对意见, 验尸, 时间 } —— 提交后**不可编辑**
   const [承诺弹, set承诺弹] = useState(false)
   const [承诺草稿, set承诺草稿] = useState({ 假设: '', 为何不是: '', 打脸维: '', 反对意见: '', 验尸: '' })
@@ -163,20 +166,30 @@ export default function SiteSelection({ onConfirm, onLog }) {
   }
 
   // ★ V109-T1：**先押注 → 再揭示**。没做预言 ⇒ 数据卡**解锁不了**（可证伪 RV）
+  //   ★ V186：返回不落库 —— 草稿按区保留（同区重开还在，换区才清）
   function handleDistrictClick(d) {
-    if (!预言s[d.name]) { set预言弹(d.name); set草稿({ 竞品档: '', 租金档: '', 置信度: '' }); return }
+    if (!预言s[d.name]) {
+      set预言弹(d.name)
+      if (草稿区 !== d.name) { set草稿({ 竞品档: '', 租金档: '', 置信度: '' }); set草稿区(d.name) }
+      return
+    }
     setSelected(d.name)
     setFeedback(siteResult(d))
   }
 
+  // ★ V186：返回上一步 = 只关弹窗（不写 预言s、不写 decision_logs · 草稿保留）
+  function 返回预言() { set预言弹(null) }
+  useEscClose(!!预言弹, 返回预言)   // Esc = 取消（与「上一步」同义）
+
   function 提交预言() {
     if (!草稿.竞品档 || !草稿.租金档 || !草稿.置信度) return    // 三项必填
     const name = 预言弹
+    const isRebet = !!预言s[name]   // ★ V186：重押（覆盖旧值 · 仅承诺书签署前可入口）
     const p = { ...草稿, 证据: 真值(name), 时间: new Date().toISOString() }
     set预言s(s => ({ ...s, [name]: p }))
     const d = 全部区.find(x => x.name === name)
     if (d) { setSelected(name); setFeedback(siteResult(d)) }      // 提交后**才解锁**
-    onLog && onLog({ id: 'location-prediction', answer: `${name}｜竞品${p.竞品档}｜租金${p.租金档}｜把握${p.置信度}%`, feedback: `预言已记（计分：命中率×置信度校准）` })
+    onLog && onLog({ id: isRebet ? 'location-prediction-rebet' : 'location-prediction', answer: `${name}｜竞品${p.竞品档}｜租金${p.租金档}｜把握${p.置信度}%`, feedback: isRebet ? '预言已重押（覆盖旧值 · 计分按最新）' : `预言已记（计分：命中率×置信度校准）` })
     set预言弹(null)
   }
 
@@ -467,10 +480,19 @@ export default function SiteSelection({ onConfirm, onLog }) {
               </div>
             ) })()}
             {!承诺书 ? (
-              <button className="btn" style={{ width: '100%', padding: '10px 0' }} disabled={!p}
-                onClick={() => { set承诺草稿({ 假设: '', 为何不是: '', 打脸维: '', 反对意见: '', 验尸: '' }); set承诺弹(true) }}>
-                {p ? '写承诺书（4 项必填）→' : '先完成「选址前预言」才能写承诺书'}
-              </button>
+              <>
+                <button className="btn" style={{ width: '100%', padding: '10px 0' }} disabled={!p}
+                  onClick={() => { set承诺草稿({ 假设: '', 为何不是: '', 打脸维: '', 反对意见: '', 验尸: '' }); set承诺弹(true) }}>
+                  {p ? '写承诺书（4 项必填）→' : '先完成「选址前预言」才能写承诺书'}
+                </button>
+                {/* ★ V186④：押错档可重押 —— 已提交预言 + 承诺书未签 ⇒ 覆盖旧值（签署后此按钮消失，不可回改） */}
+                {p && (
+                  <button className="btn btn-ghost" style={{ width: '100%', padding: '9px 0', marginTop: 8 }}
+                    onClick={() => { set草稿({ 竞品档: String(p.竞品档), 租金档: String(p.租金档), 置信度: String(p.置信度) }); set草稿区(selected); set预言弹(selected) }}>
+                    ‹ 重新押注（承诺书签署前可改 · 覆盖旧值并留一条「重押」记录）
+                  </button>
+                )}
+              </>
             ) : (
               <div style={{ fontSize: 12, lineHeight: 1.7 }}>
                 <div>① 客群假设：{承诺书.假设}</div>
@@ -504,9 +526,10 @@ export default function SiteSelection({ onConfirm, onLog }) {
       </div>
 
       {/* ★ V109-T1：选址前「预言」弹窗 —— **不填 ⇒ 数据卡解锁不了**（反例 RV） */}
+      {/* ★ V186：不再是唯一出口 —— 遮罩点击/Esc/「‹ 返回上一步（不提交）」都可退出，草稿保留、不落库 */}
       {预言弹 && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-          <div className="card" style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
+        <div onClick={返回预言} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
             <div className="card-title">选址前预言 · {预言弹}</div>
             <div style={{ fontSize: 12, color: 'var(--text-sub)', margin: '6px 0 12px' }}>**先押注，再看数据** —— 提交三项预言后才解锁该区的六维数据卡。</div>
             {[['该区竞品密度在 24 区里排第几', '竞品档', ['前1/3', '中1/3', '后1/3']],
@@ -522,7 +545,10 @@ export default function SiteSelection({ onConfirm, onLog }) {
                 </div>
               </div>
             ))}
-            <button className="btn-confirm" style={{ width: '100%' }} disabled={!草稿.竞品档 || !草稿.租金档 || !草稿.置信度} onClick={提交预言}>提交预言并解锁数据卡 →</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <StepBack onBack={返回预言} label="‹ 返回上一步（不提交）" style={{ flex: 1 }} />
+              <button className="btn-confirm" style={{ flex: 2 }} disabled={!草稿.竞品档 || !草稿.租金档 || !草稿.置信度} onClick={提交预言}>提交预言并解锁数据卡 →</button>
+            </div>
           </div>
         </div>
       )}
