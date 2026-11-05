@@ -50,8 +50,14 @@ async function closeOverlay(page) {
   await sleep(250)
 }
 async function clickStep(page, t) {
-  await page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
-  await sleep(400)
+  // ★ V187 热修：V186 已禁止「圆圈前跳」⇒ 已在目标步=空操作，否则点【下一步/完成】
+  await page.evaluate((t) => {
+    const title = (document.querySelector('.card-title') && document.querySelector('.card-title').textContent) || ''
+    if (title.includes(t)) return
+    const b = [...document.querySelectorAll('button')].find(x => !x.disabled && /完成「|完成筹建/.test(x.textContent))
+    if (b) b.click()
+  }, t)
+  await sleep(500)
 }
 async function assertTasksOverlay(page, 标签) {
   const t = await text(page)

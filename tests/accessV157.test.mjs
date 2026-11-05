@@ -24,7 +24,18 @@ const browser = await chromium.launch({ executablePath: EDGE, headless: true })
 // 到经营页（同 interactionV154 流程）
 async function 进经营(page) {
   const clickText = async (t) => page.evaluate((t) => { const items = [...document.querySelectorAll('button, div, span')].filter(x => x.children.length === 0); const el = items.find(x => x.textContent.includes(t)); if (el) { el.click(); return true } return false }, t)
-  const clickCard = async (t) => { const d = await page.evaluate((t) => { const c = [...document.querySelectorAll('.district-card')].find(x => x.textContent.includes(t)); if (c) { c.click(); return true } return false }, t); if (!d) await clickText(t) }
+  const clickCard = async (t) => {
+    const d = await page.evaluate((t) => {
+      const c = [...document.querySelectorAll('.district-card')].find(x => x.textContent.includes(t))
+      if (c) { c.click(); return true }
+      // ★ V187：情景卡是普通 div + onClick（无 .district-card）⇒ 找「最内层匹配 div」点它（冒泡到卡片）
+      const all = [...document.querySelectorAll('div')].filter(x => x.textContent.trim().startsWith(t))
+      const deepest = all.filter(x => !all.some(y => y !== x && x.contains(y)))
+      if (deepest[0]) { deepest[0].click(); return true }
+      return false
+    }, t)
+    if (!d) await clickText(t)
+  }
   const clickBtn = async (re) => page.evaluate((src) => { const re2 = new RegExp(src); const b = [...document.querySelectorAll('button')].find(x => !x.disabled && re2.test(x.textContent)); if (b) { b.click(); return true } return false }, re.source)
   const hasOverlay = () => page.evaluate(() => !![...document.querySelectorAll('div')].find(d => d.style.position === 'fixed' && d.textContent.includes('你的选择会带来')))
   const closeOverlay = async () => { await clickText('明白了'); await sleep(250) }
@@ -59,7 +70,13 @@ async function 进经营(page) {
   if (await hasOverlay()) await closeOverlay()
   await page.evaluate(() => { const c = document.querySelector('[data-tier="装修"][data-val="低"]'); if (c) c.click() }); await sleep(350)
   await page.evaluate(() => { const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成「投资测算」')); if (n) n.click() }); await sleep(550)
-  const 步 = (t) => page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
+  // ★ V187 热修：V186 已禁止「圆圈前跳」⇒ 已在目标步=空操作，否则点【下一步】
+  const 步 = (t) => page.evaluate((t) => {
+    const title = (document.querySelector('.card-title') && document.querySelector('.card-title').textContent) || ''
+    if (title.includes(t)) return 'already'
+    const b = [...document.querySelectorAll('button')].find(x => !x.disabled && /完成「|完成筹建/.test(x.textContent))
+    if (b) { b.click(); return 'next' } return 'stuck'
+  }, t)
   await 步('证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(n); await sleep(350)

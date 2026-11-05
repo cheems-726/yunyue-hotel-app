@@ -28,7 +28,16 @@ async function clickCard(pg, t, mode = 'includes') {
     if (el) { el.click(); return true }
     return false
   }, { t, mode })
-  if (!done) await clickText(pg, t, mode)
+  if (done) return
+  // ★ V187：情景卡/开业任务卡是普通 div + onClick（无 .district-card）⇒ 找「最内层匹配 div」点它（冒泡到卡片）
+  const done2 = await pg.evaluate(({ t, mode }) => {
+    const all = [...document.querySelectorAll('div')].filter(x => mode === 'starts' ? x.textContent.trim().startsWith(t) : x.textContent.includes(t))
+    const deepest = all.filter(x => !all.some(y => y !== x && x.contains(y)))
+    const el = deepest[0]
+    if (el) { el.click(); return true }
+    return false
+  }, { t, mode })
+  if (!done2) await clickText(pg, t, mode)
 }
 const clickBtn = async (pg, re, exact = false) => pg.evaluate(({ src, exact }) => {
   const re2 = new RegExp(src)
@@ -96,7 +105,13 @@ async function 进经营(page) {
   if (await hasOverlay(page)) await closeOverlay(page)
   await page.evaluate(() => { const c = document.querySelector('[data-tier="装修"][data-val="低"]'); if (c) c.click() }); await sleep(350)
   await page.evaluate(() => { const n = [...document.querySelectorAll('button')].find(x => !x.disabled && x.textContent.includes('完成「投资测算」')); if (n) n.click() }); await sleep(550)
-  const 步 = async (t) => page.evaluate((t) => { const sp = [...document.querySelectorAll('span')].find(x => x.textContent === t); const c = sp && sp.previousElementSibling; c && c.click() }, t)
+  // ★ V187 热修：V186 已禁止「圆圈前跳」⇒ 已在目标步=空操作，否则点【下一步】
+  const 步 = async (t) => page.evaluate((t) => {
+    const title = (document.querySelector('.card-title') && document.querySelector('.card-title').textContent) || ''
+    if (title.includes(t)) return 'already'
+    const b = [...document.querySelectorAll('button')].find(x => !x.disabled && /完成「|完成筹建/.test(x.textContent))
+    if (b) { b.click(); return 'next' } return 'stuck'
+  }, t)
   await 步('证照办理')
   for (const n of ['申领营业执照', '刻章备案', '消防检查合格证', '特种行业经营许可证', '卫生许可证', '税务申报']) {
     await clickCard(page, n, 'starts'); await sleep(350)

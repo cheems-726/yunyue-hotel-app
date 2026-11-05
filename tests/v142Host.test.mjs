@@ -14,7 +14,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 for (let p = 4212; p <= 4230; p++) {
   if (!(await fetch(`http://localhost:${p}/`).then(() => true).catch(() => false))) { PORT = p; break }
 }
-server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: true, detached: true, windowsHide: true })
+// ★ V187 环境修：不再依赖 npx（本机用的是免安装 Node，npx 不一定在 PATH）⇒ 直接跑 vite CLI，并显式绑 127.0.0.1
+server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], { cwd: process.cwd(), stdio: 'ignore', detached: true, windowsHide: true })
 for (let i = 0; i < 40; i++) { if (await fetch(`http://localhost:${PORT}/`).then(r => r.ok).catch(() => false)) break; await sleep(300) }
 
 const browser = await chromium.launch({
