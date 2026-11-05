@@ -170,7 +170,7 @@ export default function Establishment({ brand, property, onComplete }) {
 
       {/* ★ V186：圆圈跳步被拦时的提示（一行 · 不弹窗） */}
       {跳步提示 && (
-        <div style={{ padding: '0 20px', marginBottom: 12, fontSize: 12, color: 'var(--bad)' }}>⚠ {跳步提示}</div>
+        <div style={{ padding: '0 20px', marginBottom: 12, fontSize: 12, color: 'var(--bad)' }}>注意：{跳步提示}</div>
       )}
 
       {/* 当前步骤内容 */}

@@ -43,7 +43,7 @@ console.log('\n[3] 预言弹窗（§3.1）')
   const 返回体 = (site.match(/function 返回预言\(\) \{([^}]*)\}/) || [])[1] || ''
   ok(!/set预言s/.test(返回体) && !/onLog/.test(返回体), '返回函数体内无 set预言s / 无 onLog（不写 decision_logs）')
   ok(/useEscClose\(!!预言弹, 返回预言\)/.test(site), 'Esc = 取消（与「上一步」同义）')
-  ok(/onClick=\{返回预言\}[\s\S]{0,200}<div className="card" onClick=\{e => e\.stopPropagation\(\)\}/.test(site), '遮罩点击 = 返回 + 卡片 stopPropagation')
+  ok(/onClick=\{返回预言\}[\s\S]{0,200}<div className="card"[^>]*onClick=\{e => e\.stopPropagation\(\)\}/.test(site), '遮罩点击 = 返回 + 卡片 stopPropagation')
   ok(/set草稿区/.test(site) && /草稿区 !== d\.name/.test(site), '草稿按区保留（同区重开还在 · 换区才清）')
   ok(/重新押注/.test(site) && /\{p && \(/.test(site), '「重新押注」入口存在且仅在已押注时出现')
   ok(!/承诺书 &&[\s\S]{0,80}重新押注/.test(site), '重押入口不在承诺书已签分支（签署后消失 ⇒ 判据 4）')
