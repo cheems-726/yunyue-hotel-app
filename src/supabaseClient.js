@@ -230,6 +230,9 @@ export async function fetchClassState(classCode) {
       续营开关: data.continue_enabled === true,
       // ★ V157 阶段1：学期状态机（draft/running/finished/archived）。迁移未应用 ⇒ undefined ⇒ 'running'（等价改动前行为）
       学期状态: ['draft', 'running', 'finished', 'archived'].includes(data.semester_status) ? data.semester_status : 'running',
+      // ★ V185：本班开课日/教师偏移（客户端算本班 classDay 用；class_day_now RPC 是全局口径，多班时会串）
+      start_date: data.start_date || null,
+      teacher_offset_days: Number(data.teacher_offset_days) || 0,
       通道就绪: true,
     }
   }

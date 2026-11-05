@@ -2721,7 +2721,7 @@ export default function App() {
   useEffect(() => {
     if (!user?.cloud) return
     let 活 = true
-    const 拉 = () => fetchClassState().then(cs => {
+    const 拉 = () => fetchClassState(user?.className).then(cs => {   // ★ V184：按本班定位，原来不传 ⇒ 恒定读 酒管2401（多班时演示班读到别的班状态）
       if (!活) return
       setClassInj(Array.isArray(cs.injected_events) ? cs.injected_events : [])
       setClassSupAuth(cs.supervisor_auth || null)
@@ -2733,7 +2733,7 @@ export default function App() {
     const onVis = () => { if (!document.hidden) 拉() }
     document.addEventListener('visibilitychange', onVis)
     return () => { 活 = false; document.removeEventListener('visibilitychange', onVis) }
-  }, [user?.cloud])
+  }, [user?.cloud, user?.className])   // ★ V184：班名到位（profile 晚到）时要重拉，否则一直读默认班
   const 本组键 = groupKeyOf(user?.className, user?.groupNo)
   // 本周生效的注入（week 匹配 + 目标匹配：targets=null ⇒ 全班；否则要含本组键）
   const 本周注入 = (Array.isArray(classInj) ? classInj : []).filter(e => e && Number(e.week) === Number(week) && (!Array.isArray(e.targets) || e.targets.includes(本组键)))
@@ -2754,10 +2754,23 @@ export default function App() {
   const [serverClassDay, setServerClassDay] = useState(null)
   useEffect(() => {
     let 活 = true
-    // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
-    fetchClassDay().then(d => { if (活 && Number(d) > 0) setServerClassDay(Number(d)) }).catch(() => {})
+    // ★ V185（2026-11-05）：**先按本班算**（class_state.start_date + teacher_offset_days），
+    //   class_day_now 是全局 RPC —— 多班并存时会给演示班算出别的班的周次（实测：演示班第1周却显示第15周）。
+    ;(async () => {
+      try {
+        const cs = await fetchClassState(user?.className)
+        if (活 && cs && cs.start_date) {
+          const 起 = Date.parse(cs.start_date + 'T00:00:00Z')
+          const 今 = Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
+          const d = Math.max(1, Math.floor((今 - 起) / 86400000) + 1 + (Number(cs.teacher_offset_days) || 0))
+          if (Number.isFinite(d) && d > 0) { setServerClassDay(d); return }
+        }
+      } catch (e) { /* 落回全局 RPC */ }
+      const d = await fetchClassDay().catch(() => 0)
+      if (活 && Number(d) > 0) setServerClassDay(Number(d))
+    })()
     return () => { 活 = false }
-  }, [])
+  }, [user?.cloud, user?.className])
   const 权威日 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? serverClassDay : classDayLocal
   const 日来源 = Number.isFinite(serverClassDay) && serverClassDay > 0 ? 'server' : 'local'
   // ★ §32-U8-补 §2③：补算判定（离线默认最差标注的闸）—— 被结算周 < 当前教学周 ⇒ 该周是"补算"
