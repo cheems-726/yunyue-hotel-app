@@ -5,6 +5,7 @@ import RadarChart from './RadarChart.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（预言弹窗可取消）
 import { useEscClose } from './useEscClose.mjs'   // ★ V186 · Esc = 取消弹窗（与「上一步」同义）
+import { useWizardBack } from './useWizardBack.mjs'   // ★ V186 · Alt+← / 鼠标侧键 = 弹窗返回（仅弹窗开着时）
 import GeoMap from './GeoMap.jsx'   // V52 · 真实行政边界地图（DataV GeoJSON · 静态内置 · 芯片列表保留为回退）
 import { 选址过程分 } from './processScore.mjs'   // ★ V128-#1：承诺书评分单源（学生端/教师端共用）
 
@@ -180,6 +181,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
   // ★ V186：返回上一步 = 只关弹窗（不写 预言s、不写 decision_logs · 草稿保留）
   function 返回预言() { set预言弹(null) }
   useEscClose(!!预言弹, 返回预言)   // Esc = 取消（与「上一步」同义）
+  useWizardBack(!!预言弹, 返回预言)   // Alt+← / 鼠标侧键 = 同一返回（仅弹窗开着时 · 不劫持经营页）
 
   function 提交预言() {
     if (!草稿.竞品档 || !草稿.租金档 || !草稿.置信度) return    // 三项必填

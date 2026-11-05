@@ -9,6 +9,7 @@ import { 读宣言, 写宣言, 缺哪些 } from './choiceReasons.mjs'   // V113-
 import WhyNot from './WhyNot.jsx'   // V113-1.3：每步取舍句
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（筹建 1–3 步可回改）
+import { useWizardBack } from './useWizardBack.mjs'   // ★ V186 · Alt+← / 鼠标侧键 = 上一步（仅向导内）
 import { 证照信息, 来源行, 通用免责, 未核实项 } from './premiseInfo.mjs'   // ★ V115-② B-13：未核实项要露出来   // V53 · 成都/德阳本地官方信息（分级标注 · 不编造）
 
 // 档位清单 = 装修 + 四个附加项（顺序固定，界面按它渲染）
@@ -103,6 +104,8 @@ export default function Establishment({ brand, property, onComplete }) {
   function prev() {
     if (currentStep > 0) setCurrentStep(currentStep - 1)
   }
+  // ★ V186 §3.5：Alt+← / 鼠标侧键 = 上一步（仅第 1–3 步生效 · 第 0 步/经营页不拦浏览器后退）
+  useWizardBack(currentStep > 0, prev)
   // ★ V186 §3.3②：圆圈旁路堵上 —— 只许回点已完成步；向前跳未完成步被拦 + 提示（与下一步按钮同一判据）
   const [跳步提示, set跳步提示] = useState('')
   function 圆圈跳步(i) {

@@ -11,6 +11,7 @@ import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS
 import { 房量装得下 } from './brandFit.mjs'   // ★ V113-1.2：房量装不下 ⇒ 禁止认领
 import WhyNot from './WhyNot.jsx'
 import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（认领 1–5 步可回改）
+import { useWizardBack } from './useWizardBack.mjs'   // ★ V186 · Alt+← / 鼠标侧键 = 上一步（仅向导内）
 import { 认领取舍项, 取舍摘要, 本步可继续 } from './claimChoices.mjs'   // ★ V131 §1-C：6 步真取舍
 import { 理由合格 } from './keyReasons.mjs'   // ★ V113-1.3：每步一句取舍   // ★ V113-0.1：物业事实表 + 房量测算器（本组件不再自带数据/结论）
 
@@ -103,6 +104,8 @@ export default function Claim({ brand, location, onComplete }) {
   function prev() {
     if (step > 0) setStep(step - 1)
   }
+  // ★ V186 §3.5：Alt+← / 鼠标侧键 = 上一步（仅第 1–5 步生效 · 第 0 步/经营页不拦浏览器后退）
+  useWizardBack(step > 0, prev)
 
   return (
     <div className="content">
