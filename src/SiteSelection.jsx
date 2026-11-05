@@ -531,7 +531,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
       {/* ★ V186：不再是唯一出口 —— 遮罩点击/Esc/「‹ 返回上一步（不提交）」都可退出，草稿保留、不落库 */}
       {预言弹 && (
         <div onClick={返回预言} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
-          <div className="card" onClick={e => e.stopPropagation()} style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
+          <div className="card" data-pred-modal="1" onClick={e => e.stopPropagation()} style={{ width: 'min(94vw, 420px)', padding: 16, background: 'var(--card)' }}>
             <div className="card-title">选址前预言 · {预言弹}</div>
             <div style={{ fontSize: 12, color: 'var(--text-sub)', margin: '6px 0 12px' }}>**先押注，再看数据** —— 提交三项预言后才解锁该区的六维数据卡。</div>
             {[['该区竞品密度在 24 区里排第几', '竞品档', ['前1/3', '中1/3', '后1/3']],
@@ -541,7 +541,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
                 <div style={{ fontSize: 12, marginBottom: 5 }}>{label}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {opts.map(o => (
-                    <button key={o} className={`btn ${草稿[key] === o ? '' : 'btn-ghost'}`} style={{ flex: 1, padding: '9px 0', fontSize: 12 }}
+                    <button key={o} data-pred-opt={`${key}:${o}`} className={`btn ${草稿[key] === o ? '' : 'btn-ghost'}`} style={{ flex: 1, padding: '9px 0', fontSize: 12 }}
                       onClick={() => set草稿(s => ({ ...s, [key]: o }))}>{o}{key === '置信度' ? '%' : ''}</button>
                   ))}
                 </div>
