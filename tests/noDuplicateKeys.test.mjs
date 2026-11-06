@@ -15,24 +15,33 @@ const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } 
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).map(l => l.replace(/\/\/.*$/, '')).join('\n')
 
 // 扫描器：字符级游走，按 {} / [] 维护作用域栈，逐层统计键名
+// ★ V187 性能修：原实现每字符都 `code.slice(0,i).match()` + 行号也 slice ⇒ O(n²)，
+//   在 App.jsx（253KB）上会跑成"看起来挂死"（实测 28 分钟 100% CPU、无输出）。
+//   现改为：行号随扫描递增 + 只在「可能的键首字符」处向前跳过空白看前一个非空白字符（O(1) 摊销）。
 export function findDuplicateKeys(code) {
   const hits = []
   const stack = []
-  const lineOf = (pos) => code.slice(0, pos).split('\n').length
+  let line = 1
   let i = 0
+  const prevNonSpace = (pos) => {
+    let j = pos - 1
+    while (j >= 0 && /\s/.test(code[j])) j--
+    return j >= 0 ? code[j] : ''
+  }
   while (i < code.length) {
     const c = code[i]
+    if (c === '\n') { line++; i++; continue }
     if (c === '{' || c === '[') { stack.push({ kind: c, keys: new Map() }); i++; continue }
     if (c === '}' || c === ']') { stack.pop(); i++; continue }
     // 键判定：前面（跳过空白）必须是 { 或 , —— 排掉三元/标签/case
-    const prev = code.slice(0, i).match(/(\S)\s*$/)?.[1]
-    if (stack.length && (prev === '{' || prev === ',')) {
+    if (stack.length && /[\w'"]/.test(c) && (prevNonSpace(i) === '{' || prevNonSpace(i) === ',')) {
       const m = /^(?:(\w+)|'([^']+)'|"([^"]+)")\s*:/.exec(code.slice(i, i + 80))
       if (m) {
         const name = m[1] ?? m[2] ?? m[3]
         const top = stack[stack.length - 1]
-        if (top.keys.has(name)) hits.push({ line: lineOf(i), name, firstLine: top.keys.get(name), scope: top.kind })
-        else top.keys.set(name, lineOf(i))
+        if (top.keys.has(name)) hits.push({ line, name, firstLine: top.keys.get(name), scope: top.kind })
+        else top.keys.set(name, line)
+        for (let k = 0; k < m[0].length; k++) if (code[i + k] === '\n') line++
         i += m[0].length
         continue
       }
