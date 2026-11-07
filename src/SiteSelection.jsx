@@ -212,7 +212,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
         <span className="step-tag">第一步 · 选址</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店所在地</h1>
         <div className="sub">每个区县都有代价，选对位置决定酒店生死</div>
-        <GuideTip k="site">第一次来这里：先点开感兴趣的区县，看它的数据卡（客流/租金等六维与客群画像），比较两三个再点下方「确认选址」——确认后本学期不可更改。</GuideTip>
+        <GuideTip k="site">第一次来这里：先点开感兴趣的区县，看它的数据卡（客流/租金等六维与客群画像），比较两三个再点下方「确认选址」——确认后仍可退回重选（会清空后续品牌/物业/筹建）。</GuideTip>
       </div>
 
       {/* 简易地图总览：按地理方位摆放区县，点芯片直接选中 */}
@@ -474,7 +474,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
         const 真 = 真值(selected); const p = 预言s[selected]; const ps = 承诺书 ? 过程分(承诺书) : null
         return (
           <div className="card" style={{ margin: '0 20px 6px', padding: 14 }}>
-            <div className="card-title">选址承诺书（签署后不可编辑 · 确认后本学期不可改）</div>
+            <div className="card-title">选址承诺书（签署后不可编辑 · 确认后可退回重选）</div>
             {p && (() => { const sc = 预言分(p, selected); return (
               <div style={{ fontSize: 12, background: 'var(--bg)', borderRadius: 6, padding: '6px 8px', marginBottom: 8 }}>
                 <b>你的预言 vs 真值</b>：竞品密度 你押「{p.竞品档}」/ 真值「{真.竞品档}」{p.竞品档 === 真.竞品档 ? ' ✓' : ' ✗'} · 租金 你押「{p.租金档}」/ 真值「{真.租金档}」{p.租金档 === 真.租金档 ? ' ✓' : ' ✗'}
@@ -524,7 +524,7 @@ export default function SiteSelection({ onConfirm, onLog }) {
           {!selected ? '请选择一个区县' : (!承诺书 ? '写完承诺书后才能确认选址' : `确认选址 ${selected}，进入选品牌 →`)}
         </button>
         {/* V54批2 缺口3：不可逆预告（S1 选定后无反悔入口属设计 · 界面须提前说明） */}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>选址确认后本学期不可更改（不设反悔入口——真实加盟选址同样不可逆，确认前想清楚）</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>选址确认后仍可退回重选（会清空品牌/物业/筹建；真实加盟不可逆，这里给你试错）</div>
       </div>
 
       {/* ★ V109-T1：选址前「预言」弹窗 —— **不填 ⇒ 数据卡解锁不了**（反例 RV） */}

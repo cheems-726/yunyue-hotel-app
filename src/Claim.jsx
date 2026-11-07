@@ -28,7 +28,7 @@ const claimSteps = [
 // ★ V113-0.1：候选物业表已移到 `src/propertyCatalog.mjs`（纯数据 · 事实字段 · 无 match/无预设房量），
 //   由门禁直接 import 断言（tests/propertyFacts.test.mjs）。本组件只负责展示与交互。
 
-export default function Claim({ brand, location, onComplete }) {
+export default function Claim({ brand, location, onComplete, onBackToBrand }) {
   const [step, setStep] = useState(0)
   const [bizMode, setBizMode] = useState(null) // 'direct' | 'ota'
   const [selectedProperty, setSelectedProperty] = useState(null)
@@ -114,9 +114,9 @@ export default function Claim({ brand, location, onComplete }) {
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>认领一家酒店</h1>
         <div className="sub">{brand.name}品牌 · {location?.district} · 走完加盟流程正式认领</div>
         <GuideTip k="claim">现在是第 {step + 1}/6 步：每步都要做一个有代价的取舍（选完会显示你放弃了什么），没有纯确认步；点「上一步」可回改。</GuideTip>
-        {/* ★ V186 §3.2②/§3.4：第 0 步不可返回（品牌已确认属不可逆）—— 不渲染返回控件，给一行原因 */}
+        {/* ★ V188-b：品牌可退回重选（用户令：任何情况不锁死）*/}
         {step === 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>上一步已不可返回：品牌已确认（本学期不可更改）· 需要换品牌请老师走重置</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>品牌可重选：点下方「‹ 返回品牌」会清空已填的认领内容</div>
         )}
       </div>
 
@@ -415,6 +415,12 @@ export default function Claim({ brand, location, onComplete }) {
 
       {/* 底部按钮（★ V186：上一步统一走 StepBack · 次要按钮左/主按钮右） */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>
+        {step === 0 && onBackToBrand && (
+          <button type="button" className="btn btn-ghost" style={{ padding: '12px 0', flex: 1 }}
+            onClick={() => { if (window.confirm('返回品牌重选会清空已填的认领内容，确定？')) onBackToBrand() }}>
+            ‹ 返回品牌<span style={{ fontSize: 12, opacity: 0.75 }}>（重选）</span>
+          </button>
+        )}
         {step > 0 && (
           <StepBack onBack={prev} sub="（已选内容可回改）" style={{ flex: 1 }} />
         )}

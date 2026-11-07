@@ -36,7 +36,7 @@ const licenses = [
   { name: '税务申报 + 领发票', dept: '税务部门', note: '初次纳税申报' },
 ]
 
-export default function Establishment({ brand, property, onComplete, onBackToBrand }) {
+export default function Establishment({ brand, property, onComplete, onBackToBrand, onBackToClaim, onBackToSite }) {
   const [currentStep, setCurrentStep] = useState(0)
   const [done, setDone] = useState({})
   const [opening, setOpening] = useState(false) // 开业庆祝反馈
@@ -81,7 +81,8 @@ export default function Establishment({ brand, property, onComplete, onBackToBra
     })
   }
   function stepSatisfied() {
-    if (currentStep === 0) return !!choices.invest && 账.可过   // ★ V113-1.1：超预算 ⇒ 点不动
+    // ★ V188-b：不再用预算锁死 —— 只要选了投资情景就能继续；超支只作预警（2026-11-08 用户令：任何情况都不锁死）
+    if (currentStep === 0) return !!choices.invest
     if (currentStep === 1) return licOrderCorrect // V54批2 缺口2：证照前后置排对才放行（不满足=不能点+说明原因）
     if (currentStep === 2) return !!choices.supplier
     if (currentStep === 3) return choices.opening.length === 3
@@ -127,9 +128,9 @@ export default function Establishment({ brand, property, onComplete, onBackToBra
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>门店筹建</h1>
         <div className="sub">{brand?.name}品牌 · {property?.name} · 完成筹建后开业</div>
         <GuideTip k="setup">筹建共 4 步，现在是第 {currentStep + 1} 步：按每步内的提示完成要求（选定一项/把证照顺序排对）才能点「下一步」；不确定就点卡片看详情。</GuideTip>
-        {/* ★ V186 §3.3③/§3.4：第 0 步不可返回（认领已完成属不可逆）—— 不渲染返回控件，给一行原因 */}
+        {/* ★ V188-b：随时可退回（用户令：任何情况不锁死）*/}
         {currentStep === 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>上一步已不可返回：认领已完成（本学期不可更改）</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>可随时退回：换物业 / 换品牌 / 换选址（见下方按钮）</div>
         )}
       </div>
 
@@ -173,6 +174,14 @@ export default function Establishment({ brand, property, onComplete, onBackToBra
         <div style={{ padding: '0 20px', marginBottom: 12, fontSize: 12, color: 'var(--bad)' }}>注意：{跳步提示}</div>
       )}
 
+      {/* ★ V188-b：随时可退回重选（用户令：任何情况都不锁死）*/}
+      <div data-stage-back style={{ padding: '0 20px', marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>随时可退回重选：</span>
+        {onBackToClaim && <button type="button" onClick={() => { if (window.confirm('退回认领（换物业）会清空筹建进度，确定？')) onBackToClaim() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换物业</button>}
+        {onBackToBrand && <button type="button" onClick={() => { if (window.confirm('退回品牌会清空物业与筹建进度，确定？')) onBackToBrand() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换品牌</button>}
+        {onBackToSite && <button type="button" onClick={() => { if (window.confirm('退回选址会清空品牌、物业与筹建进度（已发生的经营不回滚），确定？')) onBackToSite() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换选址</button>}
+      </div>
+
       {/* 当前步骤内容 */}
       <div className="card">
         <div className="card-title"><Icon name={step.icon} size={15} /> {step.title}</div>
@@ -182,20 +191,20 @@ export default function Establishment({ brand, property, onComplete, onBackToBra
 
       {currentStep === steps.length - 1 && <开店宣言面板 />}
 
-      {/* ★ V188：预算死锁的逃生口 —— 当前品牌按最低档也装不下时，允许「换品牌（保留选址）」 */}
-      {currentStep === 0 && choices.invest && 账 && !账.可过 && (
-        <div data-budget-deadlock style={{ margin: '0 20px 10px', padding: 14, borderRadius: 12, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bad)', marginBottom: 6 }}>
-            预算装不下：还差 {(((账.超支 || 0)) / 10000).toFixed(1)} 万（按最低档）
+      {/* ★ V188-b：预算只预警，不锁死（用户令 2026-11-08：任何情况都不锁死） */}
+      {currentStep === 0 && 账 && 账.超支 > 0 && (
+        <div data-budget-warn style={{ margin: '0 20px 10px', padding: 14, borderRadius: 12, background: 'var(--warn-bg)', border: '1px solid var(--warn-border)' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--warn)', marginBottom: 6 }}>
+            预算预警：超出 {(账.超支 / 10000).toFixed(1)} 万（不影响继续）
           </div>
           <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
-            品牌「{brand?.name || '—'}」筹建合计约 {((账.合计 || 0) / 10000).toFixed(1)} 万，预算 {((账.预算 || 0) / 10000).toFixed(0)} 万。
-            选址不用重来 —— 换一个更经济的品牌即可（认领的物业会清空，需要重选一次）。
+            品牌「{brand?.name || '—'}」按当前档位合计约 {((账.合计 || 0) / 10000).toFixed(1)} 万，筹建预算 {((账.预算 || 0) / 10000).toFixed(0)} 万。
+            超出的部分要靠开业后经营回补，前期资金链会更紧 —— 这只是风险提示，你可以继续。
           </div>
           <button type="button" data-back-to-brand
             onClick={() => { if (window.confirm('换品牌会清空已认领的物业（选址保留），确定回去重选品牌？')) onBackToBrand && onBackToBrand() }}
-            style={{ marginTop: 10, minHeight: 44, width: '100%', border: 0, borderRadius: 10, background: 'var(--bad)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            换品牌重选（保留选址）→
+            style={{ marginTop: 10, minHeight: 44, width: '100%', border: '1px solid var(--warn-border)', borderRadius: 10, background: 'var(--card)', color: 'var(--warn)', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            也可以换更经济的品牌（保留选址）→
           </button>
         </div>
       )}

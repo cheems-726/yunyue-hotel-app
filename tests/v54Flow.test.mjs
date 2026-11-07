@@ -40,9 +40,9 @@ ok(判据([1, 0, 2, 3, 4, 5]) === false, '③ 行为：营业执照不在第1位
 ok(src('Claim.jsx').includes('（已选内容可回改）'), '④ Claim 上一步带可回改提示')
 ok(est.includes('（已选内容可回改）'), '④ Establishment 上一步带可回改提示')
 
-// ⑤ 缺口3：不可逆预告（选址 + 品牌两处）
-ok(src('SiteSelection.jsx').includes('选址确认后本学期不可更改'), '⑤ 选址确认副文案：不可更改预告')
-ok(src('BrandSelection.jsx').includes('品牌确认后本学期不可更改'), '⑤ 品牌确认副文案：不可更改预告')
+// ⑤ 缺口3（V188-b 改口径：用户令"任何情况不锁死"）：选址/品牌确认后仍可退回重选（预告要诚实）
+ok(src('SiteSelection.jsx').includes('选址确认后仍可退回重选'), '⑤ 选址确认副文案：可退回重选（V188-b）')
+ok(src('BrandSelection.jsx').includes('品牌确认后仍可退回重选'), '⑤ 品牌确认副文案：可退回重选（V188-b）')
 
 // ⑥ 红线：本卡零结算口径改动 —— settlement.js 不得被本卡触碰（证照排序纯 UI，引擎无证照顺序入参）
 const settleSrc = src('settlement.js')

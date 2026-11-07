@@ -57,7 +57,7 @@ console.log('\n[4] 认领：第 1–5 步可返回 · 第 0 步不渲染返回 +
   ok(/import StepBack from '\.\/StepBack\.jsx'/.test(claim), '引入 StepBack')
   ok(/\{step > 0 && \(\s*<StepBack onBack=\{prev\}/.test(claim), '底栏：step>0 才渲染 StepBack')
   ok(/<StepBack variant="top"[\s\S]{0,120}onBack=\{prev\}/.test(claim), '顶栏 StepBack 与底栏同一 onBack')
-  ok(/上一步已不可返回：品牌已确认/.test(claim), '第 0 步给一行不可逆原因')
+  ok(/品牌可重选：点下方/.test(claim), '第 0 步给一行「可退回」说明（V188-b 改口径）')
   ok(/useWizardBack\(step > 0, prev\)/.test(claim), 'Alt+← / 侧键只在 step>0 生效')
 }
 
@@ -70,7 +70,7 @@ console.log('\n[5] 筹建：StepBack + 圆圈不能跳未完成步')
   ok(/onClick=\{\(\) => 圆圈跳步\(i\)\}/.test(est), '圆圈改走 圆圈跳步（RV-4：改回 setCurrentStep(i) ⇒ 红）')
   ok(/if \(i > currentStep && !done\[i\]\)/.test(est), '向前跳未完成步被拦（判据：i>currentStep 且该步未 done）')
   ok(/跳步提示\(`先完成第 \$\{currentStep \+ 1\} 步/.test(est), '拦截时给一行提示（不是静默无视）')
-  ok(/上一步已不可返回：认领已完成/.test(est), '第 0 步给一行不可逆原因')
+  ok(/可随时退回：换物业/.test(est), '第 0 步给一行「可退回」说明（V188-b 改口径）')
   ok(/useWizardBack\(currentStep > 0, prev\)/.test(est), 'Alt+← / 侧键只在 currentStep>0 生效')
 }
 
@@ -78,17 +78,16 @@ console.log('\n[5] 筹建：StepBack + 圆圈不能跳未完成步')
 console.log('\n[6] 不可逆点：有说明、无返回控件（负向断言 @HEAD）')
 {
   const brand = src('BrandSelection.jsx')
-  ok(/上一步已不可返回：选址已确认/.test(brand), '品牌页有「上一步已不可返回：选址已确认」说明行')
+  ok(/选址可重选：点上方/.test(brand), '品牌页有「选址可重选」说明行（V188-b）')
   ok(!/StepBack/.test(brand), '品牌页不渲染任何 StepBack（不可逆点不渲染返回控件）')
   const site = src('SiteSelection.jsx')
-  // 负向断言只针对【控件】—— 已有的结果反馈文案「…或返回选址重选」（BrandSelection:116 建议句）
-  // 不是返回入口，不算违反 §6；这里判的是"有没有可点的返回上一阶段的控件"。
-  const 全链 = site + brand + src('Claim.jsx') + src('Establishment.jsx')
-  const 返回控件 = [...全链.matchAll(/<button[^>]*>[^<]{0,40}返回(选址|品牌|认领)/g)].map(m => m[0])
-  const 返回aria = [...全链.matchAll(/aria-label="返回(选址|品牌|认领)"/g)].map(m => m[0])
-  ok(返回控件.length === 0 && 返回aria.length === 0,
-    `全链无「返回选址/返回品牌/返回认领」控件（§6 已拍板 A · RV-5：强加一个 ⇒ 本套件红）`,
-    返回控件.concat(返回aria).join(' | '))
+  // ★ V188-b（用户令 2026-11-08「任何情况都不需要锁死」）—— 原 §6-A「不放开跨阶段返回」已被推翻：
+  //   现在要求三个阶段各有一个「退回上一阶段」的控件，且必须带二次确认（防误点清空进度）。
+  //   RV：删掉任一处的返回按钮/确认 ⇒ 对应断言红。
+  ok(/返回品牌/.test(src('Claim.jsx')) && /换物业/.test(src('Establishment.jsx')) && /返回选址重选/.test(src('BrandSelection.jsx')),
+    '阶段级退回：品牌/认领/筹建三处都在（V188-b · 任何情况不锁死）')
+  ok(/window\.confirm/.test(src('Claim.jsx')) && /window\.confirm/.test(src('Establishment.jsx')) && /window\.confirm/.test(src('BrandSelection.jsx')),
+    '三处退回都有二次确认（防误点清空进度）')
 }
 
 // ── [7] 键盘/鼠标（§3.5 · RV-6）────────────────────────────────

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { 校验酒店名, 查重, 名字最短, 名字最长 } from './hotelName.mjs'
 
-export default function HotelNaming({ 已有 = [], onCreate, 默认名 = '' }) {
+export default function HotelNaming({ 已有 = [], onCreate, 默认名 = '', onBack }) {
   const [文本, set文本] = useState(默认名)
   const [错误, set错误] = useState('')
   const [提交中, set提交中] = useState(false)
@@ -65,6 +65,12 @@ export default function HotelNaming({ 已有 = [], onCreate, 默认名 = '' }) {
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
           取名后不可修改；如需重置，请老师在教师端处理（随存档一起清）
         </div>
+        {onBack && (
+          <button type="button" onClick={() => { if (window.confirm('返回认领（重选物业）会清空命名，确定？')) onBack() }}
+            style={{ marginTop: 10, width: '100%', minHeight: 44, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            ‹ 返回认领（换物业）
+          </button>
+        )}
       </div>
     </div>
   )

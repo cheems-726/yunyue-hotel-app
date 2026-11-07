@@ -3224,7 +3224,8 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <BrandSelection location={location} onConfirm={handleBrandConfirm} />
+        <BrandSelection location={location} onConfirm={handleBrandConfirm}
+          onBackToSite={() => { setLocation(null); setBrand(null); setProperty(null); setHotelName(''); setEstablished(false) }} />
       </div>
     )
   }
@@ -3238,7 +3239,8 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <Claim brand={brand} location={location} onComplete={handleClaimComplete} />
+        <Claim brand={brand} location={location} onComplete={handleClaimComplete}
+          onBackToBrand={() => { setBrand(null); setProperty(null) }} />
       </div>
     )
   }
@@ -3269,7 +3271,8 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <HotelNaming 已有={已有酒店名} onCreate={确认酒店名} />
+        <HotelNaming 已有={已有酒店名} onCreate={确认酒店名}
+          onBack={() => setProperty(null)} />
       </div>
     )
   }
@@ -3284,7 +3287,9 @@ export default function App() {
         </div>
         <DemoPill user={user} />
         <Establishment brand={brand} property={property} onComplete={handleEstablished}
-          onBackToBrand={() => { setBrand(null); setProperty(null) }} />
+          onBackToBrand={() => { setBrand(null); setProperty(null) }}
+          onBackToClaim={() => { setProperty(null); setEstablished(false) }}
+          onBackToSite={() => { setLocation(null); setBrand(null); setProperty(null); setHotelName(''); setEstablished(false) }} />
       </div>
     )
   }

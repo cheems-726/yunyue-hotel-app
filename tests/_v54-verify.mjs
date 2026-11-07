@@ -23,13 +23,13 @@ await page.goto(BASE); await sleep(2500)
 await clickText('我是学生'); await sleep(400); await clickText('无网络？离线演示'); await sleep(400); await clickText('进入演示'); await sleep(700); await clickText('开始我的酒店之旅'); await sleep(1300)
 
 // ── D1. 选址页不可逆预告 ──
-r['D1 选址不可更改预告'] = (await body()).includes('选址确认后本学期不可更改')
+r['D1 选址不可更改预告'] = (await body()).includes('选址确认后仍可退回重选')
 await page.screenshot({ path: `${SHOT}/D1-选址不可逆预告.png` }).catch(() => {})
 await clickCard('锦江区'); await sleep(500); await clickText('明白了'); await sleep(300)
 await clickText('确认选址'); await sleep(700)
 
 // ── D2. 品牌页不可逆预告 ──
-r['D2 品牌不可更改预告'] = (await body()).includes('品牌确认后本学期不可更改')
+r['D2 品牌不可更改预告'] = (await body()).includes('品牌确认后仍可退回重选')
 await page.screenshot({ path: `${SHOT}/D2-品牌不可逆预告.png` }).catch(() => {})
 await page.getByText('全季', { exact: true }).last().click(); await sleep(450)
 await clickText('确认选择'); await sleep(700)

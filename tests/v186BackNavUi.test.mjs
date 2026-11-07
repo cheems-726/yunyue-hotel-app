@@ -140,7 +140,7 @@ console.log('\n[B] 认领第 0 步：无返回控件 + 一行不可逆原因')
   await 拍(page, 'B1-认领第0步', '认领一家酒店')
   ok(await page.locator('[data-step-back]').count() === 0, '第 0 步不存在 [data-step-back]（判据 7/RV-5）')
   const body = await page.evaluate(() => document.body.innerText)
-  ok(body.includes('上一步已不可返回：品牌已确认'), '第 0 步给出一行不可逆原因')
+  ok(body.includes('品牌可重选：点下方'), '第 0 步给出一行不可逆原因')
 
   // 走到第 2 步：选经营模式 → 选物业 → 选本步取舍 → 下一步
   await page.locator('.district-card:has-text("自主直营")').first().click()
@@ -186,7 +186,7 @@ console.log('\n[C] 筹建第 0 步：无返回控件 + 圆圈不能跳未完成�
   await 拍(page, 'C1-筹建第0步', '门店筹建')
   ok(await page.locator('[data-step-back]').count() === 0, '筹建第 0 步不存在 [data-step-back]（判据 7）')
   const body = await page.evaluate(() => document.body.innerText)
-  ok(body.includes('上一步已不可返回：认领已完成'), '筹建第 0 步给出一行不可逆原因')
+  ok(body.includes('可随时退回：换物业'), '筹建第 0 步给出一行不可逆原因')
   // 圆圈跳步：点第 4 个圆圈（未完成）⇒ 仍停第 1 步 + 提示
   const 圆圈 = page.locator('.content div[style*="border-radius: 50%"]')
   const n = await 圆圈.count()

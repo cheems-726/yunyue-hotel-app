@@ -57,7 +57,7 @@ function 适配区位(level, priceStr) {
 }
 const V76_来源行 = '条款=加盟数值层 FRANCHISE_MODEL（官方 API/旧版官方/转载 · 逐条带置信度）；适配区位=选址竞品 OTA 实测（2026-09-27 · 121 家）与客群画像（人工分级）推得'
 
-export default function BrandSelection({ location, onConfirm }) {
+export default function BrandSelection({ location, onConfirm, onBackToSite }) {
   const [selected, setSelected] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [confirmBrand, setConfirmBrand] = useState(null) // 含 level 的完整品牌对象
@@ -119,28 +119,17 @@ export default function BrandSelection({ location, onConfirm }) {
       })
       return
     }
-    // ★ V188：预算预检 —— 最低档也装不下的品牌直接拒绝（避免进了筹建才发现死锁）
+    // ★ V188-b：任何品牌都可选（用户令 2026-11-08：无资金不足困扰）—— 超预算/数据待补只做预警，不拦
     const 可行 = 品牌可行性({ name: b.name, standard: b.standard })
-    if (可行.状态 === '超预算') {
-      setFeedback({
-        title: `「${b.name}」装不下：最低档也超预算`,
-        changes: [
-          { label: '最低可行投资', value: `${(可行.最低投资 / 10000).toFixed(1)} 万（全部选最低档）`, dir: 'down' },
-          { label: '筹建预算', value: `${(可行.预算 / 10000).toFixed(0)} 万`, dir: '' },
-          { label: '缺口', value: `${(可行.缺口 / 10000).toFixed(1)} 万`, dir: 'down' },
-          { label: '怎么办', value: '换更经济的品牌（选址不用重来）', dir: '' },
-        ],
-        note: '这不是故障，是钱不够：认同这一档的品质标准，就得掏得起这份钱。',
-      })
-      return
-    }
-    if (可行.状态 === '无法核算') {
-      const ok = window.confirm(`「${b.name}」的筹建成本还没补齐（${可行.原因}），暂时算不出装不装得下。\n进筹建后大概率会卡住——那里可以「换品牌重选（保留选址）」，但要重走一次认领。\n\n仍要选它吗？`)
-      if (!ok) return
-    }
     const brand = { ...b, level }
+    const 基础 = brandResult(brand)
+    const 警示 = 可行.状态 === '超预算'
+      ? `预算预警：该品牌最低档约 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）—— 仍可继续，超出部分靠开业后经营回补，前期资金链会更紧。`
+      : 可行.状态 === '无法核算'
+        ? `数据待补：${可行.原因} —— 实际投入可能高于估算（不编造）；仍可选择，筹建页会按已有数据预警。`
+        : ''
     setSelected(b.name)
-    setFeedback(brandResult(brand))
+    setFeedback({ ...基础, note: [基础.note, 警示].filter(Boolean).join('\n') })
     setConfirmBrand(brand)
   }
 
@@ -304,9 +293,15 @@ export default function BrandSelection({ location, onConfirm }) {
           {selected ? `确认选择 ${selected}，去认领酒店 →` : '请选择一个品牌'}
         </button>
         {/* V54批2 缺口3：不可逆预告（S2 品牌选定后无反悔入口属设计 · 界面须提前说明） */}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>品牌确认后本学期不可更改（加盟费/价带/房量门槛按此品牌核算，认领后不设换牌入口）</div>
-        {/* ★ V186 §3.4：阶段级不可逆说明（选址已确认 · 无返回控件 · 负向断言见 v186BackNav） */}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>上一步已不可返回：选址已确认（本学期不可更改）</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>品牌确认后仍可退回重选（会清空物业与筹建进度；加盟费/价带/房量门槛按最终品牌核算）</div>
+        {onBackToSite && (
+          <button type="button" onClick={() => { if (window.confirm('返回选址会清空已选品牌与后续进度，确定重选选址？')) onBackToSite() }}
+            style={{ marginTop: 6, width: '100%', minHeight: 44, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+            ‹ 返回选址重选
+          </button>
+        )}
+        {/* ★ V188-b：选址可退回重选（用户令：任何情况不锁死）*/}
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>选址可重选：点上方「‹ 返回选址重选」会清空品牌与后续进度</div>
       </div>
 
       {feedback && <ResultFeedback result={feedback} onClose={() => setFeedback(null)} />}

@@ -27,7 +27,7 @@ ok(/position: 'fixed'/.test(gt) === false, '① 红线：GuideTip 非 fixed 弹�
 ok(/aria-label="关闭本条引导"/.test(gt) && /setGone\(true\)/.test(gt), '① 有关闭按钮（点了即持久关闭）')
 
 // ② 四处挂载与判据同源
-ok(site.includes('<GuideTip k="site">') && site.includes('确认后本学期不可更改'), '② 选址页一句话引导（含不可更改预告 · 与 V54 同句式）')
+ok(site.includes('<GuideTip k="site">') && site.includes('确认后仍可退回重选'), '② 选址页一句话引导（含不可更改预告 · 与 V54 同句式）')
 ok(app.includes('<GuideTip k="decide">') && app.includes('每日关键') && app.includes('维持现状'), '② 决策列表引导（每日关键三项 + 维持现状生效）')
 ok(/const KEY_DECISIONS = \['pricing', 'shifts', 'reputation'\]/.test(app) && /\['key', '每日关键'\]/.test(app), '② 「每日关键」为真实功能（KEY_DECISIONS + 筛选 tab · 非引导杜撰）')
 ok(/未决策的部分按"维持现状"生效/.test(rd('settlement.js')), '② 判据同源：settlement.js 决策复盘段原文（不做也会生效 = 引擎真行为）')
