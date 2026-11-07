@@ -36,7 +36,7 @@ const licenses = [
   { name: '税务申报 + 领发票', dept: '税务部门', note: '初次纳税申报' },
 ]
 
-export default function Establishment({ brand, property, onComplete }) {
+export default function Establishment({ brand, property, onComplete, onBackToBrand }) {
   const [currentStep, setCurrentStep] = useState(0)
   const [done, setDone] = useState({})
   const [opening, setOpening] = useState(false) // 开业庆祝反馈
@@ -181,6 +181,24 @@ export default function Establishment({ brand, property, onComplete }) {
       </div>
 
       {currentStep === steps.length - 1 && <开店宣言面板 />}
+
+      {/* ★ V188：预算死锁的逃生口 —— 当前品牌按最低档也装不下时，允许「换品牌（保留选址）」 */}
+      {currentStep === 0 && choices.invest && 账 && !账.可过 && (
+        <div data-budget-deadlock style={{ margin: '0 20px 10px', padding: 14, borderRadius: 12, background: 'var(--bad-bg)', border: '1px solid var(--bad-border)' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bad)', marginBottom: 6 }}>
+            预算装不下：还差 {(((账.超支 || 0)) / 10000).toFixed(1)} 万（按最低档）
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
+            品牌「{brand?.name || '—'}」筹建合计约 {((账.合计 || 0) / 10000).toFixed(1)} 万，预算 {((账.预算 || 0) / 10000).toFixed(0)} 万。
+            选址不用重来 —— 换一个更经济的品牌即可（认领的物业会清空，需要重选一次）。
+          </div>
+          <button type="button" data-back-to-brand
+            onClick={() => { if (window.confirm('换品牌会清空已认领的物业（选址保留），确定回去重选品牌？')) onBackToBrand && onBackToBrand() }}
+            style={{ marginTop: 10, minHeight: 44, width: '100%', border: 0, borderRadius: 10, background: 'var(--bad)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            换品牌重选（保留选址）→
+          </button>
+        </div>
+      )}
 
       {/* 底部按钮（★ V186：上一步统一走 StepBack · 次要按钮左/主按钮右） */}
       <div style={{ padding: '8px 20px 24px', display: 'flex', gap: 10 }}>

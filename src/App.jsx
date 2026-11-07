@@ -3283,7 +3283,8 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <Establishment brand={brand} property={property} onComplete={handleEstablished} />
+        <Establishment brand={brand} property={property} onComplete={handleEstablished}
+          onBackToBrand={() => { setBrand(null); setProperty(null) }} />
       </div>
     )
   }

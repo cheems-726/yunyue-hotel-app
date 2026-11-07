@@ -119,6 +119,25 @@ export default function BrandSelection({ location, onConfirm }) {
       })
       return
     }
+    // ★ V188：预算预检 —— 最低档也装不下的品牌直接拒绝（避免进了筹建才发现死锁）
+    const 可行 = 品牌可行性({ name: b.name, standard: b.standard })
+    if (可行.状态 === '超预算') {
+      setFeedback({
+        title: `「${b.name}」装不下：最低档也超预算`,
+        changes: [
+          { label: '最低可行投资', value: `${(可行.最低投资 / 10000).toFixed(1)} 万（全部选最低档）`, dir: 'down' },
+          { label: '筹建预算', value: `${(可行.预算 / 10000).toFixed(0)} 万`, dir: '' },
+          { label: '缺口', value: `${(可行.缺口 / 10000).toFixed(1)} 万`, dir: 'down' },
+          { label: '怎么办', value: '换更经济的品牌（选址不用重来）', dir: '' },
+        ],
+        note: '这不是故障，是钱不够：认同这一档的品质标准，就得掏得起这份钱。',
+      })
+      return
+    }
+    if (可行.状态 === '无法核算') {
+      const ok = window.confirm(`「${b.name}」的筹建成本还没补齐（${可行.原因}），暂时算不出装不装得下。\n进筹建后大概率会卡住——那里可以「换品牌重选（保留选址）」，但要重走一次认领。\n\n仍要选它吗？`)
+      if (!ok) return
+    }
     const brand = { ...b, level }
     setSelected(b.name)
     setFeedback(brandResult(brand))
