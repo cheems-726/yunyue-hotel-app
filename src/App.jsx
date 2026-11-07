@@ -67,6 +67,7 @@ import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { 下一周状态 } from './weekRollover.mjs'   // ★ V127-#4：进入下一周的单一口径（可断言）
+import { 本周重点 } from './weeklyFocus.mjs'   // ★ V189：课堂模式 · 本周 9 项（主题 6 + 异常 3）
 import GuideTip, { guideResetAll } from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · 可重置）
 import SemesterTasks from './SemesterTasks.jsx'   // §33-V80 · 12 周任务书（学生/教师共用 · 只读 · 可打印）
 import { teachingDayNo } from './teachingClock.mjs'
@@ -547,7 +548,8 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
     el.addEventListener('scroll', fn, { passive: true })
     return () => el.removeEventListener('scroll', fn)
   }, [])
-  const [filter, setFilter] = useState('all') // all | undone | done | key
+  const [模式, set模式] = useState(() => { try { return localStorage.getItem('hotel-week-mode') || 'classroom' } catch (e) { return 'classroom' } })
+  const [filter, setFilter] = useState(模式 === 'classroom' ? 'focus' : 'all') // focus | all | undone | done | key
   const [showBreakdown, setShowBreakdown] = useState(false) // 资金卡支出构成折叠
   // ★ V125-#2：决策入口首屏可发现 —— 顶部提示与进度行都点了滚到决策区（不再要求新学生先往下翻）
   const 决策区Ref = React.useRef(null)
@@ -563,6 +565,15 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   }, [doneDecisions])
   const bgMap = { '部门运营': 'amber', '会员推广': 'blue', '门店经营': 'green' }
   const doneCount = Object.keys(doneDecisions).length
+  // ★ V189：课堂模式的本周 9 项（主题 6 + 异常 3）—— 只做展示/筛选，不改结算输入
+  const 本周九项 = 本周重点({ week, report, capital, pendingReviewCount })
+  const 本周九项完成 = 本周九项.filter(id => doneDecisions[id] !== undefined).length
+  // ★ V189：课堂模式集齐 9 项也给一次正反馈（深度模式仍按 18 项）
+  React.useEffect(() => {
+    if (模式 !== 'classroom' || 本周九项完成 !== 9 || celebratedRef.current) return
+    celebratedRef.current = true
+    toast && toast('本周 9 项重点已全部完成 ✓（其余 9 项按维持现状结算）')
+  }, [本周九项完成, 模式])
   // ★ V149 §3：本周移交/代提交（operatorLog 单源；同一决策可再点撤销）
   const 本周操作 = (operatorLogs || []).filter(l => Number(l.week) === Number(week))
   const 本周移交 = new Set(本周操作.filter(l => l.type === 'handover').map(l => l.decisionId))
@@ -792,13 +803,13 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
 
           {/* 今日关键未完成提醒 */}
       {(() => {
-        const undoneKeys = KEY_DECISIONS.filter(id => doneDecisions[id] === undefined)
+        const undoneKeys = (模式 === 'classroom' ? 本周九项 : KEY_DECISIONS).filter(id => doneDecisions[id] === undefined)
         if (undoneKeys.length === 0 || report) return null
         const names = undoneKeys.map(id => decisions.find(d => d.id === id)?.name).filter(Boolean)
         return (
           <div style={{ margin: '0 20px 12px', padding: '9px 14px', background: 'var(--bad-bg)', border: '1px solid var(--bad-border)', borderRadius: 10, fontSize: 12, color: 'var(--bad)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ flexShrink: 0, display: 'flex' }}><Icon name="status.warn" size={14} /></span>
-            <span>今日关键未完成：<b>{names.join('、')}</b>——这些直接影响本周经营结果</span>
+            <span>{模式 === 'classroom' ? '本周 9 项重点未完成' : '今日关键未完成'}：<b>{names.join('、')}</b>——这些直接影响本周经营结果</span>
           </div>
         )
       })()}
@@ -807,9 +818,23 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       <GuideTip k="decide">第一次做决策：先点上方「每日关键」筛选（调价/排班/口碑 三项直接影响本周结果），再点带职务徽章的本职项；<b>没做完的会按"维持现状"生效</b>（周报会提醒你哪几项没做），不用慌着全做完。</GuideTip>
       {/* 决策筛选 */}
       <div className="city-row" style={{ marginTop: 2 }}>
-        {[['all', '全部'], ['undone', '待决策'], ['done', '已决策'], ['key', '每日关键']].map(([k, label]) => (
+        {[['focus', '本周9项'], ['all', '全部'], ['undone', '待决策'], ['done', '已决策'], ['key', '每日关键']].map(([k, label]) => (
           <button key={k} className={`city-tab ${filter === k ? 'active' : ''}`} style={{ padding: '8px 0', fontSize: 12 }} onClick={() => setFilter(k)}>{label}</button>
         ))}
+      </div>
+
+      {/* ★ V189 · 课堂模式：本周 9 项重点（主题 6 + 异常 3）—— 其余 9 项默认维持现状 */}
+      <div data-week-focus style={{ margin: '0 20px 10px', padding: '10px 12px', borderRadius: 10, background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', fontSize: 12, color: 'var(--info)', lineHeight: 1.7 }}>
+        <b>课堂模式 · 本周 9 项重点</b>（已完成 {本周九项完成}/9）
+        <span style={{ color: 'var(--text-sub)' }}>：其余 9 项默认「维持现状」结算（等同沿用上周），想改可展开全部。</span>
+        <button type="button" onClick={() => {
+          const next = 模式 === 'classroom' ? 'deep' : 'classroom'
+          set模式(next)
+          try { localStorage.setItem('hotel-week-mode', next) } catch (e) { /* 静默理由：存储失败只影响下次默认 */ }
+          setFilter(next === 'deep' ? 'all' : 'focus')
+        }} style={{ marginTop: 6, minHeight: 44, padding: '0 12px', border: '1px solid var(--primary-border)', borderRadius: 8, background: 'var(--card)', color: 'var(--info)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+          {模式 === 'classroom' ? '展开全部 18 项（深度模式）' : '收起，只看本周 9 项（课堂模式）'}
+        </button>
       </div>
 
       {/* 资金状态 + 主力客群显示条 */}
@@ -899,9 +924,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           )}
           {modules.map(mod => {
             const 列出 = decisions.filter(d => d.module === mod)
-              .filter(d => filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
-            // 「每日关键」筛选下，本模块没有关键项 ⇒ 整段不渲染（空 section 标题=噪声）
-            if (filter === 'key' && 列出.length === 0) return null
+              .filter(d => filter === 'focus' ? 本周九项.includes(d.id) : filter === 'all' ? true : filter === 'key' ? KEY_DECISIONS.includes(d.id) : filter === 'undone' ? doneDecisions[d.id] === undefined : doneDecisions[d.id] !== undefined)
+            // 「每日关键」/「本周9项」筛选下，本模块没有命中项 ⇒ 整段不渲染（空 section 标题=噪声）
+            if ((filter === 'key' || filter === 'focus') && 列出.length === 0) return null
             return (
             <div key={mod}>
               <div className="section-title">
@@ -936,6 +961,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
                       <div className="name" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 0 }}>
                         <span style={{ fontSize: 12, color: 'var(--border-strong)', fontWeight: 400, marginRight: 4 }}>{decisions.indexOf(d) + 1}.</span>
                         {d.name} {isDone && '✓'}{!isDone && KEY_DECISIONS.includes(d.id) && <span style={{ fontSize: 12, color: 'var(--bad)', fontWeight: 600, marginLeft: 6 }}>每日关键</span>}
+                        {本周九项.includes(d.id) && <span style={{ fontSize: 12, color: 'var(--info)', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 4, padding: '1px 5px', marginLeft: 5, fontWeight: 600 }}>本周重点</span>}
                         {(() => { const k = cadenceOf(d.id); if (!k) return null; const c = CAD_LANG[k]
                           const style = k === CAD.实时 ? { background: 'var(--good-bg)', color: 'var(--good)', border: '1px solid var(--good-border)' }
                             : k === CAD.周期 ? { background: 'var(--primary-bg)', color: 'var(--info)', border: '1px solid var(--primary-border)' }

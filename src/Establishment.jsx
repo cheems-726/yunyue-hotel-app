@@ -177,9 +177,9 @@ export default function Establishment({ brand, property, onComplete, onBackToBra
       {/* ★ V188-b：随时可退回重选（用户令：任何情况都不锁死）*/}
       <div data-stage-back style={{ padding: '0 20px', marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>随时可退回重选：</span>
-        {onBackToClaim && <button type="button" onClick={() => { if (window.confirm('退回认领（换物业）会清空筹建进度，确定？')) onBackToClaim() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换物业</button>}
-        {onBackToBrand && <button type="button" onClick={() => { if (window.confirm('退回品牌会清空物业与筹建进度，确定？')) onBackToBrand() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换品牌</button>}
-        {onBackToSite && <button type="button" onClick={() => { if (window.confirm('退回选址会清空品牌、物业与筹建进度（已发生的经营不回滚），确定？')) onBackToSite() }} style={{ minHeight: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换选址</button>}
+        {onBackToClaim && <button type="button" onClick={() => { if (window.confirm('退回认领（换物业）会清空筹建进度，确定？')) onBackToClaim() }} style={{ minHeight: 44, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换物业</button>}
+        {onBackToBrand && <button type="button" onClick={() => { if (window.confirm('退回品牌会清空物业与筹建进度，确定？')) onBackToBrand() }} style={{ minHeight: 44, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换品牌</button>}
+        {onBackToSite && <button type="button" onClick={() => { if (window.confirm('退回选址会清空品牌、物业与筹建进度（已发生的经营不回滚），确定？')) onBackToSite() }} style={{ minHeight: 44, padding: '0 12px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--card)', color: 'var(--text-sub)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>‹ 换选址</button>}
       </div>
 
       {/* 当前步骤内容 */}

@@ -151,6 +151,7 @@ const SUITES = [
   { name: 'errorOps（错误操作高亮守门·V39）', file: 'tests/errorOps.test.mjs' },
   { name: 'v54Flow（前后逻辑闭环界面守门·V54批2）', file: 'tests/v54Flow.test.mjs' },
   { name: 'v186BackNav（PC 返回上一步·源码守门·V186）', file: 'tests/v186BackNav.test.mjs' },
+  { name: 'v189Focus（每周9项·主题6+异常3·V189）', file: 'tests/v189Focus.test.mjs' },
   { name: 'v61DemoBadge（演示态常驻标注守门·V61）', file: 'tests/v61DemoBadge.test.mjs' },
   { name: 'v63DayExplain（时间不推进说明守门·V63）', file: 'tests/v63DayExplain.test.mjs' },
   { name: 'v62ZeroDyn（未开业零动态守门·V62）', file: 'tests/v62ZeroDyn.test.mjs' },

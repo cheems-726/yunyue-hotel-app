@@ -277,11 +277,11 @@ try {
   await clickCard(page, '基准情景', 'starts'); await sleep(500)
   await closeOverlay(page)
   ok('筹建·投资单选切换（✅基准）', (await text(page)).includes('基准情景'))
-  // ★ V113-1.1：预算闸 —— 默认全中档**必须超预算**（钱不够成立），且下一步点不动
-  ok('筹建·预算闸（默认组合超预算 ⇒ 提示超支）', (await text(page)).includes('超出预算'))
-  ok('筹建·预算闸（超支时下一步禁用）', await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button')].find(x => /超出.*万/.test(x.textContent) || x.textContent.includes('降档'))
-    return !!b && b.disabled === true
+  // ★ V188-b：预算只预警不锁死（用户令 2026-11-08"任何情况不锁死"）
+  ok('筹建·预算预警（默认组合超预算 ⇒ 出现预警）', (await text(page)).includes('预算预警'))
+  ok('筹建·预算预警（超支不再锁死：下一步仍可点）', await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('完成「投资测算」'))
+    return !!b && b.disabled === false
   }))
   // 降装修档 → 应在预算内，按钮恢复可点
   await page.evaluate(() => { const c = document.querySelector('[data-tier="装修"][data-val="低"]'); if (c) c.click() })
@@ -439,6 +439,9 @@ try {
     if (st.user) { st.user.groupRole = 'lobby'; localStorage.setItem('hotel-sim-state', JSON.stringify(st)) }
   })
   await page.reload(); await page.waitForLoadState('domcontentloaded'); await sleep(1500)
+  // ★ V189：默认课堂模式只列本周 9 项 —— 职业置顶要在「全部」里看（否则首位可能是非本职的重点项）
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '全部'); b && b.click() })
+  await sleep(400)
   ok('职业置顶：首个未完成决策带我的职责徽章', await page.evaluate(() => {
     const card = document.querySelector('.task-card')
     return card && card.textContent.includes('我的职责')
