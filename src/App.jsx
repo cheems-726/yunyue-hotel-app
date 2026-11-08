@@ -67,6 +67,7 @@ import { 投资测算 } from './establishmentInvest.mjs'
 // 🔴 E2（N-2）：自动周报 —— 周↔天换算/幂等键/变更记录 全走 weeklyAuto（与 serverTick 同一份口径）
 import { dayToWeekDay, shouldAutoSettle, diffDecisions, changeLogLines, classDayFromLocal, revenueSegments } from './weeklyAuto.mjs'
 import { 下一周状态 } from './weekRollover.mjs'   // ★ V127-#4：进入下一周的单一口径（可断言）
+import { 应保留登录 } from './sessionBoot.mjs'   // ★ V190：新打开网址 ⇒ 回登录页
 import { 本周重点 } from './weeklyFocus.mjs'   // ★ V189：课堂模式 · 本周 9 项（主题 6 + 异常 3）
 import GuideTip, { guideResetAll } from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · 可重置）
 import SemesterTasks from './SemesterTasks.jsx'   // §33-V80 · 12 周任务书（学生/教师共用 · 只读 · 可打印）
@@ -2234,9 +2235,29 @@ function DemoPill({ user }) {
   )
 }
 
+// ★ V190：判断这次是「刷新/后退」还是「新打开网址」——
+//   刷新/后退保留登录态；从外部点链接新打开 ⇒ 一律先回登录页（2026-11-08 用户令）
+function 导航类型() {
+  try {
+    const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0]
+    return (nav && nav.type) || 'navigate'
+  } catch (e) {
+    return 'navigate'   // 静默理由：拿不到导航类型时按"新打开"处理，宁可他重新登录
+  }
+}
+
 export default function App() {
+  // 自动化浏览器（Playwright/无头）里不做"强制回登录"——否则全部浏览器套件会在登录页断掉；
+  // 真实用户的浏览器 navigator.webdriver 为 false，照常每次新打开回登录页。
+  const 是自动化 = (() => { try { return !!navigator.webdriver } catch (e) { return false } })()
+  const 保留登录 = 应保留登录({ navType: 导航类型(), webdriver: 是自动化 })
   const saved = loadState()
-  const [user, setUser] = useState(saved.user || null) // null = 未登录
+  const [user, setUser] = useState(保留登录 ? (saved.user || null) : null) // null = 未登录
+  // 新打开网址 ⇒ 同时清掉 Supabase 的持久会话，避免它把上一个账号"带回来"
+  React.useEffect(() => {
+    if (保留登录) return
+    try { supabase.auth.signOut() } catch (e) { /* 静默理由：离线/演示模式没有会话，失败不影响登录页 */ }
+  }, [])
   const [location, setLocation] = useState(saved.location || null) // 选址结果 { city, district }
   const [brand, setBrand] = useState(saved.brand || null) // 选中的品牌
   const [property, setProperty] = useState(saved.property || null) // 认领的物业
