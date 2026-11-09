@@ -283,6 +283,7 @@ const SUITES = [
   { name: 'v174V105Phase2（V105阶段2·V174）', file: 'tests/v174V105Phase2.test.mjs' },
   { name: 'v177PerClassTick（按班tick·V177）', file: 'tests/v177PerClassTick.test.mjs' },
   { name: 'v177ClassCalendar（按班徽标·V177）', file: 'tests/v177ClassCalendar.test.mjs' },
+  { name: 'demoRework1109（旧SW换新+诊断不占屏·T2）', file: 'tests/demoRework1109.test.mjs' },
   { name: 'v178ArchivedStatus（归档状态条不自相矛盾·V178）', file: 'tests/v178ArchivedStatus.test.mjs', browser: true },
   { name: 'v186BackNavUi（PC 返回上一步·真点击·V186）', file: 'tests/v186BackNavUi.test.mjs', browser: true },
   { name: 'v155Comment（点评时间序·V155）', file: 'tests/v155Comment.test.mjs' },

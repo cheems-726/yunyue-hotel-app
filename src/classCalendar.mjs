@@ -32,3 +32,22 @@ export function 班徽标(cls, today) {
   const p = 班进度(cls, today)
   return p.classDay ? `第 ${p.week} 周 · 第 ${p.dayIndex}/7 天` : '未开学'
 }
+
+/**
+ * T3（2026-11-09）· 教师端默认班级选择（纯函数 · 可单测）
+ * 优先级：上次选择（'all' = 显式全部）→ 我的班（仅当 running）→ 全库唯一 running 班 → 我的班 → 全部
+ * 为什么看状态：教师 profile.class_name 可能指向已归档的老班，直接按"我的班"会默认落到归档班。
+ * @param {Array<{class_code:string, semester_status?:string}>} list
+ * @param {string} 我的班 profile.class_name
+ * @param {string|null} 存过 localStorage 里的上次选择（'' / 'all' / class_code）
+ */
+export function 选默认班(list, 我的班, 存过) {
+  if (存过 === 'all') return ''
+  if (存过) return 存过
+  const 班 = Array.isArray(list) ? list : []
+  const 我的 = 班.find(c => c.class_code === 我的班)
+  const 在跑 = 班.filter(c => (c.semester_status || 'running') === 'running')
+  if (我的 && (我的.semester_status || 'running') === 'running') return 我的.class_code
+  if (在跑.length === 1) return 在跑[0].class_code
+  return 我的 ? 我的.class_code : ''
+}

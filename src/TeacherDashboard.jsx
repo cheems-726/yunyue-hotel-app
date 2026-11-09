@@ -43,7 +43,7 @@ import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPr
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径
 import { dayToWeekDay } from './weeklyAuto.mjs'   // ★ V171：权威日 → 周内第几天 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
-import { 班徽标 } from './classCalendar.mjs'   // ★ V177§3：按班「第 N 周 · D/7 天」徽标（与服务端 classDay 同口径）
+import { 班徽标, 选默认班 } from './classCalendar.mjs'   // ★ V177§3/T3：按班徽标 + 默认班级选择（纯函数）
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
 // ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
@@ -1265,7 +1265,33 @@ export default function TeacherDashboard({ user, onLogout }) {
   const [投屏开, set投屏开] = useState(false)   // ★ V154 批3：投屏视图全屏层
   const [班级学期状态, set班级学期状态2] = useState('running')   // ★ V157 阶段1：学期状态（同学生端同源）
   const [学期态提示, set学期态提示] = useState('')   // 结课/重置反馈
-  const [filterClass, setFilterClass] = useState('') // 班级筛选（'' = 全部）
+  // ★ T3（2026-11-09）：班级筛选初值 —— 上次选择 → 我的班（profile.class_name）→ 全部。
+  //   旧行为默认「全部班级」⇒ t2024 打开就是 12 组（老班+彩排班），现场讲"6 组"对不上。
+  //   存 'all' 表示用户显式选过"全部"（下次仍按全部，不再自动跳回本班）。
+  const [filterClass, setFilterClass] = useState(() => {
+    try { const s = localStorage.getItem('teacher-class'); return (!s || s === 'all') ? '' : s } catch (e) { return '' }
+  })
+  const 班级初值已定 = useRef(false)
+  useEffect(() => {
+    if (班级初值已定.current) return
+    let 存过 = null
+    try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}
+    if (filterClass || 存过 === 'all') { 班级初值已定.current = true; return }
+    const mine = user?.className || ''
+    // 优先级（纯函数单测见 classCalendar.选默认班）：上次选择 → 我的班（running）→ 唯一 running 班 → 我的班 → 全部
+    // 说明：t2024 的 profile.class_name 指向已归档的老班；若不看状态，默认会落到归档班（演示时讲错）。
+    fetchAllClasses().then((list) => {
+      if (班级初值已定.current) return
+      setFilterClass(选默认班(list, mine, 存过))
+      班级初值已定.current = true
+    }).catch(() => {   // 静默理由：取不到班级列表就保持"全部"，不阻塞教师台
+      if (mine && !班级初值已定.current) setFilterClass(mine)
+      班级初值已定.current = true
+    })
+  }, [user?.className, filterClass])
+  useEffect(() => {
+    try { localStorage.setItem('teacher-class', filterClass || 'all') } catch (e) {}   // 静默理由：持久化失败只影响下次默认
+  }, [filterClass])
   useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [filterClass])   // ★ V165：随班级筛选刷新（多班各自的状态/续营开关）
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。

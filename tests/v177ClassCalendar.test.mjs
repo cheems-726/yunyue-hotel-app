@@ -1,7 +1,7 @@
 // V177§3 · 班级教学日历（纯函数）+ 教师端按班徽标接线
 // 运行：node tests/v177ClassCalendar.test.mjs   （挂 run-all fast）
 import { readFileSync } from 'node:fs'
-import { 班教学日, 班进度, 班徽标 } from '../src/classCalendar.mjs'
+import { 班教学日, 班进度, 班徽标, 选默认班 } from '../src/classCalendar.mjs'
 let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
 
@@ -27,7 +27,22 @@ console.log('\n[② 周/天换算 + 徽标文案]')
   ok(班徽标({}, '2026-11-03') === '未开学', '未开学文案')
 }
 
-console.log('\n[③ 教师端接线（按班徽标 + 本班行）]')
+console.log('\n[④ T3 教师端默认班级选择]')
+{
+  const 班表 = [
+    { class_code: '酒管2401', semester_status: 'archived' },
+    { class_code: '彩排-V105', semester_status: 'running' },
+  ]
+  ok(选默认班(班表, '酒管2401', null) === '彩排-V105', '我的班已归档 + 唯一 running 班 ⇒ 选 running 班（t2024 现场场景）')
+  ok(选默认班(班表, '酒管2401', 'all') === '', '上次显式选"全部" ⇒ 保持全部（不自动跳回）')
+  ok(选默认班(班表, '酒管2401', '酒管2401') === '酒管2401', '上次选过具体班 ⇒ 用上次的')
+  ok(选默认班([{ class_code: 'A班', semester_status: 'running' }, { class_code: 'B班', semester_status: 'running' }], 'A班', null) === 'A班', '多班都在跑 ⇒ 优先我的班')
+  ok(选默认班([{ class_code: 'A班', semester_status: 'draft' }], 'A班', null) === 'A班', '只有草稿班 ⇒ 仍回落到我的班（不空白）')
+  ok(选默认班([], 'A班', null) === '', '列表为空（一个班都没有）⇒ 全部（不凭空选中不存在的班；取列表失败走 catch 用我的班兜底）')
+  ok(选默认班([], '', null) === '', '什么都没有 ⇒ 全部')
+}
+
+console.log('\n[⑤ 教师端接线（按班徽标 + 本班行）]')
 {
   const ui = readFileSync(new URL('../src/TeacherDashboard.jsx', import.meta.url), 'utf8')
   ok(/from '\.\/classCalendar\.mjs'/.test(ui), 'TeacherDashboard import 班徽标（单源日历）')

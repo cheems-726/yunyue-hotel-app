@@ -49,30 +49,51 @@
         }
         function show(msg) {
           if (document.getElementById('boot-error')) return;
+          // ★ T2（2026-11-09）：诊断**不再全屏占盘** —— 底部一条可折叠条，默认只露一行摘要。
+          //   老师现场反馈"上面一直出现诊断，下面显示不完全"就是全屏面板导致的。
           var box = document.createElement('div');
           box.id = 'boot-error';
-          box.style.cssText = 'position:fixed;left:0;right:0;top:0;bottom:0;z-index:99999;background:#fff;color:#111;padding:16px;overflow:auto;font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+          box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff;color:#111;padding:10px 12px;max-height:46vh;overflow:auto;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-top:2px solid #e0b400;box-shadow:0 -4px 16px rgba(0,0,0,.12)';
           var h = document.createElement('div');
-          h.style.cssText = 'font-size:18px;font-weight:700;margin-bottom:8px';
+          h.style.cssText = 'font-size:15px;font-weight:700;margin-bottom:4px;padding-right:70px';
           h.appendChild(document.createTextNode('页面启动失败（不是账号问题）'));
           box.appendChild(h);
+          var 摘要 = document.createElement('div');
+          摘要.style.cssText = 'font-size:12px;color:#555;margin-bottom:4px;padding-right:70px';
+          摘要.appendChild(document.createTextNode(msg));
+          box.appendChild(摘要);
+          // 折叠区：帮助文案 + 诊断文本 + 重试
+          var more = document.createElement('div');
+          more.style.cssText = 'display:none';
           var p = document.createElement('div');
-          p.style.cssText = 'font-size:13px;color:#555;margin-bottom:10px';
+          p.style.cssText = 'font-size:12px;color:#555;margin-bottom:6px';
           p.appendChild(document.createTextNode('请把下面内容截图/复制发给老师；点「重试」可再试一次。'));
-          box.appendChild(p);
+          more.appendChild(p);
           var ta = document.createElement('textarea');
           ta.readOnly = true;
-          ta.style.cssText = 'width:100%;height:230px;font:12px/1.5 monospace;box-sizing:border-box';
+          ta.style.cssText = 'width:100%;height:150px;font:11px/1.5 monospace;box-sizing:border-box';
           ta.value = '错误：' + msg + '\n构建号：' + buildNo() + '\nUA：' + navigator.userAgent +
             '\n内核：' + kernel(navigator.userAgent) + '\nSW：' + swText() +
             '\n地址：' + location.href + '\n时间：' + new Date().toISOString();
-          box.appendChild(ta);
+          more.appendChild(ta);
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.style.cssText = 'margin-top:10px;padding:10px 14px;font-size:14px;border:1px solid #ccc;border-radius:10px;background:#fff';
+          btn.style.cssText = 'margin-top:8px;padding:9px 14px;font-size:14px;border:1px solid #ccc;border-radius:10px;background:#fff';
           btn.appendChild(document.createTextNode('重试'));
           btn.onclick = function () { location.reload(); };
-          box.appendChild(btn);
+          more.appendChild(btn);
+          box.appendChild(more);
+          // 折叠开关（默认收起 ⇒ 不占首屏）
+          var tgl = document.createElement('button');
+          tgl.type = 'button';
+          tgl.style.cssText = 'position:absolute;right:10px;top:8px;padding:6px 10px;font-size:12px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#333';
+          tgl.appendChild(document.createTextNode('诊断 ▸'));
+          tgl.onclick = function () {
+            var open = more.style.display !== 'none';
+            more.style.display = open ? 'none' : 'block';
+            tgl.textContent = open ? '诊断 ▸' : '收起 ▾';
+          };
+          box.appendChild(tgl);
           (document.body || document.documentElement).appendChild(box);
         }
         function ignore(msg) {
@@ -100,9 +121,38 @@
 
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // ★ T2（2026-11-09）：旧 Service Worker 会把换包后的客户端锁在旧 JS 上（旧包没有离线演示入口）。
+      // 做法：比对线上 /sw.js 的 CACHE_NAME（构建时注入时间戳）与本地记录；变了 ⇒ 注销旧 SW + 清缓存 + 只 reload 一次。
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
+        window.addEventListener('load', function () {
+          var 注册 = function () { navigator.serviceWorker.register('/sw.js').catch(function () {}) }
+          if (!window.fetch || !window.localStorage) { 注册(); return }
+          fetch('/sw.js', { cache: 'no-store' }).then(function (r) { return r.text() }).then(function (t) {
+            var m = /CACHE_NAME\s*=\s*'([^']+)'/.exec(t)
+            var v = m ? m[1] : ''
+            if (!v) { 注册(); return }
+            var seen = null
+            try { seen = localStorage.getItem('sw-cache-seen') } catch (e) {}
+            if (seen && seen !== v) {
+              try { localStorage.setItem('sw-cache-seen', v) } catch (e) {}
+              navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister() }))
+              }).then(function () {
+                if (!window.caches) return
+                return caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k) })) })
+              }).then(function () {
+                var done = false
+                try { done = sessionStorage.getItem('sw-healed') === '1' } catch (e) {}
+                if (!done) {
+                  try { sessionStorage.setItem('sw-healed', '1') } catch (e) {}
+                  location.reload()
+                }
+              }).catch(function () {})
+              return
+            }
+            try { localStorage.setItem('sw-cache-seen', v) } catch (e) {}
+            注册()
+          }).catch(function () { 注册() })
         })
       }
     </script>
