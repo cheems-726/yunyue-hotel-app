@@ -559,7 +559,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   const celebratedRef = React.useRef(Object.keys(doneDecisions || {}).length >= 18)
   React.useEffect(() => {
     const n = Object.keys(doneDecisions || {}).length
-    if (n === 18 && !celebratedRef.current) {
+    if (模式 !== 'classroom' && n === 18 && !celebratedRef.current) {
       celebratedRef.current = true
       toast && toast('全部 18 项决策已完成，可以结算了')
     }
@@ -569,6 +569,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
   // ★ V189：课堂模式的本周 9 项（主题 6 + 异常 3）—— 只做展示/筛选，不改结算输入
   const 本周九项 = 本周重点({ week, report, capital, pendingReviewCount })
   const 本周九项完成 = 本周九项.filter(id => doneDecisions[id] !== undefined).length
+  // ★ V189 分母口径（返工单-20261109）：课堂模式目标 9 项，深度模式 18 项 —— 显示层只用这两个变量
+  const 目标数 = 模式 === 'classroom' ? 9 : 18
+  const 目标完成 = 模式 === 'classroom' ? 本周九项完成 : doneCount
   // ★ V189：课堂模式集齐 9 项也给一次正反馈（深度模式仍按 18 项）
   React.useEffect(() => {
     if (模式 !== 'classroom' || 本周九项完成 !== 9 || celebratedRef.current) return
@@ -620,7 +623,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             {STUDENT_STATE_COPY[班级学期状态] || '学期未开课'}
           </div>
         )}
-        <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {doneCount}/18 · {(() => {
+        <div className="sub">{brand ? `${brand.name} · ${location?.district}` : ''} · 已决策 {目标完成}/{目标数} · {(() => {
           const last = history.length ? history[history.length - 1] : null
           const lv = brand?.level || ''
           const q = qualityOf(attrs)
@@ -637,7 +640,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             onClick={滚到决策}
             style={{ marginTop: 8, padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (doneCount === 18 ? 'var(--good-border)' : 'var(--warn-border)'), background: doneCount === 18 ? 'var(--good-bg)' : 'var(--warn-bg)', color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            {doneCount === 18 ? '本周 18 项决策已全部完成 ✓（可点回复看）' : `本周还有 ${18 - doneCount} 项决策待做 · 去决策 →`}
+            {目标完成 === 目标数
+              ? (模式 === 'classroom' ? '本周 9 项重点已全部完成 ✓（其余 9 项按维持现状结算）' : '本周 18 项决策已全部完成 ✓（可点回复看）')
+              : `本周还有 ${目标数 - 目标完成} 项${模式 === 'classroom' ? '重点' : '决策'}待做 · 去决策 →`}
           </button>
         )}
       </div>
@@ -656,7 +661,7 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
           <div data-server-status="1" data-server-archived={学期已停 ? '1' : '0'} style={{ margin: '0 20px 10px', padding: '7px 12px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--fill)', fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.6 }}>
             <span style={{ color: 学期已停 ? 'var(--warn)' : 'var(--good)', fontWeight: 700 }}>{学期已停 ? '● 学期已归档 · 服务端不再推进' : '● 服务端已推进'}</span>
             {!学期已停 && <span> · 第 {wd.week} 周第 {wd.dayIndex}/7 天</span>}
-            <span> · 本周决策 {doneCount}/18</span>
+            <span> · 本周决策 {目标完成}/{目标数}</span>
             {!学期已停 && <span>（≥{阈} 才结算{!已结算 && doneCount < 阈 ? ` · 还差 ${阈 - doneCount} 项` : ''}）</span>}
             {学期已停 && <span style={{ color: 'var(--text-muted)' }}> · 存档只读，期末成绩按已结算的 12 周计</span>}
             {!学期已停 && 已结算 && <span style={{ color: 'var(--good)' }}> · 本周已结算</span>}
@@ -701,11 +706,11 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
       {/* 本周决策进度（★ V125-#2：整块可点 ⇒ 滚到决策区；待做数直接写在行上） */}
       <div style={{ padding: '0 20px 12px' }}>
         <div onClick={滚到决策} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, cursor: 'pointer' }}>
-          <span>本周决策进度 <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{doneCount < 18 ? `· 还有 ${18 - doneCount} 项待做 →` : '· 全部完成 ✓'}</span></span>
-          <span style={{ color: doneCount === 18 ? 'var(--good)' : 'var(--warn)', fontWeight: 600 }}>{doneCount} / 18</span>
+          <span>本周决策进度 <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{目标完成 < 目标数 ? `· 还有 ${目标数 - 目标完成} 项${模式 === 'classroom' ? '重点' : ''}待做 →` : '· 全部完成 ✓'}</span></span>
+          <span style={{ color: 目标完成 === 目标数 ? 'var(--good)' : 'var(--warn)', fontWeight: 600 }}>{目标完成} / {目标数}</span>
         </div>
         <div onClick={滚到决策} style={{ height: 6, background: 'var(--fill)', borderRadius: 3, overflow: 'hidden', cursor: 'pointer' }}>
-          <div style={{ height: '100%', width: (doneCount / 18 * 100) + '%', background: doneCount === 18 ? 'var(--good)' : 'var(--primary)', borderRadius: 3, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)' }}></div>
+          <div style={{ height: '100%', width: (目标完成 / 目标数 * 100) + '%', background: 目标完成 === 目标数 ? 'var(--good)' : 'var(--primary)', borderRadius: 3, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)' }}></div>
         </div>
       </div>
 
@@ -748,9 +753,9 @@ function Business({ user, toast, onOpen, location, brand, property, onDecision, 
             ))}
           </div>
         )}
-        {!report && doneCount < 18 && (
+        {!report && 目标完成 < 目标数 && (
           <div style={{ marginTop: 8, fontSize: 12, color: 'var(--warn)', textAlign: 'center' }}>
-            还有 {18 - doneCount} 项未决策，未做的按"维持现状"生效
+            还有 {目标数 - 目标完成} 项未完成，其余按"维持现状"生效
           </div>
         )}
         {(() => {

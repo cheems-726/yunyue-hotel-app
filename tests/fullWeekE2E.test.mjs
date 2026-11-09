@@ -85,6 +85,7 @@ try {
       bizMode: 'direct', scaleVersion: 3, openDayNo: null, report: null, finished: false, decisionChanges: [], __autoSettled: [], operatorLogs: [], estChoices: {},
     }
     localStorage.setItem('hotel-sim-state', JSON.stringify(st))
+    localStorage.setItem('hotel-week-mode', 'deep')   // 本段专测深度模式 18 项（课堂 9 项另有断言）
   })
   await page.reload(); await sleep(1800)
   ok((await text(page)).includes('云悦E2E店') && (await text(page)).includes('本周决策进度'), '进入经营页（一周闭环起点）')
@@ -118,6 +119,17 @@ try {
   const 全决策 = (await text(page)).includes('已决策 18/18')
   ok(全决策, '18 项决策逐项完成（18/18）')
   shots.push(await page.screenshot({ path: 'tests/_v134-e2e-2-18done.png' }))
+
+  // ★ 返工单-20261109 ④（反向断言）：切到课堂模式，分母必须变 9，且**不得同屏自相矛盾**
+  await page.evaluate(() => localStorage.setItem('hotel-week-mode', 'classroom'))
+  await page.reload(); await sleep(1500)
+  const 课堂文案 = await text(page)
+  ok(/已决策 9\/9/.test(课堂文案), '课堂模式：分母随模式变 9（已决策 9/9）', 课堂文案.slice(0, 120).replace(/\n/g, ' | '))
+  const 矛盾 = /全部完成 ✓/.test(课堂文案) && /还有 \d+ 项(重点|决策)待做/.test(课堂文案)
+  ok(!矛盾, '课堂模式：同屏不得同时出现「全部完成」与「还有 N 项待做」', 矛盾 ? '同屏矛盾' : '')
+  ok(/9 \/ 9/.test(课堂文案) || /本周 9 项重点已全部完成/.test(课堂文案), '课堂模式：进度显示 9/9 或 9 项重点已完成')
+  shots.push(await page.screenshot({ path: 'tests/_v134-e2e-3-classroom9.png' }))
+  await page.evaluate(() => localStorage.setItem('hotel-week-mode', 'deep'))
 
   // ⑤ 今日委托（完成一个）
   // 门禁并发时页面渲染可能慢半拍：等到委托卡出现再点（不是放宽断言，完成+落库仍要真发生）

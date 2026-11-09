@@ -50,11 +50,11 @@ console.log('\n[#7] 教师端决策数：名称 + 分母 + 去重口径')
 console.log('\n[#2] 决策入口：首屏待做数 + 可点击滚到决策区')
 {
   const app = src('App.jsx')
-  ok(/本周还有 \$\{18 - doneCount\} 项决策待做/.test(app), '★ 首屏（header 内）显示「本周还有 N 项决策待做」')
+  ok(/本周还有 \$\{目标数 - 目标完成\} 项/.test(app), '★ 首屏（header 内）显示「本周还有 N 项待做」（V189 分母口径：目标数-目标完成）')
   ok(/const 决策区Ref = React\.useRef\(null\)/.test(app), '决策区有锚点 ref')
   ok(/决策区Ref\.current\.scrollIntoView/.test(app), '点击提示/进度行会滚到决策区')
   ok(/<div ref=\{决策区Ref\}/.test(app), '锚点挂在决策列表容器上（不是指向一个空元素）')
-  ok(/还有 \$\{18 - doneCount\} 项待做 →/.test(app), '进度行也带待做数（双入口）')
+  ok(/还有 \$\{目标数 - 目标完成\} 项[^`]*待做 →/.test(app), '进度行也带待做数（双入口）')
 }
 
 // ── #3 每日关键定性（决定 V120 生死）──────────────────────────────────

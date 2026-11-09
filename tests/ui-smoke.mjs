@@ -339,7 +339,7 @@ try {
   // ★ V114-P1④：学生端顶栏 = 酒店名（三处同源之一）
   ok('顶栏显示酒店名（与周报标题逐字相同）', (await text(page)).includes('云悦测试店'))
   ok('经营页：资金卡+18决策+自动周报状态（无手动结算按钮）',
-    biz.includes('资金状况') && biz.includes('0 / 18') && biz.includes('本周经营中') && /第 \d\/7 天/.test(biz) && biz.includes('自动出周报') && !biz.includes('本周结算'))
+    biz.includes('资金状况') && (biz.includes('0 / 9') || biz.includes('0 / 18')) && biz.includes('本周经营中') && /第 \d\/7 天/.test(biz) && biz.includes('自动出周报') && !biz.includes('本周结算'))
   // 布局断言：经营页是 9-19 布局回归的重灾区（包装层撑高 → 导航栏被裁 + 内容滚不动）
   await assertLayout(page, '学生经营页')
   await assertNoHorizOverflow(page, '学生经营页')
