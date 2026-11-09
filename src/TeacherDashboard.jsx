@@ -892,7 +892,7 @@ function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGr
 }
 
 // ★ V165 · 班级管理面板（§1 建班向导 / §2 学生导入 / §3 开课控制 + 周次回退审计）
-function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态, 当前周, onCreated }) {
+function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态, 当前周, onCreated, 备用班 }) {
   const [班列表, set班列表] = useState([])
   const [新班名, set新班名] = useState('')
   const [起始日期, set起始日期] = useState(() => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); return d.toISOString().slice(0, 10) })
@@ -969,17 +969,24 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
   const 新建数 = (预览 || []).filter(r => r.状态 === '新建').length
   const 跳过数 = (预览 || []).filter(r => r.状态 && r.状态 !== '新建').length
   const 徽景色 = { draft: 'var(--text-muted)', running: 'var(--good)', paused: 'var(--warn)', finished: 'var(--info)', archived: 'var(--text-muted)' }
+  // ★ T3：当前选中的班若不在 fetchAllClasses 列表里（如正在运行的彩排班被 V167 隐藏），把它补进标签条，
+  //   否则教师点走之后再点不回来。只影响本面板的显示，不改 V167 的隐藏契约。
+  const 班们 = (() => {
+    const base = 班列表 || []
+    if (!备用班 || !备用班.class_code) return base
+    return base.some(c => c.class_code === 备用班.class_code) ? base : [...base, 备用班]
+  })()
   return (
     <div data-class-admin-panel className="card" style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 13, fontWeight: 700 }}>班级管理（建班 / 导入 / 开课控制）</div>
       {/* 班级切换器（常显 · 教师端专属） */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
         <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
-        {(班列表 || []).map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${c.current_week ?? 0}周`}</button>)}
+        {班们.map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${c.current_week ?? 0}周`}</button>)}
       </div>
       {/* ★ V177§3：本班进度（一班一行 · 与服务端 tick 同一日历口径） */}
       {filterClass && (() => {
-        const c = (班列表 || []).find(x => x.class_code === filterClass)
+        const c = 班们.find(x => x.class_code === filterClass)
         return <div data-class-progress style={{ marginTop: 6, fontSize: 11, color: 'var(--text-sub)' }}>
           本班：<b>{filterClass}</b> · {班徽标(c)} · 学期 {c?.semester_status || '—'}
         </div>
@@ -1279,15 +1286,17 @@ export default function TeacherDashboard({ user, onLogout }) {
     if (filterClass || 存过 === 'all') { 班级初值已定.current = true; return }
     const mine = user?.className || ''
     // 优先级（纯函数单测见 classCalendar.选默认班）：上次选择 → 我的班（running）→ 唯一 running 班 → 我的班 → 全部
-    // 说明：t2024 的 profile.class_name 指向已归档的老班；若不看状态，默认会落到归档班（演示时讲错）。
-    fetchAllClasses().then((list) => {
-      if (班级初值已定.current) return
-      setFilterClass(选默认班(list, mine, 存过))
-      班级初值已定.current = true
-    }).catch(() => {   // 静默理由：取不到班级列表就保持"全部"，不阻塞教师台
-      if (mine && !班级初值已定.current) setFilterClass(mine)
-      班级初值已定.current = true
-    })
+    // ★ T3：不用 fetchAllClasses（V167§3⑥ 会隐藏「彩排*」班）—— 这里单独查 class_state，
+    //   只用于"教师端选择/显示"，不改 V167 的隐藏契约（成绩单/对比仍看不到彩排班）。
+    supabase.from('class_state').select('class_code,semester_status,current_week,start_date,teacher_offset_days').order('class_code')
+      .then(({ data }) => {
+        if (班级初值已定.current) return
+        setFilterClass(选默认班(data || [], mine, 存过))
+        班级初值已定.current = true
+      }).catch(() => {   // 静默理由：取不到班级列表就保持"全部"，不阻塞教师台
+        if (mine && !班级初值已定.current) setFilterClass(mine)
+        班级初值已定.current = true
+      })
   }, [user?.className, filterClass])
   useEffect(() => {
     try { localStorage.setItem('teacher-class', filterClass || 'all') } catch (e) {}   // 静默理由：持久化失败只影响下次默认
@@ -1297,7 +1306,8 @@ export default function TeacherDashboard({ user, onLogout }) {
   useEffect(() => {
     if (!filterClass) { set所选班(null); return }
     let 活 = true
-    fetchAllClasses().then(list => { if (活) set所选班((list || []).find(c => c.class_code === filterClass) || null) })
+    supabase.from('class_state').select('class_code,semester_status,current_week,start_date,teacher_offset_days').eq('class_code', filterClass).maybeSingle()
+      .then(({ data }) => { if (活) set所选班(data || null) })
       .catch(() => {})   // 静默理由：取不到班行只影响进度文案，不阻塞教师台
     return () => { 活 = false }
   }, [filterClass])
@@ -1800,7 +1810,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           </div>
 
           {/* ★ V165 · 班级管理面板（建班/导入/开课控制 · 常驻） */}
-          <ClassAdminPanel filterClass={filterClass} setFilterClass={setFilterClass} user={user} 班级学期状态={班级学期状态} 当前周={classWeek} onCreated={null} />
+          <ClassAdminPanel filterClass={filterClass} setFilterClass={setFilterClass} user={user} 班级学期状态={班级学期状态} 当前周={classWeek} onCreated={null} 备用班={所选班} />
 
           {/* 班级筛选（多班时出现） */}
           {classList.length > 1 && (
