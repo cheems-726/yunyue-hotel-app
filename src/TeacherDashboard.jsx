@@ -43,7 +43,7 @@ import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPr
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径
 import { dayToWeekDay } from './weeklyAuto.mjs'   // ★ V171：权威日 → 周内第几天 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
-import { 班徽标, 选默认班 } from './classCalendar.mjs'   // ★ V177§3/T3：按班徽标 + 默认班级选择（纯函数）
+import { 班徽标, 选默认班, 班进度 } from './classCalendar.mjs'   // ★ V177§3/T3：按班徽标 + 默认班级 + 班进度
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
 // ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
@@ -1292,6 +1292,16 @@ export default function TeacherDashboard({ user, onLogout }) {
   useEffect(() => {
     try { localStorage.setItem('teacher-class', filterClass || 'all') } catch (e) {}   // 静默理由：持久化失败只影响下次默认
   }, [filterClass])
+  // ★ T3 补：选中班的进度（周/天）—— 首屏计数与课堂预警必须跟着班走，不能再用全局 classDay/classWeek
+  const [所选班, set所选班] = useState(null)
+  useEffect(() => {
+    if (!filterClass) { set所选班(null); return }
+    let 活 = true
+    fetchAllClasses().then(list => { if (活) set所选班((list || []).find(c => c.class_code === filterClass) || null) })
+      .catch(() => {})   // 静默理由：取不到班行只影响进度文案，不阻塞教师台
+    return () => { 活 = false }
+  }, [filterClass])
+  const 所选班进度 = 所选班 ? 班进度(所选班) : null
   useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [filterClass])   // ★ V165：随班级筛选刷新（多班各自的状态/续营开关）
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
   //   旧行为：返回按钮固定 setView('me') ⇒ 从 A 进 B 再返回回不到 A；popstate（浏览器/手势返回键）完全没接。
@@ -1608,7 +1618,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
             <div style={{ color: 'var(--text-muted)' }}>（以上周次不计入平均分分母 —— 跳周不算学生失职）</div>
           </div>
         )}
-          {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${groups.length} 组已开档` : '云端不可用，显示演示数据'}
+          {user?.name} · {groups === null ? '正在加载全班数据…' : cloudOk ? `云端数据 · ${visibleGroups.length} 组已开档${filterClass ? `（${filterClass}）` : ''}` : '云端不可用，显示演示数据'}
           {/* V63：全班时间不推进的原因说明（绑定真实通道 classDay（class_day_now RPC · 0=不可用）· 已同步不显示） */}
           {cloudOk && !(classDay > 0) && (
             <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 8, background: 'var(--bg)', border: '1px dashed var(--warn-border)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.6 }}>
@@ -1940,10 +1950,10 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       {/* ★ V160：学期状态黄条 —— 满 12 周或非 running 时提示（别让人猜） */}
       {/* ★ V171 · 课堂预警面板（实时页顶部） */}
       {view === 'live' && <ClassAlertsPanel
-        rawStates={rawStates}
-        组名映射={Object.fromEntries((profiles || []).map(p => [p.user_id, p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : (p.display_name || p.user_id)]))}
-        dayIndex={(() => { try { return dayToWeekDay(Number(classDay) || 0).dayIndex || 1 } catch (e) { return 1 } })()}
-        当前周={classWeek}
+        rawStates={(rawStates || []).filter(gs => !filterClass || classByUid[gs.user_id] === filterClass)}
+        组名映射={Object.fromEntries((profiles || []).filter(p => !filterClass || p.class_name === filterClass).map(p => [p.user_id, p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : (p.display_name || p.user_id)]))}
+        dayIndex={所选班进度 ? (所选班进度.dayIndex || 1) : (() => { try { return dayToWeekDay(Number(classDay) || 0).dayIndex || 1 } catch (e) { return 1 } })()}
+        当前周={所选班进度 ? 所选班进度.week : classWeek}
         onGoGroup={() => { 跳('groups') }}
       />}
       {view === 'live' && 班级学期状态 === 'running' && (() => {
