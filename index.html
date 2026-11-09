@@ -133,7 +133,10 @@
             if (!v) { 注册(); return }
             var seen = null
             try { seen = localStorage.getItem('sw-cache-seen') } catch (e) {}
-            if (seen && seen !== v) {
+            // ★ T2 补（老用户）：从没记录版本、但已有 SW 在接管 ⇒ 说明是换新功能上线前就装过旧 SW，
+            //   旧 SW 可能 cache-first 把 index.html 锁死（页面能开但点不动/跳不了）。同样清一次。
+            var 疑似旧SW = !seen && !!navigator.serviceWorker.controller
+            if ((seen && seen !== v) || 疑似旧SW) {
               try { localStorage.setItem('sw-cache-seen', v) } catch (e) {}
               navigator.serviceWorker.getRegistrations().then(function (rs) {
                 return Promise.all(rs.map(function (r) { return r.unregister() }))

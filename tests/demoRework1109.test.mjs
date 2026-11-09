@@ -23,6 +23,7 @@ console.log('\n[① 旧 SW 换新]')
   ok(/caches\.keys\(\)/.test(html) && /caches\.delete\(/.test(html), '版本变 ⇒ 清旧 cache')
   ok(/location\.reload\(\)/.test(html), '版本变 ⇒ 只重载一次')
   ok(/sw-healed/.test(html) && /sessionStorage/.test(html), 'sessionStorage 闸防 reload 循环')
+  ok(/疑似旧SW = !seen && !!navigator\.serviceWorker\.controller/.test(html), '老用户（无 seen 记录 + 已有 SW 接管）也会触发一次清理（换新功能上线前的旧 SW）')
 }
 
 console.log('\n[② 诊断面板不占首屏]')
