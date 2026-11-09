@@ -137,7 +137,7 @@ await closeOverlay(page)
 
 // ② 决策类：经营页 → 动态调价 → 不跟降 → 四段式
 const biz = await text(page)
-ok('到达经营页（资金状况 + 0/18 决策）', biz.includes('资金状况') && biz.includes('0 / 18'))
+ok('到达经营页（资金状况 + 0/9 课堂模式）', biz.includes('资金状况') && biz.includes('0 / 9') && !biz.includes('0 / 18'))   // ★ T4：V189 起课堂模式分母=9（18 只作深度模式）；旧断言 0/18 属换包前口径
 // ★ task-card 内层点击是"展开描述"（stopPropagation）⇒ 必须点 .task-card 外层（onClick=onDecision 那层）
 await page.evaluate(() => {
   const card = [...document.querySelectorAll('.task-card')].find(x => x.textContent.includes('动态调价'))

@@ -1275,7 +1275,7 @@ export default function TeacherDashboard({ user, onLogout }) {
   useEffect(() => {
     if (班级初值已定.current) return
     let 存过 = null
-    try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}
+    try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}   // 静默理由：localStorage 不可用 ⇒ 按首次登录处理（走我的班/唯一 running 班）
     if (filterClass || 存过 === 'all') { 班级初值已定.current = true; return }
     const mine = user?.className || ''
     // 优先级（纯函数单测见 classCalendar.选默认班）：上次选择 → 我的班（running）→ 唯一 running 班 → 我的班 → 全部
