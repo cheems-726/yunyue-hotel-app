@@ -3248,7 +3248,7 @@ export default function App() {
           <span className="icons" />
         </div>
         <DemoPill user={user} />
-        <SiteSelection onConfirm={handleSiteConfirm}
+        <SiteSelection onBack={() => setWelcomed(false)} onConfirm={handleSiteConfirm}
           onLog={({ id, answer, feedback }) => saveDecisionLog({
             userId: user.uid,
             groupKey: groupKeyOf(user.className, user.groupNo),

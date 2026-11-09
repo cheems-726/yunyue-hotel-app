@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略, 区位消费行, 格式化消费水平 } from './siteLocations.mjs'   // ★ 修：V94 用了 区位消费行() 但漏 import（运行时 ReferenceError ⇒ 选址页崩）
 import RadarChart from './RadarChart.jsx'
@@ -108,7 +108,7 @@ const cityGeo = {
 }
 const geoTagCls = { 核心: 'tag-core', 商务: 'tag-ind', 文旅: 'tag-tour', 工业: 'tag-ind', 空港: 'tag-ind', 旅游: 'tag-tour', 潜力: 'tag-county', 城区: 'tag-ind', 科研: 'tag-ind', 县域: 'tag-county' }
 
-export default function SiteSelection({ onConfirm, onLog }) {
+export default function SiteSelection({ onConfirm, onLog, onBack }) {
   const [currentCity, setCurrentCity] = useState('成都')
   const [selected, setSelected] = useState(null) // 区县 name
   const [feedback, setFeedback] = useState(null)
@@ -181,6 +181,19 @@ export default function SiteSelection({ onConfirm, onLog }) {
   // ★ V186：返回上一步 = 只关弹窗（不写 预言s、不写 decision_logs · 草稿保留）
   function 返回预言() { set预言弹(null) }
   useEscClose(!!预言弹, 返回预言)   // Esc = 取消（与「上一步」同义）
+  // ★ 2026-11-09 紧急：浏览器返回键 = 回欢迎页（不退出网页）。弹窗开着时返回键只关弹窗。
+  const 弹Ref = useRef(false); 弹Ref.current = !!预言弹
+  const backRef = useRef(onBack); backRef.current = onBack
+  useEffect(() => {
+    if (!backRef.current) return
+    try { history.pushState({ wiz: 'site' }, '') } catch (e) {}   // 静默理由：history 不可用时退回浏览器默认行为
+    const onPop = () => {
+      if (弹Ref.current) { set预言弹(null); try { history.pushState({ wiz: 'site' }, '') } catch (e) {} return }   // 静默理由：同上
+      backRef.current && backRef.current()
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   useWizardBack(!!预言弹, 返回预言)   // Alt+← / 鼠标侧键 = 同一返回（仅弹窗开着时 · 不劫持经营页）
 
   function 提交预言() {
@@ -208,6 +221,14 @@ export default function SiteSelection({ onConfirm, onLog }) {
 
   return (
     <div className="content">
+      {/* ★ 2026-11-09 紧急：选址页原本没有返回入口 ⇒ 手机/PC 直接按返回会退出网页。
+          ★ 悬浮（fixed）跟随视口：滚到页面任何位置都能直接点，不必滑回顶部。
+          浏览器返回键劫持为同一动作。 */}
+      {onBack && (
+        <div style={{ position: 'fixed', left: 12, bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', zIndex: 50 }}>
+          <StepBack onBack={onBack} label="‹ 返回上一步" style={{ background: 'var(--card)', border: '1px solid var(--border-strong)', boxShadow: '0 6px 18px rgba(0,0,0,.18)', borderRadius: 999 }} />
+        </div>
+      )}
       <div className="header">
         <span className="step-tag">第一步 · 选址</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>选择你的酒店所在地</h1>
