@@ -6,8 +6,9 @@ let pass = 0, fail = 0
 const ok = (c, n, extra = '') => { if (c) { pass++; console.log('  ✓ ' + n) } else { fail++; console.error('  ✗ FAIL: ' + n + (extra ? '  [' + extra + ']' : '')) } }
 console.log('▶ V142 · 入口域名守卫')
 
-ok(合法入口.length === 3 && 合法入口.includes('test.2026911301.xyz') && 合法入口.includes('localhost') && 合法入口.includes('127.0.0.1'), '白名单 = test/localhost/127.0.0.1')
+ok(合法入口.length === 4 && 合法入口.includes('test.2026911301.xyz') && 合法入口.includes('121.196.196.37') && 合法入口.includes('localhost') && 合法入口.includes('127.0.0.1'), '白名单 = test/IP/localhost/127.0.0.1（IP 入口因域名未备案而合法 · 2026-11-09）')
 ok(是否本系统('test.2026911301.xyz') && 是否本系统('localhost') && 是否本系统('127.0.0.1'), '白名单 3 个 host 通过')
+ok(是否本系统('121.196.196.37'), 'IP 入口就是本系统（不再被"旧站点"横幅赶走）')
 ok(是否本系统('TEST.2026911301.xyz'), '大小写不敏感')
 ok(!是否本系统('www.2026911301.xyz') && !是否本系统('') && !是否本系统(null), 'www / 空值判红')
 ok(正式入口 === 'https://test.2026911301.xyz', '正式入口 = https://test.2026911301.xyz')
