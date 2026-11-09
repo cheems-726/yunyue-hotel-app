@@ -843,6 +843,9 @@ function SupervisorPanel({ rawStates, profiles }) {
 function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGroup }) {
   const alerts = 课堂告警({ groups: (rawStates || []).map(gs => ({ uid: gs.user_id || gs.uid, 组名: 组名映射[gs.user_id || gs.uid], state: gs.state, updated_at: gs.updated_at })), dayIndex, 当前周 })
   const 节 = 课堂节奏({ groups: (rawStates || []).map(gs => ({ state: gs.state })), dayIndex, 当前周 })
+  // ★ 2026-11-09 修：原标签「已决策组」实为"≥6 项达标组"，导致学生做了 1–5 项时显示 0/6，
+  //   老师误以为没收到。现拆成两个数：已做决策（≥1 项）与达标（≥6 项）。
+  const 已做决策组 = (rawStates || []).filter(gs => Object.keys((gs.state && gs.state.doneDecisions) || {}).length > 0).length
   const [历史, set历史] = useState(() => { try { return JSON.parse(localStorage.getItem('hotel-sim-alert-log') || '[]') } catch (e) { return [] } })
   const [展开, set展开] = useState(false)
   useEffect(() => {
@@ -863,7 +866,7 @@ function ClassAlertsPanel({ rawStates, 组名映射, dayIndex, 当前周, onGoGr
   return (
     <div data-class-alerts className="card" style={{ margin: '0 20px 12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 13, fontWeight: 700 }}>课堂预警（第 {节.周} 周 · 第 {节.天}/{节.总天数} 天 · 已决策组 {节.已决策组数}/{节.总组数} · 距结算还需 {节.距结算还需} 组达标）</div>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>课堂预警（第 {节.周} 周 · 第 {节.天}/{节.总天数} 天 · 已做决策 {已做决策组}/{节.总组数} 组 · 达标（≥6项）{节.已决策组数}/{节.总组数} · 距结算还需 {节.距结算还需} 组达标）</div>
         <button data-alert-log-toggle onClick={() => set展开(!展开)} style={{ minHeight: 44, border: '1px solid var(--border-strong)', background: 'var(--card)', fontSize: 12, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>告警历史</button>
       </div>
       {alerts.length === 0
@@ -1279,38 +1282,32 @@ export default function TeacherDashboard({ user, onLogout }) {
     try { const s = localStorage.getItem('teacher-class'); return (!s || s === 'all') ? '' : s } catch (e) { return '' }
   })
   const 班级初值已定 = useRef(false)
+  const 列表已取 = useRef(false)
+  const [全部班, set全部班] = useState([])   // ★ 2026-11-09：班列表一次取回，供默认选择 + 所选班进度共用
   useEffect(() => {
-    if (班级初值已定.current) return
+    if (列表已取.current) return
+    列表已取.current = true
     let 存过 = null
-    try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}   // 静默理由：localStorage 不可用 ⇒ 按首次登录处理（走我的班/唯一 running 班）
-    if (filterClass || 存过 === 'all') { 班级初值已定.current = true; return }
+    try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}   // 静默理由：localStorage 不可用 ⇒ 按首次登录处理
     const mine = user?.className || ''
-    // 优先级（纯函数单测见 classCalendar.选默认班）：上次选择 → 我的班（running）→ 唯一 running 班 → 我的班 → 全部
-    // ★ T3：不用 fetchAllClasses（V167§3⑥ 会隐藏「彩排*」班）—— 这里单独查 class_state，
-    //   只用于"教师端选择/显示"，不改 V167 的隐藏契约（成绩单/对比仍看不到彩排班）。
+    // ★ 列表必须无条件取回（即使已选过班）——否则"所选班进度"拿不到行 ⇒ 退化成"第 1/7 天"（2026-11-09 实测）
     supabase.from('class_state').select('class_code,semester_status,current_week,start_date,teacher_offset_days').order('class_code')
       .then(({ data }) => {
+        set全部班(data || [])
         if (班级初值已定.current) return
+        if (filterClass || 存过 === 'all') { 班级初值已定.current = true; return }
         setFilterClass(选默认班(data || [], mine, 存过))
         班级初值已定.current = true
       }).catch(() => {   // 静默理由：取不到班级列表就保持"全部"，不阻塞教师台
-        if (mine && !班级初值已定.current) setFilterClass(mine)
+        if (mine && !班级初值已定.current && !filterClass) setFilterClass(mine)
         班级初值已定.current = true
       })
-  }, [user?.className, filterClass])
+  }, [])
   useEffect(() => {
     try { localStorage.setItem('teacher-class', filterClass || 'all') } catch (e) {}   // 静默理由：持久化失败只影响下次默认
   }, [filterClass])
-  // ★ T3 补：选中班的进度（周/天）—— 首屏计数与课堂预警必须跟着班走，不能再用全局 classDay/classWeek
-  const [所选班, set所选班] = useState(null)
-  useEffect(() => {
-    if (!filterClass) { set所选班(null); return }
-    let 活 = true
-    supabase.from('class_state').select('class_code,semester_status,current_week,start_date,teacher_offset_days').eq('class_code', filterClass).maybeSingle()
-      .then(({ data }) => { if (活) set所选班(data || null) })
-      .catch(() => {})   // 静默理由：取不到班行只影响进度文案，不阻塞教师台
-    return () => { 活 = false }
-  }, [filterClass])
+  // ★ 2026-11-09：所选班直接从班列表派生（原来单独查一次，RLS/网络偶发失败 ⇒ 退化成"第 1/7 天"）
+  const 所选班 = filterClass ? (全部班.find(c => c.class_code === filterClass) || null) : null
   const 所选班进度 = 所选班 ? 班进度(所选班) : null
   useEffect(() => { let 活 = true; fetchClassState(filterClass || undefined).then(cs => { if (活) { set续营开关(cs.续营开关 === true); set班级学期状态2(cs.学期状态 || 'running') } }).catch(() => {}) /* 静默理由：取不到开关按默认关渲染，不阻塞教师台 */; return () => { 活 = false } }, [filterClass])   // ★ V165：随班级筛选刷新（多班各自的状态/续营开关）
   // ★ V97（用户点名「老师端返回有问题」）：统一导航栈 —— 任何进入都入栈，返回 = **弹栈回上一处**
