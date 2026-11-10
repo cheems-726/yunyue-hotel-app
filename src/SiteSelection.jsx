@@ -226,7 +226,7 @@ export default function SiteSelection({ onConfirm, onLog, onBack }) {
           浏览器返回键劫持为同一动作。 */}
       {onBack && (
         <div style={{ position: 'fixed', left: 12, bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', zIndex: 50 }}>
-          <StepBack onBack={onBack} label="‹ 返回上一步" style={{ background: 'var(--card)', border: '1px solid var(--border-strong)', boxShadow: '0 6px 18px rgba(0,0,0,.18)', borderRadius: 999 }} />
+          <StepBack onBack={onBack} label="‹ 返回上一步" style={{ background: 'var(--card)', border: '1px solid var(--border-strong)', borderRadius: 999 }} />
         </div>
       )}
       <div className="header">

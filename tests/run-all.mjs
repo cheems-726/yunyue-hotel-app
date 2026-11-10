@@ -382,6 +382,13 @@ for (const s of SUITES) {
   }
   const state = r.code === 0 ? '✓' : '✗'
   if (r.code !== 0) failed++
+  // ★ 2026-11-10（#226 同族 · 判据静默退出）：套件崩溃（非 0 且无结果行）⇒ 计 1 条失败 + 打印尾巴
+  if (r.code !== 0 && r.pass == null) {
+    解析失败++
+    r.pass = 0; r.fail = 1
+    console.log(`${s.name.padEnd(38)} ✗ 套件崩溃（退出码 ${r.code} · 无结果行）⇒ 按 1 条失败计`)
+    console.log('    ↳ ' + String(r.out || '').trim().split(/\r?\n/).slice(-3).join(' | ').slice(0, 300))
+  }
   // ★ §23.3-③：解析失败（退出 0 但无计数）⇒ 直接计失败（"解析失败与真的 0 条不可区分"技术债的修复）
   if (r.code === 0 && r.pass == null) {
     failed++; 解析失败++

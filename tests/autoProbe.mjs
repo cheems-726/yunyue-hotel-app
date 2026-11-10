@@ -3,7 +3,11 @@
 //       node tests/autoProbe.mjs --quiet    → 只打印一行结论
 // 退出码：0 全通过 / 1 有失败（供调度判断）
 import { createRequire } from 'node:module'
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+// ★ 2026-11-10：口令不写明文（ledgerSecrets 守门）——运行时从密料读，或走环境变量
+const 密料 = (() => { try { return readFileSync('D:/教学app/_私密-勿上传/演示班账号-20261105.md', 'utf8') } catch { return '' } })()
+const 口令 = (id, env) => { const row = 密料.split(/?
+/).find(l => l.includes(id)); if (row) { const c = row.split('|').map(x => x.trim()); if (c[3]) return c[3] } return process.env[env] || '' }
 const require = createRequire('D:/教学app/hotel-app/package.json')
 const { chromium } = require('playwright-core')
 
@@ -122,7 +126,7 @@ try {
   await ps.evaluate(() => localStorage.clear()); await ps.reload(); await sleep(1800)
   await ps.getByText('我是学生').last().click(); await sleep(1000)
   await ps.locator('input').first().fill('20240901')
-  await ps.locator('input[type=password]').first().fill('test123456')
+  await ps.locator('input[type=password]').first().fill(口令('20240901', 'YUNYUE_STUDENT_PW'))
   await ps.getByRole('button', { name: /^登录$/ }).click(); await sleep(5000)
   const ts = (await ps.evaluate(() => document.body.innerText)).replace(/\n+/g, ' | ')
   记('学生 20240901 登录', /经营|本周|决策|周结算/.test(ts) && !/密码错误|账号或密码/.test(ts), ts.slice(0, 60))
@@ -133,7 +137,7 @@ try {
   await pt.evaluate(() => localStorage.clear()); await pt.reload(); await sleep(1800)
   await pt.getByText('我是老师').last().click(); await sleep(1000)
   await pt.locator('input').first().fill('t2024')
-  await pt.locator('input[type=password]').first().fill('Yunyue2024')
+  await pt.locator('input[type=password]').first().fill(口令('t2024', 'YUNYUE_TEACHER_PW'))
   await pt.getByRole('button', { name: /^登录$/ }).click(); await sleep(5500)
   const tt = (await pt.evaluate(() => document.body.innerText)).replace(/\n+/g, ' | ')
   记('教师 t2024 登录', /班级|小组|周次|推进/.test(tt) && !/密码错误|账号或密码/.test(tt), tt.slice(0, 60))

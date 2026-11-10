@@ -1295,7 +1295,7 @@ export default function TeacherDashboard({ user, onLogout }) {
     try { 存过 = localStorage.getItem('teacher-class') } catch (e) {}   // 静默理由：localStorage 不可用 ⇒ 按首次登录处理
     const mine = user?.className || ''
     // ★ 列表必须无条件取回（即使已选过班）——否则"所选班进度"拿不到行 ⇒ 退化成"第 1/7 天"（2026-11-09 实测）
-    supabase.from('class_state').select('class_code,semester_status,current_week,start_date,teacher_offset_days').order('class_code')
+    supabase.from('class_state').select('*').order('class_code')
       .then(({ data }) => {
         set全部班(data || [])
         if (班级初值已定.current) return
@@ -2068,7 +2068,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 {/* ★ V125-#7：口径必须显式 —— 这里是"已完成项数"（组内按 id 去重，改答案不重复计数），
                     不是"提交次数"。★ D366：分母统一到课堂模式 9 项（与学生端一致），18 只在深度模式用。 */}
                 {[
-                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 9}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 课堂模式分母 = 组数 × 9 项' },
+                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 9}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 结算后归零属正常（下周重新计）· 课堂模式分母 = 组数 × 9 项' },
                   { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 9 项`, t: '课堂模式每组目标 9 项；已完成项数 ÷ 组数' },
                   { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', t: '最近一次云端存档时间' },
                 ].map(s => (

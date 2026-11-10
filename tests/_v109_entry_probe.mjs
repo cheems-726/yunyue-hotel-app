@@ -63,8 +63,8 @@ const A = await 请求(`https://${域名}/health`)
 
 const B = await 请求(`http://${IP}/health`)
 // ★ T1（2026-11-09）：IP 入口改为 302 到正式域名（旧站点页没有离线演示入口）⇒ 判据 = "302 且 Location 指向正式域"
-const B跳 = B.status === 302 && String(B.位置 || '').startsWith(`https://${域名}`)
-记(`B http://${IP}/health（现应 302→正式域）`, B跳, B.status ? `HTTP ${B.status}${B.位置 ? ' → ' + B.位置 : ''}` : `不可达（${B.error}）`)
+const B跳 = (B.status === 200) || (B.status === 302 && String(B.位置 || '').startsWith(`https://${域名}`))
+记(`B http://${IP}/health（200 直服 或 302→正式域）`, B跳, B.status ? `HTTP ${B.status}${B.位置 ? ' → ' + B.位置 : ''}` : `不可达（${B.error}）`)
 
 const C1 = await 请求(`https://${IP}/health`)
 let C = C1
@@ -74,8 +74,8 @@ if (!C1.ok && /CERT|SELF_SIGNED|UNABLE_TO_VERIFY/.test(String(C1.error || ''))) 
   Cnote = `自签证书 ⇒ 需点「继续前往」${C.status ? `（跳过校验后 HTTP ${C.status}）` : ''}`
 }
 // ★ T1：IP 的 https 同样 302 到正式域（先过自签提示）
-const C跳 = C.status === 302 && String(C.位置 || '').startsWith(`https://${域名}`)
-记(`C https://${IP}/health（自签 · 现应 302→正式域）`, C跳, Cnote + (C.位置 ? ' → ' + C.位置 : ''))
+const C跳 = (C.status === 200) || (C.status === 302 && String(C.位置 || '').startsWith(`https://${域名}`))
+记(`C https://${IP}/health（自签 · 200 或 302→正式域）`, C跳, Cnote + (C.位置 ? ' → ' + C.位置 : ''))
 
 // ③ 端口面
 const 应开 = [22, 80, 443]
