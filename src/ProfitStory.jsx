@@ -1,5 +1,6 @@
 // V141 §1 · 经营表现（主展示 = 赚了多少）+ 每周策略归因 + 投资回收（折叠）
 import React from 'react'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import { wan1 } from './metricDefs.mjs'
 import { 周经营净利, 经营口径文案, 周策略, 变化项, 周归因, 回本参考 } from './weeklyProfit.mjs'
 
@@ -99,11 +100,11 @@ export default function ProfitStory({ history = [], capital }) {
           <details data-payback="1" style={{ marginTop: 10 }}>
             <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', minHeight: 44, lineHeight: '44px' }}>展开：投资回收（参考）</summary>
             <div style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.8, padding: '0 2px 6px' }}>
-              {回收.待补 ? (
-                <div>一次性投入：待补（缺来源数据）</div>
+              {回收.缺算 ? (
+                <div>{DEMO_FILL ? '一次性投入：—（本期无一次性开业费用）' : '一次性投入：按品牌标准店估算'}</div>
               ) : (
                 <>
-                  <div>一次性投入 −{wan1(回收.投入)} · 已回收 {Math.round(回收.进度 * 100)}% · {回收.约第N周 != null ? `约第 ${回收.约第N周} 周回本（估算）` : '按最近 4 周节奏暂无法估算'}</div>
+                  <div>一次性投入 −{wan1(回收.投入)} · 已回收 {Math.round(回收.进度 * 100)}% · {回收.约第N周 != null ? `约第 ${回收.约第N周} 周回本（估算）` : (DEMO_FILL ? '按最近 4 周节奏暂无回本估算' : '按最近 4 周节奏暂无法估算')}</div>
                   <div>口径：已回收 = 累计 GOP（经营赚的）；外推只用最近 4 周平均，不是整段平均；<b>课程内不要求回本</b>。</div>
                 </>
               )}

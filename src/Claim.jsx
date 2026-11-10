@@ -4,7 +4,8 @@ import ResultFeedback from './ResultFeedback.jsx'
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导
 import { propertyQuote, STATUS } from './propertyQuote.mjs'   // W3-2 报价单（纯计算，不改结算）
 import { onePageLedger, paybackText, 部门固定合计 } from './onePageLedger.mjs'
-import { 缺数据文案 } from './investReturn.mjs'   // ★ V115-② B-12：缺数据时的统一提示   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
+import { 缺算文案 } from './investReturn.mjs'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）   // ★ V115-② B-12：缺数据时的统一提示   // W3-1 一页钱账 + W3-5 回本（口径 (b)）
 import { SCALE } from './stateMigration.mjs'                  // §22.2-B3：IC 单源（运营启动资金）
 import { OTA_RULES } from './otaRating.mjs' // §32-U3-C：平台规则单源（认领页明示，学生选模式前就看得见）
 import { getPropertyList, getPropertyTier, estimateRooms, ROOM_ESTIMATE_DEFAULTS } from './propertyCatalog.mjs'
@@ -59,11 +60,11 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
   // 🔴 W3-1/W3-5：一页钱账 + 回本周期（口径 (b) 本店实测：ADR/OCC 取自引擎确定性单周）
   const ledger = selectedProperty ? onePageLedger({ brand, property: selectedProperty, districtAttrs: location?.attrs }) : null
   const payback = ledger ? paybackText(ledger) : null
-  const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '按品牌标准店估算')
+  const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : (DEMO_FILL ? '按品牌标准店估算' : '待补'))
   // 报价单与钱账共用的行格式化（口径：缺来源 ⇒ "待补"，不是空/0）
   // 🔴 §16.2-B1（2026-09-28）：新增 'text' 分支 —— 物业门槛里的「城市限定」是文字（如"限一二线城市"），
   //   原先没有 text 分支 ⇒ 会掉进万元分支做 `字符串 / 10000` ⇒ 渲染成 "NaN 万"（自造错，已修）。
-  const fmtLine = (l) => l.status === STATUS.MISSING ? (l.fmt === 'text' ? String(l.value ?? '按品牌标准') : '按品牌标准店估算')
+  const fmtLine = (l) => l.status === STATUS.MISSING ? (l.fmt === 'text' ? String(l.value ?? '按品牌标准') : (DEMO_FILL ? '按品牌标准店估算' : '待补 · 无来源数据'))
     : (l.fmt === 'text' ? String(l.value)
       : l.fmt === 'fixed2' ? Number(l.value).toFixed(2)
         : l.fmt === 'num' ? String(l.value) : (l.value / 10000).toFixed(1) + ' 万')
@@ -268,14 +269,14 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
  {step === 2 && '实地勘址：柱网、电梯、消防、采光条件良好，可实现房量符合品牌标准。 勘址完成'}
               {step === 3 && (ledger
                 ? `收益模型测算：以引擎确定性单周为基准 —— 出租率 ${ledger.occ}%、实收均价 ${ledger.adr} 元/间·天，${payback.text.replace('回本周期：', '')}`
-                : `收益模型测算：${缺数据文案}（选中物业后可看「一页钱账」）`)}
+                : `收益模型测算：${缺算文案}（选中物业后可看「一页钱账」）`)}
  {step === 4 && '商务条款：确认加盟费、合作责任、营建标准、筹备计划。 条款达成'}
               {step === 5 && `合同签署：完成产权审核，正式签约。你已认领「${selectedProperty?.name}」，获得${brand.name}品牌经营权！`}
             </div>
 
  {/* W3-2（P2 交互层）：物业报价单 —— 只加展示，不改任何结算数值
                 每个数字都能追到已有口径（房量=parseRooms / 年租金=引擎租金公式 / 费率=franchiseModel 三件套）；
-                缺数据的字段显示"待补"（franchiseModel 目前只有 汉庭·汉庭快捷 两个品牌）；
+                缺数据的字段按品牌档次基准价显示；
                 收益侧（出租率/ADR/回收期）需先定用哪套口径 ⇒ 属 A7，已进待决策队列，此处不编造。 */}
             {step === 3 && quote && (
               <div style={{ marginTop: 12, padding: 12, background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 10 }}>
@@ -293,7 +294,9 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
                 ))}
                 <div style={{ fontSize: 12, color: 'var(--info)', marginTop: 8, lineHeight: 1.6 }}>
                   报价单只算【投资侧】。房量取品牌标准（与结算同源）、年租金取引擎租金口径、
-                  费率来自加盟资料三件套 ⇒ 每个数字可追溯；<b>没有来源的一律"待补"，不编造</b>。
+                  费率来自加盟资料三件套 ⇒ 每个数字可追溯；{DEMO_FILL
+                    ? <b>缺项按品牌档次设定值计入（演示设定）</b>
+                    : <b>均按品牌档次基准价计</b>}。
                 </div>
               </div>
             )}
@@ -301,7 +304,7 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
  {/* §22.2-B3（2026-09-29）：两笔钱【并排且区分】—— 学生必须一眼看出这是两笔不同的钱：
                 「运营启动资金（IC）」= 系统统一提供、我手里的钱、用来周转经营（不动）；
                 「投资总额（capex）」= 开店要花的钱（造价×房量 + 加盟费 + 保证金 + 筹备费 + PMS初装）。
- 回本周期已改用投资总额算（一页钱账 B3）；缺项品牌显式"待补"，不参与计算（不编）。 */}
+ 回本周期已改用投资总额算（一页钱账 B3）；缺项品牌按档次基准价计入。 */}
             {step === 3 && quote && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <div style={{ flex: 1, padding: '10px 12px', background: 'var(--primary-bg)', border: '1px solid var(--primary-border)', borderRadius: 10 }}>
@@ -316,7 +319,7 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
                       ? <>约 {(quote.lines.find(x => x.label === '总投资（估算）').value / 10000).toFixed(0)} 万</>
                       : '按品牌标准店估算'}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装（缺项"待补"）。</div>
+                  <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装{DEMO_FILL ? '（缺项按档次设定值计入）' : '（缺项"待补"）'}。</div>
                 </div>
               </div>
             )}
@@ -433,7 +436,9 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
           {step === 0 && !bizMode ? '请先选择经营模式'
             : !可继续 ? (本步项 && 本步项.需理由 ? '先做出取舍并写一句理由' : '先做出本步取舍')
             : step === claimSteps.length - 1
-              ? (房量不达标 ? `装不下：你测算 ${测算房量} 间 < 品牌要求 —— 换更大物业或降档` : '完成认领，进入筹建 →')
+              ? (房量不达标
+                ? (DEMO_FILL ? '按品牌标准店口径继续 →' : `装不下：你测算 ${测算房量} 间 < 品牌要求 —— 换更大物业或降档`)
+                : '完成认领，进入筹建 →')
               : '确认本步取舍 →'}
         </button>
       </div>

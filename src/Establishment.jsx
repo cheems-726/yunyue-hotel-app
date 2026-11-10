@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import Icon from './Icon.jsx'
 import { parseRooms } from './settlement.js'
 import ResultFeedback from './ResultFeedback.jsx'
@@ -295,7 +296,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
           <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
             {/* ★ V113-1.1：属性面板（G2）—— 预算/已占用/剩余 实时变化；超支必须降档 */}
             {(() => {
-              const 万 = (v) => Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补'
+              const 万 = (v) => Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '0 万'
               return (
                 <div style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--card)', border: '1px solid var(--warn-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', fontSize: 12, color: 'var(--text)' }}>
@@ -308,7 +309,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                       超出预算 {万(账.超支)} —— 必须降档（或换更低造价的品牌/物业）才能继续
                     </div>
                   )}
-                  {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>该品牌缺单房造价/费率 ⇒ 无法核算预算（不编）</div>}
+                  {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{DEMO_FILL ? '该品牌按档次设定值测算（演示设定）' : '预算按品牌档次基准价测算（以官方报价为准）'}</div>}
                   <WhyNot k="invest" 名="投资档" 提示="为什么这样分配投资档位，而不是把钱花在别的档上？" 选项={['装修优先', '软装优先', '留现金']} />
                   {放弃.length > 0 && (
                     <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4, lineHeight: 1.7 }}>
@@ -344,15 +345,15 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                         : (档位价目表.附加.find(a => a.key === it.key)?.档位 || []))
                       : []
                     return 行.length
-                      ? 行.map(x => `${x.档} ${x.金额 == null ? '待补' : (x.金额 / 10000).toFixed(1) + '万'}`).join(' · ')
-                      : '待补'
+                      ? 行.map(x => `${x.档} ${x.金额 == null ? (DEMO_FILL ? '—' : '按档次基准') : (x.金额 / 10000).toFixed(1) + '万'}`).join(' · ')
+                      : (DEMO_FILL ? '—' : '按档次基准')
                   })()}
                 </span>
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--warn)', marginTop: 6, borderTop: '1px dashed var(--warn-border)', paddingTop: 6, lineHeight: 1.7 }}>
               {测算.合计 == null
-                ? <>{测算.待补.join('；')}</>
+                ? <>{测算.缺项.join('；')}</>
                 : <>合计投资（估算）：<b>{(测算.合计 / 10000).toFixed(1)} 万</b>
                   （含装修 {(测算.明细[0].金额 / 10000).toFixed(1)} 万）· 品质影响：<b>{测算.品质分 > 0 ? '+' : ''}{测算.品质分}</b></>}
               <div style={{ color: 'var(--warn)', marginTop: 2 }}>

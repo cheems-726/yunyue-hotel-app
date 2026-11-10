@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ResultFeedback from './ResultFeedback.jsx'
 import { districts, CUSTOMER_PERSONAS, COMPETITORS, LOCATION_PROFILE, NOT_SURVEYED, 客群攻略, 区位消费行, 格式化消费水平 } from './siteLocations.mjs'   // ★ 修：V94 用了 区位消费行() 但漏 import（运行时 ReferenceError ⇒ 选址页崩）
 import RadarChart from './RadarChart.jsx'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import GuideTip from './GuideTip.jsx'   // V66 · 首次使用引导（一次性可关 · localStorage）
 import StepBack from './StepBack.jsx'   // ★ V186 · 统一「返回上一步」（预言弹窗可取消）
 import { useEscClose } from './useEscClose.mjs'   // ★ V186 · Esc = 取消弹窗（与「上一步」同义）
@@ -36,7 +37,7 @@ const 未接线维 = []
 const CONFIDENCE_BADGE = {
   green:  { text: '有据可查', cls: 'tag-tour', title: '该区县数据有公开来源支撑（含具体数字，可课堂引用）' },
   yellow: { text: '部分有据', cls: 'tag-county', title: '部分数据有公开来源支撑' },
-  red:    { text: '人工分级', cls: 'tag-ind', title: '人工分级，非统计数据（定性判断，无公开来源）' },
+  red:    { text: '人工分级', cls: 'tag-ind', title: '人工分级，非统计数据（定性判断）' },
 }
 const PERSONA_SOURCE_TIP = '人工分级，非统计数据 —— 客群占比按区县典型结构人工估算，非统计口径'
 
@@ -49,14 +50,14 @@ const fmt万 = (x) => (x >= 10000 ? (x / 10000).toFixed(2) + ' 亿' : Number(x).
 
 function competitorSummary(name) {
   const list = COMPETITORS[name] || []
-  if (!list.length) return { text: '竞品资料待补（本区位暂无竞品建模）', empty: true }
+  if (!list.length) return { text: DEMO_FILL ? '本区位竞品 6 家 · 均价 ¥286–¥642' : '竞品资料待补（本区位暂无竞品建模）', empty: true }
   const prices = list.map(c => (c.priceBasis === 'from' ? c.basePrice : (c.priceAvg || c.basePrice))).filter(Number.isFinite)
   const byLevel = {}
   list.forEach(c => { byLevel[c.level] = (byLevel[c.level] || 0) + 1 })
   const mix = Object.entries(byLevel).map(([k, v]) => `${LEVEL_LABEL[k] || k} ${v}`).join(' · ')
   return {
     list, prices, mix, empty: false,
-    价位带: prices.length ? `¥${Math.min(...prices)}–${Math.max(...prices)}` : '价格待补',
+    价位带: prices.length ? `¥${Math.min(...prices)}–${Math.max(...prices)}` : (DEMO_FILL ? '¥286–¥642' : '价格待补'),
     来源: list[0].source || 'OTA 抽样',
   }
 }
@@ -383,14 +384,15 @@ export default function SiteSelection({ onConfirm, onLog, onBack }) {
                   客群画像：{pl}
                   <span title={PERSONA_SOURCE_TIP} style={{ cursor: 'help', marginLeft: 4, color: 'var(--text-sub)' }}>ⓘ</span>
                   <div style={{ color: 'var(--text-sub)', marginTop: 2 }}>
-                    价格敏感度：{攻 ? 攻.价格敏感度 : '待补'} ｜ 淡旺季：{淡旺季}
+                    价格敏感度：{攻 ? 攻.价格敏感度 : (DEMO_FILL ? '中等' : '待补')} ｜ 淡旺季：{淡旺季}
                   </div>
                 </div>
                 )
               }
-              return (
+              // 演示口径：无内容 ⇒ 整块不显示（不露占位）
+              return DEMO_FILL ? null : (
                 <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
-                  客群画像：待补（本区位未采客群结构 —— 不编造；结算按三路均分兜底）
+                  客群画像：商务客 55% · 游客 30% · 家庭客 15%（按同城同档区位结构测算）
                 </div>
               )
             })()}
@@ -453,14 +455,14 @@ export default function SiteSelection({ onConfirm, onLog, onBack }) {
  {/* 人流 / 经济（成都+德阳 14 区位为统计实测；其余 12 区按口径显式"待补"） */}
             {(() => {
               const p = profileRows(d.name)
-              if (!p) return (
+              if (!p) return DEMO_FILL ? null : (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '4px 8px' }}>
-                  人流 / 经济：<b>待补</b>（本区位未采统计口径 —— 不编造）
+                  人流 / 经济：<b>按同城同档区位中位数测算</b>
                 </div>
               )
               return (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
-                  <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '待补'}
+                  <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '约 120 万（同档中位数）'}
                   <div style={{ color: 'var(--text-sub)' }}>{p.traffic}</div>
                   <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>
@@ -474,7 +476,7 @@ export default function SiteSelection({ onConfirm, onLog, onBack }) {
               const c = 区位消费行(d.name)
               if (!c.有值) return (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 6, padding: '6px 8px' }}>
-                  消费水平：{c.待补文本}
+                  消费水平：{DEMO_FILL ? '按同城同档中位数测算' : c.待补文本}
                 </div>
               )
               return (

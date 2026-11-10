@@ -8,7 +8,8 @@ import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'   // ★ V76：条款单源（保证金/管理费/物业门槛只此一份，界面不许抄数字）
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'   // ★ V76：适配区位由竞品 OTA 实测 + 客群画像推得
-import { 兜底文案 } from './demoText.mjs'   // ★ D367：缺源字段的界面兜底（值来自 demoFill 档次设定表）
+import { 兜底文案 } from './demoText.mjs'
+import { DEMO_FILL } from './demoFill.mjs'   // ★ D367：缺源字段的界面兜底（值来自 demoFill 档次设定表）
 import { brandGroups } from './brands.mjs'   // ★ V76：品牌数据单源（纯数据模块 · 测试可直接 import）
 
 
@@ -95,9 +96,9 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
         { label: '房价带', value: b.price, dir: '' },
         { label: '加盟费', value: b.fee, dir: '' },
         // ★ D367：缺源字段不再显示「待补」——用 demoFill 的档次设定值兜底（设定值落点只在 demoFill.mjs）
-        { label: '保证金', value: (条款 && 条款.保证金) || 兜底文案(b.name, '保证金'), dir: '' },
-        { label: '筹备费', value: (条款 && 条款.筹备费) || 兜底文案(b.name, '筹备费'), dir: '' },
-        { label: '管理费', value: (条款 && 条款.管理费) || 兜底文案(b.name, '管理费'), dir: '' },
+        { label: '保证金', value: (条款 && 条款.保证金) || (DEMO_FILL ? 兜底文案(b.name, '保证金') : '待补（无公开来源 · 不编造）'), dir: '' },
+        { label: '筹备费', value: (条款 && 条款.筹备费) || (DEMO_FILL ? 兜底文案(b.name, '筹备费') : '待补（无公开来源 · 不编造）'), dir: '' },
+        { label: '管理费', value: (条款 && 条款.管理费) || (DEMO_FILL ? 兜底文案(b.name, '管理费') : '待补（无公开来源 · 不编造）'), dir: '' },
         { label: '标准要求', value: 标准.join(' · ') || b.standard, dir: '' },
         { label: '适配区位', value: 适 && 适.名单.length ? `${适.名单.length} 个：${适.名单.slice(0, 4).join('、')}${适.名单.length > 4 ? ' 等' : ''}` : '26 区位实测竞品中无同档同价带对标（此组合当前市场空档 · 谨慎）', dir: '' },
         { label: '主力客群', value: 适 ? 适.主客群 : '商务客为主 · 兼顾亲子与游客', dir: '' },
@@ -125,11 +126,12 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
     const 可行 = 品牌可行性({ name: b.name, standard: b.standard })
     const brand = { ...b, level }
     const 基础 = brandResult(brand)
-    const 警示 = 可行.状态 === '超预算'
+    // D367：演示口径下所有品牌都可测算 ⇒ 不再出现「超预算/无法核算」警示（严格口径保留原文案）
+    const 警示 = DEMO_FILL ? '' : (可行.状态 === '超预算'
       ? `预算预警：该品牌最低档约 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）—— 仍可继续，超出部分靠开业后经营回补，前期资金链会更紧。`
-      : 可行.状态 === '无法核算'
+      : 可行.状态 === '需按基准价测算'
         ? `投资测算按品牌档次基准价估算（${可行.原因}）；仍可选择，筹建页会给出准确金额。`
-        : ''
+        : '')
     setSelected(b.name)
     setFeedback({ ...基础, note: [基础.note, 警示].filter(Boolean).join('\n') })
     setConfirmBrand(brand)
@@ -218,15 +220,15 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
                   <span style={{ fontSize: 12, padding: '3px 7px', background: 'var(--bg)', borderRadius: 5 }}>房量 {b.standard}</span>
                 </div>
                 {/* ★ V113-1.2：品牌互斥举证（预算装不下 / 成本不完整）—— 只展示，不替你选 */}
-                {(() => {
+                {!DEMO_FILL && (() => {
                   const 可行 = 品牌可行性({ name: b.name, standard: b.standard })
                   if (可行.状态 === '可行') return null
                   const 超 = 可行.状态 === '超预算'
                   return (
                     <div style={{ fontSize: 12, fontWeight: 700, color: 超 ? 'var(--bad)' : 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
                       {超
-                        ? `装不下：最低 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）`
-                        : `成本不完整：${可行.原因}`}
+                        ? `投资超出预算：最低 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）`
+                        : `按最低档配置：${可行.原因}`}
                     </div>
                   )
                 })()}

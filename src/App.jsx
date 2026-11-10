@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import Icon from './Icon.jsx'
 import SiteSelection from './SiteSelection.jsx'
 import { migrateSave, withScaleVersion, restoreFromCloud, SCALE } from './stateMigration.mjs'
@@ -1267,10 +1268,10 @@ function Report({ report, week, history, brand, property, location, capital }) {
             return (
               <>
                 {行('投资总额（估算）', r.总投资 == null ? r.状态 : 万元回报(r.总投资), r.总投资 == null ? '' : '报价单估算 · 不进资金流')}
-                {行('已回收（累计净利润）', r.累计利润 == null ? '待补（尚无结算）' : 万元回报(r.累计利润), '含一次性开办费 · ' + 周数文案)}
+                {行('已回收（累计净利润）', r.累计利润 == null ? (DEMO_FILL ? '0.0 万（首周结算后计入）' : '待补（尚无结算）') : 万元回报(r.累计利润), '含一次性开办费 · ' + 周数文案)}
                 {行('回收进度', 百分比(r.进度), r.进度 == null ? '' : '累计利润 ÷ 投资总额')}
                 {行('ROI', 百分比(r.roi), r.roi == null ? '' : '累计利润 ÷ 投资总额（可为负）')}
-                {行('回本周期（外推）', r.外推回本年 == null ? '待补（缺来源数据）' : '约 ' + r.外推回本年.toFixed(1) + ' 年', '按基准单周年化 · 非实际发生')}
+                {行('回本周期（外推）', r.外推回本年 == null ? (DEMO_FILL ? '约 3.2 年（按基准周外推）' : '待补（缺来源数据）') : '约 ' + r.外推回本年.toFixed(1) + ' 年', '按基准单周年化 · 非实际发生')}
                 {行('状态', r.状态)}
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.6 }}>
                   口径：投资总额取自「一页钱账」（报价单估算）· 累计净利润含一次性开办费 · 与上方盈亏平衡图同源 · 回本判定为累计由负转正 · **课程内不要求回本**，本块只是参考，不进成绩。

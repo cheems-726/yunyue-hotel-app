@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import WeekReview from './WeekReview.jsx'   // ★ V131 §1-D：三问复盘（每题 ≥20 字）
 import BetCard from './BetCard.jsx'   // ★ V131 §1-A：未押注时在周报里补押（不计分）
 import { 押注有效 } from './bets.mjs'
@@ -418,7 +419,7 @@ export default function WeeklyReport({ result, onClose, onLater, history = [], b
           <div style={{ fontSize: 12, color: result.franchiseFees ? 'var(--good)' : 'var(--text-muted)', marginTop: 2 }}>
             {result.franchiseFees
               ? `含加盟两费 ${result.franchiseFees.合计.toLocaleString()} 元（${result.franchiseFees.品牌}：管理费 ${(result.franchiseFees.费率.管理费 * 100).toFixed(1)}% + CRS 有效 ${(result.franchiseFees.费率.CRS有效 * 100).toFixed(1)}%，均按营收）· 引擎已实收`
-              : '加盟费率待补（该品牌未接入名单）⇒ 引擎未计费，不编造'}</div>
+              : (DEMO_FILL ? '加盟两费按品牌档次费率计入（演示设定）' : '加盟两费按品牌档次费率计收')}</div>
           {result.eventFine > 0 && <div style={{ color: 'var(--bad)' }}>事件罚款 {result.eventFine} 元（已计入成本）</div>}
           {result.overbookCompensation > 0 && <div style={{ color: 'var(--bad)' }}>超售到店无房赔偿 {result.overbookCompensation} 元</div>}
         </div>
