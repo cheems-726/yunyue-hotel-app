@@ -462,7 +462,7 @@ export default function SiteSelection({ onConfirm, onLog, onBack }) {
               )
               return (
                 <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text)', background: 'var(--bg)', borderRadius: 6, padding: '5px 8px', lineHeight: 1.6 }}>
-                  <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '约 120 万（同档中位数）'}
+                  <b>人流</b>：常住 {fmt万(p.pop)} · 年接待游客 {p.tou != null ? fmt万(p.tou) : '按同档区位中位数测算'}
                   <div style={{ color: 'var(--text-sub)' }}>{p.traffic}</div>
                   <b>经济</b>：GDP {p.gdp} 亿元（{p.gdpy}）
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>

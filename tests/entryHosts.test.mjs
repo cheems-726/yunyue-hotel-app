@@ -11,9 +11,9 @@ ok(是否本系统('test.2026911301.xyz') && 是否本系统('localhost') && 是
 ok(是否本系统('121.196.196.37'), 'IP 入口就是本系统（不再被"旧站点"横幅赶走）')
 ok(是否本系统('TEST.2026911301.xyz'), '大小写不敏感')
 ok(!是否本系统('www.2026911301.xyz') && !是否本系统('') && !是否本系统(null), 'www / 空值判红')
-ok(正式入口 === 'https://test.2026911301.xyz', '正式入口 = https://test.2026911301.xyz')
-ok(跳转地址({ pathname: '/login', search: '?a=1' }) === 'https://test.2026911301.xyz/login?a=1', '跳转保留 path/search')
-ok(跳转地址({}) === 'https://test.2026911301.xyz/', '空 location ⇒ 根路径')
+ok(正式入口 === 'http://121.196.196.37', '正式入口 = http://121.196.196.37（域名未备案被运营商拦截）')
+ok(跳转地址({ pathname: '/login', search: '?a=1' }) === 'http://121.196.196.37/login?a=1', '跳转保留 path/search')
+ok(跳转地址({}) === 'http://121.196.196.37/', '空 location ⇒ 根路径')
 
 const app = readFileSync('src/App.jsx', 'utf8')
 ok(/data-host-guard="1"/.test(app) && /data-host-jump="1"/.test(app), '登录页有旧站红横幅 + 一键跳转')

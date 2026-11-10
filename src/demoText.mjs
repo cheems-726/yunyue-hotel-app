@@ -1,12 +1,13 @@
 // D367 · 界面兜底文案（只给 UI 用：把「待补」换成可读数字）
 // 纪律：值全部来自 demoFill.mjs 的档次设定表，本文件不新增任何数据。
 import { DEMO_FILL, 演示值 } from './demoFill.mjs'
+import { wan2 } from './metricDefs.mjs'   // 金额→万 的唯一换算点（stale-scale R6）
 
 /** 元 → 「x.x 万」（无千分位，和现有 UI 风格一致） */
-export const 金额文 = (元) => (Number.isFinite(元) ? (元 / 10000).toFixed(1).replace(/\.0$/, '') + ' 万' : '0 万')
+const 金额文 = (元) => (Number.isFinite(元) ? wan2(元) : '—')
 
 /** 0.05 → 「5%」 */
-export const 费率文 = (率) => (Number.isFinite(率) ? (率 * 100).toFixed(率 * 100 % 1 === 0 ? 0 : 1) + '%' : '5%')
+const 费率文 = (率) => (Number.isFinite(率) ? (率 * 100).toFixed(率 * 100 % 1 === 0 ? 0 : 1) + '%' : '5%')
 
 /**
  * 取某品牌某字段的可读文案；缺官方来源时用档次设定值。
@@ -27,5 +28,3 @@ export function 兜底文案(品牌名, 键) {
   }
 }
 
-/** 数字兜底：null/NaN ⇒ 用 demoFill 的同类值或 0（UI 用） */
-export const 数兜底 = (值, 备用 = 0) => (Number.isFinite(值) ? 值 : 备用)

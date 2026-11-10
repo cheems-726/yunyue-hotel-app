@@ -296,7 +296,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
           <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warn-bg)', border: '1px solid var(--warn-border)', borderRadius: 10 }}>
             {/* ★ V113-1.1：属性面板（G2）—— 预算/已占用/剩余 实时变化；超支必须降档 */}
             {(() => {
-              const 万 = (v) => Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '0 万'
+              const 万 = (v) => Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '—'
               return (
                 <div style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--card)', border: '1px solid var(--warn-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', fontSize: 12, color: 'var(--text)' }}>

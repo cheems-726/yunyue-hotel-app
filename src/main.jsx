@@ -14,8 +14,8 @@ try { document.body.dataset.shell = 读界面形态() } catch (e) { /* 静默理
 //   ⇒ 只在原生环境调用，并兜住 Promise。
 try {
   if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
-    Promise.resolve(StatusBar.setOverlaysWebView({ overlay: true })).catch(() => {})
-    Promise.resolve(StatusBar.setStyle({ style: Style.Dark })).catch(() => {})
+    Promise.resolve(StatusBar.setOverlaysWebView({ overlay: true })).catch(() => { /* 静默理由：状态栏是可选美化，失败不影响页面 */ })
+    Promise.resolve(StatusBar.setStyle({ style: Style.Dark })).catch(() => { /* 静默理由：同上，非原生平台无该插件 */ })
   }
 } catch (e) {
   // 非 Capacitor 环境（浏览器调试）忽略
