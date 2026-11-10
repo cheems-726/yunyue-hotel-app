@@ -309,7 +309,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                       超出预算 {万(账.超支)} —— 必须降档（或换更低造价的品牌/物业）才能继续
                     </div>
                   )}
-                  {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{DEMO_FILL ? '该品牌按档次设定值测算（演示设定）' : '预算按品牌档次基准价测算（以官方报价为准）'}</div>}
+                  {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{DEMO_FILL ? '预算按品牌标准测算' : '预算按品牌档次基准价测算（以官方报价为准）'}</div>}
                   <WhyNot k="invest" 名="投资档" 提示="为什么这样分配投资档位，而不是把钱花在别的档上？" 选项={['装修优先', '软装优先', '留现金']} />
                   {放弃.length > 0 && (
                     <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 4, lineHeight: 1.7 }}>

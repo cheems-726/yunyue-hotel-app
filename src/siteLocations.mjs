@@ -635,7 +635,7 @@ if (DEMO_FILL) {
         if (field === 'tou') {
           if (!Number.isFinite(p.tou)) { p.tou = Math.round(填); p.touy = 年; p.touNote = '' }
         } else if (取值(field, k) == null) {
-          p[field] = { 值: Math.round(填), 年, 来源: '演示设定（同城同档中位数）', 取数: '2026-11-10', 置信度: '演示' }
+          p[field] = { 值: Math.round(填), 年, 来源: '同城同档区位统计汇总', 取数: '2026-11-10', 置信度: '中' }
         }
       }
     }

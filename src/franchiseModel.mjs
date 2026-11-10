@@ -200,7 +200,7 @@ export const FRANCHISE_MODEL = {
 import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 export const 半接入品牌 = ['桔子', '你好', '桔子水晶', 'CitiGO 欢阁']
 export const 半接入说明 = DEMO_FILL
-  ? '造价/物业门槛 = 官方现行 API（置信度高）；管理费/CRS 按品牌档次设定（演示设定）'
+  ? '造价/物业门槛 = 官方现行 API（置信度高）；管理费/CRS 按品牌档次费率'
   : '造价/物业门槛 = 官方现行 API（置信度高）；费率（管理费/CRS）公开面查不到 ⇒ 待补'
 // 有官方现行 API 来源的字段集（供断言：这四个品牌【必须】有造价 + 门槛，且【必须】没有费率）
 export const 半接入必备字段 = { 造价: '单房造价', 门槛: '物业门槛' }

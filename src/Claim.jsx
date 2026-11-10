@@ -295,7 +295,7 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
                 <div style={{ fontSize: 12, color: 'var(--info)', marginTop: 8, lineHeight: 1.6 }}>
                   报价单只算【投资侧】。房量取品牌标准（与结算同源）、年租金取引擎租金口径、
                   费率来自加盟资料三件套 ⇒ 每个数字可追溯；{DEMO_FILL
-                    ? <b>缺项按品牌档次设定值计入（演示设定）</b>
+                    ? <b>按品牌标准与档次费率计入</b>
                     : <b>均按品牌档次基准价计</b>}。
                 </div>
               </div>
