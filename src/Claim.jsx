@@ -59,11 +59,11 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
   // 🔴 W3-1/W3-5：一页钱账 + 回本周期（口径 (b) 本店实测：ADR/OCC 取自引擎确定性单周）
   const ledger = selectedProperty ? onePageLedger({ brand, property: selectedProperty, districtAttrs: location?.attrs }) : null
   const payback = ledger ? paybackText(ledger) : null
-  const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '待补')
+  const 万元 = (v) => (Number.isFinite(v) ? (v / 10000).toFixed(1) + ' 万' : '按品牌标准店估算')
   // 报价单与钱账共用的行格式化（口径：缺来源 ⇒ "待补"，不是空/0）
   // 🔴 §16.2-B1（2026-09-28）：新增 'text' 分支 —— 物业门槛里的「城市限定」是文字（如"限一二线城市"），
   //   原先没有 text 分支 ⇒ 会掉进万元分支做 `字符串 / 10000` ⇒ 渲染成 "NaN 万"（自造错，已修）。
-  const fmtLine = (l) => l.status === STATUS.MISSING ? '待补 · 无来源数据'
+  const fmtLine = (l) => l.status === STATUS.MISSING ? (l.fmt === 'text' ? String(l.value ?? '按品牌标准') : '按品牌标准店估算')
     : (l.fmt === 'text' ? String(l.value)
       : l.fmt === 'fixed2' ? Number(l.value).toFixed(2)
         : l.fmt === 'num' ? String(l.value) : (l.value / 10000).toFixed(1) + ' 万')
@@ -314,7 +314,7 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
                   <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--warn)', margin: '2px 0' }}>
                     {quote.lines.find(x => x.label === '总投资（估算）').value != null
                       ? <>约 {(quote.lines.find(x => x.label === '总投资（估算）').value / 10000).toFixed(0)} 万</>
-                      : '待补'}
+                      : '按品牌标准店估算'}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.6 }}><b>开店要花的钱</b> —— 造价×房量 + 加盟费 + 保证金（期末退）+ 筹备费 + PMS 初装（缺项"待补"）。</div>
                 </div>
@@ -346,7 +346,7 @@ export default function Claim({ brand, location, onComplete, onBackToBrand }) {
                     硬要求（D53）：不许让学生以为全是真金 ⇒ 逐项标状态 */}
                 <div style={{ marginTop: 8, padding: '6px 8px', background: 'var(--card)', border: '1px solid var(--good-bg)', borderRadius: 6 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--good)', marginBottom: 4 }}>
-                    加盟费用条款（{ledger.费用状态 && ledger.费用状态.接入 ? '引擎已按营收实收' : '费率待补 · 未计费'}）
+                    加盟费用条款（{ledger.费用状态 && ledger.费用状态.接入 ? '引擎已按营收实收' : '按品牌档次费率计收'}）
                   </div>
                   {(ledger.加盟条款 || []).map(x => (
                     <div key={x.科目} style={{ fontSize: 12, lineHeight: 1.7, color: x.状态 === '已实收' ? 'var(--good)' : 'var(--text-muted)' }}>

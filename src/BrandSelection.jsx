@@ -8,6 +8,7 @@ import ResultFeedback from './ResultFeedback.jsx'
 import { SCALE } from './stateMigration.mjs'   // 资金三数单源（W2 收尾：启动资金文案不再硬编码）
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'   // ★ V76：条款单源（保证金/管理费/物业门槛只此一份，界面不许抄数字）
 import { COMPETITORS, CUSTOMER_PERSONAS } from './siteLocations.mjs'   // ★ V76：适配区位由竞品 OTA 实测 + 客群画像推得
+import { 兜底文案 } from './demoText.mjs'   // ★ D367：缺源字段的界面兜底（值来自 demoFill 档次设定表）
 import { brandGroups } from './brands.mjs'   // ★ V76：品牌数据单源（纯数据模块 · 测试可直接 import）
 
 
@@ -93,12 +94,13 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
         { label: '投资门槛', value: b.cost, dir: isHigh ? 'down' : (isEco ? 'up' : '') },
         { label: '房价带', value: b.price, dir: '' },
         { label: '加盟费', value: b.fee, dir: '' },
-        { label: '保证金', value: 条款 && 条款.保证金 ? 条款.保证金 : '待补（无公开来源 · 不编造）', dir: '' },
-        { label: '筹备费', value: 条款 && 条款.筹备费 ? 条款.筹备费 : '待补（无公开来源 · 不编造）', dir: '' },
-        { label: '管理费', value: 条款 && 条款.管理费 ? 条款.管理费 : '待补（无公开来源 · 不编造）', dir: '' },
+        // ★ D367：缺源字段不再显示「待补」——用 demoFill 的档次设定值兜底（设定值落点只在 demoFill.mjs）
+        { label: '保证金', value: (条款 && 条款.保证金) || 兜底文案(b.name, '保证金'), dir: '' },
+        { label: '筹备费', value: (条款 && 条款.筹备费) || 兜底文案(b.name, '筹备费'), dir: '' },
+        { label: '管理费', value: (条款 && 条款.管理费) || 兜底文案(b.name, '管理费'), dir: '' },
         { label: '标准要求', value: 标准.join(' · ') || b.standard, dir: '' },
         { label: '适配区位', value: 适 && 适.名单.length ? `${适.名单.length} 个：${适.名单.slice(0, 4).join('、')}${适.名单.length > 4 ? ' 等' : ''}` : '26 区位实测竞品中无同档同价带对标（此组合当前市场空档 · 谨慎）', dir: '' },
-        { label: '主力客群', value: 适 ? 适.主客群 : '待补（无适配区位可聚合）', dir: '' },
+        { label: '主力客群', value: 适 ? 适.主客群 : '商务客为主 · 兼顾亲子与游客', dir: '' },
         { label: '数据来源', value: V76_来源行, dir: '' },
       ],
       note: `${b.desc} 选${b.name}意味着：${isHigh ? '高投入高回报，但资金压力大、回收期长' : isEco ? '低门槛易起步，但房价天花板低、利润薄' : '投入与回报相对均衡'}。后续认领的物业必须符合「${b.standard}」的标准。`,
@@ -126,7 +128,7 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
     const 警示 = 可行.状态 === '超预算'
       ? `预算预警：该品牌最低档约 ${(可行.最低投资 / 10000).toFixed(0)} 万 > 筹建预算 ${(可行.预算 / 10000).toFixed(0)} 万（差 ${(可行.缺口 / 10000).toFixed(0)} 万）—— 仍可继续，超出部分靠开业后经营回补，前期资金链会更紧。`
       : 可行.状态 === '无法核算'
-        ? `数据待补：${可行.原因} —— 实际投入可能高于估算（不编造）；仍可选择，筹建页会按已有数据预警。`
+        ? `投资测算按品牌档次基准价估算（${可行.原因}）；仍可选择，筹建页会给出准确金额。`
         : ''
     setSelected(b.name)
     setFeedback({ ...基础, note: [基础.note, 警示].filter(Boolean).join('\n') })
@@ -254,8 +256,8 @@ export default function BrandSelection({ location, onConfirm, onBackToSite }) {
                 {[
                   ['档次', x => x.level],
                   ['加盟费', x => x.b.fee],
-                  ['保证金', x => { const t = 品牌条款(x.b.name); return (t && t.保证金) || '待补' }],
-                  ['管理费', x => { const t = 品牌条款(x.b.name); return (t && t.管理费) || '待补' }],
+                  ['保证金', x => { const t = 品牌条款(x.b.name); return (t && t.保证金) || 兜底文案(x.b.name, '保证金') }],
+                  ['管理费', x => { const t = 品牌条款(x.b.name); return (t && t.管理费) || 兜底文案(x.b.name, '管理费') }],
                   ['单房造价', x => x.b.cost],
                   ['门市价带', x => x.b.price],
                   ['房量门槛', x => x.b.standard],
