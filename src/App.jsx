@@ -318,7 +318,7 @@ function LoginPage({ onLogin }) {
         <code style={{ fontSize: 12 }}>{正式入口}</code>
         <button type="button" data-host-jump="1" className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, minHeight: 44 }} onClick={() => { if (typeof location !== 'undefined') location.replace(跳转地址(location)) }}>一键跳转 →</button>
       </div>
-      <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>正式地址是 test 开头；www 是 10-19 的旧包，登录不了。</div>
+      <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>正式地址是 http://121.196.196.37（域名未备案，运营商可能拦截；www 是旧包，登录不了）。</div>
     </div>
   ) : null
 
