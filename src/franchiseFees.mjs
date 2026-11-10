@@ -23,6 +23,8 @@
 //   ④ 这四项已在【认领页报价单】按投资侧列示（propertyQuote）⇒ 并非学生看不到
 //   ⇒ 已列《待决策队列》A 级（见队列"一次性费用是否进 IC"），待决策端拍板后再接。
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'
+// D367 演示口径：未入库品牌按档次给设定值（可用 DEMO_FILL 一键关回严格来源）
+import { DEMO_FILL, 演示模型, 演示值 } from './demoFill.mjs'
 
 // ── 接入范围（D53-a）──────────────────────────────────────────
 export const 已接入品牌 = ['汉庭', '全季', '海友']
@@ -82,7 +84,7 @@ export function 设置CRS渠道占比(v) {
 /** 恢复默认（教学/演示用；也是断言里"零变化"的复位手段） */
 export function 重置CRS渠道占比() { CRS运行时.当前 = CRS_渠道占比.值; return CRS配置() }
 
-const 费率 = (品牌名) => FRANCHISE_MODEL[品牌名] || null
+const 费率 = (品牌名) => FRANCHISE_MODEL[品牌名] || (DEMO_FILL ? 演示模型(品牌名) : null)   // D367 演示口径
 
 // 未接入时的【缺项清单】（如实说缺什么，不笼统写"暂不支持"）
 export function 缺项(品牌名) {
@@ -98,11 +100,11 @@ export function 缺项(品牌名) {
 // 接入状态（界面标注"已实收 / 待补"用；纯查表，不参与计算）
 export function franchiseFeeStatus(品牌名) {
   const 名称 = typeof 品牌名 === 'string' ? 品牌名 : (品牌名 && 品牌名.name) || null
-  const 接入 = !!名称 && 已接入品牌.includes(名称)
+  const 接入 = !!名称 && (已接入品牌.includes(名称) || !!(DEMO_FILL && 演示值(名称)))   // D367：演示口径下全部品牌接入
   return {
     品牌: 名称,
     接入,
-    原因: 接入 ? '费率来源完整（D53-a 接入名单）' : (名称 ? `缺 ${缺项(名称).join('、')} ⇒ 待补（不编造）` : '未选品牌'),
+    原因: 接入 ? (已接入品牌.includes(名称) ? '费率来源完整（D53-a 接入名单）' : '演示设定（D367 · 非官方数据）') : (名称 ? `缺 ${缺项(名称).join('、')} ⇒ 未接入` : '未选品牌'),
   }
 }
 

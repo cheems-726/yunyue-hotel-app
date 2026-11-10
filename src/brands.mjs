@@ -65,3 +65,21 @@ export const brandGroups = [
     ]
   },
 ]
+// ── D367 演示口径（2026-11-10）────────────────────────────────────────
+// 缺什么按品牌档次补设定值；原值留档在 `原值_演示`，不覆盖官方来源字段。
+import { DEMO_FILL, 演示值 } from './demoFill.mjs'
+if (DEMO_FILL) {
+  for (const g of brandGroups) {
+    for (const b of g.brands) {
+      const v = 演示值(b.name)
+      if (!v) continue
+      const need = (x) => x == null || String(x).trim() === '' || /待补/.test(String(x))
+      if (!(need(b.fee) || need(b.cost) || need(b.price) || need(b.standard))) continue
+      b.原值_演示 = { fee: b.fee, cost: b.cost, price: b.price, standard: b.standard }
+      if (need(b.fee)) b.fee = `费率 ${(v.管理费率 * 100).toFixed(0)}% 管理费 + ${(v.CRS率 * 100).toFixed(0)}% CRS`
+      if (need(b.cost)) b.cost = `${(v.单房造价新建 / 10000).toFixed(1)}万/间`
+      if (need(b.price)) b.price = `${v.ADR带}元`
+      if (need(b.standard)) b.standard = `客房${v.最少房量}间起`
+    }
+  }
+}

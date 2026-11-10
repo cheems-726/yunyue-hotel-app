@@ -20,6 +20,7 @@
 //   ★ 纯计算 + 配置：**不被 settlement.js 引用**（守门会断言）⇒ 不参与结算。
 //   ★ 品质联动通过**既有的属性机制**（attrs.js 的伪 id）落地，不在本文件里改属性。
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'
+import { DEMO_FILL, 演示模型 } from './demoFill.mjs'   // D367 演示口径
 import { parseRooms } from './settlement.js'
 
 export const 档位名 = ['低', '中', '高']
@@ -108,7 +109,7 @@ const 默认选择 = { 装修: '中', 软装: '中', IT: '中', 布草: '中', �
  */
 export function 投资测算({ brand, 选择 } = {}) {
   const 房量 = parseRooms(brand?.standard)
-  const t = brand?.name ? FRANCHISE_MODEL[brand.name] : null
+  const t = brand?.name ? (FRANCHISE_MODEL[brand.name] || (DEMO_FILL ? 演示模型(brand.name) : null)) : null   // D367 演示口径
   const 单房造价 = t?.单房造价?.新建?.值 ?? null
   const cfg = 运行时.当前
   const 档选择 = { ...默认选择, ...(选择 || {}) }

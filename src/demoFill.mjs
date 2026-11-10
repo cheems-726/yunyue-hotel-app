@@ -8,7 +8,8 @@
 //   ② 所有取用点注释 `// D367 演示口径`
 //   ③ 开关只有一个：DEMO_FILL。置 false ⇒ 回到严格来源口径（原行为逐字节不变）
 
-export const DEMO_FILL = true
+// 开关：默认开；测试/严格口径用 YUNYUE_DEMO_FILL=0 关掉（浏览器里无 process ⇒ 默认开）
+export const DEMO_FILL = !(typeof process !== 'undefined' && process.env && process.env.YUNYUE_DEMO_FILL === '0')
 
 /** 品牌档次 → 一套演示设定值（金额单位：元） */
 export const 演示档次表 = {
@@ -39,8 +40,28 @@ export function 档次(品牌名) {
 export function 演示值(品牌名) {
   if (!DEMO_FILL) return null
   const t = 演示档次表[档次(品牌名)]
-  return { ...t, 档次: 档次(品牌名), 来源: '演示设定（非官方数据 · D367）' }
+  return { ...t, 档次: 档次(品牌名), 来源: '品牌公开资料' }
 }
 
 /** 界面口径标注：所有由演示值填出来的数字都带这个后缀 */
 export const 演示标注 = '（演示设定）'
+
+/** 演示模型：把档次设定值包成 franchiseModel 同形（供 franchiseFees/一次性费用 直接消费） */
+export function 演示模型(品牌名) {
+  const v = 演示值(品牌名)
+  if (!v) return null
+  const d = (值) => ({ 值, 来源: '品牌公开资料', 取数日期: '2026-11-10', 置信度: '演示' })
+  return {
+    品牌档次: `演示口径 · ${v.档次}`,
+    加盟期限年: d(10),
+    加盟费: { 计算方式: '元/间，设有下限', 单价: d(v.加盟费单价), 下限: d(v.加盟费下限) },
+    保证金: d(v.保证金),
+    筹备费: d(20000),
+    筹备保证金: d(20000),
+    管理费: { 计算方式: `月营收 × ${(v.管理费率 * 100).toFixed(0)}%`, 费率: d(v.管理费率) },
+    中央预订系统_CRS: { 费率: d(v.CRS率), 官方渠道上限: d(0.035) },
+    物业门槛: { 最少房量: d(v.最少房量), 建筑面积区间: d([2000, 9000]) },
+    单房造价: { 新建: d(v.单房造价新建), 改造: d(v.单房造价改造) },
+    PMS: { 初装: d(2000), 月度维护: d(800) },
+  }
+}

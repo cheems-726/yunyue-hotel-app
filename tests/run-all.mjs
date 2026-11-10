@@ -319,9 +319,9 @@ let failed = 0, skipped = 0
 let 解析失败 = 0
 let 上次perSuite快照 = null   // §23.3-③：上次运行的各套件计数（漂移提示用）
 
-function run(cmd, args, label) {
+function run(cmd, args, label, envExtra = null) {
   const t0 = Date.now()
-  const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', shell: process.platform === 'win32' , windowsHide: true })
+  const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', shell: process.platform === 'win32' , windowsHide: true, env: envExtra ? { ...process.env, ...envExtra } : process.env })
   const out = (r.stdout || '') + (r.stderr || '')
   const secs = ((Date.now() - t0) / 1000).toFixed(1)
   // 解析尾部的「N 通过 / M 失败」或「N 通过, M 失败」
@@ -363,7 +363,9 @@ for (const s of SUITES) {
     console.log(`${s.name.padEnd(38)} ⏭ 文件不存在：${s.file}`)
     continue
   }
-  const r = run('node', [s.file, ...(s.args || [])], s.name)   // §13.2-N8：支持套件自带参数（docs-staleness --gate）
+  // ★ D367：严格口径证据链的 4 个套件固定以 DEMO_FILL=0 跑（套件文件一字不改，避免改断言换绿）
+  const 严格口径 = /^(franchiseFees|propertyQuote|establishmentInvest|brandFit)（/.test(s.name)
+  const r = run('node', [s.file, ...(s.args || [])], s.name, 严格口径 ? { YUNYUE_DEMO_FILL: '0' } : null)   // §13.2-N8：支持套件自带参数（docs-staleness --gate）
   // expectedFail：当前预期失败（如 M2 修复前红）；红→记「预期红」不算失败，绿→记「已转绿」
   if (s.expectedFail) {
     const state = r.code === 0 ? '✅ 已转绿' : '⏳ 预期红'

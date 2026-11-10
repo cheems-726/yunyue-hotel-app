@@ -8,6 +8,7 @@
 // ── 边界 ─────────────────────────────────────────────────────────────
 //   · 只读：预算来自 `startupBudget.筹建账`（单源）、门槛来自 `propertyQuote.brandTerms`（单源）
 //   · 不改任何结算/引擎；只在选品牌与认领两步做"能不能"的判断
+import { DEMO_FILL, 演示值 } from './demoFill.mjs'   // D367 演示口径
 import { 筹建账 } from './startupBudget.mjs'
 import { brandTerms } from './propertyQuote.mjs'
 
@@ -45,7 +46,7 @@ export function 品牌可行性({ name, standard } = {}) {
 export function 房量装得下(brand, 测算房量) {
   const t = brandTerms(brand && brand.name)
   const 门槛 = t && t.物业门槛 ? t.物业门槛 : null
-  const 最少 = 门槛 && 门槛.最少房量 ? 门槛.最少房量.值 : null
+  const 最少 = (门槛 && 门槛.最少房量 ? 门槛.最少房量.值 : null) ?? (DEMO_FILL ? (演示值(brand && brand.name)?.最少房量 ?? null) : null)   // D367
   const 区间 = 门槛 && 门槛.房量区间 ? 门槛.房量区间.值 : null
   if (!Number.isFinite(测算房量)) return { 装得下: null, 原因: '还没算房量（先在测算器里填参数）', 要求: null }
   if (Number.isFinite(最少) && 测算房量 < 最少) {

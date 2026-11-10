@@ -17,13 +17,14 @@
 //   本模块【不】计算：出租率 / ADR / 年现金流 / 回收期 —— 那些需要"用哪套 ADR·OCC 口径"的拍板
 //   （属 A7 教学口径），已写进待决策队列；报价单只做【投资侧】的加减乘除。
 import { FRANCHISE_MODEL } from './franchiseModel.mjs'
+import { DEMO_FILL, 演示模型 } from './demoFill.mjs'   // D367 演示口径
 import { parseRooms, rentPerRoomDay } from './settlement.js'
 
 export const STATUS = { OK: 'ok', DERIVED: 'derived', MISSING: 'missing' }
 
 // 取某品牌的经济条款（franchiseModel 是纯数据模块；没有该品牌 ⇒ null ⇒ 界面显示待补）
 export function brandTerms(brandName) {
-  return (brandName && FRANCHISE_MODEL[brandName]) || null
+  return (brandName && (FRANCHISE_MODEL[brandName] || (DEMO_FILL ? 演示模型(brandName) : null))) || null   // D367
 }
 
 // 🔴 A-1：租金口径【不再在本文件定义】—— 直接复用引擎的 rentPerRoomDay（单源；此处 re-export 保持旧引用可用）
