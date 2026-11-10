@@ -306,7 +306,7 @@ function StepContent({ stepKey, onPick, picked, choices, chooseInvest, chooseSup
                   </div>
                   {账.超支 > 0 && (
                     <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--bad)', marginTop: 4 }}>
-                      超出预算 {万(账.超支)} —— 必须降档（或换更低造价的品牌/物业）才能继续
+                      预算预警：超出 {万(账.超支)}（不影响继续 —— 超支部分靠开业后经营回补）
                     </div>
                   )}
                   {账.缺项 && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{DEMO_FILL ? '预算按品牌标准测算' : '预算按品牌档次基准价测算（以官方报价为准）'}</div>}
