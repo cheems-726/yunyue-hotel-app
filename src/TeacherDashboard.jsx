@@ -315,15 +315,19 @@ function GroupDetail({ uid, rawStates, name, allNotes = [], onDeleteNote, onSave
           </div>
         )
       })()}
-      {/* 本周 18 项决策完成度 */}
+      {/* 本周决策完成度（★ D366：主数字＝课堂模式 9 项，与学生端一致；深度 18 项折叠显示） */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-sub)', marginBottom: 3 }}>
           <span>本周决策完成度</span>
-          <span style={{ fontWeight: 600, color: weekDecisions === 18 ? 'var(--good)' : 'var(--warn)' }}>{weekDecisions} / 18</span>
+          <span style={{ fontWeight: 600, color: weekDecisions >= 9 ? 'var(--good)' : 'var(--warn)' }}>{weekDecisions} / 9</span>
         </div>
         <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: (weekDecisions / 18 * 100) + '%', background: weekDecisions === 18 ? 'var(--good)' : 'var(--primary)', borderRadius: 3 }} />
+          <div style={{ height: '100%', width: (Math.min(1, weekDecisions / 9) * 100) + '%', background: weekDecisions >= 9 ? 'var(--good)' : 'var(--primary)', borderRadius: 3 }} />
         </div>
+        <details data-deep-denom style={{ marginTop: 4 }}>
+          <summary style={{ fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>深度模式 {weekDecisions} / 18（本班历史全量口径）</summary>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>18 项是深度模式口径；课堂模式只要求本周 9 项重点。两端数字以 9 为准。</div>
+        </details>
       </div>
       {hist.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>还没有结算过，看不到逐周数据</div>}
       {hist.map(h => {
@@ -2062,10 +2066,10 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {/* ★ V125-#7：口径必须显式 —— 这里是"已完成项数"（组内按 id 去重，改答案不重复计数），
-                    不是"提交次数"。分母 = 组数 × 18 项；人均也带 /18，避免老师误读成"学生只做了一半"。 */}
+                    不是"提交次数"。★ D366：分母统一到课堂模式 9 项（与学生端一致），18 只在深度模式用。 */}
                 {[
-                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 18}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 结算后归零属正常（下周重新计）· 分母 = 组数 × 18 项' },
-                  { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 18 项`, t: '每组最多 18 项；已完成项数 ÷ 组数' },
+                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 9}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 课堂模式分母 = 组数 × 9 项' },
+                  { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 9 项`, t: '课堂模式每组目标 9 项；已完成项数 ÷ 组数' },
                   { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', t: '最近一次云端存档时间' },
                 ].map(s => (
                   <div key={s.l} title={s.t} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
