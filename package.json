@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:ui": "npm run build && node tests/ui-smoke.mjs"
+    "test:ui": "npm run build && node tests/ui-smoke.mjs",
+    "build:demo": "vite build",
+    "build:strict": "node scripts/build-strict.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

@@ -2,6 +2,7 @@
 // 红线：只重排 history（前 12 周），不重算引擎、不改 history；主指标 = 经营净利（V145 口径）；
 //       不排名、不用"是否回本"当成绩（D342 口径 A）；回本只作折叠参考。
 import React from 'react'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import { 学期成果 } from './semesterResult.mjs'
 import { TOTAL_WEEKS, 学期口径说明 } from './semester.mjs'
 import { wan1 } from './metricDefs.mjs'
@@ -122,7 +123,7 @@ export function 成果卡({ 成果, 称号 }) {
 
 function PaybackRef({ 投入, GOP累计 }) {
   const txt = (投入 == null || 投入 <= 0)
-    ? '一次性投入待补（history 缺 oneTimeFees 口径）—— 不出数、不猜。'
+    ? (DEMO_FILL ? '一次性投入：—（history 未记录 oneTimeFees 口径）—— 不出数、不猜。' : '一次性投入待补（history 缺 oneTimeFees 口径）—— 不出数、不猜。')
     : `一次性投入 ${万元(投入)} · 学期累计 GOP ${万元(GOP累计)} ⇒ 已回收约 ${GOP累计 > 0 ? Math.min(100, Math.round(GOP累计 / 投入 * 100)) : 0}%（GOP 口径 · 估算 · 12 周内本来就不可能回本，课程内不要求）。`
   return <div>{txt}</div>
 }

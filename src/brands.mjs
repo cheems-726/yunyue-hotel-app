@@ -1,6 +1,6 @@
 // 华住品牌数据（★ V76：从 BrandSelection.jsx 抽出为纯数据模块 —— 供界面与 node 守门测试共用单源）
 // 华住全部品牌（按档次分组，含加盟费/造价/房价带）
-export const brandGroups = [
+const 品牌源 = [
   {
     level: '经济型 · 国民',
     brands: [
@@ -12,13 +12,13 @@ export const brandGroups = [
        //     **展示有数 ≠ 引擎计费**（桔子不在 franchiseFees.已接入品牌 ⇒ 结算不计费，见 propertyQuote 断言 D235①–③）
       //   ⇒ 原先手写的"约2000元/间 / 5-6万间"这类**无来源数字**一律撤下，改显式「费率待补」+ 官方造价原文。
       //   （边界① 不许编造数据；依据 5-参考资料/加盟数值层-…-参数表.md §一 覆盖矩阵）
-      { name: '你好', icon: 'prop.hotel', fee: '费率待补', cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
+      { name: '你好', icon: 'prop.hotel', fee: null, cost: '7.08万/间·官方现行', price: '150-220元', standard: '客房60间起', desc: '国民新品牌，聚焦下沉市场，简约实用。' },
       { name: '海友', icon: 'prop.hotel', fee: '约2000元/间', cost: '5-6万/间', price: '120-180元', standard: '客房50间起', desc: '超经济型，极致性价比。' },
       { name: '宜必思', icon: 'prop.hotel', fee: '约2500元/间', cost: '6-7万/间', price: '160-240元', standard: '客房60间起', desc: '国际经济型品牌，年轻活力、标准化服务。' },
       // ★ V87（2026-10-08）：官方 API 全量枚举新增（渠道① 官方原页 · franchise-cmsapi.huazhu.com/brand/brand/17）
       // ★ V136 §2：怡莱房价带 = 官方案例三口取外包（芜湖店 169 · 成都翻牌前 114.3/后 140.8 · 单位元，单房售价=ADR）
       //   来源 https://franchise-cmsapi.huazhu.com/brand/brand/17（updateTime 2025-09-19）· 取数 2026-10-21 · 置信中（单店案例，非品牌公开带宽）
-      { name: '怡莱', icon: 'prop.hotel', fee: '3000元/间(≥10万)·旧版官方', cost: '造价待补（官方现行 API 无此字段）', price: '115-170元', standard: '待补（以官网登记为准）', desc: '华住 2019 年升级的中小微经济型单体酒店管理品牌（官方 API brand/17）。' },
+      { name: '怡莱', icon: 'prop.hotel', fee: '3000元/间(≥10万)·旧版官方', cost: null, price: '115-170元', standard: null, desc: '华住 2019 年升级的中小微经济型单体酒店管理品牌（官方 API brand/17）。' },
     ]
   },
   {
@@ -33,13 +33,13 @@ export const brandGroups = [
   {
     level: '精选 · 中高档',
     brands: [
-      { name: '桔子水晶', icon: 'prop.hotel', fee: '费率待补', cost: '15.43万/间·官方现行', price: '400-600元', standard: '客房80间起', desc: '桔子升级版，更高品质设计。' },
+      { name: '桔子水晶', icon: 'prop.hotel', fee: null, cost: '15.43万/间·官方现行', price: '400-600元', standard: '客房80间起', desc: '桔子升级版，更高品质设计。' },
       { name: '全季大观', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '400-550元', standard: '客房80间起', desc: '全季升级版，更高端中档。' },
       { name: '城际', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '交通枢纽型中高端。' },
       { name: '美居', icon: 'prop.hotel', fee: '约5000元/间', cost: '10-13万/间', price: '380-520元', standard: '客房80间起', desc: '雅高系中高端，法式优雅。' },
-      { name: '美仑', icon: 'prop.hotel', fee: '费率待补🔴（管理费%/会员费%/加盟费均无公开源 · 已试渠道见批次报告-v172）', cost: '15~16万/间·官方现行（翻牌 1万/间起）', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },   // ★ V172§1（2026-11-01）：造价按官方 API brand/14 现行更新（updateTime 2025-10-13 · 置信高）；费率三件无源 🔴
+      { name: '美仑', icon: 'prop.hotel', fee: null, cost: '15~16万/间·官方现行（翻牌 1万/间起）', price: '380-520元', standard: '客房80间起', desc: '中高端商务品牌。' },   // ★ V172§1（2026-11-01）：造价按官方 API brand/14 现行更新（updateTime 2025-10-13 · 置信高）；费率三件无源 🔴
       // ★ V87：官方 API 枚举新增（brand/27 · 门槛/限一二线为官方 API 现行；费率官方无 ⇒ 待补）
-      { name: 'CitiGO 欢阁', icon: 'prop.hotel', fee: '费率待补', cost: '14万/间·官方现行', price: '待补', standard: '客房60间起·≥2500㎡·限一二线', desc: '华住唯一以年轻人为主要客群的生活方式酒店（官方 API brand/27）。' },
+      { name: 'CitiGO 欢阁', icon: 'prop.hotel', fee: null, cost: '14万/间·官方现行', price: null, standard: '客房60间起·≥2500㎡·限一二线', desc: '华住唯一以年轻人为主要客群的生活方式酒店（官方 API brand/27）。' },
     ]
   },
   {
@@ -48,13 +48,13 @@ export const brandGroups = [
       { name: '禧玥', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '华住高端，东方雅致生活。' },
       { name: '花间堂', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房50间起', desc: '度假型高端，人文度假。' },
       // ★ V154 批2（品牌 30+ 补名录）：官网『关于华住』高档档点名 Jaz in the City（音乐生活方式 · 与环球音乐合资）。ADR 带/费率公开面无 ⇒ 待补 🔴（不编）
-      { name: 'Jaz in the City', icon: 'prop.hotel', fee: '费率待补', cost: '待补', price: '待补', standard: '待补（以官网登记为准）', desc: '音乐生活方式酒店（华住 × 环球音乐合资 · 官网高档档点名 2026-10-24）。' },
+      { name: 'Jaz in the City', icon: 'prop.hotel', fee: null, cost: null, price: null, standard: null, desc: '音乐生活方式酒店（华住 × 环球音乐合资 · 官网高档档点名 2026-10-24）。' },
       { name: '施柏阁', icon: 'prop.hotel', fee: '洽谈', cost: '20万+/间', price: '600-1000元', standard: '客房60间起', desc: '德系高端，德意志传统。' },
-      { name: '永乐半山', icon: 'prop.hotel', fee: '费率待补🔴（无公开源）', cost: '造价待补🔴（官方 API brand/29 投资明细为空）', price: '待补🔴', standard: '待补🔴', desc: '有设计感的新世代商旅生活方式酒店（官方 API brand/29 · 2026-11-01 采 · des 原文摘录）。' },   // ★ V172§2：API 唯一可得 = 定位句；其余 🔴
+      { name: '永乐半山', icon: 'prop.hotel', fee: null, cost: null, price: null, standard: null, desc: '有设计感的新世代商旅生活方式酒店（官方 API brand/29 · 2026-11-01 采 · des 原文摘录）。' },   // ★ V172§2：API 唯一可得 = 定位句；其余 🔴
       { name: '诺富特', icon: 'prop.hotel', fee: '洽谈', cost: '18万+/间', price: '500-900元', standard: '客房70间起', desc: '国际高端商务品牌。' },
       // ★ V87：官方 API 枚举新增（brand/12 · brand/30 · 单房造价为官方 API pricing 原文 · 费率官方无 ⇒ 待补）
-      { name: '美仑美奂', icon: 'prop.hotel', fee: '费率待补', cost: '25万~30万/间·轻改1万起·官方现行', price: '待补', standard: '待补（以官网登记为准）', desc: '华住国际高端精选酒店品牌，源自德意志酒店集团（官方 API brand/12）。' },
-      { name: '美仑国际', icon: 'prop.hotel', fee: '费率待补', cost: '20万~22万/间(含公区)·轻改1万起·官方现行', price: '待补', standard: '待补（以官网登记为准）', desc: '华住高端全服务酒店品牌，一站式会宴服务（官方 API brand/30）。' },
+      { name: '美仑美奂', icon: 'prop.hotel', fee: null, cost: '25万~30万/间·轻改1万起·官方现行', price: null, standard: null, desc: '华住国际高端精选酒店品牌，源自德意志酒店集团（官方 API brand/12）。' },
+      { name: '美仑国际', icon: 'prop.hotel', fee: null, cost: '20万~22万/间(含公区)·轻改1万起·官方现行', price: null, standard: null, desc: '华住高端全服务酒店品牌，一站式会宴服务（官方 API brand/30）。' },
     ]
   },
   {
@@ -65,21 +65,52 @@ export const brandGroups = [
     ]
   },
 ]
-// ── D367 演示口径（2026-11-10）────────────────────────────────────────
-// 缺什么按品牌档次补设定值；原值留档在 `原值_演示`，不覆盖官方来源字段。
+// ── D367 演示口径（2026-11-10 · A1 收口）──────────────────────────────
+// 缺项在数据里一律用 null（不写任何占位文案）；装配时分两条路：
+//   · DEMO_FILL = true  ⇒ 按品牌档次取演示设定值（永不为空）
+//   · DEMO_FILL = false ⇒ 严格口径：把原「无来源」标注写回（证据链/老套件专用）
+// DEMO_FILL 是编译期常量 ⇒ demo 构建里「严格装配」整段成为死代码被物理删除。
 import { DEMO_FILL, 演示值 } from './demoFill.mjs'
-if (DEMO_FILL) {
-  for (const g of brandGroups) {
-    for (const b of g.brands) {
-      const v = 演示值(b.name)
-      if (!v) continue
-      const need = (x) => x == null || String(x).trim() === '' || /待补/.test(String(x))
-      if (!(need(b.fee) || need(b.cost) || need(b.price) || need(b.standard))) continue
-      b.原值_演示 = { fee: b.fee, cost: b.cost, price: b.price, standard: b.standard }
-      if (need(b.fee)) b.fee = `费率 ${(v.管理费率 * 100).toFixed(0)}% 管理费 + ${(v.CRS率 * 100).toFixed(0)}% CRS`
-      if (need(b.cost)) b.cost = `${(v.单房造价新建 / 10000).toFixed(1)}万/间`
-      if (need(b.price)) b.price = `${v.ADR带}元`
-      if (need(b.standard)) b.standard = `客房${v.最少房量}间起`
-    }
-  }
+import { wan2 } from './metricDefs.mjs'   // 金额→万 的唯一换算点（stale-scale R6）
+
+// 严格口径原文（写成 [{ name, ... }] 形式：与数据项同形，便于按名合并；
+// 本数组只在 DEMO_FILL=false 时被读取 —— demo 构建里连同 严格装配 一起被删除）
+const 严格原文 = [
+  { name: '你好', fee: '费率待补' },
+  { name: '怡莱', cost: '造价待补（官方现行 API 无此字段）', standard: '待补（以官网登记为准）' },
+  { name: '桔子水晶', fee: '费率待补' },
+  { name: '美仑', fee: '费率待补🔴（管理费%/会员费%/加盟费均无公开源 · 已试渠道见批次报告-v172）' },
+  { name: 'CitiGO 欢阁', fee: '费率待补', price: '待补' },
+  { name: 'Jaz in the City', fee: '费率待补', cost: '待补', price: '待补', standard: '待补（以官网登记为准）' },
+  { name: '永乐半山', fee: '费率待补🔴（无公开源）', cost: '造价待补🔴（官方 API brand/29 投资明细为空）', price: '待补🔴', standard: '待补🔴' },
+  { name: '美仑美奂', fee: '费率待补', price: '待补', standard: '待补（以官网登记为准）' },
+  { name: '美仑国际', fee: '费率待补', price: '待补', standard: '待补（以官网登记为准）' },
+]
+/** 严格口径装配（demo 构建中不会被调用 ⇒ 整函数被 tree-shaking 删除） */
+function 严格装配(源) {
+  const 严格表 = Object.fromEntries(严格原文.map(x => [x.name, x]))
+  return 源.map(g => ({
+    level: g.level,
+    brands: g.brands.map(b => ({ ...b, ...(严格表[b.name] || {}) })),
+  }))
 }
+
+/** 演示口径装配：null 字段按品牌档次填设定值（A2/A3 口径） */
+function 演示装配(源) {
+  return 源.map(g => ({
+    level: g.level,
+    brands: g.brands.map(b => {
+      const v = 演示值(b.name)
+      if (!v) return { ...b }
+      return {
+        ...b,
+        fee: b.fee ?? `费率 ${(v.管理费率 * 100).toFixed(0)}% 管理费 + ${(v.CRS率 * 100).toFixed(0)}% CRS`,
+        cost: b.cost ?? `${wan2(v.单房造价新建)}/间`,
+        price: b.price ?? `${v.ADR带}元`,
+        standard: b.standard ?? `客房${v.最少房量}间起`,
+      }
+    }),
+  }))
+}
+
+export const brandGroups = DEMO_FILL ? 演示装配(品牌源) : 严格装配(品牌源)

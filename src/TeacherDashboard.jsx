@@ -43,7 +43,7 @@ import ReportCardPrint, { 下载CSV as 下载成绩单CSV } from './ReportCardPr
 import { 周经营净利 } from './weeklyProfit.mjs'   // ★ V145：经营净利口径
 import { dayToWeekDay } from './weeklyAuto.mjs'   // ★ V171：权威日 → 周内第几天 // V39 · 错误操作高亮（乱定价/乱招人/乱选址 · 规则单源 · 判据随行）
 import { normalizeAttrs, qualityOf } from './attrs.js'
-import { 班徽标, 选默认班, 班进度 } from './classCalendar.mjs'   // ★ V177§3/T3：按班徽标 + 默认班级 + 班进度
+import { 班徽标, 选默认班, 班进度, 过滤本班, 最大学期周, 决策项合计, 学期已满信号 } from './classCalendar.mjs'   // ★ V177§3/T3：按班徽标 + 默认班级 + 班进度
 import { 代价文案 } from './decisionRisk.mjs' // §32-U8-补 §1：代价文案单源（老师端弹窗与学生面板同源 · 不自拼）
 // ★ §32-U8-补 §2①：老师事件注入面板 —— 事件库/构建/校验 单源（本面板不自拼任何事件文案）
 // ★ §33-V8：事件库 35 条 + 自定义事件构建 + 受控效力维度 + 按日程校验（全部单源）
@@ -978,10 +978,16 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
   const 徽景色 = { draft: 'var(--text-muted)', running: 'var(--good)', paused: 'var(--warn)', finished: 'var(--info)', archived: 'var(--text-muted)' }
   // ★ T3：当前选中的班若不在 fetchAllClasses 列表里（如正在运行的彩排班被 V167 隐藏），把它补进标签条，
   //   否则教师点走之后再点不回来。只影响本面板的显示，不改 V167 的隐藏契约。
+  // ★ D367-班级隔离：默认只列 running（归档/结课班在「归档」页可查）；
+  //   当前选中的班即使已归档也补进来（否则点走再点不回来）；勾「含归档」才展开全部。
+  const [含归档班, set含归档班] = useState(false)
   const 班们 = (() => {
-    const base = 班列表 || []
-    if (!备用班 || !备用班.class_code) return base
-    return base.some(c => c.class_code === 备用班.class_code) ? base : [...base, 备用班]
+    const 全 = 班列表 || []
+    const base = 含归档班 ? 全 : 全.filter(c => (c.semester_status || 'running') === 'running')
+    const 补 = [备用班, 全.find(c => c.class_code === filterClass)].filter(c => c && c.class_code)
+    const out = [...base]
+    for (const c of 补) if (!out.some(x => x.class_code === c.class_code)) out.push(c)
+    return out
   })()
   return (
     <div data-class-admin-panel className="card" style={{ marginBottom: 12 }}>
@@ -989,6 +995,7 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
       {/* 班级切换器（常显 · 教师端专属） */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
         <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
+        <button className={`city-tab ${含归档班 ? 'active' : ''}`} data-show-archived onClick={() => set含归档班(v => !v)} title="默认只列正在进行的班；归档班在「我的 → 学期生命周期 / 归档」里可查">{含归档班 ? '只看进行中' : '含归档班'}</button>
         {班们.map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${c.current_week ?? 0}周`}</button>)}
       </div>
       {/* ★ V177§3：本班进度（一班一行 · 与服务端 tick 同一日历口径） */}
@@ -1817,6 +1824,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           {classList.length > 1 && (
             <div className="city-row" style={{ marginBottom: 12 }}>
               <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
+        <button className={`city-tab ${含归档班 ? 'active' : ''}`} data-show-archived onClick={() => set含归档班(v => !v)} title="默认只列正在进行的班；归档班在「我的 → 学期生命周期 / 归档」里可查">{含归档班 ? '只看进行中' : '含归档班'}</button>
               {classList.map(c => (
                 <button key={c} className={`city-tab ${filterClass === c ? 'active' : ''}`} onClick={() => setFilterClass(c)}>{c}</button>
               ))}
@@ -1969,8 +1977,10 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
       />}
       {view === 'live' && 班级学期状态 === 'running' && (() => {
         // ★ V160：running 但最大学期周 >= 12 ⇒ 黄条提示结课
-        const maxWeek = Math.max(0, ...(rawStates || []).map(gs => Math.max(0, ...((gs.state && gs.state.history) || []).map(h => Number(h.week) || 0))))
-        return maxWeek >= 12 ? (
+        // ★ D367-班级隔离（2026-11-10）：只看**本班**的存档 —— 原先扫全部 rawStates，
+        //   别的班（如 2401）跑满 12 周会把「学期已满」套到新班（2402 第 1 周）头上。
+        const 本班rawStates = 过滤本班(rawStates, classByUid, filterClass)
+        return 学期已满信号(本班rawStates) ? (
           <div data-semester-banner-full style={{
             margin: '0 20px 10px', padding: '10px 14px', borderRadius: 8,
             background: 'var(--warn-bg)', border: '1px solid var(--warn-border)',
@@ -2017,7 +2027,11 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
         </div>
       )}
       {view === 'live' && groups !== null && (() => {
-        const liveList = [...rawStates]
+        // ★ D367-班级隔离（2026-11-10）：分子/分母都必须落在**本班**
+        //   原先 liveList 用全量 rawStates、分母用全量 groups ⇒ 出现「3 / 108」这类跨班串数。
+        const 本班rawStates = 过滤本班(rawStates, classByUid, filterClass)
+        const 本班组数 = 过滤本班(groups, classByUid, filterClass).length
+        const liveList = [...本班rawStates]
           .map(gs => {
             const p = (profiles.find(x => x.user_id === gs.user_id) || {})
             const hist = (gs.state && gs.state.history) || []
@@ -2045,7 +2059,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
             }
           })
           .sort((a, b) => new Date(b.updated) - new Date(a.updated))
-        const totalDone = liveList.reduce((a, g) => a + g.entries.length, 0)
+        const totalDone = 决策项合计(liveList)
         const lastUpd = liveList.length ? liveList[0].updated : null
         return (
           <div>
@@ -2068,8 +2082,8 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 {/* ★ V125-#7：口径必须显式 —— 这里是"已完成项数"（组内按 id 去重，改答案不重复计数），
                     不是"提交次数"。★ D366：分母统一到课堂模式 9 项（与学生端一致），18 只在深度模式用。 */}
                 {[
-                  { l: '本周已完成决策', v: `${totalDone} / ${groups.length * 9}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 结算后归零属正常（下周重新计）· 课堂模式分母 = 组数 × 9 项' },
-                  { l: '人均完成', v: `${groups.length ? (totalDone / groups.length).toFixed(1) : 0} / 9 项`, t: '课堂模式每组目标 9 项；已完成项数 ÷ 组数' },
+                  { l: '本周已完成决策', v: `${totalDone} / ${本班组数 * 9}`, t: '本周已完成决策项数（同一项改多次只算 1 项）· 结算后归零属正常（下周重新计）· 课堂模式分母 = 组数 × 9 项' },
+                  { l: '人均完成', v: `${本班组数 ? (totalDone / 本班组数).toFixed(1) : 0} / 9 项`, t: '课堂模式每组目标 9 项；已完成项数 ÷ 组数' },
                   { l: '最近提交', v: lastUpd ? new Date(lastUpd).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '—', t: '最近一次云端存档时间' },
                 ].map(s => (
                   <div key={s.l} title={s.t} style={{ flex: 1, background: '#fff', borderRadius: 8, padding: '8px 0', textAlign: 'center' }}>
@@ -2079,7 +2093,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
                 ))}
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 6 }}>
-                口径：本周已完成决策项数（同一项改答案不重复计数）· 分母 = {groups.length} 组 × 18 项 = {groups.length * 18} 项 · 与"提交次数"不是同一个数
+                口径：本周已完成决策项数（同一项改答案不重复计数）· 分母 = {本班组数} 组 × 9 项 = {本班组数 * 9} 项 · 与"提交次数"不是同一个数
               </div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>结算后归零属正常（下周重新计）· 学生每保存一项决策，这里自动更新——课堂讲解时可现场点评</div>
             </div>

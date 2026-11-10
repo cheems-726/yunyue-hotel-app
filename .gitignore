@@ -34,3 +34,4 @@ tests/_last-gate.json
 tests/_v13*-*.png
 tests/_v14*-*.png
 tests/_v133-*.png
+dist-strict/

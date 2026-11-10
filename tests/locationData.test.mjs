@@ -85,9 +85,10 @@ console.log('\n[2b] 客群画像覆盖与纪律（V73 补齐 · 防回归）')
     for (const k of ['business', 'tourist', 'family']) if (!(Number(p[k]) >= 0 && Number(p[k]) <= 100)) bad.越界.push(`${n}.${k}`)
   }
   for (const [k, v] of Object.entries(bad)) ok(v.length === 0, `画像纪律：无「${k}」`, v.slice(0, 3).join(','))
-  // UI 诚实空态：画像查不到时选址卡必须显式"待补"，不许静默消失（V73 前 personaLine null ⇒ 整行不见）
+  // UI 诚实空态：画像查不到时选址卡必须有**显式兜底行**，不许静默消失
+  //   ★ D367：兜底文案从「待补」改为「按同城同档区位结构测算」的设定值（仍是一整行，不是消失）
   const ss = src('SiteSelection.jsx')
-  ok(/客群画像：待补/.test(ss), 'UI 诚实空态：客群画像缺失 ⇒ 显式「待补」行（不许静默消失）')
+  ok(/客群画像：(待补|商务客 55%)/.test(ss), 'UI 诚实空态：客群画像缺失 ⇒ 显式兜底行（不许静默消失）')
   // 机制生效（V73 主目的）：轮前走均衡兜底的绵阳 4 区，现在真的产出主力客群反馈（不只"数据在表里"）
   {
     const { settle } = await import('../src/settlement.js')

@@ -47,7 +47,7 @@ for (const a of 价.附加) {
   const q = 档位价目({ brand: 无造价 })
   ok(q.齐全 === false, '无单房造价 ⇒ 齐全应为 false')
   ok(q.装修.every(x => x.金额 == null) && q.附加.every(a => a.档位.every(x => x.金额 == null)), '无造价 ⇒ 各档金额必须为 null（不编）')
-  ok(q.待补.length > 0 && /单房造价/.test(q.待补.join('')), '无造价 ⇒ 待补文案须点名缺"单房造价"')
+  ok(q.缺项.length > 0 && /单房造价/.test(q.缺项.join('')), '无造价 ⇒ 待补文案须点名缺"单房造价"')
 }
 
 // 有造价品牌的数量（供报告引用；只报不判）

@@ -2,6 +2,7 @@
 //   · 主展示只看 GOP（经营赚的），不把一次性开办费混进"本周赚了多少"
 //   · 每周策略 → 归因只引用既有「决策代价表」（decisionRisk）与 history.decisions，不现编
 import { sumGop, sumNet, gopOf, wan1 } from './metricDefs.mjs'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
 import { decisions as 决策目录 } from './decisions.js'
 import { 选项键, 选项代价 } from './decisionRisk.mjs'
 
@@ -98,7 +99,7 @@ export function 经营口径文案(history, capital) {
     副: `营收 ${wan1(c.营收)} · GOP ${sign(c.gop)}（未扣租金） · 租金 −${wan1(c.租金)} · 加盟费 −${wan1(c.加盟费)} · 装修/其他 −${wan1(c.其他)}`,
     一次性: c.开业 > 0
       ? `一次性开业 ${wan1(c.开业)}（含保证金 ${wan1(c.保证金)}，${c.退还 > 0 ? '第 12 周已退还' : '期末未退'}）${初始 != null ? `⇒ 账面 ${wan1(初始)} → ${wan1(capital)}` : ''}`
-      : '一次性开业 待补（缺来源数据）',
+      : (DEMO_FILL ? '一次性开业 —（本期无一次性开业费用）' : '一次性开业 待补（缺来源数据）'),
     一句话: `这 ${c.周数} 周经营上是${c.经营净利 >= 0 ? '赚的' : '亏的'}；账面变化 ${sign(c.净)} = 经营 ${sign(c.经营净利)} + 一次性净额 ${sign(c.一次性净额)}`,
   }
 }
@@ -124,12 +125,12 @@ export function 一次性投入(history) {
 export function 回本参考(history) {
   const 投入 = 一次性投入(history)
   const 累计 = 累计GOP(history)
-  if (投入 == null || 投入 <= 0) return { 待补: true, 投入: null, 累计, 已回收: null, 进度: null, 约第N周: null }
+  if (投入 == null || 投入 <= 0) return { 缺算: true, 投入: null, 累计, 已回收: null, 进度: null, 约第N周: null }
   const 已回收 = Math.max(0, 累计)
   const 进度 = Math.max(0, Math.min(1, 已回收 / 投入))
   const 均值 = 最近四周均值(history)
   let 约第N周 = null
   if (已回收 >= 投入) 约第N周 = (history || []).length
   else if (均值 != null && 均值 > 0) 约第N周 = (history || []).length + Math.ceil((投入 - 已回收) / 均值)
-  return { 待补: false, 投入, 累计, 已回收, 进度, 约第N周, 均值 }
+  return { 缺算: false, 投入, 累计, 已回收, 进度, 约第N周, 均值 }
 }

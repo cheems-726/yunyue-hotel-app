@@ -105,7 +105,7 @@ const 默认选择 = { 装修: '中', 软装: '中', IT: '中', 布草: '中', �
  * 投资测算（纯函数）
  * @param {{brand:{name:string,standard:string}, 选择?:Record<string,string>}} p
  * @returns {{房量:number, 单房造价:number|null, 档选择:object, 明细:Array, 合计:number|null,
- *            品质分:number, 口径:object, 待补:string[]}}
+ *            品质分:number, 口径:object, 缺项:string[]}}
  */
 export function 投资测算({ brand, 选择 } = {}) {
   const 房量 = parseRooms(brand?.standard)
@@ -117,7 +117,7 @@ export function 投资测算({ brand, 选择 } = {}) {
   // 装修：房量 × 单房造价 × 系数
   const 装修系数v = cfg.装修系数[档选择.装修] ?? cfg.装修系数.中
   const 装修额 = 单房造价 ? Math.round(房量 * 单房造价 * 装修系数v) : null
-  const 明细 = [{ key: '装修', 档: 档选择.装修, 金额: 装修额, 说明: `房量 ${房量} × 单房造价 ${单房造价 ?? '待补'} × 系数 ${装修系数v}` }]
+  const 明细 = [{ key: '装修', 档: 档选择.装修, 金额: 装修额, 说明: `房量 ${房量} × 单房造价 ${单房造价 ?? (DEMO_FILL ? '—' : '待补')} × 系数 ${装修系数v}` }]
   for (const it of cfg.附加项) {
     const 比例 = it.比例[档选择[it.key]] ?? it.比例.中
     const 金额 = (装修额 != null && Number.isFinite(比例)) ? Math.round(装修额 * 比例) : null
@@ -131,7 +131,7 @@ export function 投资测算({ brand, 选择 } = {}) {
     房量, 单房造价, 档选择, 明细, 合计,
     品质分: Math.round(品质分 * 10) / 10,
     口径,
-    待补: 单房造价 ? [] : [`${brand?.name || '该品牌'} 的单房造价（无来源 ⇒ 总投资与各档金额都无法算）`],
+    缺项: 单房造价 ? [] : [DEMO_FILL ? `${brand?.name || '该品牌'} 暂无可算单房造价` : `${brand?.name || '该品牌'} 的单房造价（无来源 ⇒ 总投资与各档金额都无法算）`],
   }
 }
 
@@ -147,7 +147,7 @@ export const 待老师确认文案 = '档位为【教学默认值 · 待老师�
  */
 export function 档位价目({ brand } = {}) {
   const 房量 = parseRooms(brand?.standard)
-  const t = brand?.name ? FRANCHISE_MODEL[brand.name] : null
+  const t = brand?.name ? (FRANCHISE_MODEL[brand.name] || (DEMO_FILL ? 演示模型(brand.name) : null)) : null   // D367 演示口径
   const 单房造价 = t?.单房造价?.新建?.值 ?? null
   const cfg = 运行时.当前
   const 装修 = 档位名.map(d => ({ 档: d, 金额: 单房造价 ? Math.round(房量 * 单房造价 * cfg.装修系数[d]) : null }))
@@ -161,6 +161,6 @@ export function 档位价目({ brand } = {}) {
     房量, 单房造价, 装修, 附加,
     基数说明: '软装/IT/布草/开办费 以「装修=中」的装修额为基数横向比价',
     齐全: 装修.every(x => x.金额 != null) && 附加.every(a => a.档位.every(x => x.金额 != null)),
-    待补: 单房造价 ? [] : [`${brand?.name || '该品牌'} 的单房造价（无来源 ⇒ 各档金额都无法算）`],
+    缺项: 单房造价 ? [] : [DEMO_FILL ? `${brand?.name || '该品牌'} 暂无可算单房造价` : `${brand?.name || '该品牌'} 的单房造价（无来源 ⇒ 各档金额都无法算）`],
   }
 }

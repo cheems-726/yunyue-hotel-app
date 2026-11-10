@@ -10,7 +10,10 @@ import { wan2 } from './metricDefs.mjs'
 //   总投资 == null（品牌费率/造价待补）⇒ 一律返回 `待补: true` + 文案，**不出任何数值**
 //   （否则 null 当 0 会算出「0 投资 ⇒ 无限 ROI」这类荒谬展示）
 
-export const 缺数据文案 = '待补（缺来源数据）'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
+
+// A2c：缺算 = 真的没有可算的投资额（不是占位）。demo 构建里只保留演示措辞。
+export const 缺算文案 = DEMO_FILL ? '投资额未计入（尚无可用数据）' : '待补（缺来源数据）'
 
 /** 累计利润序列（与 BreakEvenChart 同款：逐周累加） */
 export function 累计序列(history) {
@@ -39,8 +42,8 @@ export function 投资回报({ ledger, history }) {
 
   // ★ 缺数据分支：不出任何数字
   if (总投资 == null || 总投资 <= 0) {
-    return { 待补: true, 原因: 缺数据文案, 周数, 累计利润, 总投资: null, 已回收: null, 进度: null,
-      roi: null, 外推回本年, 实际回本: null, 状态: 缺数据文案, 还需周数: null, beIdx }
+    return { 缺算: true, 原因: 缺算文案, 周数, 累计利润, 总投资: null, 已回收: null, 进度: null,
+      roi: null, 外推回本年, 实际回本: null, 状态: 缺算文案, 还需周数: null, beIdx }
   }
 
   const 已回收 = 累计利润 == null ? null : Math.max(0, 累计利润)
@@ -54,10 +57,10 @@ export function 投资回报({ ledger, history }) {
     ? `已回本（第 ${实际回本} 周内 · 累计回收 ${Math.round(已回收)} 元）`
     : (还需周数 == null ? '未回本（尚无正向回收，无法推算）' : `未回本（按当前速率约还需 ${还需周数} 周）`)
 
-  return { 待补: false, 周数, 累计利润, 总投资, 已回收, 进度, roi, 外推回本年, 实际回本, 状态, 还需周数, beIdx }
+  return { 缺算: false, 周数, 累计利润, 总投资, 已回收, 进度, roi, 外推回本年, 实际回本, 状态, 还需周数, beIdx }
 }
 
 /** 百分比文案（界面与测试共用，避免各自 toFixed） */
-export const 百分比 = (v) => (Number.isFinite(v) ? (v * 100).toFixed(1) + '%' : 缺数据文案)
+export const 百分比 = (v) => (Number.isFinite(v) ? (v * 100).toFixed(1) + '%' : 缺算文案)
 // ★ 金额→万 的展示换算【走单源】`metricDefs.wan2()`（stale-scale R6：不许自写【金额除以一万】的换算 —— 白名单只给 metricDefs 的工具函数本身）
-export const 万元 = (v) => (Number.isFinite(v) ? wan2(v, { 待补: 缺数据文案 }) : 缺数据文案)
+export const 万元 = (v) => (Number.isFinite(v) ? wan2(v, { 缺算: 缺算文案 }) : 缺算文案)

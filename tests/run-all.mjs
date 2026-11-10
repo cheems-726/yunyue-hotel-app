@@ -363,8 +363,11 @@ for (const s of SUITES) {
     console.log(`${s.name.padEnd(38)} ⏭ 文件不存在：${s.file}`)
     continue
   }
-  // ★ D367：严格口径证据链的 4 个套件固定以 DEMO_FILL=0 跑（套件文件一字不改，避免改断言换绿）
-  const 严格口径 = /^(franchiseFees|propertyQuote|establishmentInvest|brandFit)（/.test(s.name)
+  // ★ D367（2026-11-10 · A1 收口）：**全部 node 套件**固定以 DEMO_FILL=0 跑。
+  //   理由：原证据链断言的是"严格来源口径"（无源=待补）；套件一字未改，只把环境固定在严格模式，
+  //   演示口径由两个新套件 + 浏览器双路径扫描守（uiNoPlaceholder / demoModeDeadBranch）。
+  const 演示口径套件 = /(uiNoPlaceholder|demoModeDeadBranch|demoFill)/.test(s.file || '')
+  const 严格口径 = ! 演示口径套件
   const r = run('node', [s.file, ...(s.args || [])], s.name, 严格口径 ? { YUNYUE_DEMO_FILL: '0' } : null)   // §13.2-N8：支持套件自带参数（docs-staleness --gate）
   // expectedFail：当前预期失败（如 M2 修复前红）；红→记「预期红」不算失败，绿→记「已转绿」
   if (s.expectedFail) {

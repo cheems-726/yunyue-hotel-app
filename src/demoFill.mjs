@@ -8,8 +8,10 @@
 //   ② 所有取用点注释 `// D367 演示口径`
 //   ③ 开关只有一个：DEMO_FILL。置 false ⇒ 回到严格来源口径（原行为逐字节不变）
 
-// 开关：默认开；测试/严格口径用 YUNYUE_DEMO_FILL=0 关掉（浏览器里无 process ⇒ 默认开）
-export const DEMO_FILL = !(typeof process !== 'undefined' && process.env && process.env.YUNYUE_DEMO_FILL === '0')
+// 开关：见 ./demoMode.mjs —— 构建时被 vite alias 换成字面量（demo=true / strict=false）；
+// Node 直跑时按 YUNYUE_DEMO_FILL（'0' ⇒ 严格口径，证据链套件用）。
+import { DEMO_FILL } from './demoMode.mjs'
+export { DEMO_FILL }
 
 /** 品牌档次 → 一套演示设定值（金额单位：元） */
 export const 演示档次表 = {
@@ -40,7 +42,7 @@ export function 档次(品牌名) {
 export function 演示值(品牌名) {
   if (!DEMO_FILL) return null
   const t = 演示档次表[档次(品牌名)]
-  return { ...t, 档次: 档次(品牌名), 来源: '品牌公开资料' }
+  return { ...t, 档次: 档次(品牌名), 来源: '演示设定（品牌档次设定表）' }
 }
 
 /** 界面口径标注：所有由演示值填出来的数字都带这个后缀 */
@@ -50,7 +52,7 @@ export const 演示标注 = '（演示设定）'
 export function 演示模型(品牌名) {
   const v = 演示值(品牌名)
   if (!v) return null
-  const d = (值) => ({ 值, 来源: '品牌公开资料', 取数日期: '2026-11-10', 置信度: '演示' })
+  const d = (值) => ({ 值, 来源: '演示设定（品牌档次设定表）', 取数日期: '2026-11-10', 置信度: '演示' })
   return {
     品牌档次: `演示口径 · ${v.档次}`,
     加盟期限年: d(10),

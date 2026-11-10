@@ -73,7 +73,7 @@ ok(/不并入四维评分/.test(台账说明), '说明文案必须写明「不�
   const { readFileSync } = await import('node:fs')
   const pl = readFileSync('src/ProcessLedger.jsx', 'utf8')
   ok(/{台账说明}/.test(pl), 'ProcessLedger 必须**渲染** {台账说明}（不是只 import）')
-  ok(/缺数据显/.test(pl), 'ProcessLedger 必须写明「缺数据显—（没交 ≠ 0 分）」')
+  ok(/未交项显/.test(pl), 'ProcessLedger 必须写明「未交项显—（没交 ≠ 0 分）」')
   const td = readFileSync('src/TeacherDashboard.jsx', 'utf8')
   ok(/<ProcessLedger/.test(td) && /<details/.test(td), '教师端：折叠块 + ProcessLedger 已接')
   ok(td.includes('台账CSV(rows)') && td.includes('过程分台账.csv'), '教师端：CSV 导出真的拼了台账 CSV')

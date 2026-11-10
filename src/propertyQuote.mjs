@@ -30,7 +30,7 @@ export function brandTerms(brandName) {
 // 🔴 A-1：租金口径【不再在本文件定义】—— 直接复用引擎的 rentPerRoomDay（单源；此处 re-export 保持旧引用可用）
 export { rentPerRoomDay }
 
-const 待补 = (label, why) => ({ label, status: STATUS.MISSING, note: why })
+const 缺口行 = (label, why) => ({ label, status: STATUS.MISSING, note: why })
 const 元 = (v) => (Number.isFinite(v) ? Math.round(v) : null)
 
 // §16.2-B1：把品牌【真的声明过的】物业门槛渲染成报价单行（各家表述不同 ⇒ 逐项按存在性生成）
@@ -44,7 +44,7 @@ function 门槛行(门槛, 品牌名) {
   if (门槛?.建筑面积下限) 出('品牌面积下限', 门槛.建筑面积下限.值, '㎡', 'num', `品牌方要求 ≥${门槛.建筑面积下限.值} ㎡（${门槛.建筑面积下限.来源}）`)
   if (门槛?.建筑面积区间) 出('品牌面积区间', `${门槛.建筑面积区间.值[0]}–${门槛.建筑面积区间.值[1]}`, '㎡', 'num', `品牌方要求 ${门槛.建筑面积区间.值[0]}–${门槛.建筑面积区间.值[1]} ㎡（${门槛.建筑面积区间.来源}）`)
   if (门槛?.城市限定) 出('城市限定', 门槛.城市限定.值, '', 'text', `品牌方原文：${门槛.城市限定.值}（${门槛.城市限定.来源}）`)
-  if (out.length === 0) out.push(待补('品牌物业门槛', `${品牌名 || '该品牌'} 的房量/面积门槛暂无来源数据`))
+  if (out.length === 0) out.push(缺口行('品牌物业门槛', DEMO_FILL ? `${品牌名 || '该品牌'} 的房量/面积门槛未在本次测算中给出` : `${品牌名 || '该品牌'} 的房量/面积门槛暂无来源数据`))
   return out
 }
 
@@ -91,11 +91,11 @@ export function propertyQuote(brand, property, districtAttrs, opts = {}) {
     { 名: 'PMS初装', 值: PMS初装 },
   ]
   const 已计入 = 四项.filter(x => x.值 != null).map(x => x.名)
-  const 未计入待补 = 四项.filter(x => x.值 == null).map(x => x.名)
+  const 未计入 = 四项.filter(x => x.值 == null).map(x => x.名)
   const 总投资口径 = 总投资 == null ? null
-    : (未计入待补.length === 0
+    : (未计入.length === 0
       ? `= ${已计入.join(' + ')}（四项齐全）`
-      : `= ${已计入.join(' + ')}；★ ${未计入待补.join('、')} **无来源 ⇒ 未计入**（总投资被低估，不是"就这么多"）`)
+      : `= ${已计入.join(' + ')}；★ ${未计入.join('、')} ${DEMO_FILL ? '**未参与本次测算**' : '**无来源 ⇒ 未计入**（总投资被低估，不是"就这么多"）'}`)
 
   const 源 = t ? (() => {
     // 三件套随行：优先取【加盟费】的来源；半接入品牌没有加盟费 ⇒ 退到【单房造价】；再退到【物业门槛】
@@ -126,8 +126,8 @@ export function propertyQuote(brand, property, districtAttrs, opts = {}) {
       note: 筹备费 ? '开业筹备（franchiseModel 三件套）' : '筹备费暂无来源数据' },
     { label: '总投资（估算）', value: 总投资, unit: '元', fmt: 'wan', status: 总投资 ? STATUS.DERIVED : STATUS.MISSING,
       note: 总投资
-        ? `投资侧口径 ${总投资口径}（未含装修档/软装/IT/布草——见 W3-3 待补；★ 保证金期末可退，实际占用更少）`
-        : '缺单房造价 ⇒ 无法估算' },
+        ? `投资侧口径 ${总投资口径}（未含装修档/软装/IT/布草${DEMO_FILL ? '' : '——见 W3-3 待补'}；★ 保证金期末可退，实际占用更少）`
+        : (DEMO_FILL ? '暂无可算单房造价' : '缺单房造价 ⇒ 无法估算') },
   ]
 
   // 门槛核对（能核就核，不能核就明说缺哪边 —— 不猜）
@@ -153,7 +153,8 @@ export function quoteSummary(q) {
   return {
     房量: q.rooms, 面积: q.面积,
     年租金: get('年租金'), 单房造价: get('单房造价'), 加盟费: get('加盟费'),
-    保证金: get('保证金'), 总投资: get('总投资（估算）'), 待补字段: q.missing,
+    保证金: get('保证金'), 总投资: get('总投资（估算）'),
+    ...(DEMO_FILL ? { 缺项字段: q.missing } : { 待补字段: q.missing }),   // 严格口径保留老键名（证据链套件断言它）
     总投资口径: q.总投资口径,          // §16.2-B1：算进去的 / 未计入待补的，逐项点名
     来源: q.sources?.来源 ?? null, 置信度: q.sources?.置信度 ?? null,
   }

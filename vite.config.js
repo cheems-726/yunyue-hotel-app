@@ -14,7 +14,19 @@ const swBuildVersion = () => ({
   },
 })
 
+// ★ D367-A1（2026-11-10）：DEMO_FILL 编译期常量。
+//   src/demoMode.mjs 在构建时被 alias 成 demoMode.demo.mjs（true）或 demoMode.strict.mjs（false），
+//   两条分支都是**字面量** ⇒ rollup 能把死分支物理删除
+//   （demo 包内不存在「待补/未采/无法核算」字样）。
+//   严格构建：`YUNYUE_DEMO_FILL=0 npm run build` ⇒ DEMO_FILL=false，演示分支被删。
+const 严格构建 = process.env.YUNYUE_DEMO_FILL === '0'
+const 开关文件 = 严格构建 ? resolve('src/demoMode.strict.mjs') : resolve('src/demoMode.demo.mjs')
+
 export default defineConfig({
+  resolve: {
+    // 只替换 `./demoMode.mjs` 这一种写法（demoFill.mjs 内部引用）
+    alias: [{ find: /^\.\/demoMode\.mjs$/, replacement: 开关文件 }],
+  },
   plugins: [react(), swBuildVersion()],
   // ★ V140 §1：旧微信 X5（Chromium 53/66/77）解析不了 ?. / ?? ⇒ 白屏。
   //   es2017 会让 esbuild 把可选链/空值合并降级成等价写法（不改业务逻辑，产物变大可接受）。

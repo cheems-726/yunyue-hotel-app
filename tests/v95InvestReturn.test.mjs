@@ -25,11 +25,11 @@ const 账 = (总投资, 回本年 = 8) => ({ 总投资, 回本年, lines: [] })
 {
   for (const [名, l] of [['null', 账(null)], ['缺字段', {}], ['非数', 账(NaN)], ['零', 账(0)]]) {
     const r = 投资回报({ ledger: l, history: 历史([-100, 200]) })
-    const 全空 = r.待补 === true && r.总投资 === null && r.已回收 === null && r.进度 === null && r.roi === null && r.还需周数 === null
-    ok(全空, `总投资${名} ⇒ 待补分支且全部数值为 null（不出数字）`, JSON.stringify({ 待补: r.待补, 进度: r.进度, roi: r.roi }))
+    const 全空 = r.缺算 === true && r.总投资 === null && r.已回收 === null && r.进度 === null && r.roi === null && r.还需周数 === null
+    ok(全空, `总投资${名} ⇒ 待补分支且全部数值为 null（不出数字）`, JSON.stringify({ 缺算: r.缺算, 进度: r.进度, roi: r.roi }))
   }
   const rl = 投资回报({ ledger: null, history: 历史([1000]) })
-  ok(rl.待补 === true, 'ledger 整体为 null ⇒ 同样走待补（防 null 当 0 算无限 ROI）')
+  ok(rl.缺算 === true, 'ledger 整体为 null ⇒ 同样走待补（防 null 当 0 算无限 ROI）')
   ok(万元(null) === '待补（缺来源数据）' && 百分比(null) === '待补（缺来源数据）', '文案层缺数据 ⇒ 统一「待补（缺来源数据）」，不渲染 NaN/0')
 }
 

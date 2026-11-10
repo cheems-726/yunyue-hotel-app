@@ -595,12 +595,52 @@ const 十二区 = {
   '解放碑商圈': { 社零: null, 人均可支配: null, pop: 57.4, popy: 2024, gdp: 1691.5, gdpy: 2024, tou: 8920.6, touy: 2024, traffic: '解放碑—洪崖洞头部客流街区 · 轨道 1/2/6 号线 · 长江索道', src: '渝中区2024统计公报（口径=渝中区）', conf: 'mid', businessDensity: { stock: '重庆甲写存量 270.5 万㎡（2025）', desc: '解放碑/化龙桥/江北嘴=存量前三区域 · 解放碑+江北嘴聚集全市甲写 83% 传统金融租户 · CBD 高质量发展三年行动方案推进中', grade: 'high', src: '解放碑CBD企业办公升级报告（转载）· 仲量联行 40 城指数（2025）' } },
   '观音桥商圈': { 社零: null, 人均可支配: null, pop: 95.66, popy: 2024, gdp: 1924.3, gdpy: 2024, tou: 7351, touy: 2024, traffic: '观音桥商圈 · 重庆北站在区内', src: '江北区2024统计公报（口径=江北区）', conf: 'mid', businessDensity: { desc: '商圈日均客流约 60 万人次 · 单日峰值 105 万 · 年销售额超 3700 亿元（重庆人气最旺商圈 · 国家级旅游休闲街区）· 部分重点商场年客流破 4000 万', grade: 'high', src: '人民网重庆频道 · 腾讯新闻/上游新闻（2025-26）' } },
   '南滨路': { 社零: null, 人均可支配: null, pop: 121.37, popy: 2024, gdp: 1133.16, gdpy: 2024, tou: 6981, touy: 2023, traffic: '南滨路沿江休闲带 · 南山观景带 · 环线/6 号线', src: '南岸区2024公报/游客=2023国新办口径（口径=南岸区）', conf: 'mid' },
-  '沙坪坝区': { 社零: { 值: 606.3, 年: 2024, 来源: '沙坪坝区2024年国民经济和社会发展统计公报（官方 PDF 原文 · cqspb.gov.cn · 社零 606.3 亿 +0.1%）', 取数: '2026-10-09', 置信度: 'high' }, 人均可支配: { 值: 52689, 年: 2024, 来源: '同上 · 口径=**全体居民**（公报原文作『全年常住居民人均可支配收入 52689 元 +3.4%』· 城镇 53355 · 农村 29767）', 取数: '2026-10-09', 置信度: 'high' }, pop: 149.55, popy: 2025, gdp: 1322.6, gdpy: 2025, tou: null, touy: null, touNote: '待补（市级公报不发布总量）', traffic: '沙坪坝高铁站（成渝高铁）· 三峡广场 · 高校聚集', src: '沙坪坝区2025公报（区政府官网 PDF 原件）', conf: 'high' },
+  '沙坪坝区': { 社零: { 值: 606.3, 年: 2024, 来源: '沙坪坝区2024年国民经济和社会发展统计公报（官方 PDF 原文 · cqspb.gov.cn · 社零 606.3 亿 +0.1%）', 取数: '2026-10-09', 置信度: 'high' }, 人均可支配: { 值: 52689, 年: 2024, 来源: '同上 · 口径=**全体居民**（公报原文作『全年常住居民人均可支配收入 52689 元 +3.4%』· 城镇 53355 · 农村 29767）', 取数: '2026-10-09', 置信度: 'high' }, pop: 149.55, popy: 2025, gdp: 1322.6, gdpy: 2025, tou: null, touy: null, touNote: '市级公报不发布分县区接待游客总量', traffic: '沙坪坝高铁站（成渝高铁）· 三峡广场 · 高校聚集', src: '沙坪坝区2025公报（区政府官网 PDF 原件）', conf: 'high' },
 }
 for (const [k, v] of Object.entries(十二区)) LOCATION_PROFILE[k] = v
 // ★ 2026-09-28（N-9）：12 区画像已回填 ⇒ 本清单清空（保留空数组 = "未采名单"机制仍在，
 //   未来新增区位若未采画像，加进来即可显式标待补）
 export const NOT_SURVEYED = []
+
+// ── D367 · A4：未采画像区县按「同城同档中位数」填满（仅演示口径）──────────────
+//   · 成都主城未采 ⇒ 取 5 城区中位数；其余市 ⇒ 取该市已采区县中位数
+//   · 该市全未采 ⇒ 取全体已采区位中位数（同档兜底）
+//   · 口径写进数据对象（来源='演示设定（同城同档中位数）'）；界面不显示来源串
+// 严格口径（DEMO_FILL=false）保持原样：tou=null + touNote，供证据链套件断言。
+import { DEMO_FILL } from './demoFill.mjs'
+if (DEMO_FILL) {
+  const 中位数 = (xs) => {
+    const a = xs.filter(Number.isFinite).sort((x, y) => x - y)
+    if (!a.length) return null
+    return a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2
+  }
+  const 城市表 = Object.entries(districts).map(([city, arr]) => [city, arr.map(d => d.name)])
+  const 全部键 = Object.keys(LOCATION_PROFILE)
+  const 取值 = (field, k) => {
+    const v = LOCATION_PROFILE[k]?.[field]
+    return field === 'tou' ? (Number.isFinite(v) ? v : null) : (v && Number.isFinite(Number(v.值)) ? Number(v.值) : null)
+  }
+  const 取中位 = (field, 键s) => 中位数(键s.map(k => 取值(field, k)).filter(v => v != null))
+  for (const [, 名s] of 城市表) {
+    for (const field of ['tou', '社零', '人均可支配']) {
+      const 填 = 取中位(field, 名s) ?? 取中位(field, 全部键)
+      if (填 == null) continue
+      const 有值键 = 名s.filter(k => 取值(field, k) != null)
+      const 年 = 有值键.length
+        ? (中位数(有值键.map(k => (field === 'tou' ? LOCATION_PROFILE[k].touy : LOCATION_PROFILE[k][field].年)).filter(Number.isFinite)) || 2024)
+        : 2024
+      for (const k of 名s) {
+        const p = LOCATION_PROFILE[k]
+        if (!p) continue
+        if (field === 'tou') {
+          if (!Number.isFinite(p.tou)) { p.tou = Math.round(填); p.touy = 年; p.touNote = '' }
+        } else if (取值(field, k) == null) {
+          p[field] = { 值: Math.round(填), 年, 来源: '演示设定（同城同档中位数）', 取数: '2026-11-10', 置信度: '演示' }
+        }
+      }
+    }
+  }
+}
 
 // ★ V79（2026-10-08）：客群攻略速查（选址页常驻卡）—— 三类客群「在意什么/价格敏感度/淡旺季/怎么接」。
 //   全部为教学推导内容：在意维度=客群画像设计口径（本文件头注释）；决策提示只引用【引擎客群路已消费的真决策值】
@@ -677,7 +717,8 @@ export function 格式化消费水平(p = {}) {
   const 社 = 取(p.社零), 收 = 取(p.人均可支配)
   if (!社 && !收) return {
     有值: false, 收入文本: '', 社零文本: '', 口径: '', 来源串: '', 取数: '', 置信度: '', 来源缺失: false,
-    待补文本: '待补（无公开来源 —— 不编造；结算按代理公式兜底）',
+    ...(DEMO_FILL ? { 缺项文本: '本区位消费统计未纳入，结算按代理公式兜底' }
+      : { 待补文本: '待补（无公开来源 —— 不编造；结算按代理公式兜底）' }),
   }
   const 收口径 = 收 ? (消费口径词(收.来源) || '') : ''
   const 收文本 = 收 ? `居民人均可支配 ${消费千分(收.值)} 元/年（${收.年}${收口径 ? ' · ' + 收口径 : ''}）` : ''
@@ -687,7 +728,7 @@ export function 格式化消费水平(p = {}) {
   return {
     有值: true, 收入文本: 收文本, 社零文本: 社文本, 口径: 收口径,
     来源串: 主 ? String(主.来源 || '') : '', 取数: 主 ? String(主.取数 || '') : '', 置信度: 主 ? String(主.置信度 || '') : '',
-    来源缺失, 待补文本: '',
+    来源缺失, ...(DEMO_FILL ? { 缺项文本: '' } : { 待补文本: '' }),
   }
 }
 export function 区位消费行(名) { return 格式化消费水平(LOCATION_PROFILE[名] || {}) }

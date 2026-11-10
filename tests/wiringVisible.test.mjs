@@ -7,11 +7,11 @@ let 检查数 = 0
 const ok = (c, m) => { 检查数++; if (!c) 坏.push(m) }
 const 读 = (f) => readFileSync('src/' + f, 'utf8')
 
-// B-12 缺数据文案 → Claim 第 3 步
+// B-12 缺算文案 → Claim 第 3 步
 {
   const s = 读('Claim.jsx')
-  ok(/from '\.\/investReturn\.mjs'/.test(s) && /缺数据文案/.test(s), 'B-12 缺数据文案：Claim 引入')
-  ok(/\$\{缺数据文案\}/.test(s), 'B-12 缺数据文案：**渲染进文案**（不是只 import）')
+  ok(/from '\.\/investReturn\.mjs'/.test(s) && /缺算文案/.test(s), 'B-12 缺算文案：Claim 引入')
+  ok(/\$\{缺算文案\}/.test(s), 'B-12 缺算文案：**渲染进文案**（不是只 import）')
 }
 // B-13 未核实项 → 证照页尾
 {

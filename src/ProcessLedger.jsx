@@ -45,7 +45,7 @@ export default function ProcessLedger({ rows, 可导出 = false, onExport = null
         </table>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.7 }}>
-        {台账说明}　·　缺数据显「—」（**没交 ≠ 0 分**）
+        {台账说明}　·　未交项显「—」（**没交 ≠ 0 分**）
       </div>
     </div>
   )

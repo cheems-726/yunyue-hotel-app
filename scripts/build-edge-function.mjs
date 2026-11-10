@@ -36,6 +36,8 @@ const MODULES = [
   'franchiseModel.mjs',
   'franchiseFees.mjs',   // §14.3（G3 二步）：加盟两费计费（settlement 依赖 ⇒ 必须一起组装）
   'siteLocations.mjs',
+  'demoFill.mjs',   // D367：siteLocations 的演示口径填充依赖（漏登 = 部署后 import 404）
+  'demoMode.mjs',   // D367：DEMO_FILL 开关（demoFill 依赖；Deno 下 typeof process 保护）
   'serverTick.mjs',
   'weeklyAuto.mjs',   // E2（N-2）：自动周报纯核心（serverTick 依赖它 ⇒ 必须一起组装）
   'weekInputs.mjs',   // §16.2-B7（铺满批次）：周内输入单源（serverTick 依赖它 ⇒ 必须一起组装）

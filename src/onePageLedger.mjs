@@ -17,6 +17,7 @@ import { settle, parseRooms } from './settlement.js'
 import { 费用清单, franchiseFeeStatus } from './franchiseFees.mjs'   // §14.3 单源：加盟两费只读引擎实收，页面不另乘一遍
 // ★ STATUS 与报价单【共用同一个】状态词表（engineBarrel 的导出名冲突守门抓到我原先重复定义了一个）
 import { propertyQuote, STATUS } from './propertyQuote.mjs'
+import { 品牌可行性 } from './brandFit.mjs'   // A3：放宽记录（预算/房量）供审计与取值表
 import { DEPT_COST_LINES } from './deptCosts.mjs'
 
 export const WEEKS_PER_YEAR = 52          // 年化基准：周值 × 52（与引擎周口径一致）
@@ -25,7 +26,10 @@ export const EXTRAPOLATION_NOTE = '外推：按基准单周年化，非实际发
 //   ⇒ 本页不再自己乘一遍：两费直接读引擎实收（w.franchiseFees，单源），故
 //      【年现金流 === 引擎利润年化】恒成立（差 0，含接入品牌）—— 页面与游戏内不再有缺口。
 //   其余品牌费率待补 ⇒ 引擎不计费、本页也按 0（条目里如实标"待补"，不拿别家费率冒充）。
-export const ENGINE_FEE_NOTE = '引擎自 §14.3 起对 汉庭/全季/海友 实收加盟管理费（营收 5%）+ CRS（营收有效 2.4%）；其余品牌费率待补 ⇒ 不计费也不编造'
+import { DEMO_FILL } from './demoFill.mjs'   // D367 演示口径（编译期常量）
+export const ENGINE_FEE_NOTE = DEMO_FILL
+  ? '引擎自 §14.3 起按品牌档次费率实收加盟管理费（营收 5%–7%）+ CRS（营收有效 2.4%）；全部品牌已接入（演示设定）'
+  : '引擎自 §14.3 起对 汉庭/全季/海友 实收加盟管理费（营收 5%）+ CRS（营收有效 2.4%）；其余品牌费率待补 ⇒ 不计费也不编造'
 
 // 基准决策 = "常规经营"（与批次报告/单配置锚点同源的 7 项），不是"不作为"的空决策
 const BASE_DECISIONS = {
@@ -84,7 +88,9 @@ export function onePageLedger({ brand, property, districtAttrs }) {
       status: 年加盟两费 != null ? STATUS.DERIVED : STATUS.MISSING,
       note: 年加盟两费 != null
         ? `引擎实收（单源 franchiseFees）：基准周两费 ${两费周} 元 × ${WEEKS_PER_YEAR} —— 管理费 ${(w.franchiseFees.费率.管理费 * 100).toFixed(1)}% + CRS 有效 ${(w.franchiseFees.费率.CRS有效 * 100).toFixed(1)}%（均按营收）`
-        : `【待补】${brand?.name || '该品牌'}：${费用状态.原因} ⇒ 引擎未计费，本页也不补数` },
+        : (DEMO_FILL
+          ? `${brand?.name || '该品牌'}：${费用状态.原因} ⇒ 本页按 0 计（演示口径下应已接入）`
+          : `【待补】${brand?.name || '该品牌'}：${费用状态.原因} ⇒ 引擎未计费，本页也不补数`) },
     { label: '年现金流（本页口径）', value: 年现金流, unit: '元/年', fmt: 'wan', status: STATUS.DERIVED,
       note: '年营收 − 年租金 − 年部门成本(固定) − 年变动与其他 − 年加盟两费；★ 与引擎利润年化【恒等】（差 0）' },
   ]
@@ -98,6 +104,7 @@ export function onePageLedger({ brand, property, districtAttrs }) {
     extrapolation: EXTRAPOLATION_NOTE,
     engineFeeNote: ENGINE_FEE_NOTE,
     费用状态,                      // { 品牌, 接入, 原因 }（§14.3：哪些费率已实收、哪些待补）
+    放宽: 品牌可行性({ name: brand?.name, standard: brand?.standard }).放宽 || null,   // A3：演示口径自动放宽记录
     加盟条款: 费用条款,             // 逐项状态：已实收 / 待接入 / 不接
     // ★ 与引擎的一致性锚点（§22.2 更新）：年现金流 === 引擎利润年化 + 一次性项年化（差 0 · 经营口径 = 引擎口径加回开业费用）。
     //   两者都剔掉一次性费用 ⇒ 锚点仍恒等、且两边口径一致（B2 前该锚点就是广义恒等，B2 后保持）。
@@ -112,7 +119,7 @@ export function onePageLedger({ brand, property, districtAttrs }) {
 export function paybackText(ledger) {
   const 现金流 = ledger?.yearly?.现金流
   const 总投资 = ledger?.总投资
-  if (总投资 == null) return { text: '回本周期：待补（总投资缺来源数据）', ok: false }
+  if (总投资 == null) return { text: DEMO_FILL ? '回本周期：暂无可算总投资（先完成品牌与物业测算）' : '回本周期：待补（总投资缺来源数据）', ok: false }
   if (!(现金流 > 0)) return { text: '回本周期：不适用（基准口径下年现金流为 0 或为负 —— 先改善经营再谈回本）', ok: false }
   const y = 总投资 / 现金流
   return { text: `回本周期：约 ${y.toFixed(1)} 年（外推：按基准单周年化，非实际发生）`, ok: true }

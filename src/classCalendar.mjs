@@ -51,3 +51,30 @@ export function 选默认班(list, 我的班, 存过) {
   if (在跑.length === 1) return 在跑[0].class_code
   return 我的 ? 我的.class_code : ''
 }
+
+// ── D367-班级隔离（2026-11-10）· 纯函数（守门 tests/classIsolation.test.mjs）──────
+// 背景：多班并存时，教师端把"全部班"的存档混在一起算 ⇒ 2401 的 12 周状态/决策数串到 2402。
+// 口径：凡是"按班"的统计，先过滤到本班，再做聚合 —— 过滤函数只此一份。
+
+/** 行按班过滤：rows 需带 user_id（game_states）或 uid（groups）；filterClass 空 ⇒ 全部 */
+export function 过滤本班(rows, classByUid = {}, filterClass = '') {
+  const arr = Array.isArray(rows) ? rows : []
+  if (!filterClass) return arr.slice()
+  return arr.filter(r => classByUid[(r && (r.user_id || r.uid))] === filterClass)
+}
+
+/** 最大学期周（只看传入行；"学期是否已满 12 周"的唯一判据） */
+export function 最大学期周(rows) {
+  const arr = Array.isArray(rows) ? rows : []
+  return Math.max(0, ...arr.map(gs => Math.max(0, ...(((gs && gs.state && gs.state.history) || []).map(h => Number(h && h.week) || 0)))))
+}
+
+/** 已完成决策项数（组内按 id 去重：entries 已是 Object.entries ⇒ 每项只算 1） */
+export function 决策项合计(liveList) {
+  return (Array.isArray(liveList) ? liveList : []).reduce((a, g) => a + ((g && g.entries) ? g.entries.length : 0), 0)
+}
+
+/** 学期满信号：状态 running 且本班最大周 ≥ 12 ⇒ 显示结课提示（其余状态走另一条横幅） */
+export function 学期已满信号(rows) {
+  return 最大学期周(rows) >= 12
+}

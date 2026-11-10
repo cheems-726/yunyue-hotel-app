@@ -127,6 +127,7 @@ export function 构建经营报告(gs, { 组名 = '', 批注 = [] } = {}) {
     品质: attrs.quality, 声誉: attrs.reputation, 士气: attrs.morale,
     差评总数: totalNegative(history),
     累计加盟两费: 累计两费,
+    放宽: s.放宽 || null,             // A3：品牌适配放宽记录（预算/房量）——教师报告可读
     覆盖度: { 周数: 行s.length, 净利周数: 资金净利.weeks, 净利完整: 资金净利.complete, 经营完整: 经营净利.complete, GOP完整: 行s.every(r => r.GOP !== null) },
   }
 
