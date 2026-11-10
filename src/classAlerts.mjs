@@ -1,6 +1,8 @@
 // V171 · 教师端课堂预警纯层 —— 只读 + 提示 · 零网络 · 阈值集中一处（老师可调）
 // 数据来源全部标注字段（卡 §1"逐条可点开看依据"）；严重度 ①② 优先。
 
+import { 周经营净利 } from './weeklyProfit.mjs'   // ★ 2026-11-10：资金异常看**经营口径**（剔除开业一次性）
+
 /** 阈值常量（集中一处 · 只许在这里调） */
 export const 阈值 = {
   初始资金: 1490000,          // 资金异常基准（game_states 初始 capital）
@@ -58,9 +60,11 @@ export function 课堂告警({ groups = [], dayIndex = 1, 当前周 = 0, 组名�
     }
     // ③ 资金异常
     if (typeof st.capital === 'number') {
-      const 单周净利 = 末周 ? Number(末周.netProfit) || 0 : null
+      // ★ 开业周含一次性开办费（全季 80 间约 34.9 万）⇒ 用资金口径会误报"资金异常"；
+      //   教学关心的是"经营是否亏损"⇒ 用周经营净利（netProfit + 开业费用 − 保证金退还）。
+      const 单周净利 = 末周 ? 周经营净利(末周) : null
       if (单周净利 != null && 单周净利 < 阈值.资金异常单周净利) {
-        push('A3', `上周净利 ${单周净利.toLocaleString()} 元（< ${阈值.资金异常单周净利.toLocaleString()}）`, 'history[末].netProfit')
+        push('A3', `上周经营净利 ${单周净利.toLocaleString()} 元（< ${阈值.资金异常单周净利.toLocaleString()}）`, 'history[末] 经营口径（netProfit + 一次性开业费用 − 保证金退还）')
       } else if (st.capital < 阈值.初始资金 * 阈值.资金异常比例) {
         push('A3', `资金 ${st.capital.toLocaleString()} 元（< 初始 80% = ${Math.round(阈值.初始资金 * 阈值.资金异常比例).toLocaleString()}）`, 'state.capital · 阈值.初始资金×0.8')
       }
