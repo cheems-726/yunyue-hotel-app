@@ -105,6 +105,12 @@ async function main() {
     const 教师命中 = 禁用词.filter(w => tt.includes(w))
     ok(教师命中.length === 0, `教师首屏禁词 0（${教师命中.join('/') || '无'}）`)
     ok(!/学期已满 12 周/.test(tt), '第 1 周班级不显示「学期已满」（班级隔离）', tt.match(/学期已满[^\n]*/)?.[0] || '')
+    // 周次单一来源：标题「当前第 N 周」与「课堂预警（第 M 周」必须一致
+    {
+      const w1 = /当前第 (\d+) 周/.exec(tt)?.[1]
+      const w2 = /课堂预警（第 (\d+) 周/.exec(tt)?.[1]
+      ok(!w1 || !w2 || w1 === w2, `教师端周次一致（标题第${w1 ?? '?'}周 / 预警第${w2 ?? '?'}周）`)
+    }
     await page2.close()
   } catch (e) {
     ok(false, 'UI 流程异常', e.message)

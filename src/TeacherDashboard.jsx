@@ -996,7 +996,7 @@ function ClassAdminPanel({ filterClass, setFilterClass, user, 班级学期状态
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
         <button className={`city-tab ${filterClass === '' ? 'active' : ''}`} onClick={() => setFilterClass('')}>全部班级</button>
         <button className={`city-tab ${含归档班 ? 'active' : ''}`} data-show-archived onClick={() => set含归档班(v => !v)} title="默认只列正在进行的班；归档班在「我的 → 学期生命周期 / 归档」里可查">{含归档班 ? '只看进行中' : '含归档班'}</button>
-        {班们.map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${c.current_week ?? 0}周`}</button>)}
+        {班们.map(c => <button key={c.class_code} className={`city-tab ${filterClass === c.class_code ? 'active' : ''}`} onClick={() => setFilterClass(c.class_code)}>{c.class_code}{c.semester_status ? `·${c.semester_status}` : ''}{`·第${班进度(c).week || c.current_week || 0}周`}</button>)}
       </div>
       {/* ★ V177§3：本班进度（一班一行 · 与服务端 tick 同一日历口径） */}
       {filterClass && (() => {
@@ -1358,6 +1358,10 @@ export default function TeacherDashboard({ user, onLogout }) {
 const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书（打印版）覆盖层
   const [classByUid, setClassByUid] = useState({}) // uid → class_name 映射
   const [classWeek, setClassWeekState] = useState(0) // 全班统一教学周（0=不限）
+  // ★ 2026-11-10（演示前 · 单一周次来源）：界面显示的"当前周"一律用**班日历**（与 tick/结算同口径），
+  //   库字段 current_week 只在日历不可用时兜底 —— 否则同一屏会出现「第 1 周起」和「课堂预警（第 7 周）」。
+  const 本班当前周 = 所选班进度 && 所选班进度.week ? 所选班进度.week : (classWeek || 0)
+
   // 🔴 W1-5：classDay（服务端权威）。取不到（迁移未应用/离线）时保持 0，
   //   此时进度提示降级为"按教学周推算的近似值"，并在 UI 上标明是近似。
   const [classDay, setClassDay] = useState(0)
@@ -1597,7 +1601,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
     {大屏 && (
       <div className="t-top">
         <b>云悦酒店 · 教学控制台</b>
-        <span>{(profiles && profiles[0] && profiles[0].class_name) || '模拟班'} · 第 {classWeek > 0 ? classWeek : 1} 周起</span>
+        <span>{(profiles && profiles[0] && profiles[0].class_name) || '模拟班'} · 当前第 {本班当前周 > 0 ? 本班当前周 : 1} 周</span>
         <span>学生 {profiles ? profiles.length : 0} 人</span>
         <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
@@ -1818,7 +1822,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
           </div>
 
           {/* ★ V165 · 班级管理面板（建班/导入/开课控制 · 常驻） */}
-          <ClassAdminPanel filterClass={filterClass} setFilterClass={setFilterClass} user={user} 班级学期状态={班级学期状态} 当前周={classWeek} onCreated={null} 备用班={所选班} />
+          <ClassAdminPanel filterClass={filterClass} setFilterClass={setFilterClass} user={user} 班级学期状态={班级学期状态} 当前周={本班当前周} onCreated={null} 备用班={所选班} />
 
           {/* 班级筛选（多班时出现） */}
           {classList.length > 1 && (
@@ -1972,7 +1976,7 @@ const [tasksOpen, setTasksOpen] = useState(false) // §33-V80：12 周任务书�
         rawStates={(rawStates || []).filter(gs => !filterClass || classByUid[gs.user_id] === filterClass)}
         组名映射={Object.fromEntries((profiles || []).filter(p => !filterClass || p.class_name === filterClass).map(p => [p.user_id, p.group_no != null ? `${p.class_name || ''}第${p.group_no}组` : (p.display_name || p.user_id)]))}
         dayIndex={所选班进度 ? (所选班进度.dayIndex || 1) : (() => { try { return dayToWeekDay(Number(classDay) || 0).dayIndex || 1 } catch (e) { return 1 } })()}
-        当前周={所选班进度 ? 所选班进度.week : classWeek}
+        当前周={本班当前周}
         onGoGroup={() => { 跳('groups') }}
       />}
       {view === 'live' && 班级学期状态 === 'running' && (() => {
