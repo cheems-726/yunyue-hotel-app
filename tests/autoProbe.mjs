@@ -7,7 +7,8 @@ import { appendFileSync, existsSync, mkdirSync } from 'node:fs'
 const require = createRequire('D:/教学app/hotel-app/package.json')
 const { chromium } = require('playwright-core')
 
-const BASE = 'https://test.2026911301.xyz/'
+// ★ 2026-11-10：域名未备案，大陆公网 403（Server: Beaver）/ https 被 reset ⇒ 巡检基准改用 IP
+const BASE = 'http://121.196.196.37/'
 const OUT_DIR = 'D:/教学app/4-审计与报告/巡检截图'
 const LOG = 'D:/教学app/4-审计与报告/自动巡检.md'
 const QUIET = process.argv.includes('--quiet')
@@ -28,7 +29,41 @@ try {
     ipInfo = execFileSync('curl.exe', ['-s', '-o', 'NUL', '-k', '-w', '%{http_code} %{redirect_url}', '--max-time', '12', 'https://121.196.196.37/'], { encoding: 'utf8', timeout: 20000 }).trim()
   } catch (e) { ipInfo = 'curl失败' }
   const [ipCode, ipLoc] = ipInfo.split(' ')
-  记('IP 入口跳正式域名', ipCode === '302' && /test\.2026911301\.xyz/.test(ipLoc || ''), `code=${ipCode} → ${ipLoc || '无'}`)
+  // 2026-11-09 15:20 起 nginx 移除了 IP 的 302（IP 直接 200 服务应用）⇒ 200/302 都算通，但要记录实际值
+  记('IP 入口可用（200 或 302）', ipCode === '200' || ipCode === '302', `code=${ipCode} ${ipLoc || ''}`.trim())
+
+  // ①a2 入口包完整性：index.html 引用的 JS 必须 200 且 > 100KB（防"页面在、js 没了"白屏）
+  {
+    let html = '', code = '', size = '0'
+    try { html = execFileSync('curl.exe', ['-s','--max-time','10','--noproxy','*','http://121.196.196.37/'], { encoding: 'utf8', timeout: 15000 }) } catch {}
+    const m = html.match(/\/assets\/index-[^"']+\.js/)
+    if (!m) {
+      记('入口包完整性', false, 'index.html 里找不到 /assets/index-*.js')
+    } else {
+      const u = 'http://121.196.196.37' + m[0]
+      try { code = execFileSync('curl.exe', ['-s','-o','NUL','-w','%{http_code}','--max-time','10','--noproxy','*', u], { encoding: 'utf8', timeout: 15000 }).trim() } catch {}
+      try { size = execFileSync('curl.exe', ['-s','-o','NUL','-w','%{size_download}','--max-time','15','--noproxy','*', u], { encoding: 'utf8', timeout: 20000 }).trim() } catch {}
+      记('入口包完整性', code === '200' && Number(size) > 100000, `${m[0]} → ${code} · ${size} 字节`)
+    }
+  }
+
+  // ①b IP 入口真实浏览器实测（用户点名盯 http://121.196.196.37）
+  {
+    const bIp = await chromium.launch({
+      executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+      headless: true, args: ['--no-proxy-server', '--ignore-certificate-errors', '--mute-audio'],
+    })
+    const ctxIp = await bIp.newContext({ viewport: { width: 390, height: 844 }, ignoreHTTPSErrors: true, isMobile: true, deviceScaleFactor: 2 })
+    const pip = await ctxIp.newPage()
+    let ipText = '', ipErr = ''
+    try {
+      await pip.goto('http://121.196.196.37/', { waitUntil: 'domcontentloaded', timeout: 25000 })
+      await sleep(2500)
+      ipText = (await pip.evaluate(() => document.body.innerText)).replace(/\n+/g, ' | ')
+    } catch (e) { ipErr = String(e.message).split('\n')[0].slice(0, 80) }
+    记('IP 入口能出首屏（真实浏览器）', /请选择你的身份|我是学生/.test(ipText), ipErr || ('URL ' + pip.url().replace(/^https?:\/\//, '').slice(0, 36) + ' · ' + ipText.slice(0, 30)))
+    await bIp.close()
+  }
 
   b = await chromium.launch({
     executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -45,7 +80,13 @@ try {
   const p = await mk()
   await p.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 }); await sleep(2000)
   const t0 = (await p.evaluate(() => document.body.innerText)).replace(/\n+/g, ' | ')
-  记('首屏出「请选择你的身份」', /请选择你的身份/.test(t0), t0.slice(0, 50))
+  记('IP 首屏出「请选择你的身份」', /请选择你的身份/.test(t0), t0.slice(0, 50))
+  // 域名入口只记录、不判红（未备案 ⇒ 大陆 403/000 是已知状态，不是故障）
+  {
+    let dm = 'err'
+    try { dm = execFileSync('curl.exe', ['-s','-o','NUL','-w','%{http_code} %{redirect_url}','--max-time','10','--noproxy','*','http://test.2026911301.xyz/'], { encoding: 'utf8', timeout: 15000 }).trim() } catch {}
+    记('域名入口状态（仅记录·未备案）', true, dm)
+  }
   记('首屏无诊断面板占屏', !/^APP端 \| 网页端 \| [^|]*诊断/.test(t0), '')
 
   // ③ 离线演示：入口可见 → 进入 → 选址
