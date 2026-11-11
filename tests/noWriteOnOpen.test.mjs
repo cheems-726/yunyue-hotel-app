@@ -31,7 +31,7 @@ const 紧跟脏守卫 = (startRe) => {
 }
 ok(紧跟脏守卫(/const doSave = async \(\) => \{/), 'doSave 先读脏版本（为 0 直接 return）')
 ok(紧跟脏守卫(/const flushSave = \(\) => \{/), 'flushSave 先读脏版本（刷新/关页不写）')
-ok(/if \(ok\) \{ if \(脏版本\.current === 本次版本\) 脏版本\.current = 0; return \}/.test(s), '上传成功按版本号归零（不误清并发改动）')
+ok(/if \(r && r\.ok\) \{[\s\S]{0,200}?if \(脏版本\.current === 本次版本\) 脏版本\.current = 0[\s\S]{0,40}?return/.test(s), '上传成功按版本号归零（不误清并发改动）')
 ok(!/localStorage\.(setItem|getItem)\([^\n]*脏版本/.test(s), '脏版本不落 localStorage（跨会话不污染）')
 
 const 置脏点 = [

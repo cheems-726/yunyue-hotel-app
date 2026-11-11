@@ -84,14 +84,14 @@ export async function fetchGameStateRow(userId, groupKey = null) {
   if (groupKey) {
     const { data: g } = await supabase
       .from('game_states')
-      .select('state,rev')
+      .select('*')
       .eq('group_key', groupKey)
       .maybeSingle()
     if (g) return 成行(g)
   }
   const { data, error } = await supabase
     .from('game_states')
-    .select('state,rev')
+    .select('*')
     .eq('user_id', userId)
     .maybeSingle()
   if (error || !data) return null
@@ -135,14 +135,14 @@ export async function saveGameState(userId, state, groupKey = null, rev = null) 
     if (有锁) {
       const 旧 = Number(rev)
       const { data, error } = await supabase.from('game_states')
-        .update({ ...base, rev: 旧 + 1 }).eq('group_key', groupKey).eq('rev', 旧).select('rev')
+        .update({ ...base, rev: 旧 + 1 }).eq('group_key', groupKey).eq('rev', 旧).select('*')
       if (!error && data && data.length) return { ok: true, conflict: false, rev: Number(data[0].rev) }
       if (!error && data && data.length === 0) {
         // 组档还不存在（首次建档）：只在云端确实没有该组时插入；否则就是冲突
-        const { data: 现 } = await supabase.from('game_states').select('rev').eq('group_key', groupKey).maybeSingle()
+        const { data: 现 } = await supabase.from('game_states').select('*').eq('group_key', groupKey).maybeSingle()
         if (!现) {
           const { error: insErr, data: insData } = await supabase.from('game_states')
-            .insert({ ...base, rev: 0, group_key: groupKey, user_id: userId }).select('rev')
+            .insert({ ...base, rev: 0, group_key: groupKey, user_id: userId }).select('*')
           if (!insErr && insData && insData.length) return { ok: true, conflict: false, rev: Number(insData[0].rev) }
         }
         return { ok: false, conflict: true, rev: 现 ? Number(现.rev) : null }
@@ -164,7 +164,7 @@ export async function saveGameState(userId, state, groupKey = null, rev = null) 
   if (有锁) {
     const 旧 = Number(rev)
     const { data, error } = await supabase.from('game_states')
-      .update({ ...base, rev: 旧 + 1 }).eq('user_id', userId).eq('rev', 旧).select('rev')
+      .update({ ...base, rev: 旧 + 1 }).eq('user_id', userId).eq('rev', 旧).select('*')
     if (!error && data && data.length) return { ok: true, conflict: false, rev: Number(data[0].rev) }
     if (!error && data && data.length === 0) return { ok: false, conflict: true, rev: null }
     return { ok: false, conflict: false, rev: null }
