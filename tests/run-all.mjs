@@ -251,6 +251,7 @@ const SUITES = [
   { name: 'uiNoPlaceholder（渲染层禁用词=0·D367）', file: 'tests/uiNoPlaceholder.test.mjs', browser: true },
   { name: 'classIsolation（班级隔离·多班不串数·D367）', file: 'tests/classIsolation.test.mjs' },
   { name: 'noWriteOnOpen（打开即覆盖根治·D369）', file: 'tests/noWriteOnOpen.test.mjs' },
+  { name: 'revLock（rev 乐观锁·V191）', file: 'tests/revLock.test.mjs' },
   { name: 'entryHosts（入口域名白名单·V142）', file: 'tests/entryHosts.test.mjs' },
   { name: 'v142Host（旧站横幅/跳转·V142）', file: 'tests/v142Host.test.mjs', browser: true },
   { name: 'teacherSixLines（六组一句话·V144）', file: 'tests/teacherSixLines.test.mjs' },

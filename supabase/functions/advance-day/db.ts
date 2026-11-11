@@ -27,7 +27,7 @@ export async function readClassState(supa) {
 
 /** 读全班各组存档（组档优先于个人档，与前端 groupKeyOf 口径一致） */
 export async function readGroups(supa) {
-  const { data, error } = await supa.from('game_states').select('user_id, group_key, state, week, finished')
+  const { data, error } = await supa.from('game_states').select('user_id, group_key, state, week, finished, rev')
   if (error) throw new Error('读 game_states 失败：' + error.message)
   const byGroup = new Map()
   for (const row of data || []) {
@@ -39,7 +39,7 @@ export async function readGroups(supa) {
 
 /** 只写结果字段，不碰归属（组档不携带 user_id —— 与前端 saveGameState 同一纪律） */
 export async function writeGroupState(supa, group, save) {
-  const base = { state: save, week: save.week || 1, finished: !!save.finished, updated_at: new Date().toISOString() }
+  const base = { state: save, week: save.week || 1, finished: !!save.finished, updated_at: new Date().toISOString(), rev: (Number(group.rev) || 0) + 1 }   // ★ V191：tick 推进 rev（否则学生手里版本全过期 ⇒ 每次保存都冲突）
   if (group.group_key) {
     const { error } = await supa.from('game_states').update(base).eq('group_key', group.group_key)
     if (error) throw new Error('写组档失败：' + error.message)

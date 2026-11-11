@@ -68,7 +68,7 @@ async function readProfileClasses() {
 
 /** 组档优先于个人档（与前端 groupKeyOf 同口径） */
 async function readGroups() {
-  const r = await fetch(REST + '/game_states?select=user_id,group_key,state,week,finished', { headers: H })
+  const r = await fetch(REST + '/game_states?select=user_id,group_key,state,week,finished,rev', { headers: H })
   if (!r.ok) throw new Error('读 game_states 失败：' + r.status)
   const rows = await j(r)
   const byGroup = new Map()
@@ -81,7 +81,7 @@ async function readGroups() {
 
 /** 只写结果字段，不碰归属（组档不携带 user_id —— 与前端 saveGameState 同纪律） */
 async function writeGroupState(group, save) {
-  const base = { state: save, week: save.week || 1, finished: !!save.finished, updated_at: new Date().toISOString() }
+  const base = { state: save, week: save.week || 1, finished: !!save.finished, updated_at: new Date().toISOString(), rev: (Number(group.rev) || 0) + 1 }   // ★ V191：tick 推进 rev（否则学生手里版本全过期 ⇒ 每次保存都冲突）
   const q = group.group_key
     ? '/game_states?group_key=eq.' + encodeURIComponent(group.group_key)
     : '/game_states?user_id=eq.' + encodeURIComponent(group.user_id)

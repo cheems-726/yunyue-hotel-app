@@ -77,22 +77,30 @@ export function groupKeyOf(className, groupNo) {
 }
 
 // 拉取我的游戏状态（组队共管：优先组档，回退个人档）
-export async function fetchGameState(userId, groupKey = null) {
+// ★ V191（2026-11-11）：读档同时带回乐观锁版本号 rev
+//   返回 { state, rev }；无档 ⇒ null。fetchGameState 保持旧签名（只回 state）兼容既有调用。
+export async function fetchGameStateRow(userId, groupKey = null) {
+  const 成行 = (row) => row ? { state: row.state, rev: Number.isFinite(Number(row.rev)) ? Number(row.rev) : 0 } : null
   if (groupKey) {
     const { data: g } = await supabase
       .from('game_states')
-      .select('*')
+      .select('state,rev')
       .eq('group_key', groupKey)
       .maybeSingle()
-    if (g) return g.state
+    if (g) return 成行(g)
   }
   const { data, error } = await supabase
     .from('game_states')
-    .select('*')
+    .select('state,rev')
     .eq('user_id', userId)
     .maybeSingle()
   if (error || !data) return null
-  return data.state
+  return 成行(data)
+}
+
+export async function fetchGameState(userId, groupKey = null) {
+  const row = await fetchGameStateRow(userId, groupKey)
+  return row ? row.state : null
 }
 
 // V125-#8/#11：酒店名单独写 —— 命名是"一次承诺动作"，必须当场写进云端并回读确认。
@@ -109,35 +117,67 @@ export async function saveHotelName(userId, name, groupKey = null) {
 
 // 保存：有组键则写组档（一组一档），否则写个人档
 // 组档走「先更新后插入」两步式，更新时不携带 user_id —— 保持原属主，避免"最后写入者变成行属主"
-export async function saveGameState(userId, state, groupKey = null) {
+/**
+ * 保存存档。
+ * @param {number|null} rev 读到的乐观锁版本号；**null = 旧路径**（无 CAS，仅兼容补交队等）
+ * @returns {{ok:boolean, conflict:boolean, rev:number|null}}
+ *   有 rev 时走条件更新：?rev=eq.N 且 body.rev=N+1；影响 0 行 ⇒ conflict=true（**不重试、不覆盖**）
+ */
+export async function saveGameState(userId, state, groupKey = null, rev = null) {
   const base = {
     state,
     week: state.week || 1,
     finished: !!state.finished,
     updated_at: new Date().toISOString(),
   }
+  const 有锁 = Number.isFinite(Number(rev))
   if (groupKey) {
+    if (有锁) {
+      const 旧 = Number(rev)
+      const { data, error } = await supabase.from('game_states')
+        .update({ ...base, rev: 旧 + 1 }).eq('group_key', groupKey).eq('rev', 旧).select('rev')
+      if (!error && data && data.length) return { ok: true, conflict: false, rev: Number(data[0].rev) }
+      if (!error && data && data.length === 0) {
+        // 组档还不存在（首次建档）：只在云端确实没有该组时插入；否则就是冲突
+        const { data: 现 } = await supabase.from('game_states').select('rev').eq('group_key', groupKey).maybeSingle()
+        if (!现) {
+          const { error: insErr, data: insData } = await supabase.from('game_states')
+            .insert({ ...base, rev: 0, group_key: groupKey, user_id: userId }).select('rev')
+          if (!insErr && insData && insData.length) return { ok: true, conflict: false, rev: Number(insData[0].rev) }
+        }
+        return { ok: false, conflict: true, rev: 现 ? Number(现.rev) : null }
+      }
+      return { ok: false, conflict: false, rev: null }
+    }
     const { data, error } = await supabase.from('game_states')
       .update(base).eq('group_key', groupKey).select('*')
-    if (!error && data && data.length) return true
+    if (!error && data && data.length) return { ok: true, conflict: false, rev: null }
     // 组档还不存在：插入建档（属主 = 首个写入者）
     const { error: insErr } = await supabase.from('game_states')
       .insert({ ...base, group_key: groupKey, user_id: userId })
-    if (!insErr) return true
+    if (!insErr) return { ok: true, conflict: false, rev: null }
     // 并发兜底：队友可能刚建好档，回退为更新
     const { error: upErr } = await supabase.from('game_states')
       .update(base).eq('group_key', groupKey)
-    return !upErr
+    return { ok: !upErr, conflict: false, rev: null }
+  }
+  if (有锁) {
+    const 旧 = Number(rev)
+    const { data, error } = await supabase.from('game_states')
+      .update({ ...base, rev: 旧 + 1 }).eq('user_id', userId).eq('rev', 旧).select('rev')
+    if (!error && data && data.length) return { ok: true, conflict: false, rev: Number(data[0].rev) }
+    if (!error && data && data.length === 0) return { ok: false, conflict: true, rev: null }
+    return { ok: false, conflict: false, rev: null }
   }
   const { error } = await supabase.from('game_states')
     .upsert({ ...base, group_key: null, user_id: userId })
-  return !error
+  return { ok: !error, conflict: false, rev: null }
 }
 
 // 离开页面兜底保存（visibilitychange/pagehide 触发）：fetch keepalive 直调 REST 并手动带
 // apikey + Authorization 鉴权头 —— sendBeacon 带不了鉴权头会被 RLS 拒绝，故不用。
 // 只做更新（PATCH），不携带归属字段；行尚不存在时静默放弃，常规防抖路径会补上。
-export function saveGameStateNow(userId, state, groupKey = null) {
+export function saveGameStateNow(userId, state, groupKey = null, rev = null) {
   // ★ V170§2：8 秒超时信号（弱网不无限挂起 · 一次自动重试在调用方）
   try {
     const m = SUPABASE_URL.match(/https:\/\/([^.]+)\./)
@@ -148,7 +188,9 @@ export function saveGameStateNow(userId, state, groupKey = null) {
     const filter = groupKey
       ? `group_key=eq.${encodeURIComponent(groupKey)}`
       : `user_id=eq.${encodeURIComponent(userId)}`
-    return fetch(`${SUPABASE_URL}/rest/v1/game_states?${filter}`, {
+    const 有锁 = Number.isFinite(Number(rev))
+    const filterLock = 有锁 ? `${filter}&rev=eq.${Number(rev)}` : filter
+    return fetch(`${SUPABASE_URL}/rest/v1/game_states?${filterLock}`, {
       method: 'PATCH',
       keepalive: true,
       signal: 超时信号(8000),
@@ -156,17 +198,23 @@ export function saveGameStateNow(userId, state, groupKey = null) {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
+        Prefer: 'return=representation',
       },
       body: JSON.stringify({
         state,
         week: state.week || 1,
         finished: !!state.finished,
         updated_at: new Date().toISOString(),
+        ...(有锁 ? { rev: Number(rev) + 1 } : {}),
       }),
-    }).then(r => r.ok).catch(() => false)
+    }).then(async r => {
+      if (!r.ok) return { ok: false, conflict: false }
+      if (!有锁) return { ok: true, conflict: false }
+      const arr = await r.json().catch(() => null)
+      return Array.isArray(arr) && arr.length === 0 ? { ok: false, conflict: true } : { ok: true, conflict: false }
+    }).catch(() => ({ ok: false, conflict: false }))
   } catch (e) {
-    return Promise.resolve(false)
+    return Promise.resolve({ ok: false, conflict: false })
   }
 }
 

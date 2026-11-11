@@ -43,7 +43,7 @@ import Welcome from './Welcome.jsx'
 import { settle } from './settlement.js'
 import { decisions, OWNER_LABELS } from './decisions.js'
 import { STUDENT_STATE_COPY } from './classAdmin.mjs'   // ★ V165：四态文案单源
-import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog, setGroupRole } from './supabaseClient.js'
+import { supabase, SUPABASE_URL, fetchAllGameStates, emailFor, fetchProfile, fetchGameState, fetchGameStateRow, fetchClassWeek, fetchClassState, fetchClassDay, fetchGroupMembers, fetchGroupStates, updateOwnName, saveGameState, saveGameStateNow, saveHotelName, groupKeyOf, fetchMyNotes, saveDecisionLog, setGroupRole } from './supabaseClient.js'
 import { getTitle } from './hotelTitle.js'
 import { EVENT_INFO } from './settlement.js'
 import { 投资回报, 百分比, 万元 as 万元回报 } from './investReturn.mjs'
@@ -2349,6 +2349,30 @@ export default function App() {
   //   为什么用「版本号」而不是布尔：推送 await 期间若又改了，布尔会被旧请求误清 ⇒ 丢一次同步。
   const 脏版本 = useRef(0)
   const 标记改动 = () => { 脏版本.current += 1 }
+  // ★ V191（A 步 · rev 乐观锁）：本地持有的云端版本号；null = 尚无（首存走建档）
+  const 云端rev = useRef(null)
+  const 冲突计数 = useRef(0)
+  const 暂停同步至 = useRef(0)
+  // 冲突文案（设计稿 §三 终稿；红线：不出现「冲突/版本冲突/CAS/409/被覆盖/请刷新页面」）
+  const 冲突文案 = {
+    轻: '这份存档刚被别处更新过，已同步到最新。你刚才的改动已记进「经营操作记录」，可以照着再确认一次。',
+    保存: '同一组另一台设备刚保存过决策，你这次没有覆盖它。已按最新版本同步；你的这一项改动已记进操作记录，需要的话再保存一次即可。',
+    连三: '检测到两台设备在同时改这一组。为避免数据错乱，已暂停自动同步 30 秒；请只用一台设备继续。',
+  }
+  // ★ V191：关页冲刺（flush）遇到冲突时只留了标记 ⇒ 下次打开提示一次并补证据
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('hotel-sim-sync-note') === '1') {
+        localStorage.removeItem('hotel-sim-sync-note')
+        toast(冲突文案.轻)
+        setOperatorLogs(logs => [...(Array.isArray(logs) ? logs : []), {
+          decisionId: '__sync__', 决策名: '同步提示（关页时的改动未覆盖他人）', 职位: null, 职位名: '',
+          operatorId: null, operatorName: null, answer: null, week: Number(week) || 0, classDay: null, profitImpact: null,
+          说明: '上一次关页前有改动未推上去；已按最新存档同步，改动未覆盖别人', 时刻: new Date().toISOString(),
+        }])
+      }
+    } catch (e) { /* 静默理由：提示失败不影响页面；下一次冲突仍会记录 */ }
+  }, [])
 
   // §22.3-C3：操作者记录（每条含 操作者/职位/决策/时间）—— 供教师端按人查（C4）与职位归属（C2）
   const [operatorLogs, setOperatorLogs] = useState(Array.isArray(saved.operatorLogs) ? saved.operatorLogs : [])
@@ -2560,6 +2584,36 @@ export default function App() {
       return { 版本: 1, week: Number(week) || 1, decisions: b }
     } catch (e) { return null }
   })() })
+  // ★ V191 冲突处理（顺序固定）：①重拉云端 ②覆盖本机 ③留证据 ④提示 ⑤连续 3 次暂停 30 秒
+  async function 处理冲突() {
+    const gk = groupKeyOf(user?.className, user?.groupNo)
+    let row = null
+    try { row = await fetchGameStateRow(user.uid, gk) } catch (e) { /* 静默理由：拉取失败保留本机，下一次操作会再走一遍冲突分支 */ }
+    if (row && row.state) {
+      const { state: 云端档 } = restoreFromCloud(row.state)
+      应用云端档(云端档)
+      云端rev.current = row.rev
+    }
+    冲突计数.current += 1
+    // ③ 证据：本机未推的改动写进「经营操作记录」（不覆盖别人）
+    try {
+      setOperatorLogs(logs => [...(Array.isArray(logs) ? logs : []), {
+        decisionId: '__sync__', 决策名: '同步提示（本机改动未覆盖他人）', 职位: null, 职位名: '',
+        operatorId: user?.id || null, operatorName: user?.name || null,
+        answer: null, week: Number(week) || 0, classDay: null, profitImpact: null,
+        说明: '别处更新了本组存档；你的改动已保留在记录里，可对照最新存档再确认一次', 时刻: new Date().toISOString(),
+      }])
+    } catch (e) { /* 静默理由：证据追加失败不阻断冲突恢复流程 */ }
+    // ④ 提示 + ⑤ 连三暂停
+    if (冲突计数.current >= 3) {
+      暂停同步至.current = Date.now() + 30000
+      冲突计数.current = 0
+      toast(冲突文案.连三)
+    } else {
+      toast(冲突文案.轻)
+    }
+  }
+
   useEffect(() => {
     if (!user?.cloud || !user?.uid || restoring || 云端恢复中) return
     if (user.role && user.role !== 'student') return   // ★ V168§1：教师不得走学生存档初始化/保存路径（孤儿行根因：教师登录触发个人档 upsert ⇒ group_key='' 行）
@@ -2571,16 +2625,24 @@ export default function App() {
       // D368 三点快照守卫保留（纵深防御：即使误置脏，内容与云端一致也不写）
       try { if (云端快照.current && 云端快照.current.week === cloudState.week && 云端快照.current.dec === Object.keys(cloudState.doneDecisions || {}).length && 云端快照.current.cap === cloudState.capital) return } catch (e) { /* 静默理由：快照比对失败按"需推送"处理，不影响正确性 */ }
       const 本次版本 = 脏版本.current
+      // ★ V191：连续冲突 3 次后的暂停窗口内一律不推
+      if (Date.now() < 暂停同步至.current) return
 
       try {
-        const ok = await saveGameState(user.uid, cloudState, gk)
-        if (ok) { if (脏版本.current === 本次版本) 脏版本.current = 0; return }
+        const r = await saveGameState(user.uid, cloudState, gk, 云端rev.current)
+        if (r && r.ok) {
+          云端rev.current = Number.isFinite(Number(r.rev)) ? Number(r.rev) : 云端rev.current
+          冲突计数.current = 0
+          if (脏版本.current === 本次版本) 脏版本.current = 0
+          return
+        }
+        if (r && r.conflict) { await 处理冲突(); return }   // ★ 不重试、不覆盖（卡 §2.2）
         if (retries < 1) { retries++; retryT = setTimeout(doSave, 超时信号 ? 1000 : 3000); return }
         // ★ V170§1：失败 ⇒ 进本地待交队列（不弹"失败请重试"），online/15s 自动补交
-        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
+        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk, rev: 云端rev.current }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
       } catch (e) {
         if (retries < 1) { retries++; retryT = setTimeout(doSave, 3000); return }
-        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
+        set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk, rev: 云端rev.current }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
       }
     }
     const t = setTimeout(() => { pending = false; doSave() }, 800)
@@ -2595,7 +2657,10 @@ export default function App() {
       pending = false
       clearTimeout(t)
       // 静默理由：本地存档/写盘失败不影响内存态；云写失败已由 toast 报告
-      saveGameStateNow(user.uid, cloudState, gk).catch(() => {})
+      saveGameStateNow(user.uid, cloudState, gk, 云端rev.current).then(r => {
+        // ★ V191：关页瞬间无法走完整冲突流程 ⇒ 只留证据标记，下次打开提示
+        if (r && r.conflict) { try { localStorage.setItem('hotel-sim-sync-note', '1') } catch (e) { /* 静默理由：标记失败仅少一次提示 */ } }
+      }).catch(() => {})
     }
     const onVis = () => { if (document.hidden) flushSave() }
     const onHide = () => flushSave()
@@ -2614,7 +2679,7 @@ export default function App() {
   const 补交全部 = async () => {
     const q = (() => { try { return JSON.parse(localStorage.getItem(待交队KEY) || '[]') } catch (e) { return [] } })()
     if (!q.length) { set待同步([]); return }
-    const { 剩余 } = await 补交待交队(q.map(item => ({ ...item, exec: () => saveGameState(item.userId, item.state, item.groupKey) })),
+    const { 剩余 } = await 补交待交队(q.map(item => ({ ...item, exec: async () => { const r = await saveGameState(item.userId, item.state, item.groupKey, item.rev); return r && r.ok } })),
       (rest) => { try { localStorage.setItem(待交队KEY, JSON.stringify(rest)) } catch (e) {} /* 静默理由：补交中途暂存失败下次再存 */ /* 静默理由：同上 · 补交中途暂存失败下次再存 */ })
     set待同步(剩余)
   }
@@ -2669,6 +2734,28 @@ export default function App() {
   function close() {
     setOpenPage(null)
   }
+  // ★ V191：把云端档应用到本机内存（登录恢复 / 乐观锁冲突后同步 共用同一份 setter 列表）
+  function 应用云端档(cloudSaved) {
+    setLocation(cloudSaved.location || null)
+    setBrand(cloudSaved.brand || null)
+    setProperty(cloudSaved.property || null)
+    setEstablished(!!cloudSaved.established)
+    setEstChoices(cloudSaved.estChoices || null)
+    setDoneDecisions(cloudSaved.doneDecisions || {})
+    try { 云端快照.current = { week: cloudSaved.week, dec: Object.keys(cloudSaved.doneDecisions || {}).length, cap: cloudSaved.capital } } catch (e) { /* 静默理由：快照记录失败只是少一层优化，不影响恢复与保存 */ }
+    if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
+    if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
+    set游戏记录(cloudSaved.游戏记录 || {})
+    set续营(!!cloudSaved.续营)
+    setOperatorLogs(Array.isArray(cloudSaved.operatorLogs) ? cloudSaved.operatorLogs : [])
+    setReport(cloudSaved.report || null)
+    setHotelName(cloudSaved.hotelName || '')
+    setWeek(cloudSaved.week || 1)
+    setHistory(cloudSaved.history || [])
+    setFinished(!!cloudSaved.finished)
+    setWelcomed(!!cloudSaved.welcomed)
+    setAttrs(normalizeAttrs(cloudSaved.attrs))
+  }
   async function handleLogin(userInfo) {
     setUser(userInfo)
     setTab('business')
@@ -2677,7 +2764,9 @@ export default function App() {
     if (userInfo.cloud && userInfo.uid) {
       set云端恢复中(true)
       try {
-        const cloudRaw = await fetchGameState(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
+        const __row = await fetchGameStateRow(userInfo.uid, groupKeyOf(userInfo.className, userInfo.groupNo))
+        云端rev.current = __row ? __row.rev : null
+        const cloudRaw = __row ? __row.state : null
         // 🔴 批次 B1.5（读取侧）：云端档必须过 restoreFromCloud ——
         //   它负责（a）旧云档按 D25 迁移（b）已是 v2 则原样返回（幂等）。
         //   背景：B1 只补了本机路径，抽查发现【云端三处全漏】——旧云档恢复后会与本机新档混口径。
@@ -2691,27 +2780,7 @@ export default function App() {
           try { console.log('[云端存档迁移]', '已按 D25 迁到新量级并回写本机 v2') } catch (e) {}
         }
         if (cloudSaved) {
-          setLocation(cloudSaved.location || null)
-          setBrand(cloudSaved.brand || null)
-          setProperty(cloudSaved.property || null)
-          setEstablished(!!cloudSaved.established)
-          setEstChoices(cloudSaved.estChoices || null)
-          setDoneDecisions(cloudSaved.doneDecisions || {})
-        try { 云端快照.current = { week: cloudSaved.week, dec: Object.keys(cloudSaved.doneDecisions || {}).length, cap: cloudSaved.capital } } catch (e) { /* 静默理由：快照记录失败只是少一层优化，不影响恢复与保存 */ }
-          if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
-          if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
-          set游戏记录(cloudSaved.游戏记录 || {})   // ★ V152：换设备后游戏记录跟档走（不丢）
-          set续营(!!cloudSaved.续营)
-        setOperatorLogs(Array.isArray(cloudSaved.operatorLogs) ? cloudSaved.operatorLogs : [])
-          setReport(cloudSaved.report || null)
-          // ★ V125-#11：必须回填酒店名 —— 原先登录不恢复 hotelName ⇒ 云端有名字也照样弹补命名页，
-          //   再命名一次又把云端名字覆盖掉（组 2/3 实证）。以云端为准（本机旧档可能属于别的账号）。
-          setHotelName(cloudSaved.hotelName || '')
-          setWeek(cloudSaved.week || 1)
-          setHistory(cloudSaved.history || [])
-          setFinished(!!cloudSaved.finished)
-          setWelcomed(!!cloudSaved.welcomed)
-          setAttrs(normalizeAttrs(cloudSaved.attrs)) // 旧云档无 attrs → 回退初值
+          应用云端档(cloudSaved)
           // 欢迎回来提示（老档才提示）
           if (cloudSaved.location) toast(`欢迎回来，第 ${cloudSaved.week || 1} 周经营中`)
         } else if (user && user.id !== userInfo.id) {
