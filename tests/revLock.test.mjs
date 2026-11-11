@@ -10,7 +10,7 @@ ok(existsSync(new URL('../supabase-migration-v191-game-states-rev.sql', import.m
 ok(/ADD COLUMN IF NOT EXISTS rev integer NOT NULL DEFAULT 0/i.test(sql), '迁移：rev 列（幂等 + 非空默认 0）')
 ok(/UPDATE public\.game_states SET rev = 0 WHERE rev IS NULL/i.test(sql), '迁移：历史行兜底归零')
 const sc = rd('../src/supabaseClient.js')
-ok(/export async function fetchGameStateRow/.test(sc) && /select\('state,rev'\)/.test(sc), '读：fetchGameStateRow 带 rev')
+ok(/export async function fetchGameStateRow/.test(sc) && /select\('\*'\)/.test(sc) && /row\.rev/.test(sc), '读：fetchGameStateRow 带 rev（select *，禁手写列清单）')
 ok(/eq\('rev', 旧\)/.test(sc) && /rev: 旧 \+ 1/.test(sc), '写：条件更新 ?rev=eq.N 且 body rev=N+1')
 ok(/conflict: true/.test(sc) && /data\.length === 0/.test(sc), '写：0 行 ⇒ conflict=true（不重试不覆盖）')
 ok(/filterLock/.test(sc) && /return=representation/.test(sc), '关页冲刷同样走 rev 条件 + 可数返回')
