@@ -246,6 +246,11 @@ const SUITES = [
   { name: 'loginDiagV140（登录诊断/兜底·V140）', file: 'tests/loginDiagV140.test.mjs', browser: true },
   { name: 'weeklyProfit（经营利润口径·V141）', file: 'tests/weeklyProfit.test.mjs' },
   { name: 'v141Profit（经营表现/游戏入口·V141）', file: 'tests/v141Profit.test.mjs', browser: true },
+  // ★ D367/D369：包内死分支 · 渲染层禁词 · 班级隔离 · 打开即覆盖
+  { name: 'demoModeDeadBranch（演示包禁用词=0·D367）', file: 'tests/demoModeDeadBranch.test.mjs' },
+  { name: 'uiNoPlaceholder（渲染层禁用词=0·D367）', file: 'tests/uiNoPlaceholder.test.mjs', browser: true },
+  { name: 'classIsolation（班级隔离·多班不串数·D367）', file: 'tests/classIsolation.test.mjs' },
+  { name: 'noWriteOnOpen（打开即覆盖根治·D369）', file: 'tests/noWriteOnOpen.test.mjs' },
   { name: 'entryHosts（入口域名白名单·V142）', file: 'tests/entryHosts.test.mjs' },
   { name: 'v142Host（旧站横幅/跳转·V142）', file: 'tests/v142Host.test.mjs', browser: true },
   { name: 'teacherSixLines（六组一句话·V144）', file: 'tests/teacherSixLines.test.mjs' },

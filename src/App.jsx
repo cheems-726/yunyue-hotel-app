@@ -2340,6 +2340,16 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
   const [doneDecisions, setDoneDecisions] = useState(saved.doneDecisions || {}) // 已完成的决策
+  // ★ D368-同步修复：刚从云端恢复的状态快照（相同 ⇒ 本机没改动 ⇒ 不推云端，避免「打开即覆盖别人数据」）
+  const 云端快照 = useRef('')   // 静默理由：快照读取失败按"无快照"处理，仅影响跳过上传的优化
+  // ★ D369（2026-11-11 · 同步「打开即覆盖」根治）· 脏版本号（ref，不落 localStorage）
+  //   0 = 本机自上次成功上传以来**没有任何用户操作** ⇒ 打开/刷新/关页一律不推云端。
+  //   每次真操作（决策保存 / 周结算 / 认领 / 筹建 / 押注 / 复盘 / 委托 / 取名 / 重开）自增 1。
+  //   上传成功时若版本号未再增长 ⇒ 归 0；若期间又有操作 ⇒ 保留（下次 effect 继续推）。
+  //   为什么用「版本号」而不是布尔：推送 await 期间若又改了，布尔会被旧请求误清 ⇒ 丢一次同步。
+  const 脏版本 = useRef(0)
+  const 标记改动 = () => { 脏版本.current += 1 }
+
   // §22.3-C3：操作者记录（每条含 操作者/职位/决策/时间）—— 供教师端按人查（C4）与职位归属（C2）
   const [operatorLogs, setOperatorLogs] = useState(Array.isArray(saved.operatorLogs) ? saved.operatorLogs : [])
   // RPG 属性池（品质/声誉/士气）：旧档无 attrs 时用 normalizeAttrs 兜底，保证不 NaN 不报错
@@ -2400,6 +2410,7 @@ export default function App() {
   async function 确认酒店名(名) {
     const name = String(名 || '').trim()
     if (!name) return { ok: false, 原因: '名字不能为空' }
+    标记改动()                      // D369：取名 = 真操作
     if (!user?.cloud || !user?.uid) { setHotelName(name); return { ok: true } }
     const gk = groupKeyOf(user.className, user.groupNo)
     try {
@@ -2555,9 +2566,15 @@ export default function App() {
     const gk = groupKeyOf(user.className, user.groupNo)
     let retries = 0, pending = true, retryT = null
     const doSave = async () => {
+      // ★ D369：**没有用户操作就绝不推**（打开/刷新/恢复后 effect 重跑都不会上传）
+      if (!脏版本.current) return
+      // D368 三点快照守卫保留（纵深防御：即使误置脏，内容与云端一致也不写）
+      try { if (云端快照.current && 云端快照.current.week === cloudState.week && 云端快照.current.dec === Object.keys(cloudState.doneDecisions || {}).length && 云端快照.current.cap === cloudState.capital) return } catch (e) { /* 静默理由：快照比对失败按"需推送"处理，不影响正确性 */ }
+      const 本次版本 = 脏版本.current
+
       try {
         const ok = await saveGameState(user.uid, cloudState, gk)
-        if (ok) return
+        if (ok) { if (脏版本.current === 本次版本) 脏版本.current = 0; return }
         if (retries < 1) { retries++; retryT = setTimeout(doSave, 超时信号 ? 1000 : 3000); return }
         // ★ V170§1：失败 ⇒ 进本地待交队列（不弹"失败请重试"），online/15s 自动补交
         set待同步(旧 => { const q = 入待交队(旧, { key: (gk || user.uid) + ':' + (cloudState.week || 1), userId: user.uid, state: cloudState, groupKey: gk }); try { localStorage.setItem(待交队KEY, JSON.stringify(q)) } catch (e) {} /* 静默理由：队列暂存失败不阻断保存，下次补交事件会再存 */ return q })
@@ -2569,6 +2586,11 @@ export default function App() {
     const t = setTimeout(() => { pending = false; doSave() }, 800)
     // 离开页面前强制保存：切后台/刷新/关闭时立即冲刷未上传的改动
     const flushSave = () => {
+      // ★ D369：没有用户操作 ⇒ 刷新/关页/切后台一律不推（本轮核心判据 1–3）
+      if (!脏版本.current) return
+      // D368 三点快照守卫保留（纵深防御）
+      try { if (云端快照.current && 云端快照.current.week === cloudState.week && 云端快照.current.dec === Object.keys(cloudState.doneDecisions || {}).length && 云端快照.current.cap === cloudState.capital) return } catch (e) { /* 静默理由：快照比对失败按"需推送"处理，不影响正确性 */ }
+
       if (!pending) return
       pending = false
       clearTimeout(t)
@@ -2675,6 +2697,7 @@ export default function App() {
           setEstablished(!!cloudSaved.established)
           setEstChoices(cloudSaved.estChoices || null)
           setDoneDecisions(cloudSaved.doneDecisions || {})
+        try { 云端快照.current = { week: cloudSaved.week, dec: Object.keys(cloudSaved.doneDecisions || {}).length, cap: cloudSaved.capital } } catch (e) { /* 静默理由：快照记录失败只是少一层优化，不影响恢复与保存 */ }
           if (typeof cloudSaved.capital === 'number') setCapital(cloudSaved.capital)
           if (cloudSaved.bizMode) setBizMode(cloudSaved.bizMode === 'ota' ? 'ota' : 'direct')
           set游戏记录(cloudSaved.游戏记录 || {})   // ★ V152：换设备后游戏记录跟档走（不丢）
@@ -3109,6 +3132,7 @@ export default function App() {
   function handleNextWeek() {
     // ★ V152 §2：续营周上限 —— 班级开关开 + 学生已选续营 ⇒ 24 周结业；否则 12 周（学期口径不变）
     const 下一步 = 下一周状态({ history, report, week, 总周数: (班级续营开关 && 续营) ? 24 : 12 })
+    标记改动()                      // D369：周结算 = 真操作
     setHistory(下一步.history)
     setDecisionChanges([])          // E2：本周流水已进周报 ⇒ 清空，下周重新记
     prevDecisionsRef.current = {}   // 新一周：首次填写不算"改动"
@@ -3124,6 +3148,7 @@ export default function App() {
   // ★ V128-#3 批2：完成一个今日委托 —— 只记录（本机 + weekInputs），引擎不读
   function 确认委托(q, 选项, 文本) {
     if (!q) return
+    标记改动()                      // D369：委托 = 真操作
     const next = 追加委托记录(week, { 天: q.天, 类: q.类, 选项, 时刻: new Date().toISOString() })
     set委托记录(next)
     if (q.需写一句 && 文本) {
@@ -3139,6 +3164,7 @@ export default function App() {
     if (押注有效(本周押注, week)) { toast('本周已押注，不可修改'); return }
     const b = { week, 出租率: Math.round(Number(值 && 值.出租率)), 净利方向: String((值 && 值.净利方向) || ''), 提交时刻: new Date().toISOString(), ...(值 && 值.迟押 ? { 迟押: true } : {}) }
     if (!押注有效(b, week)) { toast('押注无效：请给出 0–100 的出租率和净利方向'); return }
+    标记改动()                      // D369：押注 = 真操作
     set本周押注(b)
     toast(b.迟押 ? '已补押（不计分）' : '押注已锁定，周报揭晓')
   }
@@ -3146,6 +3172,7 @@ export default function App() {
   function 提交复盘(三问) {
     const x = (Array.isArray(三问) ? 三问 : []).map(t => String(t == null ? '' : t).trim())
     if (!复盘合格(x)) { toast(复盘三问.map((q, i) => `${i + 1}. ${q}`).join(' ')); return false }
+    标记改动()                      // D369：复盘 = 真操作
     set复盘(prev => [...(Array.isArray(prev) ? prev : []).filter(r => Number(r && r.week) !== Number(week)), { week, 三问: x, 提交时刻: new Date().toISOString() }])
     toast('复盘已提交')
     return true
@@ -3166,6 +3193,7 @@ export default function App() {
     setEstablished(false)
   }
   function handleClaimComplete(result) {
+    标记改动()                      // D369：认领提交 = 真操作
     if (result.property) setProperty(result.property)          // 完成认领（第二步）
     if (result.mode) setBizMode(result.mode === 'ota' ? 'ota' : 'direct')  // 认领第一步选的经营模式（此前被丢弃 → B5 根因）
     // ★ V131 §1-C：6 步取舍进存档（只作讲评素材 · 不影响引擎）
@@ -3174,6 +3202,7 @@ export default function App() {
     setEstablished(false)
   }
   function handleEstablished(choices) {
+    标记改动()                      // D369：筹建提交 = 真操作
     const c = choices || { invest: null, supplier: null, opening: [], investTiers: {} }
     // 筹建期"物资采购"是一次性选择（非周决策）：品质养成从这里起步，只应用一次
     // 用 estChoices 是否已有渠道做幂等保护（重进筹建流程不会重复加分）
@@ -3364,7 +3393,7 @@ export default function App() {
               onClick={() => set成果页开(true)}>查看我的经营成果（投屏版）</button>
           )}
         </div>
-        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} /* 静默理由：重开经营清评价流水，失败不阻塞重置 */ }} />
+        <FinalResult history={history} user={user} brand={brand} attrs={attrs} onRestart={() => { 标记改动(); setFinished(false); setWeek(1); setHistory([]); setDoneDecisions({}); setAttrs({ ...ATTR_INIT }); try { localStorage.removeItem('hotel-sim-reviews') } catch (e) {} /* 静默理由：重开经营清评价流水，失败不阻塞重置 */ }} />
       </div>
     )
   }
@@ -3439,6 +3468,7 @@ export default function App() {
               }).catch(() => { toast('决策已存本机，但云端流水上传异常，不影响本周结算') })
             }
             setDoneDecisions({ ...doneDecisions, [id]: answer })
+            标记改动()                      // D369：决策保存 = 真操作
             // ★ V131 §1-B：关键决策的一句理由（按周落库；改答案时同步更新）
             if (reason && String(reason).trim()) set决策理由(prev => ({ ...(prev || {}), [id]: { week, 文本: String(reason).trim().slice(0, 30) } }))
             // ★ §22.3-C3：操作者记录落存档（每条含 操作者/职位/决策/时间）——
@@ -3551,7 +3581,7 @@ export default function App() {
       {成果页开 && (
         <SemesterResult history={history} attrs={attrs} 续营开关={班级续营开关} 已续营={续营 || week > 12}
           onBack={() => set成果页开(false)}
-          on续营={() => { set续营(true); setFinished(false); setWeek(13); setDoneDecisions({}); setReport(null); set成果页开(false) }} />
+          on续营={() => { 标记改动(); set续营(true); setFinished(false); setWeek(13); setDoneDecisions({}); setReport(null); set成果页开(false) }} />
       )}
       {!游戏进行中 && (
       <div className="tabbar">

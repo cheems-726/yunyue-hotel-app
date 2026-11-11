@@ -31,8 +31,8 @@ function 扫目录(dir) {
 const demo = 扫目录('dist/assets')
 const strict = 扫目录('dist-strict/assets')
 
-let 失败 = 0
-const ok = (cond, msg, detail) => {
+let 失败 = 0, 检查数 = 0
+const ok = (cond, msg, detail) => { 检查数++
   console.log((cond ? '  ✓ ' : '  ✗ ') + msg)
   if (!cond) { 失败++; if (detail) console.log('    ' + String(detail).slice(0, 600)) }
 }
@@ -50,5 +50,5 @@ if (strict) {
   console.log('  ⏭ dist-strict 未构建（可选）：YUNYUE_DEMO_FILL=0 npx vite build --outDir dist-strict')
 }
 
-console.log(`结果: ${失败 === 0 ? '通过' : 失败 + ' 条失败'} / 0 跳过`)
+console.log(`结果: ${检查数 - 失败} 通过 / ${失败} 失败 / 0 跳过`)
 process.exit(失败 === 0 ? 0 : 1)
